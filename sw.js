@@ -1,6 +1,6 @@
 // Service worker: guarda todo en caché para que la app ande sin internet.
 // Cambiá VERSION cada vez que cambien los archivos para que se actualicen.
-const VERSION = 'metrica-v2';
+const VERSION = 'metrica-v3';
 const ARCHIVOS = [
     './',
     'index.html',

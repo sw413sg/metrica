@@ -10,7 +10,7 @@ const $ = id => document.getElementById(id);
 const todasLasPalabras = parsearPalabras(textoPalabras);
 const palabrasSimples = parsearPalabras(textoPalabrasSimples);
 
-// El índice de rimas tarda medio segundo en armarse: se arma recién cuando se usa.
+// El índice de rimas tarda un par de segundos en armarse: se arma una sola vez.
 let indice = null;
 const indiceRimas = () => indice ??= crearIndiceRimas(todasLasPalabras, parsearFrecuencias(textoFrecuencias));
 
@@ -171,6 +171,8 @@ $('terminacion').addEventListener('input', refrescarPalabras);
 // ---------- Inicio ----------
 renderizarLetras();
 refrescarPalabras();
+// Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
+setTimeout(indiceRimas, 300);
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('sw.js');

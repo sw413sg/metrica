@@ -82,18 +82,10 @@ function sonido(texto) {
         .replace(/[áéíóúü]/g, l => SIN_TILDE[l]);
 }
 
-// Clave de rima consonante: cómo suena desde la vocal tónica. "canción" -> "on".
-export function claveConsonante(palabra) {
-    const a = analizarPalabra(palabra);
-    if (!a) return null;
-    // "g" y "c" dependen de la vocal que sigue, así que miramos desde la tónica.
-    return sonido(a.palabra.slice(a.vocalTonica));
-}
+// "g" y "c" dependen de la vocal que sigue, así que miramos desde la tónica.
+const consonanteDe = a => sonido(a.palabra.slice(a.vocalTonica));
 
-// Clave de rima asonante: la vocal tónica y la última. "casa" -> "aa", "canción" -> "o".
-export function claveAsonante(palabra) {
-    const a = analizarPalabra(palabra);
-    if (!a) return null;
+function asonanteDe(a) {
     let clave = sinTildes(a.palabra[a.vocalTonica]);
     if (a.tonico < a.nucleos.length - 1) {
         clave += sinTildes(a.palabra[vocalPrincipal(a.palabra, a.nucleos[a.nucleos.length - 1])]);
@@ -101,24 +93,39 @@ export function claveAsonante(palabra) {
     return clave;
 }
 
+// Clave de rima consonante: cómo suena desde la vocal tónica. "canción" -> "on".
+export function claveConsonante(palabra) {
+    const a = analizarPalabra(palabra);
+    return a && consonanteDe(a);
+}
+
+// Clave de rima asonante: la vocal tónica y la última. "casa" -> "aa", "canción" -> "o".
+export function claveAsonante(palabra) {
+    const a = analizarPalabra(palabra);
+    return a && asonanteDe(a);
+}
+
 // Arma el índice una sola vez: clave -> palabras, de más usadas a menos usadas
 // (las que no tienen frecuencia van al final, en orden alfabético).
 // frecuencias: Map palabra -> cantidad.
 export function crearIndiceRimas(palabras, frecuencias = new Map()) {
-    const indice = { consonante: new Map(), asonante: new Map(), frecuencias };
+    // consonantePorPalabra evita volver a analizar al filtrar las asonantes.
+    const indice = { consonante: new Map(), asonante: new Map(), consonantePorPalabra: new Map() };
     const agregar = (mapa, clave, palabra) => {
-        if (!clave) return;
         if (!mapa.has(clave)) mapa.set(clave, []);
         mapa.get(clave).push(palabra);
     };
-    for (const palabra of new Set(palabras)) {
-        if (ATONAS.has(palabra) || !analizarPalabra(palabra)) continue;
-        agregar(indice.consonante, claveConsonante(palabra), palabra);
-        agregar(indice.asonante, claveAsonante(palabra), palabra);
-    }
-    const orden = (a, b) => (frecuencias.get(b) ?? 0) - (frecuencias.get(a) ?? 0) || a.localeCompare(b, 'es');
-    for (const mapa of [indice.consonante, indice.asonante]) {
-        for (const lista of mapa.values()) lista.sort(orden);
+    // Ordenar una sola vez todo el diccionario (y no cada lista) es mucho más rápido.
+    const unicas = [...new Set(palabras)];
+    const conFrecuencia = unicas.filter(p => frecuencias.has(p)).sort((a, b) => frecuencias.get(b) - frecuencias.get(a));
+    const sinFrecuencia = unicas.filter(p => !frecuencias.has(p)).sort(new Intl.Collator('es').compare);
+    for (const palabra of [...conFrecuencia, ...sinFrecuencia]) {
+        const a = ATONAS.has(palabra) ? null : analizarPalabra(palabra);
+        if (!a) continue;
+        const consonante = consonanteDe(a);
+        indice.consonantePorPalabra.set(palabra, consonante);
+        agregar(indice.consonante, consonante, palabra);
+        agregar(indice.asonante, asonanteDe(a), palabra);
     }
     return indice;
 }
@@ -128,10 +135,10 @@ export function crearIndiceRimas(palabras, frecuencias = new Map()) {
 export function buscarRimas(palabra, indice, { tipo = 'consonante' } = {}) {
     const a = analizarPalabra(palabra);
     if (!a) return [];
-    const consonante = claveConsonante(palabra);
+    const consonante = consonanteDe(a);
     if (tipo === 'consonante') {
         return (indice.consonante.get(consonante) ?? []).filter(p => p !== a.palabra);
     }
     return (indice.asonante.get(claveAsonante(palabra)) ?? [])
-        .filter(p => p !== a.palabra && claveConsonante(p) !== consonante);
+        .filter(p => p !== a.palabra && indice.consonantePorPalabra.get(p) !== consonante);
 }
