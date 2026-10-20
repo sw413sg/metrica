@@ -1,18 +1,27 @@
-/* Colores del sistema de iOS (claro / oscuro). Mismos nombres que en SwiftUI. */
+/* Estilo "vidrio" de iOS 26: fondo con brillos suaves y tarjetas translúcidas.
+   Los nombres siguen a SwiftUI (en la app nativa: .glassEffect() y materiales). */
 :root {
     color-scheme: light dark;
-    --fondo: #f2f2f7;               /* systemGroupedBackground */
-    --celda: #ffffff;               /* secondarySystemGroupedBackground */
-    --texto: #000000;               /* label */
-    --texto-2: rgba(60, 60, 67, 0.6);  /* secondaryLabel */
-    --texto-3: rgba(60, 60, 67, 0.3);  /* tertiaryLabel */
-    --separador: rgba(60, 60, 67, 0.29);
-    --relleno: rgba(118, 118, 128, 0.12); /* tertiarySystemFill */
-    --acento: #ff2d55;              /* systemPink */
+    --fondo: #f5f0fb;
+    --brillo-1: #f6d3ee;
+    --brillo-2: #dcd3ff;
+    --brillo-3: #fde3f1;
+    --tarjeta: rgba(255, 255, 255, 0.78);
+    --vidrio: rgba(255, 255, 255, 0.55);
+    --vidrio-borde: rgba(255, 255, 255, 0.85);
+    --sombra: 0 10px 30px rgba(110, 70, 160, 0.12);
+    --celda: #ffffff;
+    --texto: #1c1530;
+    --texto-2: rgba(60, 50, 90, 0.62);
+    --texto-3: rgba(60, 50, 90, 0.32);
+    --separador: rgba(60, 50, 90, 0.12);
+    --relleno: rgba(118, 100, 160, 0.12);
+    --acento: #7b61ff;
+    --acento-2: #c56cf0;
+    --acento-suave: rgba(123, 97, 255, 0.14);
     --verde: #34c759;
-    --barra: rgba(249, 249, 249, 0.94);
     --segmento: #ffffff;
-    /* Colores para pintar rimas (paso 2) */
+    /* Colores para pintar rimas */
     --rima-1: rgba(48, 176, 199, 0.35);
     --rima-2: rgba(255, 45, 85, 0.3);
     --rima-3: rgba(255, 204, 0, 0.4);
@@ -21,24 +30,37 @@
 }
 @media (prefers-color-scheme: dark) {
     :root {
-        --fondo: #000000;
-        --celda: #1c1c1e;
-        --texto: #ffffff;
-        --texto-2: rgba(235, 235, 245, 0.6);
-        --texto-3: rgba(235, 235, 245, 0.3);
-        --separador: rgba(84, 84, 88, 0.6);
-        --relleno: rgba(118, 118, 128, 0.24);
-        --acento: #ff375f;
+        --fondo: #0d0f16;
+        --brillo-1: #2a2350;
+        --brillo-2: #12304a;
+        --brillo-3: #2b1630;
+        --tarjeta: rgba(32, 35, 48, 0.72);
+        --vidrio: rgba(40, 44, 60, 0.5);
+        --vidrio-borde: rgba(255, 255, 255, 0.1);
+        --sombra: 0 10px 30px rgba(0, 0, 0, 0.45);
+        --celda: #1c1e28;
+        --texto: #f4f2ff;
+        --texto-2: rgba(235, 232, 250, 0.6);
+        --texto-3: rgba(235, 232, 250, 0.3);
+        --separador: rgba(255, 255, 255, 0.08);
+        --relleno: rgba(255, 255, 255, 0.08);
+        --acento: #9d8bff;
+        --acento-2: #e08cf5;
+        --acento-suave: rgba(157, 139, 255, 0.18);
         --verde: #30d158;
-        --barra: rgba(22, 22, 23, 0.94);
-        --segmento: #636366;
+        --segmento: rgba(255, 255, 255, 0.16);
     }
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-    background: var(--fondo);
+    background:
+        radial-gradient(circle at 12% 8%, var(--brillo-1) 0, transparent 45%),
+        radial-gradient(circle at 92% 35%, var(--brillo-2) 0, transparent 42%),
+        radial-gradient(circle at 25% 92%, var(--brillo-3) 0, transparent 50%),
+        var(--fondo);
+    background-attachment: fixed;
     color: var(--texto);
     font: 17px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -49,35 +71,47 @@ button, input, textarea { font: inherit; color: inherit; }
 button { background: none; border: 0; padding: 0; cursor: pointer; }
 a { color: var(--acento); text-decoration: none; }
 
+/* Vidrio: lo translúcido que flota (barra de pestañas, botones, sugerencias). */
+.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .sugerencias, .buscador, .segmentado {
+    background: var(--vidrio); border: 1px solid var(--vidrio-borde); box-shadow: var(--sombra);
+    -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+}
+/* Tarjetas: lo que contiene contenido (listas, palabras, letras). */
+.lista-agrupada, .palabra, .tarjeta-freestyle, .tarjeta-letra {
+    background: var(--tarjeta); border: 1px solid var(--vidrio-borde); box-shadow: var(--sombra);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+}
+
 .icono { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Estructura */
 .app { max-width: 430px; margin: 0 auto; height: 100%; }
 .pantalla, .vista { display: none; height: 100%; flex-direction: column; overflow-y: auto; }
 .pantalla.activa, .vista.activa { display: flex; }
-.pantalla { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
+.pantalla { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
 .pantalla#pantalla-letras { overflow: hidden; }
 .contenido { padding: 0 16px 24px; }
 
 /* Barra de navegación y título grande */
 .barra-nav {
     display: flex; align-items: center; justify-content: space-between;
-    min-height: 44px; padding: env(safe-area-inset-top) 8px 0;
+    min-height: 56px; padding: calc(env(safe-area-inset-top) + 6px) 16px 0;
     color: var(--acento); flex-shrink: 0;
 }
 .titulo-grande { font-size: 34px; font-weight: 700; letter-spacing: 0.01em; margin: 0 16px 8px; }
-.boton-barra { padding: 8px; display: flex; color: var(--acento); }
+.boton-barra { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--acento); }
+.boton-barra .icono { width: 21px; height: 21px; }
 .boton-barra[aria-pressed="false"] { color: var(--texto-3); }
-.boton-atras { display: flex; align-items: center; gap: 2px; color: var(--acento); padding: 8px 8px 8px 0; }
-.acciones-barra { display: flex; }
+.boton-atras { display: flex; align-items: center; gap: 2px; height: 42px; padding: 0 16px 0 10px; border-radius: 21px; color: var(--acento); font-weight: 500; }
+.acciones-barra { display: flex; gap: 8px; }
 
 /* Listas agrupadas (List con .insetGrouped) */
 .encabezado-grupo { font-size: 13px; font-weight: 400; text-transform: uppercase; color: var(--texto-2); margin: 24px 16px 6px; }
-.lista-agrupada { list-style: none; margin: 16px 0 0; padding: 0; background: var(--celda); border-radius: 10px; overflow: hidden; }
+.lista-agrupada { list-style: none; margin: 16px 0 0; padding: 0; border-radius: 20px; overflow: hidden; }
 .lista-agrupada:empty { display: none; }
 .encabezado-grupo + .lista-agrupada { margin-top: 0; }
-.celda { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 10px 16px; position: relative; }
-.celda + .celda::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: 0.5px solid var(--separador); }
+.celda { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; padding: 12px 18px; position: relative; }
+.celda + .celda::before { content: ""; position: absolute; top: 0; left: 18px; right: 18px; border-top: 0.5px solid var(--separador); }
 .celda a { flex: 1; color: var(--texto); }
 .valor, .chevron { color: var(--texto-2); }
 .celda-boton { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; color: var(--texto); }
@@ -90,49 +124,73 @@ a { color: var(--acento); text-decoration: none; }
 .vacio { color: var(--texto-2); text-align: center; margin: 48px 24px; }
 .nota { color: var(--texto-2); font-size: 13px; margin: 8px 16px; }
 
+/* Letras: grilla de tarjetas con la tarjeta "+" primero (LazyVGrid en SwiftUI). */
+.grilla-letras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.grilla-letras ul { display: contents; list-style: none; }
+.tarjeta-nueva {
+    min-height: 168px; border-radius: 22px; display: grid; place-items: center; color: #fff;
+    background: linear-gradient(135deg, var(--acento), var(--acento-2)); box-shadow: 0 10px 30px var(--acento-suave);
+}
+.tarjeta-nueva .icono { width: 40px; height: 40px; stroke-width: 2.4; }
+.tarjeta-letra { border-radius: 22px; min-height: 168px; overflow: hidden; }
+.tarjeta-letra button { width: 100%; height: 100%; padding: 16px; display: flex; flex-direction: column; gap: 6px; text-align: left; color: var(--texto); }
+.fecha-letra { color: var(--acento); font-weight: 700; font-size: 18px; }
+.titulo-letra { font-weight: 600; font-size: 16px; overflow-wrap: anywhere; }
+.texto-letra { color: var(--texto-2); font-size: 12px; line-height: 1.4; white-space: pre-line; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; }
+
 /* Interruptor (Toggle) */
 .interruptor { appearance: none; width: 51px; height: 31px; border-radius: 16px; background: var(--relleno); position: relative; margin: 0; flex-shrink: 0; transition: background .2s; }
 .interruptor::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform .2s; }
-.interruptor:checked { background: var(--verde); }
+.interruptor:checked { background: var(--acento); }
 .interruptor:checked::after { transform: translateX(20px); }
 
 /* Buscador y control segmentado (Picker .segmented) */
-.buscador { width: 100%; border: 0; border-radius: 10px; background: var(--relleno); padding: 8px 12px; outline: none; }
-.segmentado { display: flex; background: var(--relleno); border-radius: 9px; padding: 2px; margin-top: 12px; }
-.segmentado button { flex: 1; padding: 6px; border-radius: 7px; font-size: 14px; font-weight: 500; }
+.buscador { width: 100%; border-radius: 16px; padding: 12px 16px; outline: none; }
+.buscador:focus { border-color: var(--acento); }
+.segmentado { display: flex; border-radius: 16px; padding: 4px; margin-top: 12px; }
+.segmentado button { flex: 1; padding: 8px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--texto-2); }
+.segmentado button[aria-selected="true"] { color: var(--texto); }
 .segmentado button[aria-selected="true"] { background: var(--segmento); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
 
 /* Botones */
 .botones { display: flex; gap: 12px; margin-top: 16px; }
-.boton-relleno, .boton-gris { flex: 1; padding: 14px; border-radius: 12px; font-weight: 600; }
-.boton-relleno { background: var(--acento); color: #fff; }
-.boton-gris { background: var(--relleno); color: var(--acento); }
+.boton-relleno, .boton-gris { flex: 1; padding: 15px; border-radius: 18px; font-weight: 600; }
+.boton-relleno { background: linear-gradient(135deg, var(--acento), var(--acento-2)); color: #fff; box-shadow: 0 8px 24px var(--acento-suave); }
+.boton-gris { background: var(--vidrio); border: 1px solid var(--vidrio-borde); color: var(--acento); }
 
 /* Palabras al azar */
 .grilla-palabras { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
 .palabra[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--acento); color: var(--acento); }
-.palabra { background: var(--celda); border-radius: 12px; padding: 18px 8px; text-align: center; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.palabra { border-radius: 20px; padding: 22px 8px; text-align: center; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
 .barra-progreso { height: 4px; border-radius: 2px; background: var(--relleno); margin-top: 16px; overflow: hidden; }
 .barra-progreso div { height: 100%; width: 100%; background: var(--acento); transform-origin: left; }
 
 /* Freestyle */
-.tarjeta-freestyle { background: var(--celda); border-radius: 12px; padding: 20px 16px; text-align: center; margin-top: 8px; }
-.reloj { margin: 0; color: var(--texto-2); font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.reloj.terminado { color: var(--acento); }
+.tarjeta-freestyle { border-radius: 24px; padding: 24px 16px 20px; text-align: center; margin-top: 8px; }
+/* El reloj de la ronda en un aro con brillo. */
+.reloj {
+    width: 128px; height: 128px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+    font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--texto);
+    border: 3px solid transparent;
+    background: linear-gradient(var(--celda), var(--celda)) padding-box,
+                linear-gradient(135deg, #f3d38a, var(--acento), var(--acento-2)) border-box;
+    box-shadow: 0 0 36px var(--acento-suave), inset 0 0 24px var(--acento-suave);
+}
+.reloj.terminado { color: var(--acento); font-size: 24px; }
 .palabra-fs { margin: 16px 0 4px; font-size: 44px; font-weight: 700; overflow-wrap: anywhere; }
 .palabra-fs .tonica { color: var(--acento); text-decoration: underline; text-underline-offset: 6px; }
 .palabra-fs .separador { color: var(--texto-3); font-weight: 400; }
 .proxima { margin: 0 0 16px; color: var(--texto-2); font-size: 15px; min-height: 20px; }
 .tiempos { display: flex; justify-content: center; gap: 14px; }
-.tiempos span { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--relleno); color: var(--texto-2); font-size: 15px; font-variant-numeric: tabular-nums; }
+.tiempos span { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--relleno); color: var(--texto-2); font-size: 15px; font-variant-numeric: tabular-nums; }
 .tiempos span:first-child { font-weight: 700; }
-.tiempos span.activo { background: var(--acento); color: #fff; }
+.tiempos span.activo { background: linear-gradient(135deg, var(--acento), var(--acento-2)); color: #fff; box-shadow: 0 0 16px var(--acento-suave); }
 .deslizador { flex: 1; min-width: 0; accent-color: var(--acento); }
 select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--texto-2); text-align-last: right; }
 
 /* Editor de letra */
-.vista#vista-editor { background: var(--celda); overflow: hidden; }
-.editor { flex: 1; display: flex; flex-direction: column; padding: 0 16px; min-height: 0; }
+.vista#vista-editor { overflow: hidden; }
+.editor { flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0; }
 .editor-titulo { border: 0; background: none; outline: none; font-size: 28px; font-weight: 700; padding: 8px 0; }
 .editor-cuerpo { flex: 1; display: flex; gap: 8px; min-height: 0; overflow-y: auto; }
 .editor-texto, .editor-fondo, .silabas { font-size: 19px; line-height: 30px; }
@@ -153,26 +211,24 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .silabas.oculto { display: none; }
 .sugerencias {
     display: flex; gap: 8px; overflow-x: auto; flex-shrink: 0;
-    padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
-    border-top: 0.5px solid var(--separador); background: var(--barra);
+    margin: 0 10px calc(8px + env(safe-area-inset-bottom)); padding: 8px; border-radius: 24px;
 }
-body.teclado-abierto .sugerencias { padding-bottom: 8px; }
-.sugerencias-vacio { color: var(--texto-2); font-size: 15px; padding: 6px 0; }
-.sugerencia { padding: 6px 12px; border-radius: 8px; background: var(--relleno); white-space: nowrap; }
+body.teclado-abierto .sugerencias { margin-bottom: 8px; }
+.sugerencias-vacio { color: var(--texto-2); font-size: 15px; padding: 7px 8px; }
+.sugerencia { padding: 7px 14px; border-radius: 16px; background: var(--acento-suave); color: var(--texto); font-weight: 500; white-space: nowrap; }
 
 /* Tab bar */
+/* Barra de pestañas flotante de vidrio, como en iOS 26. */
 .barra-pestanas {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-    display: flex; justify-content: center;
-    padding-bottom: env(safe-area-inset-bottom);
-    background: var(--barra); border-top: 0.5px solid var(--separador);
-    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    position: fixed; left: 16px; right: 16px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 10;
+    max-width: 398px; margin: 0 auto; padding: 5px;
+    display: flex; justify-content: space-between; border-radius: 32px;
 }
 .barra-pestanas button {
-    flex: 1; max-width: 86px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    font-size: 10px; font-weight: 500; color: var(--texto-2);
+    flex: 1; height: 54px; border-radius: 27px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    font-size: 10px; font-weight: 600; color: var(--texto-2);
 }
-.barra-pestanas button[aria-selected="true"] { color: var(--acento); }
+.barra-pestanas button[aria-selected="true"] { color: var(--acento); background: var(--acento-suave); }
 body.editando .barra-pestanas { display: none; }
 body.editando .pantalla#pantalla-letras { padding-bottom: 0; }
 /* En iPhone el teclado tapa la parte de abajo: el editor ocupa solo lo que se ve
