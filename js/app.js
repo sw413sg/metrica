@@ -319,5 +319,11 @@ refrescarPalabras();
 setTimeout(indiceRimas, 300);
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    // Cuando llega una versión nueva, recargamos una vez para usarla (las letras
+    // están en localStorage, así que no se pierde nada).
+    const habiaVersion = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (habiaVersion) location.reload(); });
     navigator.serviceWorker.register('sw.js');
+    // Pedimos que el navegador no borre las letras guardadas si le falta espacio.
+    navigator.storage?.persist?.();
 }

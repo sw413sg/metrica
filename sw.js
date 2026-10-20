@@ -1,6 +1,7 @@
 // Service worker: guarda todo en caché para que la app ande sin internet.
-// Cambiá VERSION cada vez que cambien los archivos para que se actualicen.
-const VERSION = 'metrica-v6';
+// Cambiá VERSION cada vez que cambien los archivos: así el teléfono baja la versión
+// nueva la próxima vez que abra la app con internet (y la app se recarga sola).
+const VERSION = 'metrica-v7';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -24,7 +25,9 @@ const ARCHIVOS = [
 ];
 
 self.addEventListener('install', evento => {
-    evento.waitUntil(caches.open(VERSION).then(cache => cache.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
+    // cache: 'reload' saltea la caché del navegador, para no guardar archivos viejos.
+    const pedidos = ARCHIVOS.map(archivo => new Request(archivo, { cache: 'reload' }));
+    evento.waitUntil(caches.open(VERSION).then(cache => cache.addAll(pedidos)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', evento => {
