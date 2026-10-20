@@ -174,3 +174,9 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .barra-pestanas button[aria-selected="true"] { color: var(--acento); }
 body.editando .barra-pestanas { display: none; }
 body.editando .pantalla#pantalla-letras { padding-bottom: 0; }
+/* En iPhone el teclado tapa la parte de abajo: el editor ocupa solo lo que se ve
+   (lo calcula js/app.js), así la barra de sugerencias queda justo arriba del teclado. */
+body.editando .vista#vista-editor {
+    position: fixed; left: 0; right: 0; max-width: 430px; margin: 0 auto;
+    top: var(--arriba-visible, 0px); height: var(--alto-visible, 100%);
+}

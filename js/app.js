@@ -125,6 +125,17 @@ $('sugerencias').addEventListener('click', e => {
     guardarActual();
 });
 
+// Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
+if (window.visualViewport) {
+    const ajustarAlTeclado = () => {
+        document.documentElement.style.setProperty('--alto-visible', `${visualViewport.height}px`);
+        document.documentElement.style.setProperty('--arriba-visible', `${visualViewport.offsetTop}px`);
+    };
+    visualViewport.addEventListener('resize', ajustarAlTeclado);
+    visualViewport.addEventListener('scroll', ajustarAlTeclado);
+    ajustarAlTeclado();
+}
+
 $('nueva-letra').addEventListener('click', () => abrirEditor(nuevaLetra()));
 $('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
 $('borrar-letra').addEventListener('click', () => {
@@ -319,5 +330,11 @@ refrescarPalabras();
 setTimeout(indiceRimas, 300);
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    // Cuando llega una versión nueva, recargamos una vez para usarla (las letras
+    // están en localStorage, así que no se pierde nada).
+    const habiaVersion = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (habiaVersion) location.reload(); });
     navigator.serviceWorker.register('sw.js');
+    // Pedimos que el navegador no borre las letras guardadas si le falta espacio.
+    navigator.storage?.persist?.();
 }

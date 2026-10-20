@@ -8,10 +8,13 @@ const assert = require('node:assert/strict');
 
 const tipos = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml',
     '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.md': 'text/plain'};
+// Para simular que se publicó una versión nueva, se le agrega esto al final de sw.js.
+let versionNueva = '';
 const servidor = http.createServer((req, res) => {
     const archivo = path.join(__dirname, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
     fs.readFile(archivo, (err, datos) => {
         if (err) { res.writeHead(404); return res.end(); }
+        if (archivo.endsWith('sw.js')) datos = datos + versionNueva;
         res.writeHead(200, {'Content-Type': tipos[path.extname(archivo)] || 'application/octet-stream'});
         res.end(datos);
     });
@@ -50,6 +53,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#editor-fondo mark').count(), 0);
         await page.locator('#alternar-colores').click();
         await page.screenshot({path: `capturas/editor-${tema}.png`});
+        // Con el teclado abierto (se ven 500 px), la barra de sugerencias queda justo arriba.
+        await page.evaluate(() => document.documentElement.style.setProperty('--alto-visible', '500px'));
+        const barra = await page.locator('#sugerencias').boundingBox();
+        assert.equal(Math.round(barra.y + barra.height), 500);
+        await page.screenshot({path: `capturas/editor-teclado-${tema}.png`});
+        await page.evaluate(() => navigator.userAgent && document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px'));
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
 
@@ -137,11 +146,31 @@ const servidor = http.createServer((req, res) => {
         }
         await page.screenshot({path: `capturas/ajustes-${tema}.png`});
 
-        // Sin internet: recarga desde el service worker.
+        // Sin internet: recarga desde el service worker y anda todo.
         await page.context().setOffline(true);
         await page.reload();
         assert.equal(await page.locator('#pantalla-letras').isVisible(), true);
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        await page.locator('#buscar-rima').fill('luna');
+        assert.ok((await page.locator('#resultados-rimas .celda').allTextContents()).includes('fortuna'));
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
+        await page.locator('#fs-empezar').click();
+        await page.locator('#fs-palabra .tonica').waitFor();
+        await page.locator('#fs-empezar').click();
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+        await page.locator('#nueva-letra').click();
+        await page.locator('#editor-titulo').fill('Sin internet');
+        await page.locator('#editor-atras').click();
+        assert.deepEqual(await page.locator('#lista-letras .celda-boton span:first-child').allTextContents(), ['Sin internet']);
         await page.context().setOffline(false);
+
+        // Versión nueva publicada: la app la baja y se recarga sola, sin perder las letras.
+        versionNueva = `\n// prueba ${tema}`;
+        const recarga = page.waitForEvent('load');
+        await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r.update()));
+        await recarga;
+        assert.deepEqual(await page.locator('#lista-letras .celda-boton span:first-child').allTextContents(), ['Sin internet']);
+        versionNueva = '';
 
         assert.deepEqual(errores, []);
         await page.close();
