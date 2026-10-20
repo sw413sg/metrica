@@ -150,18 +150,22 @@ $('borrar-letra').addEventListener('click', () => {
 });
 editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); });
 $('editor-titulo').addEventListener('input', guardarActual);
-// Colores y sílabas se prenden y apagan, y se recuerda la elección.
-for (const id of ['alternar-colores', 'alternar-silabas']) {
+// Colores, renglones y sílabas se prenden y apagan, y se recuerda la elección.
+function aplicarAlternables() {
+    $('silabas').classList.toggle('oculto', $('alternar-silabas').getAttribute('aria-pressed') !== 'true');
+    document.querySelector('.editor-capas').classList.toggle('renglones', $('alternar-renglones').getAttribute('aria-pressed') === 'true');
+}
+for (const id of ['alternar-colores', 'alternar-renglones', 'alternar-silabas']) {
     if (localStorage.getItem(`metrica.${id}`) === 'false') $(id).setAttribute('aria-pressed', 'false');
     $(id).addEventListener('click', e => {
         const boton = e.currentTarget;
         boton.setAttribute('aria-pressed', boton.getAttribute('aria-pressed') !== 'true');
         localStorage.setItem(`metrica.${id}`, boton.getAttribute('aria-pressed'));
-        $('silabas').classList.toggle('oculto', $('alternar-silabas').getAttribute('aria-pressed') !== 'true');
+        aplicarAlternables();
         actualizarEditor();
     });
 }
-$('silabas').classList.toggle('oculto', $('alternar-silabas').getAttribute('aria-pressed') !== 'true');
+aplicarAlternables();
 
 // ---------- Rimas ----------
 let tipoRima = 'consonante';

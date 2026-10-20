@@ -21,6 +21,9 @@
     --acento-suave: rgba(123, 97, 255, 0.14);
     --verde: #34c759;
     --segmento: #ffffff;
+    --libreta: #f2f2f7;
+    --renglon: rgba(60, 60, 67, 0.16);
+    --teclado: #d1d4da;
     /* Colores para pintar rimas */
     --rima-1: rgba(48, 176, 199, 0.35);
     --rima-2: rgba(255, 45, 85, 0.3);
@@ -49,6 +52,9 @@
         --acento-suave: rgba(157, 139, 255, 0.18);
         --verde: #30d158;
         --segmento: rgba(255, 255, 255, 0.16);
+        --libreta: #1c1c1e;
+        --renglon: rgba(255, 255, 255, 0.1);
+        --teclado: #2c2c2e;
     }
 }
 
@@ -72,7 +78,7 @@ button { background: none; border: 0; padding: 0; cursor: pointer; }
 a { color: var(--acento); text-decoration: none; }
 
 /* Vidrio: lo translúcido que flota (barra de pestañas, botones, sugerencias). */
-.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .sugerencias, .buscador, .segmentado {
+.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .buscador, .segmentado {
     background: var(--vidrio); border: 1px solid var(--vidrio-borde); box-shadow: var(--sombra);
     -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
 }
@@ -191,10 +197,12 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 /* Editor de letra */
 .vista#vista-editor { overflow: hidden; }
 .editor { flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0; }
-.editor-titulo { border: 0; background: none; outline: none; font-size: 28px; font-weight: 700; padding: 8px 0; }
+.editor-titulo { border: 0; background: none; outline: none; font-size: 24px; font-weight: 700; padding: 8px 0; }
 .editor-cuerpo { flex: 1; display: flex; gap: 8px; min-height: 0; overflow-y: auto; }
-.editor-texto, .editor-fondo, .silabas { font-size: 19px; line-height: 30px; }
+.editor-texto, .editor-fondo, .silabas { font-size: 17px; line-height: 28px; }
 .editor-capas { flex: 1; position: relative; min-height: 100%; }
+/* Renglones de cuaderno, uno por línea de texto (se apagan desde la barra). */
+.editor-capas.renglones { background: repeating-linear-gradient(to bottom, transparent 0 27px, var(--renglon) 27px 28px); }
 .editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: transparent; pointer-events: none; }
 .editor-fondo mark { color: transparent; border-radius: 4px; }
 .rima-0 { background: var(--rima-1); }
@@ -206,16 +214,20 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
     position: relative; display: block; width: 100%; min-height: 100%; border: 0; border-radius: 0; background: none;
     outline: none; resize: none; padding: 0; overflow: hidden; -webkit-appearance: none; appearance: none;
 }
-.silabas { width: 20px; flex-shrink: 0; color: var(--texto-3); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
-.silabas div { height: 30px; }
+.silabas { width: 20px; flex-shrink: 0; color: var(--texto-3); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.silabas div { height: 28px; }
 .silabas.oculto { display: none; }
+/* Sugerencias pegadas al teclado y de su mismo color, como una fila más del teclado. */
 .sugerencias {
-    display: flex; gap: 8px; overflow-x: auto; flex-shrink: 0;
-    margin: 0 10px calc(8px + env(safe-area-inset-bottom)); padding: 8px; border-radius: 24px;
+    display: flex; overflow-x: auto; flex-shrink: 0; background: var(--teclado);
+    padding: 0 0 env(safe-area-inset-bottom);
 }
-body.teclado-abierto .sugerencias { margin-bottom: 8px; }
-.sugerencias-vacio { color: var(--texto-2); font-size: 15px; padding: 7px 8px; }
-.sugerencia { padding: 7px 14px; border-radius: 16px; background: var(--acento-suave); color: var(--texto); font-weight: 500; white-space: nowrap; }
+body.teclado-abierto .sugerencias { padding-bottom: 0; }
+.sugerencias-vacio { color: var(--texto-2); font-size: 15px; padding: 12px 16px; }
+.sugerencia { padding: 11px 16px; font-size: 18px; color: var(--texto); white-space: nowrap; }
+.sugerencia + .sugerencia { border-left: 1px solid var(--separador); }
+/* La libreta va sobre gris liso, sin brillos. */
+body.editando, body.editando .vista#vista-editor { background: var(--libreta); }
 
 /* Tab bar */
 /* Barra de pestañas flotante de vidrio, como en iOS 26. */
