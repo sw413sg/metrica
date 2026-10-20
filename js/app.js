@@ -130,6 +130,8 @@ if (window.visualViewport) {
     const ajustarAlTeclado = () => {
         document.documentElement.style.setProperty('--alto-visible', `${visualViewport.height}px`);
         document.documentElement.style.setProperty('--arriba-visible', `${visualViewport.offsetTop}px`);
+        // Con el teclado abierto no hace falta dejar lugar para la barrita de inicio del iPhone.
+        document.body.classList.toggle('teclado-abierto', visualViewport.height < innerHeight * 0.8);
     };
     visualViewport.addEventListener('resize', ajustarAlTeclado);
     visualViewport.addEventListener('scroll', ajustarAlTeclado);

@@ -54,11 +54,18 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#alternar-colores').click();
         await page.screenshot({path: `capturas/editor-${tema}.png`});
         // Con el teclado abierto (se ven 500 px), la barra de sugerencias queda justo arriba.
-        await page.evaluate(() => document.documentElement.style.setProperty('--alto-visible', '500px'));
+        await page.evaluate(() => {
+            document.documentElement.style.setProperty('--alto-visible', '500px');
+            document.body.classList.add('teclado-abierto');
+        });
         const barra = await page.locator('#sugerencias').boundingBox();
         assert.equal(Math.round(barra.y + barra.height), 500);
         await page.screenshot({path: `capturas/editor-teclado-${tema}.png`});
-        await page.evaluate(() => navigator.userAgent && document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px'));
+        assert.equal(await page.locator('#sugerencias').evaluate(b => getComputedStyle(b).paddingBottom), '8px');
+        await page.evaluate(() => {
+            document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px');
+            document.body.classList.remove('teclado-abierto');
+        });
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
 
