@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar, filtrarPorTerminacion } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas } from './logica/rimas.js';
 import { contarSilabasVerso } from './logica/silabas.js';
 import { nuevaLetra, listarLetras } from './logica/sesiones.js';
 
@@ -53,16 +53,30 @@ function actualizarEditor() {
     editorTexto.style.height = 'auto';
     editorTexto.style.height = editorTexto.scrollHeight + 'px';
 
-    // Sílabas por verso: se muestra "·" hasta que contarSilabasVerso esté implementado.
-    $('silabas').replaceChildren(...editorTexto.value.split('\n').map(verso => {
+    const versos = editorTexto.value.split('\n');
+
+    // Sílabas por verso (vacío en los versos sin palabras).
+    $('silabas').replaceChildren(...versos.map(verso => {
         const fila = document.createElement('div');
-        const cantidad = verso.trim() ? contarSilabasVerso(verso) : '';
-        fila.textContent = cantidad ?? '·';
+        fila.textContent = contarSilabasVerso(verso) || '';
         return fila;
     }));
 
-    // Sugerencias para la última palabra escrita.
-    const ultima = editorTexto.value.slice(0, editorTexto.selectionEnd).match(/[\p{L}]+$/u)?.[0];
+    // Rimas pintadas: la última palabra de cada verso, con el color de su grupo.
+    const finales = versos.map(verso => verso.match(/(\p{L}+)[^\p{L}]*$/u));
+    const grupos = $('alternar-colores').getAttribute('aria-pressed') === 'true'
+        ? agruparRimas(finales.map(f => f?.[1])) : [];
+    $('editor-fondo').replaceChildren(...versos.flatMap((verso, i) => {
+        const fin = i < versos.length - 1 ? '\n' : '';
+        if (grupos[i] == null) return [verso + fin];
+        const marca = document.createElement('mark');
+        marca.className = `rima-${grupos[i] % 5}`;
+        marca.textContent = finales[i][1];
+        return [verso.slice(0, finales[i].index), marca, verso.slice(finales[i].index + finales[i][1].length) + fin];
+    }));
+
+    // Sugerencias para la última palabra escrita (en un verso vacío, la del verso anterior).
+    const ultima = editorTexto.value.slice(0, editorTexto.selectionEnd).match(/(\p{L}+)[^\p{L}]*$/u)?.[1];
     const rimas = ultima ? buscarRimas(ultima, indiceRimas()).slice(0, 20) : [];
     if (rimas.length) {
         $('sugerencias').replaceChildren(...rimas.map(rima => {
@@ -71,8 +85,25 @@ function actualizarEditor() {
             boton.textContent = rima;
             return boton;
         }));
+    } else {
+        const vacio = document.createElement('span');
+        vacio.className = 'sugerencias-vacio';
+        vacio.textContent = ultima ? `No encontré rimas para «${ultima}»` : 'Acá van a aparecer rimas mientras escribís';
+        $('sugerencias').replaceChildren(vacio);
     }
 }
+
+// Tocar una sugerencia la agrega donde está el cursor, sin cerrar el teclado.
+$('sugerencias').addEventListener('pointerdown', e => e.preventDefault());
+$('sugerencias').addEventListener('click', e => {
+    const boton = e.target.closest('.sugerencia');
+    if (!boton) return;
+    const { value, selectionStart, selectionEnd } = editorTexto;
+    const espacio = selectionStart > 0 && !/\s/.test(value[selectionStart - 1]) ? ' ' : '';
+    editorTexto.setRangeText(espacio + boton.textContent, selectionStart, selectionEnd, 'end');
+    editorTexto.focus();
+    actualizarEditor();
+});
 
 $('nueva-letra').addEventListener('click', () => abrirEditor(nuevaLetra()));
 $('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
@@ -82,6 +113,7 @@ for (const id of ['alternar-colores', 'alternar-silabas']) {
         const boton = e.currentTarget;
         boton.setAttribute('aria-pressed', boton.getAttribute('aria-pressed') !== 'true');
         $('silabas').classList.toggle('oculto', $('alternar-silabas').getAttribute('aria-pressed') !== 'true');
+        actualizarEditor();
     });
 }
 

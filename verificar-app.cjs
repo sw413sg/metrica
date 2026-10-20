@@ -37,9 +37,18 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#vista-editor').isVisible(), true);
         assert.equal(await page.locator('#barra-pestanas').isVisible(), false);
         await page.locator('#editor-titulo').fill('Sacred Geometry');
-        await page.locator('#editor-texto').fill('Caminante, no hay camino\nse hace camino al andar');
-        assert.equal(await page.locator('#silabas div').count(), 2);
-        assert.ok((await page.locator('.sugerencia').allTextContents()).includes('lugar'));
+        await page.locator('#editor-texto').fill('Caminante, no hay camino,\nse hace camino al andar.\nAl andar se hace camino\ny al volver la vista atrás');
+        assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
+        assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
+            ['rima-0:camino', 'rima-1:andar', 'rima-0:camino', 'rima-1:atrás']);
+        assert.ok((await page.locator('.sugerencia').allTextContents()).includes('detrás'));
+        await page.locator('#editor-texto').press('Enter');
+        await page.locator('.sugerencia', {hasText: /^detrás$/}).click();
+        assert.match(await page.locator('#editor-texto').inputValue(), /atrás\ndetrás$/);
+        assert.equal(await page.locator('#editor-fondo mark').count(), 5);
+        await page.locator('#alternar-colores').click();
+        assert.equal(await page.locator('#editor-fondo mark').count(), 0);
+        await page.locator('#alternar-colores').click();
         await page.screenshot({path: `capturas/editor-${tema}.png`});
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);

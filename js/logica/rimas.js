@@ -142,3 +142,18 @@ export function buscarRimas(palabra, indice, { tipo = 'consonante' } = {}) {
     return (indice.asonante.get(claveAsonante(palabra)) ?? [])
         .filter(p => p !== a.palabra && indice.consonantePorPalabra.get(p) !== consonante);
 }
+
+// Para pintar la letra: recibe la última palabra de cada verso y devuelve, para cada
+// una, el número de grupo de rima (0, 1, 2... en orden de aparición) o null si no
+// rima con ninguna otra. Agrupa por asonancia, que incluye a las consonantes.
+export function agruparRimas(palabras) {
+    const claves = palabras.map(p => (p && claveAsonante(p)) || null);
+    const cuantas = new Map();
+    for (const clave of claves) if (clave) cuantas.set(clave, (cuantas.get(clave) ?? 0) + 1);
+    const grupos = new Map();
+    return claves.map(clave => {
+        if (!clave || cuantas.get(clave) < 2) return null;
+        if (!grupos.has(clave)) grupos.set(clave, grupos.size);
+        return grupos.get(clave);
+    });
+}

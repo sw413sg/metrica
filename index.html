@@ -53,12 +53,16 @@
                 <div class="editor">
                     <input class="editor-titulo" id="editor-titulo" placeholder="Título" autocomplete="off">
                     <div class="editor-cuerpo">
-                        <!-- Conteo de sílabas por verso (paso 2) -->
+                        <!-- Conteo de sílabas por verso -->
                         <div class="silabas" id="silabas" aria-label="Sílabas por verso"></div>
-                        <textarea class="editor-texto" id="editor-texto" placeholder="Escribí tu letra acá…" spellcheck="false"></textarea>
+                        <!-- Debajo del texto, una copia invisible que pinta las rimas -->
+                        <div class="editor-capas">
+                            <div class="editor-fondo" id="editor-fondo" aria-hidden="true"></div>
+                            <textarea class="editor-texto" id="editor-texto" placeholder="Escribí tu letra acá…" spellcheck="false"></textarea>
+                        </div>
                     </div>
                 </div>
-                <!-- Sugerencias de rima sobre el teclado (paso 2) -->
+                <!-- Sugerencias de rima sobre el teclado: tocá una para agregarla -->
                 <div class="sugerencias" id="sugerencias">
                     <span class="sugerencias-vacio">Acá van a aparecer rimas mientras escribís</span>
                 </div>

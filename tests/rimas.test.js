@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas } from '../js/logica/rimas.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
@@ -134,4 +134,10 @@ test('buscarRimas: no sugiere palabras átonas ("con", "lo", "por")', () => {
     assert.deepEqual(buscarRimas('canción', indice), ['son']);
     assert.deepEqual(buscarRimas('amor', indice), ['flor']);
     assert.deepEqual(buscarRimas('amor', indice, { tipo: 'asonante' }), ['son', 'yo']);
+});
+
+test('agruparRimas: numera los grupos en orden y deja sola a la que no rima', () => {
+    assert.deepEqual(agruparRimas(['corazón', 'luna', 'canción', 'fortuna', 'mesa', null]), [0, 1, 0, 1, null, null]);
+    assert.deepEqual(agruparRimas(['amor', 'dolor', 'corazón']), [0, 0, 0]);
+    assert.deepEqual(agruparRimas([]), []);
 });
