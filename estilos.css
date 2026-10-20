@@ -156,6 +156,7 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
     padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
     border-top: 0.5px solid var(--separador); background: var(--barra);
 }
+body.teclado-abierto .sugerencias { padding-bottom: 8px; }
 .sugerencias-vacio { color: var(--texto-2); font-size: 15px; padding: 6px 0; }
 .sugerencia { padding: 6px 12px; border-radius: 8px; background: var(--relleno); white-space: nowrap; }
 

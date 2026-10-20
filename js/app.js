@@ -130,6 +130,8 @@ if (window.visualViewport) {
     const ajustarAlTeclado = () => {
         document.documentElement.style.setProperty('--alto-visible', `${visualViewport.height}px`);
         document.documentElement.style.setProperty('--arriba-visible', `${visualViewport.offsetTop}px`);
+        // Con el teclado abierto no hace falta dejar lugar para la barrita de inicio del iPhone.
+        document.body.classList.toggle('teclado-abierto', visualViewport.height < innerHeight * 0.8);
     };
     visualViewport.addEventListener('resize', ajustarAlTeclado);
     visualViewport.addEventListener('scroll', ajustarAlTeclado);
@@ -146,14 +148,18 @@ $('borrar-letra').addEventListener('click', () => {
 });
 editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); });
 $('editor-titulo').addEventListener('input', guardarActual);
+// Colores y sílabas se prenden y apagan, y se recuerda la elección.
 for (const id of ['alternar-colores', 'alternar-silabas']) {
+    if (localStorage.getItem(`metrica.${id}`) === 'false') $(id).setAttribute('aria-pressed', 'false');
     $(id).addEventListener('click', e => {
         const boton = e.currentTarget;
         boton.setAttribute('aria-pressed', boton.getAttribute('aria-pressed') !== 'true');
+        localStorage.setItem(`metrica.${id}`, boton.getAttribute('aria-pressed'));
         $('silabas').classList.toggle('oculto', $('alternar-silabas').getAttribute('aria-pressed') !== 'true');
         actualizarEditor();
     });
 }
+$('silabas').classList.toggle('oculto', $('alternar-silabas').getAttribute('aria-pressed') !== 'true');
 
 // ---------- Rimas ----------
 let tipoRima = 'consonante';
