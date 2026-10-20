@@ -37,18 +37,38 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#vista-editor').isVisible(), true);
         assert.equal(await page.locator('#barra-pestanas').isVisible(), false);
         await page.locator('#editor-titulo').fill('Sacred Geometry');
-        await page.locator('#editor-texto').fill('Caminante, no hay camino\nse hace camino al andar');
-        assert.equal(await page.locator('#silabas div').count(), 2);
+        await page.locator('#editor-texto').fill('Caminante, no hay camino,\nse hace camino al andar.\nAl andar se hace camino\ny al volver la vista atrás');
+        assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
+        assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
+            ['rima-0:camino', 'rima-1:andar', 'rima-0:camino', 'rima-1:atrás']);
+        assert.ok((await page.locator('.sugerencia').allTextContents()).includes('detrás'));
+        await page.locator('#editor-texto').press('Enter');
+        await page.locator('.sugerencia', {hasText: /^detrás$/}).click();
+        assert.match(await page.locator('#editor-texto').inputValue(), /atrás\ndetrás$/);
+        assert.equal(await page.locator('#editor-fondo mark').count(), 5);
+        await page.locator('#alternar-colores').click();
+        assert.equal(await page.locator('#editor-fondo mark').count(), 0);
+        await page.locator('#alternar-colores').click();
         await page.screenshot({path: `capturas/editor-${tema}.png`});
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
 
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         await page.locator('#buscar-rima').fill('canción');
-        assert.match(await page.locator('#rimas-vacio').textContent(), /próxima versión/);
+        const consonantes = await page.locator('#resultados-rimas .celda').allTextContents();
+        assert.equal(consonantes.length, 100);
+        assert.ok(consonantes.slice(0, 5).includes('corazón'), consonantes.slice(0, 5).join());
+        assert.ok(consonantes.every(p => /[oó]n$/.test(p)));
+        assert.equal(await page.locator('#rimas-vacio').isVisible(), false);
+        await page.screenshot({path: `capturas/rimas-${tema}.png`});
         await page.locator('#tipo-rima [data-tipo="asonante"]').click();
         assert.equal(await page.locator('#tipo-rima [data-tipo="asonante"]').getAttribute('aria-selected'), 'true');
-        await page.screenshot({path: `capturas/rimas-${tema}.png`});
+        const asonantes = await page.locator('#resultados-rimas .celda').allTextContents();
+        assert.ok(asonantes.length > 0 && !asonantes.some(p => consonantes.includes(p)));
+        await page.screenshot({path: `capturas/rimas-asonante-${tema}.png`});
+        await page.locator('#buscar-rima').fill('xyz');
+        assert.match(await page.locator('#rimas-vacio').textContent(), /No encontré rimas asonantes/);
+        await page.locator('#tipo-rima [data-tipo="consonante"]').click();
 
         await page.locator('#barra-pestanas [data-pestana="palabras"]').click();
         assert.equal(await page.locator('.palabra').count(), 6);
@@ -78,4 +98,4 @@ const servidor = http.createServer((req, res) => {
     await browser.close();
     servidor.close();
     console.log('OK app: pestañas, editor, rimas, palabras, ajustes, claro/oscuro, sin desborde y sin internet.');
-})().catch(e => { console.error(e); process.exitCode = 1; servidor.close(); });
+})().catch(e => { console.error(e); process.exit(1); });

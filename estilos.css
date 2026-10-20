@@ -113,8 +113,19 @@ a { color: var(--acento); text-decoration: none; }
 .editor { flex: 1; display: flex; flex-direction: column; padding: 0 16px; min-height: 0; }
 .editor-titulo { border: 0; background: none; outline: none; font-size: 28px; font-weight: 700; padding: 8px 0; }
 .editor-cuerpo { flex: 1; display: flex; gap: 8px; min-height: 0; overflow-y: auto; }
-.editor-texto, .silabas { font-size: 19px; line-height: 30px; }
-.editor-texto { flex: 1; border: 0; background: none; outline: none; resize: none; padding: 0; min-height: 100%; overflow: hidden; }
+.editor-texto, .editor-fondo, .silabas { font-size: 19px; line-height: 30px; }
+.editor-capas { flex: 1; position: relative; min-height: 100%; }
+.editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: transparent; pointer-events: none; }
+.editor-fondo mark { color: transparent; border-radius: 4px; }
+.rima-0 { background: var(--rima-1); }
+.rima-1 { background: var(--rima-2); }
+.rima-2 { background: var(--rima-3); }
+.rima-3 { background: var(--rima-4); }
+.rima-4 { background: var(--rima-5); }
+.editor-texto {
+    position: relative; display: block; width: 100%; min-height: 100%; border: 0; border-radius: 0; background: none;
+    outline: none; resize: none; padding: 0; overflow: hidden; -webkit-appearance: none; appearance: none;
+}
 .silabas { width: 20px; flex-shrink: 0; color: var(--texto-3); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
 .silabas div { height: 30px; }
 .silabas.oculto { display: none; }

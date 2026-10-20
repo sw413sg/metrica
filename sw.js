@@ -1,6 +1,6 @@
 // Service worker: guarda todo en caché para que la app ande sin internet.
 // Cambiá VERSION cada vez que cambien los archivos para que se actualicen.
-const VERSION = 'metrica-v1';
+const VERSION = 'metrica-v4';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -8,6 +8,7 @@ const ARCHIVOS = [
     'manifest.webmanifest',
     'palabras.js',
     'palabras-simples.js',
+    'frecuencias.js',
     'js/app.js',
     'js/logica/diccionario.js',
     'js/logica/generador.js',

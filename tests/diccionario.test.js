@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsearPalabras } from '../js/logica/diccionario.js';
+import { parsearPalabras, parsearFrecuencias } from '../js/logica/diccionario.js';
 import { palabrasAlAzar, filtrarPorTerminacion } from '../js/logica/generador.js';
 
 test('parsearPalabras saca líneas vacías y repetidas', () => {
@@ -19,4 +19,11 @@ test('palabrasAlAzar no repite y respeta la cantidad', () => {
 test('filtrarPorTerminacion', () => {
     assert.deepEqual(filtrarPorTerminacion(['canción', 'casa', 'avión'], 'ión'), ['canción', 'avión']);
     assert.equal(filtrarPorTerminacion(['casa'], '  ').length, 1);
+});
+
+test('parsearFrecuencias lee "palabra cantidad" y se queda con la primera', () => {
+    const frecuencias = parsearFrecuencias('de 100\r\ncanción 7\n\nmal\ncanción 3\n');
+    assert.equal(frecuencias.get('de'), 100);
+    assert.equal(frecuencias.get('canción'), 7);
+    assert.equal(frecuencias.has('mal'), false);
 });
