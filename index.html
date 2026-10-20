@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Métrica</title>
     <meta name="description" content="Métrica: rimas y letras. Para escribir canciones en español.">
-    <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#f5f0fb" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0d0f16" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Métrica">
@@ -23,16 +23,16 @@
         <!-- Letras (NavigationStack: lista -> editor) -->
         <section class="pantalla activa" id="pantalla-letras" data-pestana="letras">
             <div class="vista activa" id="vista-lista-letras">
-                <header class="barra-nav">
-                    <span></span>
-                    <button class="boton-barra" id="nueva-letra" aria-label="Letra nueva">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M12 5v14M5 12h14"/></svg>
-                    </button>
-                </header>
+                <header class="barra-nav"></header>
                 <h1 class="titulo-grande">Letras</h1>
                 <div class="contenido">
-                    <ul class="lista-agrupada" id="lista-letras"></ul>
-                    <p class="vacio" id="letras-vacio">Todavía no escribiste ninguna letra.<br>Tocá <strong>+</strong> para empezar.</p>
+                    <div class="grilla-letras">
+                        <button class="tarjeta-nueva" id="nueva-letra" aria-label="Letra nueva">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M12 5v14M5 12h14"/></svg>
+                        </button>
+                        <ul id="lista-letras"></ul>
+                    </div>
+                    <p class="nota" id="letras-vacio">Tocá <strong>+</strong> para escribir tu primera letra.</p>
                 </div>
             </div>
 

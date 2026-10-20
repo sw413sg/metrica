@@ -33,20 +33,22 @@ function mostrarVista(id) {
 
 function renderizarLetras() {
     const letras = listarLetras(localStorage);
+    // Cada letra es una tarjeta con la fecha, el título y el principio del texto.
+    const parte = (clase, texto) => {
+        const span = document.createElement('span');
+        span.className = clase;
+        span.textContent = texto;
+        return span;
+    };
     $('lista-letras').replaceChildren(...letras.map(letra => {
-        const celda = document.createElement('li');
-        celda.className = 'celda';
+        const tarjeta = document.createElement('li');
+        tarjeta.className = 'tarjeta-letra';
         const boton = document.createElement('button');
-        boton.className = 'celda-boton';
-        const titulo = document.createElement('span');
-        titulo.textContent = letra.titulo || 'Sin título';
-        const primerVerso = document.createElement('span');
-        primerVerso.className = 'subtitulo';
-        primerVerso.textContent = letra.texto.split('\n').find(v => v.trim()) ?? '';
-        boton.append(titulo, primerVerso);
+        const fecha = new Date(letra.editada).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
+        boton.append(parte('fecha-letra', fecha), parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
         boton.addEventListener('click', () => abrirEditor(letra));
-        celda.append(boton);
-        return celda;
+        tarjeta.append(boton);
+        return tarjeta;
     }));
     $('letras-vacio').hidden = letras.length > 0;
 }

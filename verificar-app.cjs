@@ -53,15 +53,15 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#editor-fondo mark').count(), 0);
         await page.locator('#alternar-colores').click();
         await page.screenshot({path: `capturas/editor-${tema}.png`});
-        // Con el teclado abierto (se ven 500 px), la barra de sugerencias queda justo arriba.
+        // Con el teclado abierto (se ven 500 px), la barra de sugerencias flota 8 px arriba.
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--alto-visible', '500px');
             document.body.classList.add('teclado-abierto');
         });
         const barra = await page.locator('#sugerencias').boundingBox();
-        assert.equal(Math.round(barra.y + barra.height), 500);
+        assert.equal(Math.round(barra.y + barra.height), 492);
         await page.screenshot({path: `capturas/editor-teclado-${tema}.png`});
-        assert.equal(await page.locator('#sugerencias').evaluate(b => getComputedStyle(b).paddingBottom), '8px');
+        assert.equal(await page.locator('#sugerencias').evaluate(b => getComputedStyle(b).marginBottom), '8px');
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px');
             document.body.classList.remove('teclado-abierto');
@@ -71,7 +71,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
         await page.reload();
-        await page.locator('#lista-letras .celda-boton').click();
+        await page.locator('#lista-letras .tarjeta-letra button').click();
         assert.equal(await page.locator('#alternar-silabas').getAttribute('aria-pressed'), 'false');
         assert.equal(await page.locator('#silabas').isVisible(), false);
         await page.locator('#alternar-silabas').click();
@@ -79,17 +79,19 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-atras').click();
 
         // La letra queda guardada, también después de recargar.
-        assert.deepEqual(await page.locator('#lista-letras .celda-boton span').allTextContents(), ['Sacred Geometry', 'Caminante, no hay camino,']);
+        assert.equal(await page.locator('#lista-letras .titulo-letra').textContent(), 'Sacred Geometry');
+        assert.match(await page.locator('#lista-letras .texto-letra').textContent(), /^Caminante, no hay camino,/);
+        assert.match(await page.locator('#lista-letras .fecha-letra').textContent(), /^\d\d\/\d\d$/);
         await page.reload();
-        assert.equal(await page.locator('#lista-letras .celda').count(), 1);
+        assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 1);
         await page.screenshot({path: `capturas/letras-guardadas-${tema}.png`});
-        await page.locator('#lista-letras .celda-boton').click();
+        await page.locator('#lista-letras .tarjeta-letra button').click();
         assert.match(await page.locator('#editor-texto').inputValue(), /^Caminante[\s\S]*detrás$/);
         assert.equal(await page.locator('#editor-fondo mark').count(), 5);
         page.once('dialog', d => d.accept());
         await page.locator('#borrar-letra').click();
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
-        assert.equal(await page.locator('#lista-letras .celda').count(), 0);
+        assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
 
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         await page.locator('#buscar-rima').fill('canción');
@@ -177,7 +179,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#nueva-letra').click();
         await page.locator('#editor-titulo').fill('Sin internet');
         await page.locator('#editor-atras').click();
-        assert.deepEqual(await page.locator('#lista-letras .celda-boton span:first-child').allTextContents(), ['Sin internet']);
+        assert.deepEqual(await page.locator('#lista-letras .titulo-letra').allTextContents(), ['Sin internet']);
         await page.context().setOffline(false);
 
         // Versión nueva publicada: la app la baja y se recarga sola, sin perder las letras.
@@ -185,7 +187,7 @@ const servidor = http.createServer((req, res) => {
         const recarga = page.waitForEvent('load');
         await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r.update()));
         await recarga;
-        assert.deepEqual(await page.locator('#lista-letras .celda-boton span:first-child').allTextContents(), ['Sin internet']);
+        assert.deepEqual(await page.locator('#lista-letras .titulo-letra').allTextContents(), ['Sin internet']);
         versionNueva = '';
 
         assert.deepEqual(errores, []);
