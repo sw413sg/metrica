@@ -125,6 +125,17 @@ $('sugerencias').addEventListener('click', e => {
     guardarActual();
 });
 
+// Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
+if (window.visualViewport) {
+    const ajustarAlTeclado = () => {
+        document.documentElement.style.setProperty('--alto-visible', `${visualViewport.height}px`);
+        document.documentElement.style.setProperty('--arriba-visible', `${visualViewport.offsetTop}px`);
+    };
+    visualViewport.addEventListener('resize', ajustarAlTeclado);
+    visualViewport.addEventListener('scroll', ajustarAlTeclado);
+    ajustarAlTeclado();
+}
+
 $('nueva-letra').addEventListener('click', () => abrirEditor(nuevaLetra()));
 $('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
 $('borrar-letra').addEventListener('click', () => {
