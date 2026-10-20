@@ -22,7 +22,10 @@ Web en HTML/JS (`index.html`) que muestra N palabras al azar en español (defaul
 4. Modo freestyle: palabras con timer tipo batalla, beats con control de tempo (BPM) y la sílaba que cae en el tiempo fuerte del compás marcada. Los beats tienen que ser propios o con licencia que permita usarlos en una app comercial; anotá la licencia de cada uno en el repo.
 5. Todo tiene que funcionar sin internet (en la web, con service worker y el diccionario local; nada de APIs externas).
 
-Monetización a definir (probable: gratis + pago único, como Unforgettables). No la armes hasta que Proshe la defina.
+## Monetización
+Modelo: app gratis que funciona completa, más un pago único de unos USD 5 por extras, sin suscripción. Todavía no está definido qué va en el pago: no armes el pago hasta que Proshe lo defina. Las funciones básicas (rimas incluidas) nunca se bloquean.
+
+Referencia, Rhymer's Block (https://rhymersblock.net/proDetails): su Pro no bloquea las rimas; cobra por comodidad y diseño (sin publicidad, carpetas, todos los temas y fuentes, funciones futuras). En App Store: Pro anual de USD 19,99 a 39,99 o Pro Bundle de USD 9,99/6,99. Adapty (terceros, sin verificar) estima ~10 mil descargas y ~USD 10 mil por mes.
 
 Descartado: red social para compartir letras.
 
