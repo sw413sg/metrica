@@ -114,12 +114,48 @@
             </div>
         </section>
 
-        <!-- Freestyle (paso 4) -->
+        <!-- Freestyle: palabra al ritmo del beat, con la sílaba fuerte marcada -->
         <section class="pantalla" id="pantalla-freestyle" data-pestana="freestyle">
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Freestyle</h1>
             <div class="contenido">
-                <p class="vacio">Palabras con timer tipo batalla, beats con control de BPM y la sílaba del tiempo fuerte marcada.<br><br>Muy pronto.</p>
+                <div class="tarjeta-freestyle">
+                    <p class="reloj" id="fs-reloj">1:00</p>
+                    <p class="palabra-fs" id="fs-palabra">¿Listo?</p>
+                    <p class="proxima" id="fs-proxima">Tocá Empezar y hacé caer la sílaba marcada en el 1.</p>
+                    <div class="tiempos" id="fs-tiempos"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+                </div>
+                <div class="botones">
+                    <button class="boton-relleno" id="fs-empezar">Empezar</button>
+                </div>
+                <ul class="lista-agrupada">
+                    <li class="celda">
+                        <label for="fs-beat">Beat</label>
+                        <select class="campo-celda" id="fs-beat"></select>
+                    </li>
+                    <li class="celda">
+                        <label for="fs-bpm">Tempo</label>
+                        <input type="range" class="deslizador" id="fs-bpm" min="60" max="140" step="1" value="90">
+                        <span class="valor" id="fs-bpm-valor">90 BPM</span>
+                    </li>
+                    <li class="celda">
+                        <label for="fs-compases">Palabra nueva cada</label>
+                        <select class="campo-celda" id="fs-compases">
+                            <option value="1">1 compás</option>
+                            <option value="2" selected>2 compases</option>
+                            <option value="4">4 compases</option>
+                        </select>
+                    </li>
+                    <li class="celda">
+                        <label for="fs-duracion">Ronda</label>
+                        <select class="campo-celda" id="fs-duracion">
+                            <option value="30">30 segundos</option>
+                            <option value="60" selected>1 minuto</option>
+                            <option value="90">1 minuto y medio</option>
+                        </select>
+                    </li>
+                </ul>
+                <p class="nota">Las palabras salen de las 20.000 más usadas. Los beats son propios de Métrica.</p>
             </div>
         </section>
 
