@@ -111,6 +111,25 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#buscar-rima').fill('');
         assert.equal((await page.locator('#resultados-rimas .celda').allTextContents())[0], tocada);
 
+        // Freestyle: el beat avanza, la palabra cambia cada compás y tiene la tónica marcada.
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
+        assert.deepEqual(await page.locator('#fs-beat option').allTextContents(), ['Boom bap', 'Trap', 'Metrónomo']);
+        await page.locator('#fs-bpm').fill('140');
+        assert.equal(await page.locator('#fs-bpm-valor').textContent(), '140 BPM');
+        await page.locator('#fs-compases').selectOption('1');
+        await page.locator('#fs-empezar').click();
+        assert.equal(await page.locator('#fs-empezar').textContent(), 'Parar');
+        await page.locator('#fs-palabra .tonica').waitFor();
+        const palabra1 = await page.locator('#fs-palabra').textContent();
+        assert.equal(await page.locator('#fs-tiempos .activo').count(), 1);
+        assert.match(await page.locator('#fs-proxima').textContent(), /^Después: /);
+        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabra1, {timeout: 4000});
+        assert.match(await page.locator('#fs-reloj').textContent(), /^0:5\d$/);
+        await page.screenshot({path: `capturas/freestyle-${tema}.png`});
+        await page.locator('#fs-empezar').click();
+        assert.equal(await page.locator('#fs-empezar').textContent(), 'Empezar');
+        assert.equal(await page.locator('#fs-tiempos .activo').count(), 0);
+
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();
             assert.equal(await page.locator(`#pantalla-${p}`).isVisible(), true);

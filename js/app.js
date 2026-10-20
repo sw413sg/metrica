@@ -3,6 +3,8 @@ import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar, filtrarPorTerminacion } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas } from './logica/rimas.js';
 import { contarSilabasVerso } from './logica/silabas.js';
+import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
+import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 
 const $ = id => document.getElementById(id);
@@ -19,6 +21,7 @@ function mostrarPestana(nombre) {
     document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
     document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
     if (nombre === 'palabras') reanudarPalabras(); else pausarPalabras();
+    if (nombre !== 'freestyle') terminarRonda();
 }
 document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListener('click', () => mostrarPestana(b.dataset.pestana)));
 
@@ -250,6 +253,63 @@ $('refrescar-palabras').addEventListener('click', () => {
 });
 $('palabras-simples').addEventListener('change', refrescarPalabras);
 $('terminacion').addEventListener('input', refrescarPalabras);
+
+// ---------- Freestyle ----------
+let ronda = null; // { inicio, palabra, proxima } mientras se está jugando
+
+$('fs-beat').replaceChildren(...Object.entries(BEATS).map(([clave, beat]) => new Option(beat.nombre, clave)));
+const ajustesFreestyle = () => ({ beat: BEATS[$('fs-beat').value], bpm: Number($('fs-bpm').value) });
+const palabraAlAzar = () => palabrasAlAzar(palabrasSimples, 1)[0];
+
+// La palabra separada en sílabas, con la tónica marcada.
+function mostrarPalabra(palabra) {
+    const { silabas, tonica } = silabaFuerte(palabra) ?? { silabas: [palabra], tonica: 0 };
+    $('fs-palabra').replaceChildren(...silabas.flatMap((silaba, i) => {
+        const span = document.createElement('span');
+        span.textContent = silaba;
+        if (i === tonica) span.className = 'tonica';
+        const separador = document.createElement('span');
+        separador.className = 'separador';
+        separador.textContent = '·';
+        return i ? [separador, span] : [span];
+    }));
+}
+
+function alPasoFreestyle(paso) {
+    const restantes = segundosRestantes(ronda.inicio, performance.now(), Number($('fs-duracion').value));
+    $('fs-reloj').textContent = formatoReloj(restantes);
+    if (restantes === 0) return terminarRonda(true);
+    document.querySelectorAll('#fs-tiempos span').forEach((s, i) => s.classList.toggle('activo', i + 1 === tiempoDelPaso(paso)));
+    if (cambiaLaPalabra(paso, Number($('fs-compases').value))) {
+        ronda.palabra = ronda.proxima ?? palabraAlAzar();
+        ronda.proxima = palabraAlAzar();
+        mostrarPalabra(ronda.palabra);
+        $('fs-proxima').textContent = `Después: ${ronda.proxima}`;
+    }
+}
+
+function empezarRonda() {
+    ronda = { inicio: performance.now() };
+    $('fs-reloj').classList.remove('terminado');
+    $('fs-empezar').textContent = 'Parar';
+    iniciarBeat(ajustesFreestyle, alPasoFreestyle);
+}
+
+function terminarRonda(porTiempo = false) {
+    if (!ronda) return;
+    ronda = null;
+    detenerBeat();
+    $('fs-empezar').textContent = 'Empezar';
+    document.querySelectorAll('#fs-tiempos span').forEach(s => s.classList.remove('activo'));
+    if (porTiempo) {
+        $('fs-reloj').textContent = '¡Tiempo!';
+        $('fs-reloj').classList.add('terminado');
+    }
+}
+
+$('fs-empezar').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
+$('fs-bpm').addEventListener('input', () => { $('fs-bpm-valor').textContent = `${$('fs-bpm').value} BPM`; });
+$('fs-duracion').addEventListener('change', () => { if (!ronda) $('fs-reloj').textContent = formatoReloj(Number($('fs-duracion').value)); });
 
 // ---------- Inicio ----------
 renderizarLetras();
