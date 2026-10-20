@@ -3,7 +3,7 @@ import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar, filtrarPorTerminacion } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas } from './logica/rimas.js';
 import { contarSilabasVerso } from './logica/silabas.js';
-import { nuevaLetra, listarLetras } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 
 const $ = id => document.getElementById(id);
 
@@ -33,15 +33,31 @@ function renderizarLetras() {
     $('lista-letras').replaceChildren(...letras.map(letra => {
         const celda = document.createElement('li');
         celda.className = 'celda';
-        celda.textContent = letra.titulo || 'Sin título';
+        const boton = document.createElement('button');
+        boton.className = 'celda-boton';
+        const titulo = document.createElement('span');
+        titulo.textContent = letra.titulo || 'Sin título';
+        const primerVerso = document.createElement('span');
+        primerVerso.className = 'subtitulo';
+        primerVerso.textContent = letra.texto.split('\n').find(v => v.trim()) ?? '';
+        boton.append(titulo, primerVerso);
+        boton.addEventListener('click', () => abrirEditor(letra));
+        celda.append(boton);
         return celda;
     }));
     $('letras-vacio').hidden = letras.length > 0;
 }
 
 const editorTexto = $('editor-texto');
+let letraActual = null;
+
+// Se guarda sola en cada cambio (como Notas de iOS).
+function guardarActual() {
+    letraActual = guardarLetra(localStorage, { ...letraActual, titulo: $('editor-titulo').value, texto: editorTexto.value });
+}
 
 function abrirEditor(letra) {
+    letraActual = letra;
     $('editor-titulo').value = letra.titulo;
     editorTexto.value = letra.texto;
     actualizarEditor();
@@ -103,11 +119,19 @@ $('sugerencias').addEventListener('click', e => {
     editorTexto.setRangeText(espacio + boton.textContent, selectionStart, selectionEnd, 'end');
     editorTexto.focus();
     actualizarEditor();
+    guardarActual();
 });
 
 $('nueva-letra').addEventListener('click', () => abrirEditor(nuevaLetra()));
 $('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
-editorTexto.addEventListener('input', actualizarEditor);
+$('borrar-letra').addEventListener('click', () => {
+    if (!confirm('¿Borrar esta letra? No se puede deshacer.')) return;
+    borrarLetra(localStorage, letraActual.id);
+    mostrarVista('vista-lista-letras');
+    renderizarLetras();
+});
+editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); });
+$('editor-titulo').addEventListener('input', guardarActual);
 for (const id of ['alternar-colores', 'alternar-silabas']) {
     $(id).addEventListener('click', e => {
         const boton = e.currentTarget;
@@ -120,19 +144,43 @@ for (const id of ['alternar-colores', 'alternar-silabas']) {
 // ---------- Rimas ----------
 let tipoRima = 'consonante';
 
+// Botón de estrella para marcar una palabra como favorita.
+function botonFavorito(palabra, alCambiar = () => {}) {
+    const boton = document.createElement('button');
+    boton.className = 'estrella';
+    boton.setAttribute('aria-label', `Favorita: ${palabra}`);
+    boton.setAttribute('aria-pressed', listarFavoritos(localStorage).includes(palabra));
+    boton.innerHTML = '<svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1-4.5-4.2 6.1-.8z"/></svg>';
+    boton.addEventListener('click', e => {
+        e.stopPropagation();
+        boton.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra));
+        alCambiar();
+    });
+    return boton;
+}
+
+// Celda con la palabra (tocarla busca sus rimas) y la estrella.
+function celdaPalabra(palabra, alCambiar) {
+    const celda = document.createElement('li');
+    celda.className = 'celda';
+    const boton = document.createElement('button');
+    boton.className = 'celda-boton';
+    boton.textContent = palabra;
+    boton.addEventListener('click', () => { $('buscar-rima').value = palabra; renderizarRimas(); });
+    celda.append(boton, botonFavorito(palabra, alCambiar));
+    return celda;
+}
+
 function renderizarRimas() {
     const palabra = $('buscar-rima').value.trim().toLowerCase();
-    const rimas = palabra ? buscarRimas(palabra, indiceRimas(), { tipo: tipoRima }).slice(0, 100) : [];
-    $('resultados-rimas').replaceChildren(...rimas.map(rima => {
-        const celda = document.createElement('li');
-        celda.className = 'celda';
-        celda.textContent = rima;
-        return celda;
-    }));
+    // Sin búsqueda se muestran las favoritas.
+    const lista = palabra ? buscarRimas(palabra, indiceRimas(), { tipo: tipoRima }).slice(0, 100) : listarFavoritos(localStorage);
+    $('resultados-rimas').replaceChildren(...lista.map(p => celdaPalabra(p, palabra ? undefined : renderizarRimas)));
+    $('encabezado-favoritas').hidden = Boolean(palabra) || !lista.length;
     $('rimas-vacio').textContent = !palabra
-        ? 'Escribí una palabra para ver con qué rima.'
+        ? 'Escribí una palabra para ver con qué rima. Tocá la estrella para guardarla en favoritas.'
         : `No encontré rimas ${tipoRima}s para «${palabra}».`;
-    $('rimas-vacio').hidden = rimas.length > 0;
+    $('rimas-vacio').hidden = lista.length > 0;
 }
 
 $('buscar-rima').addEventListener('input', renderizarRimas);
@@ -156,9 +204,12 @@ function poolActual() {
 function refrescarPalabras() {
     const pool = poolActual();
     $('grilla-palabras').replaceChildren(...palabrasAlAzar(pool, CANTIDAD).map(palabra => {
-        const tarjeta = document.createElement('div');
+        // Tocar la tarjeta la marca como favorita.
+        const tarjeta = document.createElement('button');
         tarjeta.className = 'palabra';
         tarjeta.textContent = palabra;
+        tarjeta.setAttribute('aria-pressed', listarFavoritos(localStorage).includes(palabra));
+        tarjeta.addEventListener('click', () => tarjeta.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra)));
         return tarjeta;
     }));
     $('palabras-total').textContent = `${pool.length.toLocaleString('es-AR')} palabras disponibles`;
@@ -202,6 +253,7 @@ $('terminacion').addEventListener('input', refrescarPalabras);
 
 // ---------- Inicio ----------
 renderizarLetras();
+renderizarRimas();
 refrescarPalabras();
 // Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
 setTimeout(indiceRimas, 300);

@@ -53,6 +53,19 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
 
+        // La letra queda guardada, también después de recargar.
+        assert.deepEqual(await page.locator('#lista-letras .celda-boton span').allTextContents(), ['Sacred Geometry', 'Caminante, no hay camino,']);
+        await page.reload();
+        assert.equal(await page.locator('#lista-letras .celda').count(), 1);
+        await page.screenshot({path: `capturas/letras-guardadas-${tema}.png`});
+        await page.locator('#lista-letras .celda-boton').click();
+        assert.match(await page.locator('#editor-texto').inputValue(), /^Caminante[\s\S]*detrás$/);
+        assert.equal(await page.locator('#editor-fondo mark').count(), 5);
+        page.once('dialog', d => d.accept());
+        await page.locator('#borrar-letra').click();
+        assert.equal(await page.locator('#letras-vacio').isVisible(), true);
+        assert.equal(await page.locator('#lista-letras .celda').count(), 0);
+
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         await page.locator('#buscar-rima').fill('canción');
         const consonantes = await page.locator('#resultados-rimas .celda').allTextContents();
@@ -66,18 +79,37 @@ const servidor = http.createServer((req, res) => {
         const asonantes = await page.locator('#resultados-rimas .celda').allTextContents();
         assert.ok(asonantes.length > 0 && !asonantes.some(p => consonantes.includes(p)));
         await page.screenshot({path: `capturas/rimas-asonante-${tema}.png`});
+        // Favoritas: la estrella guarda la palabra y aparece sin búsqueda.
+        const primera = asonantes[0];
+        await page.locator('#resultados-rimas .estrella').first().click();
+        assert.equal(await page.locator('#resultados-rimas .estrella').first().getAttribute('aria-pressed'), 'true');
+        await page.locator('#buscar-rima').fill('');
+        assert.equal(await page.locator('#encabezado-favoritas').isVisible(), true);
+        assert.deepEqual(await page.locator('#resultados-rimas .celda').allTextContents(), [primera]);
+        await page.screenshot({path: `capturas/favoritas-${tema}.png`});
+        await page.locator('#resultados-rimas .celda-boton').first().click();
+        assert.equal(await page.locator('#buscar-rima').inputValue(), primera);
         await page.locator('#buscar-rima').fill('xyz');
         assert.match(await page.locator('#rimas-vacio').textContent(), /No encontré rimas asonantes/);
         await page.locator('#tipo-rima [data-tipo="consonante"]').click();
 
         await page.locator('#barra-pestanas [data-pestana="palabras"]').click();
         assert.equal(await page.locator('.palabra').count(), 6);
+        await page.locator('#pausar-palabras').click();
+        const tocada = await page.locator('.palabra').first().textContent();
+        await page.locator('.palabra').first().click();
+        assert.equal(await page.locator('.palabra').first().getAttribute('aria-pressed'), 'true');
+        await page.locator('#pausar-palabras').click();
         await page.locator('#terminacion').fill('ción');
         assert.ok((await page.locator('.palabra').allTextContents()).every(p => p.endsWith('ción')));
         await page.locator('#terminacion').fill('');
         await page.locator('#palabras-simples').check();
         assert.equal(await page.locator('#palabras-total').textContent(), '20.000 palabras disponibles');
         await page.screenshot({path: `capturas/palabras-${tema}.png`});
+
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        await page.locator('#buscar-rima').fill('');
+        assert.equal((await page.locator('#resultados-rimas .celda').allTextContents())[0], tocada);
 
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();

@@ -42,6 +42,9 @@
                         <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>Letras
                     </button>
                     <div class="acciones-barra">
+                        <button class="boton-barra" id="borrar-letra" aria-label="Borrar letra">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+                        </button>
                         <button class="boton-barra" id="alternar-colores" aria-pressed="true" aria-label="Pintar rimas">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>
                         </button>
@@ -79,6 +82,7 @@
                     <button role="tab" aria-selected="true" data-tipo="consonante">Consonante</button>
                     <button role="tab" aria-selected="false" data-tipo="asonante">Asonante</button>
                 </div>
+                <h2 class="encabezado-grupo" id="encabezado-favoritas" hidden>Favoritas</h2>
                 <ul class="lista-agrupada" id="resultados-rimas"></ul>
                 <p class="vacio" id="rimas-vacio">Escribí una palabra para ver con qué rima.</p>
             </div>
@@ -105,6 +109,7 @@
                         <input class="campo-celda" id="terminacion" placeholder="ej. ción" autocomplete="off" autocapitalize="none">
                     </li>
                 </ul>
+                <p class="nota">Tocá una palabra para guardarla en favoritas (las ves en Rimas).</p>
                 <p class="nota" id="palabras-total"></p>
             </div>
         </section>
