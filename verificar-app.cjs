@@ -66,8 +66,17 @@ const servidor = http.createServer((req, res) => {
             document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px');
             document.body.classList.remove('teclado-abierto');
         });
+        // Apagar las sílabas se recuerda después de recargar.
+        await page.locator('#alternar-silabas').click();
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
+        await page.reload();
+        await page.locator('#lista-letras .celda-boton').click();
+        assert.equal(await page.locator('#alternar-silabas').getAttribute('aria-pressed'), 'false');
+        assert.equal(await page.locator('#silabas').isVisible(), false);
+        await page.locator('#alternar-silabas').click();
+        assert.equal(await page.locator('#silabas').isVisible(), true);
+        await page.locator('#editor-atras').click();
 
         // La letra queda guardada, también después de recargar.
         assert.deepEqual(await page.locator('#lista-letras .celda-boton span').allTextContents(), ['Sacred Geometry', 'Caminante, no hay camino,']);
