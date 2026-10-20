@@ -53,19 +53,23 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#editor-fondo mark').count(), 0);
         await page.locator('#alternar-colores').click();
         await page.screenshot({path: `capturas/editor-${tema}.png`});
-        // Con el teclado abierto (se ven 500 px), la barra de sugerencias flota 8 px arriba.
+        // Con el teclado abierto (se ven 500 px), la barra de sugerencias queda pegada arriba.
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--alto-visible', '500px');
             document.body.classList.add('teclado-abierto');
         });
         const barra = await page.locator('#sugerencias').boundingBox();
-        assert.equal(Math.round(barra.y + barra.height), 492);
+        assert.equal(Math.round(barra.y + barra.height), 500);
         await page.screenshot({path: `capturas/editor-teclado-${tema}.png`});
-        assert.equal(await page.locator('#sugerencias').evaluate(b => getComputedStyle(b).marginBottom), '8px');
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px');
             document.body.classList.remove('teclado-abierto');
         });
+        // Los renglones arrancan prendidos y se apagan.
+        assert.match(await page.locator('.editor-capas').evaluate(e => getComputedStyle(e).backgroundImage), /repeating-linear-gradient/);
+        await page.locator('#alternar-renglones').click();
+        assert.equal(await page.locator('.editor-capas').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
+        await page.locator('#alternar-renglones').click();
         // Apagar las sílabas se recuerda después de recargar.
         await page.locator('#alternar-silabas').click();
         await page.locator('#editor-atras').click();
