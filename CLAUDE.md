@@ -25,7 +25,7 @@ Web en HTML/JS (`index.html`) que muestra N palabras al azar en español (defaul
 ## Monetización
 Modelo: app gratis que funciona completa, más un pago único de unos USD 5 por extras, sin suscripción. Todavía no está definido qué va en el pago: no armes el pago hasta que Proshe lo defina. Las funciones básicas (rimas incluidas) nunca se bloquean.
 
-Referencia, Rhymer's Block (https://rhymersblock.net/proDetails): su Pro no bloquea las rimas; cobra por comodidad, diseño y la parte social (sin publicidad, carpetas, todos los temas y fuentes, insignia y mensajes directos, funciones futuras). En App Store: Pro anual de USD 19,99 a 39,99 o Pro Bundle de USD 9,99/6,99. Adapty (terceros, sin verificar) estima ~10 mil descargas y ~USD 10 mil por mes.
+Referencia, Rhymer's Block (https://rhymersblock.net/proDetails): su Pro no bloquea las rimas; cobra por comodidad y diseño (sin publicidad, carpetas, todos los temas y fuentes, funciones futuras). En App Store: Pro anual de USD 19,99 a 39,99 o Pro Bundle de USD 9,99/6,99. Adapty (terceros, sin verificar) estima ~10 mil descargas y ~USD 10 mil por mes.
 
 Descartado: red social para compartir letras.
 
