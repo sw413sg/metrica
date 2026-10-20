@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
-import { parsearPalabras } from './logica/diccionario.js';
+import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar, filtrarPorTerminacion } from './logica/generador.js';
-import { buscarRimas } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas } from './logica/rimas.js';
 import { contarSilabasVerso } from './logica/silabas.js';
 import { nuevaLetra, listarLetras } from './logica/sesiones.js';
 
@@ -9,6 +9,10 @@ const $ = id => document.getElementById(id);
 
 const todasLasPalabras = parsearPalabras(textoPalabras);
 const palabrasSimples = parsearPalabras(textoPalabrasSimples);
+
+// El índice de rimas tarda medio segundo en armarse: se arma recién cuando se usa.
+let indice = null;
+const indiceRimas = () => indice ??= crearIndiceRimas(todasLasPalabras, parsearFrecuencias(textoFrecuencias));
 
 // ---------- Pestañas (TabView) ----------
 function mostrarPestana(nombre) {
@@ -59,7 +63,7 @@ function actualizarEditor() {
 
     // Sugerencias para la última palabra escrita.
     const ultima = editorTexto.value.slice(0, editorTexto.selectionEnd).match(/[\p{L}]+$/u)?.[0];
-    const rimas = ultima ? buscarRimas(ultima, todasLasPalabras).slice(0, 20) : [];
+    const rimas = ultima ? buscarRimas(ultima, indiceRimas()).slice(0, 20) : [];
     if (rimas.length) {
         $('sugerencias').replaceChildren(...rimas.map(rima => {
             const boton = document.createElement('button');
@@ -86,7 +90,7 @@ let tipoRima = 'consonante';
 
 function renderizarRimas() {
     const palabra = $('buscar-rima').value.trim().toLowerCase();
-    const rimas = palabra ? buscarRimas(palabra, todasLasPalabras, { tipo: tipoRima }).slice(0, 100) : [];
+    const rimas = palabra ? buscarRimas(palabra, indiceRimas(), { tipo: tipoRima }).slice(0, 100) : [];
     $('resultados-rimas').replaceChildren(...rimas.map(rima => {
         const celda = document.createElement('li');
         celda.className = 'celda';
@@ -95,7 +99,7 @@ function renderizarRimas() {
     }));
     $('rimas-vacio').textContent = !palabra
         ? 'Escribí una palabra para ver con qué rima.'
-        : 'El buscador de rimas llega en la próxima versión.';
+        : `No encontré rimas ${tipoRima}s para «${palabra}».`;
     $('rimas-vacio').hidden = rimas.length > 0;
 }
 

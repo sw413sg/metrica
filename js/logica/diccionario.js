@@ -6,8 +6,14 @@ export function parsearPalabras(texto) {
     return [...new Set(palabras)];
 }
 
-// TODO (paso 1): leer diccionario/frecuencias-es.txt ("palabra cantidad" por línea)
-// para ordenar las rimas de más usadas a menos usadas.
+// Frecuencias ("palabra cantidad" por línea, como diccionario/frecuencias-es.txt
+// o frecuencias.js) para ordenar las rimas de más usadas a menos usadas.
 export function parsearFrecuencias(texto) {
-    return new Map();
+    const frecuencias = new Map();
+    for (const linea of texto.split(/\r?\n/)) {
+        const [palabra, cantidad] = linea.trim().normalize('NFC').split(/\s+/);
+        const numero = Number(cantidad);
+        if (palabra && cantidad && Number.isFinite(numero) && !frecuencias.has(palabra)) frecuencias.set(palabra, numero);
+    }
+    return frecuencias;
 }

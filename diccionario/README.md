@@ -23,3 +23,9 @@ Aviso original: `FrequencyWords-README.md`. Descargado el 14 de septiembre de 20
 Transformación: intersección exacta con el diccionario local, solo letras minúsculas españolas, Unicode NFC, deduplicación y selección de las 20.000 coincidencias de mayor frecuencia (entre 39.840 coincidencias). `palabras-simples.js` se distribuye bajo CC BY-SA 4.0 con atribución a Hermit Dave / FrequencyWords y OpenSubtitles 2018.
 
 Regenerar con `node generar-palabras-simples.cjs`. El botón empieza desactivado, conserva el filtro por terminación y la pausa manual. No requiere conexión.
+
+## Frecuencias para ordenar rimas
+
+`../frecuencias.js` tiene "palabra cantidad" para las 39.850 palabras de `palabras.js` que aparecen en `frecuencias-es.txt` (FrequencyWords, Hermit Dave, OpenSubtitles 2018). La app lo usa para mostrar primero las rimas más usadas; las palabras sin frecuencia van al final en orden alfabético. Se distribuye bajo CC BY-SA 4.0 con la misma atribución que `palabras-simples.js`.
+
+Transformación: intersección exacta con el diccionario local, Unicode NFC, se conserva la primera aparición de cada palabra, ordenado de mayor a menor. Regenerar con `node generar-frecuencias.cjs` (hace falta cada vez que cambie `palabras.js`). No requiere conexión.

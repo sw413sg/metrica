@@ -1,28 +1,137 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { claveConsonante, claveAsonante } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas } from '../js/logica/rimas.js';
+import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
-// Casos difíciles que tiene que cubrir el paso 1. Marcados como "todo"
-// hasta que el motor esté implementado: corren, pero no rompen la suite.
-const todo = 'paso 1: motor de rimas';
+const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
+const noRiman = (a, b) => assert.notEqual(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
+const asonan = (a, b) => assert.equal(claveAsonante(a), claveAsonante(b), `${a} / ${b}`);
+const noAsonan = (a, b) => assert.notEqual(claveAsonante(a), claveAsonante(b), `${a} / ${b}`);
 
-test('consonante: aguda con tilde', { todo }, () => {
-    assert.equal(claveConsonante('canción'), 'ón');
-    assert.equal(claveConsonante('avión'), 'ón');
+test('consonante: aguda con tilde', () => {
+    assert.equal(claveConsonante('canción'), 'on');
+    riman('canción', 'avión');
+    riman('corazón', 'razón');
+    riman('café', 'José');
 });
-test('consonante: grave sin tilde', { todo }, () => {
+test('consonante: aguda sin tilde (termina en consonante que no es n ni s)', () => {
+    assert.equal(claveConsonante('amor'), 'or');
+    riman('amor', 'dolor');
+    riman('ciudad', 'verdad');
+    riman('estoy', 'voy');
+    riman('rey', 'ley');
+});
+test('consonante: grave sin tilde', () => {
     assert.equal(claveConsonante('casa'), 'asa');
+    riman('cantan', 'plantan');
+    riman('lunes', 'unes');
+    noRiman('casa', 'mesa');
 });
-test('consonante: esdrújula', { todo }, () => {
-    assert.equal(claveConsonante('música'), 'úsica');
+test('consonante: grave con tilde', () => {
+    riman('lápiz', 'tápiz');
+    riman('cárcel', 'cárcel');
+    noRiman('cárcel', 'papel');
+    noRiman('árbol', 'sol');
 });
-test('consonante: diptongo ("cielo" rima con "suelo" no, con "hielo" sí)', { todo }, () => {
-    assert.equal(claveConsonante('cielo'), claveConsonante('hielo'));
-    assert.notEqual(claveConsonante('cielo'), claveConsonante('suelo'));
+test('consonante: esdrújula', () => {
+    assert.equal(claveConsonante('música'), 'usika');
+    riman('rústica', 'acústica');
+    riman('práctica', 'táctica');
+    noRiman('música', 'nuca');
+    noRiman('pájaro', 'claro');
 });
-test('asonante: hiato con tilde ("día" es i-a)', { todo }, () => {
-    assert.equal(claveAsonante('día'), claveAsonante('vida'));
+test('consonante: el acento decide la rima', () => {
+    noRiman('sábana', 'banana');
+    noRiman('canto', 'cantó');
+    riman('cantó', 'llegó');
 });
-test('asonante: aguda', { todo }, () => {
-    assert.equal(claveAsonante('amor'), claveAsonante('dolor'));
+test('consonante: diptongos (la semivocal antes de la tónica no cuenta, como dice la RAE)', () => {
+    riman('cielo', 'hielo');
+    riman('cielo', 'suelo');
+    riman('fuego', 'luego');
+    riman('tierra', 'guerra');
+    noRiman('cielo', 'cela');
+});
+test('consonante: hiato con tilde', () => {
+    riman('día', 'tía');
+    riman('país', 'maíz');
+    riman('raíz', 'maíz');
+    noRiman('día', 'media');
+});
+test('consonante: suena igual en el Río de la Plata (seseo, b/v, y/ll, h muda)', () => {
+    riman('voz', 'dos');
+    riman('casa', 'caza');
+    riman('nave', 'sabe');
+    riman('calle', 'raye');
+    riman('cayó', 'calló');
+    riman('nace', 'pase');
+    riman('ahora', 'aora');
+});
+test('consonante: u muda en que/qui/gue/gui; ü suena', () => {
+    riman('saque', 'ataque');
+    riman('pague', 'apague');
+    noRiman('pague', 'paje');
+    riman('paje', 'garaje');
+    riman('gente', 'jente');
+    assert.equal(analizarPalabra('pingüino').nucleos.length, 3);
+    assert.equal(analizarPalabra('guitarra').nucleos.length, 3);
+    assert.equal(analizarPalabra('queso').nucleos.length, 2);
+});
+test('consonante: "ch" no se confunde con "c"', () => {
+    noRiman('mucha', 'nuca');
+    riman('mucha', 'lucha');
+});
+
+test('asonante: solo vocales desde la tónica', () => {
+    assert.equal(claveAsonante('casa'), 'aa');
+    assert.equal(claveAsonante('canción'), 'o');
+    asonan('casa', 'mala');
+    asonan('amor', 'dolor');
+    asonan('amor', 'corazón');
+    noAsonan('casa', 'cosa');
+});
+test('asonante: hiato con tilde ("día" es i-a)', () => {
+    asonan('día', 'vida');
+    noAsonan('día', 'diablo');
+});
+test('asonante: en esdrújulas cuentan la tónica y la última', () => {
+    assert.equal(claveAsonante('música'), 'ua');
+    asonan('música', 'luna');
+    asonan('lágrima', 'casa');
+});
+test('asonante: en diptongos cuenta la vocal que suena más', () => {
+    asonan('historia', 'boca');
+    asonan('gracia', 'casa');
+    asonan('cielo', 'beso');
+    asonan('nuevo', 'beso');
+    asonan('ruido', 'libro');
+    asonan('viuda', 'luna');
+});
+
+test('analizarPalabra descarta lo que no es una palabra', () => {
+    assert.equal(analizarPalabra('y'), null);
+    assert.equal(analizarPalabra('a la'), null);
+    assert.equal(analizarPalabra('123'), null);
+    assert.equal(claveConsonante(''), null);
+    assert.equal(analizarPalabra('Canción').palabra, 'canción');
+});
+
+test('buscarRimas: de más usadas a menos usadas, sin la palabra buscada', () => {
+    const palabras = ['canción', 'avión', 'corazón', 'camión', 'amor', 'razón', 'sol', 'flor', 'pasión'];
+    const frecuencias = parsearFrecuencias('corazón 900\nrazón 500\ncanción 300\navión 10\n');
+    const indice = crearIndiceRimas(palabras, frecuencias);
+    assert.deepEqual(buscarRimas('canción', indice), ['corazón', 'razón', 'avión', 'camión', 'pasión']);
+    assert.equal(buscarRimas('Canción', indice).length, 5);
+    assert.deepEqual(buscarRimas('dolor', indice), ['amor', 'flor']);
+    // Las asonantes no repiten las consonantes.
+    assert.deepEqual(buscarRimas('dolor', indice, { tipo: 'asonante' }),
+        ['corazón', 'razón', 'canción', 'avión', 'camión', 'pasión', 'sol']);
+    assert.deepEqual(buscarRimas('123', indice), []);
+});
+
+test('buscarRimas: no sugiere palabras átonas ("con", "lo", "por")', () => {
+    const indice = crearIndiceRimas(['con', 'son', 'lo', 'yo', 'por', 'flor']);
+    assert.deepEqual(buscarRimas('canción', indice), ['son']);
+    assert.deepEqual(buscarRimas('amor', indice), ['flor']);
+    assert.deepEqual(buscarRimas('amor', indice, { tipo: 'asonante' }), ['son', 'yo']);
 });
