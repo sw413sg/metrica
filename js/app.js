@@ -9,6 +9,7 @@ import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, a
 import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
+import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
@@ -17,9 +18,10 @@ const todasLasPalabras = parsearPalabras(textoPalabras);
 const palabrasSimples = parsearPalabras(textoPalabrasSimples);
 
 // El índice de rimas tarda un par de segundos en armarse: se arma una sola vez.
-let indice = null, frecuencias = null, corrector = null;
+let indice = null, frecuencias = null, corrector = null, sinonimos = null;
 const frecuenciasDePalabras = () => frecuencias ??= parsearFrecuencias(textoFrecuencias);
 const indiceRimas = () => indice ??= crearIndiceRimas(todasLasPalabras, frecuenciasDePalabras());
+const indiceSinonimos = () => sinonimos ??= crearIndiceSinonimos(textoSinonimos, textoFormasSinonimos);
 // Errores de tipeo: corregir('balcon') -> 'balcón' (null si está bien escrita).
 const corregir = palabra => (corrector ??= crearCorrector(todasLasPalabras, frecuenciasDePalabras()))(palabra);
 // La palabra como se quiso escribir, para que rime bien aunque falte la tilde.
@@ -231,28 +233,37 @@ function actualizarEditor() {
 // Si se está cambiando una palabra, dónde está: { inicio, fin }. Si no, las sugerencias se agregan.
 let reemplazo = null;
 
-function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(palabra, indiceRimas()).slice(0, 20) : []) {
-    if (rimas.length) {
-        const botones = rimas.map(rima => {
-            const boton = document.createElement('button');
-            boton.className = 'sugerencia';
-            boton.textContent = rima;
-            return boton;
-        });
-        if (etiqueta) {
-            const texto = document.createElement('span');
-            texto.className = 'sugerencias-etiqueta';
-            texto.textContent = etiqueta;
-            botones.unshift(texto);
-        }
-        $('sugerencias').replaceChildren(...botones);
-    } else {
+// Al cambiar una palabra, la etiqueta es un botón que alterna entre rimas y sinónimos.
+function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(palabra, indiceRimas()).slice(0, 20) : [], alternable = false) {
+    const botones = rimas.map(rima => {
+        const boton = document.createElement('button');
+        boton.className = 'sugerencia';
+        boton.textContent = rima;
+        return boton;
+    });
+    if (!rimas.length) {
         const vacio = document.createElement('span');
         vacio.className = 'sugerencias-vacio';
-        vacio.textContent = palabra ? `No encontré rimas para «${palabra}»` : 'Acá van a aparecer rimas mientras escribís';
-        $('sugerencias').replaceChildren(vacio);
+        const que = alternable && verSinonimos ? 'sinónimos' : 'rimas';
+        vacio.textContent = palabra ? `No encontré ${que} para «${palabra}»` : 'Acá van a aparecer rimas mientras escribís';
+        botones.push(vacio);
     }
+    if (etiqueta && (rimas.length || alternable)) {
+        const texto = document.createElement(alternable ? 'button' : 'span');
+        texto.className = alternable ? 'sugerencias-etiqueta sugerencias-alternar' : 'sugerencias-etiqueta';
+        texto.textContent = etiqueta;
+        botones.unshift(texto);
+    }
+    $('sugerencias').replaceChildren(...botones);
     $('sugerencias').scrollLeft = 0;
+}
+
+// La palabra que se tocó para cambiarla: primero muestra rimas y, si se toca «Cambiar», sinónimos.
+let tocada = null, verSinonimos = false;
+function mostrarCambio() {
+    const palabra = bienEscrita(tocada);
+    const lista = verSinonimos ? buscarSinonimos(palabra, indiceSinonimos()).slice(0, 30) : buscarRimas(palabra, indiceRimas()).slice(0, 20);
+    mostrarSugerencias(palabra, `${verSinonimos ? 'Sinónimos' : 'Cambiar'} «${tocada}»:`, lista, true);
 }
 
 // Tocar un renglón vacío ofrece marcar una parte de la letra; tocar una palabra muestra
@@ -271,14 +282,21 @@ editorTexto.addEventListener('click', () => {
     const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
     const despues = value.slice(selectionStart).match(/^\p{L}*/u)[0];
     if (!antes && !despues) return;
-    // Si está mal escrita no se avisa: solo se muestran las rimas de la palabra que se quiso escribir.
-    mostrarSugerencias(bienEscrita(antes + despues), `Cambiar «${antes + despues}»:`);
+    // Si está mal escrita no se avisa: solo se muestran las rimas (o sinónimos) de la palabra que se quiso escribir.
+    tocada = antes + despues;
+    verSinonimos = false;
+    mostrarCambio();
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
 });
 
 // Tocar una sugerencia la agrega donde está el cursor (o cambia la palabra tocada), sin cerrar el teclado.
 $('sugerencias').addEventListener('pointerdown', e => e.preventDefault());
 $('sugerencias').addEventListener('click', e => {
+    if (e.target.closest('.sugerencias-alternar')) {
+        verSinonimos = !verSinonimos;
+        mostrarCambio();
+        return;
+    }
     const boton = e.target.closest('.sugerencia');
     if (!boton) return;
     if (reemplazo?.seccion) {

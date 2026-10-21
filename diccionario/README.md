@@ -33,3 +33,14 @@ Regenerar con `node generar-palabras-simples.cjs`. El botón empieza desactivado
 `../frecuencias.js` tiene "palabra cantidad" para las 178.678 palabras de `palabras.js` que aparecen en `frecuencias-es.txt` (FrequencyWords, Hermit Dave, OpenSubtitles 2018). La app lo usa para mostrar primero las rimas más usadas; las palabras sin frecuencia van al final en orden alfabético. Se distribuye bajo CC BY-SA 4.0 con la misma atribución que `palabras-simples.js`.
 
 Transformación: intersección exacta con el diccionario local, Unicode NFC, se conserva la primera aparición de cada palabra, ordenado de mayor a menor. Regenerar con `node generar-frecuencias.cjs` (hace falta cada vez que cambie `palabras.js`). No requiere conexión.
+
+## Sinónimos
+
+`../sinonimos.js` tiene los sinónimos que muestra el editor al tocar «Cambiar» sobre una palabra: 21.340 palabras, un grupo por significado. Sale de dos fuentes:
+
+- Tesauro en español de LibreOffice: OpenThesaurus-es, de Marcelo Garrone, snapshot del 2012-01-11 (`th_es_v2.dat`, aviso original en `README_th_es.txt`). Licencia LGPL 2.1, texto en `LGPL-2.1.txt`. Descargado el 21 de octubre de 2026 de https://github.com/LibreOffice/dictionaries/tree/master/es. `sinonimos.js` es una conversión de ese archivo y se distribuye bajo la misma LGPL 2.1: cualquiera puede regenerarlo o reemplazarlo con el script.
+- `sinonimos-rioplatenses.txt`: lista propia de Métrica (laburo, guita, pibe...), escrita para la app. Cada renglón es un grupo; sus palabras se sugieren entre sí y van antes que las del tesauro.
+
+Transformación: pasar de ISO-8859-1 a UTF-8 (NFC), quedarse solo con palabras sueltas (sin expresiones de varias palabras), sacar repetidos y la palabra misma, y ordenar cada grupo del tesauro de más usada a menos usada con `frecuencias.js`. Además, `textoFormasSinonimos` dice de qué palabra base sale cada forma ("lindas" → "lindo", "quería" → "querer"), con los sufijos de `es.aff` y solo para formas de `palabras.js`: 107.716 formas de 12.851 bases.
+
+Regenerar con `node generar-sinonimos.cjs` (hace falta cada vez que cambien `palabras.js`, `frecuencias.js` o la lista rioplatense). No requiere conexión.
