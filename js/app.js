@@ -6,6 +6,7 @@ import { contarSilabasVerso } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
+import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
 
@@ -334,7 +335,64 @@ $('fs-empezar').addEventListener('click', () => ronda ? terminarRonda() : empeza
 $('fs-bpm').addEventListener('input', () => { $('fs-bpm-valor').textContent = `${$('fs-bpm').value} BPM`; });
 $('fs-duracion').addEventListener('change', () => { if (!ronda) $('fs-reloj').textContent = formatoReloj(Number($('fs-duracion').value)); });
 
+// ---------- Métrica Extras (paywall) ----------
+const CANDADO = '<svg viewBox="0 0 24 24" class="icono"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const TILDE = '<svg viewBox="0 0 24 24" class="icono"><path d="M5 12l5 5 9-10"/></svg>';
+
+function renderizarExtras() {
+    const extras = tieneExtras(localStorage);
+    document.querySelectorAll('.publicidad').forEach(p => { p.hidden = !mostrarPublicidad(localStorage); });
+    $('estado-extras').textContent = extras ? 'Comprado. ¡Gracias!' : `Sin publicidad, temas y widgets · ${PRODUCTO.precio}`;
+    $('comprar-extras').textContent = extras ? 'Ya tenés Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
+    $('comprar-extras').disabled = extras;
+    document.body.dataset.libreta = temaActual(localStorage);
+    // Lista de temas (Picker .inline): tilde en el elegido, candado en los bloqueados.
+    $('temas-libreta').replaceChildren(...TEMAS.map(tema => {
+        const celda = document.createElement('li');
+        celda.className = 'celda';
+        const boton = document.createElement('button');
+        boton.className = 'celda-boton celda-tema';
+        boton.dataset.tema = tema.clave;
+        const muestra = document.createElement('span');
+        muestra.className = 'muestra-tema';
+        muestra.dataset.libreta = tema.clave;
+        const nombre = document.createElement('span');
+        nombre.textContent = tema.nombre;
+        const marca = document.createElement('span');
+        marca.className = 'marca-tema';
+        marca.innerHTML = !temaDisponible(tema.clave, localStorage) ? CANDADO : tema.clave === temaActual(localStorage) ? TILDE : '';
+        boton.append(muestra, nombre, marca);
+        boton.addEventListener('click', () => elegirTema(localStorage, tema.clave) ? renderizarExtras() : abrirPaywall());
+        celda.append(boton);
+        return celda;
+    }));
+}
+
+function abrirPaywall() {
+    // Los widgets de muestra usan datos reales: una palabra y la última letra.
+    const palabra = palabraAlAzar();
+    $('widget-palabra').textContent = palabra;
+    $('widget-rimas').textContent = `rima con ${buscarRimas(palabra, indiceRimas())[0] ?? '…'}`;
+    $('widget-letra').textContent = listarLetras(localStorage)[0]?.titulo || 'Tu última letra';
+    $('paywall-nota').textContent = 'Prueba: la compra es simulada, no se cobra nada.';
+    $('paywall').hidden = false;
+}
+
+document.addEventListener('click', e => { if (e.target.closest('[data-paywall]')) abrirPaywall(); });
+$('cerrar-paywall').addEventListener('click', () => { $('paywall').hidden = true; });
+$('paywall').addEventListener('click', e => { if (e.target === $('paywall')) $('paywall').hidden = true; });
+$('comprar-extras').addEventListener('click', () => {
+    comprarExtras(localStorage);
+    renderizarExtras();
+    $('paywall-nota').textContent = '¡Listo! Ya tenés Métrica Extras.';
+});
+$('restaurar-compra').addEventListener('click', () => {
+    $('paywall-nota').textContent = tieneExtras(localStorage) ? 'Tu compra ya está activa.' : 'No encontramos compras para restaurar.';
+});
+$('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); renderizarExtras(); });
+
 // ---------- Inicio ----------
+renderizarExtras();
 renderizarLetras();
 renderizarRimas();
 refrescarPalabras();

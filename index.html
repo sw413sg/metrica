@@ -88,6 +88,11 @@
                 <h2 class="encabezado-grupo" id="encabezado-favoritas" hidden>Favoritas</h2>
                 <ul class="lista-agrupada" id="resultados-rimas"></ul>
                 <p class="vacio" id="rimas-vacio">Escribí una palabra para ver con qué rima.</p>
+                <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
+                <button class="publicidad" data-paywall>
+                    <span class="publicidad-etiqueta">Publicidad</span>
+                    <span>Acá va un anuncio. <strong>Sacalo con Métrica Extras</strong></span>
+                </button>
             </div>
         </section>
 
@@ -114,6 +119,11 @@
                 </ul>
                 <p class="nota">Tocá una palabra para guardarla en favoritas (las ves en Rimas).</p>
                 <p class="nota" id="palabras-total"></p>
+                <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
+                <button class="publicidad" data-paywall>
+                    <span class="publicidad-etiqueta">Publicidad</span>
+                    <span>Acá va un anuncio. <strong>Sacalo con Métrica Extras</strong></span>
+                </button>
             </div>
         </section>
 
@@ -167,19 +177,81 @@
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Ajustes</h1>
             <div class="contenido">
+                <ul class="lista-agrupada">
+                    <li class="celda">
+                        <button class="celda-boton celda-extras" data-paywall>
+                            <span>Métrica Extras</span>
+                            <span class="subtitulo" id="estado-extras">Sin publicidad, temas y widgets</span>
+                        </button>
+                        <span class="chevron">›</span>
+                    </li>
+                </ul>
                 <h2 class="encabezado-grupo">Apariencia</h2>
                 <ul class="lista-agrupada">
                     <li class="celda"><span>Tema</span><span class="valor">Según el sistema</span></li>
                 </ul>
+                <h2 class="encabezado-grupo">Libreta</h2>
+                <ul class="lista-agrupada" id="temas-libreta"></ul>
+                <p class="nota">Los temas con candado vienen con Métrica Extras.</p>
                 <h2 class="encabezado-grupo">Acerca de</h2>
                 <ul class="lista-agrupada">
                     <li class="celda"><span>Versión</span><span class="valor">0.1 (prueba)</span></li>
                     <li class="celda"><a href="diccionario/README.md">Licencias del diccionario</a><span class="chevron">›</span></li>
                     <li class="celda"><a href="generador.html">Versión anterior</a><span class="chevron">›</span></li>
                 </ul>
+                <h2 class="encabezado-grupo">Prueba</h2>
+                <ul class="lista-agrupada">
+                    <li class="celda"><button class="celda-boton texto-rojo" id="borrar-compra">Volver a la versión gratis</button></li>
+                </ul>
+                <p class="nota">La compra es simulada: no se cobra nada. En la App Store va a ser con la cuenta de Apple.</p>
             </div>
         </section>
     </main>
+
+    <!-- Paywall (en SwiftUI: .sheet). Pago único, sin suscripción. -->
+    <div class="hoja-fondo" id="paywall" hidden>
+        <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="paywall-titulo">
+            <button class="boton-barra cerrar-hoja" id="cerrar-paywall" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <div class="paywall-icono">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg>
+            </div>
+            <h2 class="paywall-titulo" id="paywall-titulo">Métrica Extras</h2>
+            <p class="paywall-bajada">Un solo pago, sin suscripción. Las rimas y todo lo básico siguen gratis siempre.</p>
+            <ul class="lista-agrupada beneficios">
+                <li class="celda">
+                    <svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
+                    <span><strong>Sin publicidad</strong><span class="subtitulo">Nada entre vos y la letra.</span></span>
+                </li>
+                <li class="celda">
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg>
+                    <span><strong>Temas para la libreta</strong><span class="subtitulo">Papel, Pizarra, Medianoche y Lavanda.</span></span>
+                </li>
+                <li class="celda">
+                    <svg viewBox="0 0 24 24" class="icono"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></svg>
+                    <span><strong>Widgets</strong><span class="subtitulo">Para la pantalla de inicio del iPhone.</span></span>
+                </li>
+            </ul>
+            <!-- Vista previa: los widgets existen recién en la app nativa (WidgetKit). -->
+            <h3 class="encabezado-grupo">Vista previa de los widgets</h3>
+            <div class="widgets">
+                <div class="widget">
+                    <span class="widget-etiqueta">Palabra del día</span>
+                    <span class="widget-palabra" id="widget-palabra">corazón</span>
+                    <span class="widget-pie" id="widget-rimas">rima con canción</span>
+                </div>
+                <div class="widget">
+                    <span class="widget-etiqueta">Seguí escribiendo</span>
+                    <span class="widget-titulo" id="widget-letra">Tu última letra</span>
+                    <span class="widget-pie">Tocá para abrir</span>
+                </div>
+            </div>
+            <button class="boton-relleno boton-comprar" id="comprar-extras"></button>
+            <button class="boton-texto" id="restaurar-compra">Restaurar compra</button>
+            <p class="nota centrada" id="paywall-nota">Prueba: la compra es simulada, no se cobra nada.</p>
+        </div>
+    </div>
 
     <!-- Tab bar (TabView) -->
     <nav class="barra-pestanas" id="barra-pestanas">
