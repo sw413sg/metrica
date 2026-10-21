@@ -2,7 +2,7 @@
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas } from './logica/rimas.js';
-import { contarSilabasVerso } from './logica/silabas.js';
+import { contarSilabasVerso, inicioTonica } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
@@ -239,9 +239,13 @@ function actualizarEditor() {
         const partes = verso.split(/(\p{L}+)/u).map((parte, j) => {
             if (j % 2 === 0) return parte;
             const esFinal = grupos[i] != null && j === verso.split(/(\p{L}+)/u).length - 2;
-            return esFinal ? marca(`rima-${grupos[i] % 5}`, parte) : parte;
+            if (!esFinal) return parte;
+            // Se pinta solo desde la sílaba tónica. Si se corrigió más que una tilde, se mira lo escrito.
+            const corregida = bienEscrita(parte);
+            const desde = Math.max(0, inicioTonica(corregida.length === parte.length ? corregida : parte));
+            return [parte.slice(0, desde), marca(`rima-${grupos[i] % 5}`, parte.slice(desde))];
         });
-        renglon.append(...partes);
+        renglon.append(...partes.flat());
         return [renglon, fin];
     }));
 

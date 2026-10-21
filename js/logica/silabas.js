@@ -26,6 +26,14 @@ export function separarSilabas(palabra) {
     return silabas;
 }
 
+// Dónde empieza la sílaba tónica: desde ahí se pinta la rima ("can|ción" -> 3, "ra|zón" -> 2).
+// -1 si no es una palabra.
+export function inicioTonica(palabra) {
+    const a = analizarPalabra(palabra);
+    if (!a) return -1;
+    return separarSilabas(palabra).slice(0, a.tonico).join('').length;
+}
+
 const VOCAL_INICIAL = /^h?[aeiouáéíóúü]/;
 const VOCAL_FINAL = /[aeiouáéíóúü]$/;
 
