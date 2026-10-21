@@ -209,6 +209,21 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#alternar-renglones').click();
         assert.equal(await page.locator('.editor-capas').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
         await page.locator('#alternar-renglones').click();
+        // Rimas internas: se pintan las palabras del medio que riman consonante con otras cercanas.
+        const textoAntes = await page.locator('#editor-texto').inputValue();
+        const escribir = texto => page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, texto);
+        const marcas = () => page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent));
+        await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
+        assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo']);
+        await page.screenshot({path: `capturas/editor-internas-${tema}.png`});
+        await page.locator('#abrir-ajustes-libreta').click();
+        await page.locator('[data-ajuste="internas"] [data-opcion="dos"]').click();
+        assert.deepEqual(await marcas(), ['rima-0:mino', 'rima-0:tino'], 'a 2 versos, tengo y vengo quedan lejos');
+        await page.locator('[data-ajuste="internas"] [data-opcion="no"]').click();
+        assert.deepEqual(await marcas(), []);
+        await page.locator('[data-ajuste="internas"] [data-opcion="cuatro"]').click();
+        await page.locator('#cerrar-ajustes-libreta').click();
+        await escribir(textoAntes);
         // La ruedita abre los ajustes de la libreta: sílabas, tamaño, separación y fuente.
         await page.locator('#abrir-ajustes-libreta').click();
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), true);

@@ -164,3 +164,22 @@ export function rimanConsonante(palabras) {
     const claves = palabras.map(p => (p && claveConsonante(p)) || null);
     return claves.map((clave, i) => clave != null && claves.some((otra, j) => j !== i && otra === clave));
 }
+
+// Rimas internas: para cada palabra de cada verso, su clave asonante (para el color) si
+// rima consonante con otra palabra distinta a menos de `distancia` versos (0 = apagadas);
+// si no, null. Para que no quede todo pintado: solo consonantes, sin palabras átonas
+// y sin contar la misma palabra repetida.
+// versos: [['te', 'busco', 'en', 'el', 'balcón'], ...]
+export function rimasInternas(versos, distancia = 4) {
+    const datos = versos.map(palabras => palabras.map(palabra => {
+        const p = String(palabra ?? '').toLowerCase().normalize('NFC');
+        const a = ATONAS.has(p) ? null : analizarPalabra(p);
+        return a && { texto: sinTildes(a.palabra), consonante: consonanteDe(a), asonante: asonanteDe(a) };
+    }));
+    return datos.map((palabras, i) => palabras.map(dato => {
+        if (!dato || distancia < 1) return null;
+        const cerca = datos.slice(Math.max(0, i - distancia + 1), i + distancia).flat();
+        return cerca.some(otro => otro && otro.consonante === dato.consonante && otro.texto !== dato.texto)
+            ? dato.asonante : null;
+    }));
+}

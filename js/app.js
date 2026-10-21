@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
@@ -219,12 +219,22 @@ function actualizarEditor() {
         return fila;
     }));
 
-    // Rimas pintadas: la última palabra de cada verso, con el color de su grupo.
-    const finales = versos.map(verso => esSeparador(verso) ? null : verso.match(/(\p{L}+)[^\p{L}]*$/u));
-    const palabrasFinales = finales.map(f => bienEscrita(f?.[1]));
-    const grupos = $('alternar-colores').getAttribute('aria-pressed') === 'true' ? agruparRimas(palabrasFinales) : [];
+    // Rimas pintadas: la última palabra de cada verso, con el color de su grupo, y las
+    // rimas internas (palabras que riman consonante con otras cercanas), con el color de su rima.
+    const pintar = $('alternar-colores').getAttribute('aria-pressed') === 'true';
+    const palabras = versos.map(verso => esSeparador(verso) ? [] : (verso.match(/\p{L}+/gu) ?? []).map(bienEscrita));
+    const palabrasFinales = palabras.map(p => p.at(-1));
+    const grupos = pintar ? agruparRimas(palabrasFinales) : [];
     // Consonante con el fondo lleno; asonante con el mismo color, más suave.
     const consonantes = rimanConsonante(palabrasFinales);
+    const internas = pintar ? rimasInternas(palabras, estiloLibreta(leerAjustesLibreta(localStorage)).internas) : [];
+    // Cada rima, un color: las internas que suenan como un grupo de finales usan su color.
+    const colores = new Map();
+    grupos.forEach((grupo, i) => { if (grupo != null) colores.set(claveAsonante(palabrasFinales[i]), grupo); });
+    const colorDe = clave => {
+        if (!colores.has(clave)) colores.set(clave, colores.size);
+        return colores.get(clave);
+    };
     const marca = (clase, texto) => {
         const elemento = document.createElement('mark');
         elemento.className = clase;
@@ -238,14 +248,19 @@ function actualizarEditor() {
             renglon.append(marca('seccion', verso));
             return [renglon, fin];
         }
-        const partes = verso.split(/(\p{L}+)/u).map((parte, j) => {
+        const trozos = verso.split(/(\p{L}+)/u);
+        const partes = trozos.map((parte, j) => {
             if (j % 2 === 0) return parte;
-            const esFinal = grupos[i] != null && j === verso.split(/(\p{L}+)/u).length - 2;
-            if (!esFinal) return parte;
+            const n = (j - 1) / 2;
+            const esFinal = j === trozos.length - 2;
+            let clase = null;
+            if (esFinal && grupos[i] != null) clase = `rima-${grupos[i] % 5}${consonantes[i] ? '' : ' suave'}`;
+            else if (internas[i]?.[n]) clase = `rima-${colorDe(internas[i][n]) % 5}`;
+            if (!clase) return parte;
             // Se pinta solo desde la sílaba tónica. Si se corrigió más que una tilde, se mira lo escrito.
-            const corregida = bienEscrita(parte);
+            const corregida = palabras[i][n];
             const desde = Math.max(0, inicioTonica(corregida.length === parte.length ? corregida : parte));
-            return [parte.slice(0, desde), marca(`rima-${grupos[i] % 5}${consonantes[i] ? '' : ' suave'}`, parte.slice(desde))];
+            return [parte.slice(0, desde), marca(clase, parte.slice(desde))];
         });
         renglon.append(...partes.flat());
         return [renglon, fin];
