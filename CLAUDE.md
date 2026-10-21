@@ -41,7 +41,7 @@ Hecho:
 - [x] Funciona sin internet, salvo la música de YouTube y SoundCloud.
 - [x] Pintar solo la parte que rima, desde la sílaba tónica ("can**ción**", "ra**zón**"), no la palabra entera.
 - [x] Consonante con fondo lleno y asonante con el mismo color pero más suave (`rimanConsonante` en `js/logica/rimas.js`).
-- [x] Rimas internas (`rimasInternas` en `js/logica/rimas.js`): palabras del medio que riman consonante con otra distinta a menos de 4 versos (ajustable en la ruedita: No, 2, 4 u 8). Para no pintar todo: solo consonantes, sin átonas y sin la misma palabra repetida.
+- [x] Rimas internas (`rimasInternas` en `js/logica/rimas.js`): palabras del medio que riman con otra distinta a menos de 4 versos (ajustable en la ruedita: No, 2, 4 u 8). Para no pintar todo: sin átonas ni la misma palabra repetida, y las asonantes (más suaves) solo con la última palabra de un verso y si las dos tienen más de una sílaba ("temas" / "eterna", pedido de Swa).
 - [x] Un color fijo para cada terminación en toda la letra, con 12 colores (`.rima-0` a `.rima-11` en `estilos.css`) en el orden en que aparecen, para que no se repitan.
 - [x] Rimas multisilábicas (`rimasMultisilabicas` en `js/logica/silabas.js`): si las vocales de las sílabas de antes de la tónica también coinciden con otro verso del grupo, aunque sean de otras palabras, se pinta desde ahí ("se pasa **vo**lando" / "un tune **so**nando"), hasta 3 sílabas de más y solo contra versos a menos de 4 (en letras largas pintaba casi todo).
 

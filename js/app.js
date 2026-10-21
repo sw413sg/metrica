@@ -221,7 +221,7 @@ function actualizarEditor() {
     }));
 
     // Rimas pintadas: la última palabra de cada verso, con el color de su grupo, y las
-    // rimas internas (palabras que riman consonante con otras cercanas), con el color de su rima.
+    // rimas internas (palabras que riman con otras cercanas), con el color de su rima.
     const pintar = $('alternar-colores').getAttribute('aria-pressed') === 'true';
     const palabras = versos.map(verso => esSeparador(verso) ? [] : (verso.match(/\p{L}+/gu) ?? []).map(bienEscrita));
     const palabrasFinales = palabras.map(p => p.at(-1));
@@ -260,7 +260,7 @@ function actualizarEditor() {
             const multi = multis[i]?.[n];
             let clase = null;
             if ((esFinal || multi != null) && grupos[i] != null) clase = `rima-${grupos[i] % COLORES_RIMA}${consonantes[i] ? '' : ' suave'}`;
-            else if (internas[i]?.[n]) clase = `rima-${colorDe(internas[i][n]) % COLORES_RIMA}`;
+            else if (internas[i]?.[n]) clase = `rima-${colorDe(internas[i][n].clave) % COLORES_RIMA}${internas[i][n].suave ? ' suave' : ''}`;
             if (!clase) return parte;
             // Se pinta solo desde la sílaba tónica (o desde antes, si es multisilábica).
             // Si se corrigió más que una tilde, se mira lo escrito.

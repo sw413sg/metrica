@@ -150,20 +150,33 @@ test('rimanConsonante: marca las que tienen pareja consonante en la letra', () =
 });
 
 test('rimasInternas: palabras del medio que riman consonante con otras cercanas', () => {
+    const lleno = clave => ({ clave, suave: false });
     const versos = [['tengo', 'un', 'camino', 'y', 'un', 'destino'], ['la', 'luna', 'me', 'mira'], ['vengo', 'de', 'lejos']];
     assert.deepEqual(rimasInternas(versos), [
-        ['eo', null, 'io', null, null, 'io'],
+        [lleno('eo'), null, lleno('io'), null, null, lleno('io')],
         [null, null, null, null],
-        ['eo', null, null],
+        [lleno('eo'), null, { clave: 'eo', suave: true }], // "lejos" asona con "tengo" y "vengo"
     ]);
+});
+
+test('rimasInternas: asonantes, solo con la última palabra de un verso', () => {
+    const suave = clave => ({ clave, suave: true });
+    // "temas" / "eterna": e-a, y "eterna" cierra el verso.
+    assert.deepEqual(rimasInternas([['te', 'llevo', 'en', 'mis', 'temas', 'tu', 'tinta', 'es', 'eterna']]),
+        [[null, null, null, null, suave('ea'), null, null, null, suave('ea')]]);
+    // Dos del medio que solo asonan no se pintan ("casa" / "mala").
+    assert.deepEqual(rimasInternas([['casa', 'mala', 'sol']]), [[null, null, null]]);
+    // Las de una sílaba no cuentan como asonantes ("es" / "tener").
+    assert.deepEqual(rimasInternas([['no', 'es', 'tener']]), [[null, null, null]]);
 });
 
 test('rimasInternas: respeta la distancia y no pinta de más', () => {
     const versos = [['canción'], ['nada'], ['nada'], ['corazón']];
-    assert.deepEqual(rimasInternas(versos, 4), [['o'], [null], [null], ['o']], 'la misma palabra repetida no cuenta');
+    const o = { clave: 'o', suave: false };
+    assert.deepEqual(rimasInternas(versos, 4), [[o], [null], [null], [o]], 'la misma palabra repetida no cuenta');
     assert.deepEqual(rimasInternas(versos, 3), [[null], [null], [null], [null]]);
     assert.deepEqual(rimasInternas(versos, 0), [[null], [null], [null], [null]]);
-    // Asonantes ("casa" / "mala") y palabras átonas ("con" / "son") no se pintan por dentro.
-    assert.deepEqual(rimasInternas([['casa', 'mala', 'con', 'son']]), [[null, null, null, null]]);
+    // Palabras átonas ("con" / "son") no se pintan.
+    assert.deepEqual(rimasInternas([['con', 'son', 'mar']]), [[null, null, null]]);
     assert.deepEqual(rimasInternas([]), []);
 });

@@ -44,15 +44,15 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').fill('Caminante, no hay camino,\nse hace camino al andar.\nAl andar se hace camino\ny al volver la vista atrás');
         assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
         assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
-            ['rima-0:camino', 'rima-1 suave:al', 'rima-1 suave:andar', 'rima-0:camino', 'rima-1 suave:ta', 'rima-1 suave:atrás']);
+            ['rima-0:camino', 'rima-1 suave:al', 'rima-1 suave:andar', 'rima-1 suave:dar', 'rima-0:camino', 'rima-1 suave:ta', 'rima-1 suave:atrás']);
         // Mientras se escribe no hay sugerencias: aparecen solo al tocar una palabra.
         assert.equal(await page.locator('#sugerencias').isVisible(), false);
         await page.locator('#editor-texto').evaluate(t => { t.value += '\ndetrás'; t.dispatchEvent(new Event('input')); });
         assert.match(await page.locator('#editor-texto').inputValue(), /atrás\ndetrás$/);
-        assert.equal(await page.locator('#editor-fondo mark').count(), 7);
+        assert.equal(await page.locator('#editor-fondo mark').count(), 8);
         // Con «detrás», «atrás» pasa a rimar consonante (fondo lleno); «andar» sigue asonante (suave).
         assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className)),
-            ['rima-0', 'rima-1 suave', 'rima-1 suave', 'rima-0', 'rima-1', 'rima-1', 'rima-1']);
+            ['rima-0', 'rima-1 suave', 'rima-1 suave', 'rima-1 suave', 'rima-0', 'rima-1', 'rima-1', 'rima-1']);
         const fondoRima = selector => page.locator(`#editor-fondo ${selector}`).first().evaluate(m => getComputedStyle(m).backgroundColor);
         assert.notEqual(await fondoRima('mark.rima-1.suave'), await fondoRima('mark.rima-1:not(.suave)'));
         await page.locator('#alternar-colores').click();
@@ -218,7 +218,7 @@ const servidor = http.createServer((req, res) => {
         const escribir = texto => page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, texto);
         const marcas = () => page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent));
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
-        assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo']);
+        assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo', 'rima-0 suave:lejos']);
         await page.screenshot({path: `capturas/editor-internas-${tema}.png`});
         // Cada terminación con su color, sin repetir aunque haya muchas, y siempre el mismo en toda la letra.
         await escribir(['canción', 'luna', 'casa', 'vida', 'mesa', 'fuego', 'amigo', 'mundo', 'corazón', 'fortuna', 'nada', 'risa', 'besa', 'juego', 'trigo', 'segundo'].join('\n'));
@@ -231,7 +231,7 @@ const servidor = http.createServer((req, res) => {
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('[data-ajuste="internas"] [data-opcion="dos"]').click();
-        assert.deepEqual(await marcas(), ['rima-0:mino', 'rima-0:tino'], 'a 2 versos, tengo y vengo quedan lejos');
+        assert.deepEqual(await marcas(), ['rima-0:mino', 'rima-0:tino', 'rima-1 suave:vengo', 'rima-1 suave:lejos'], 'a 2 versos, tengo y vengo quedan lejos');
         await page.locator('[data-ajuste="internas"] [data-opcion="no"]').click();
         assert.deepEqual(await marcas(), []);
         await page.locator('[data-ajuste="internas"] [data-opcion="cuatro"]').click();
@@ -289,7 +289,7 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/letras-guardadas-${tema}.png`});
         await page.locator('#lista-letras .tarjeta-letra button').click();
         assert.match(await page.locator('#editor-texto').inputValue(), /^Caminante[\s\S]*detrás$/);
-        assert.equal(await page.locator('#editor-fondo mark').count(), 7);
+        assert.equal(await page.locator('#editor-fondo mark').count(), 8);
         // Al entrar a una letra empezada no se abre el teclado: no hay nada enfocado.
         assert.equal(await page.evaluate(() => document.activeElement.id), '');
         // Borrar está abajo de todo en la ruedita y pide confirmación.

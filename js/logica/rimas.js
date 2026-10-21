@@ -165,21 +165,27 @@ export function rimanConsonante(palabras) {
     return claves.map((clave, i) => clave != null && claves.some((otra, j) => j !== i && otra === clave));
 }
 
-// Rimas internas: para cada palabra de cada verso, su clave asonante (para el color) si
-// rima consonante con otra palabra distinta a menos de `distancia` versos (0 = apagadas);
-// si no, null. Para que no quede todo pintado: solo consonantes, sin palabras átonas
-// y sin contar la misma palabra repetida.
+// Rimas internas: para cada palabra de cada verso, { clave, suave } si rima con otra palabra
+// distinta a menos de `distancia` versos (0 = apagadas); si no, null. La clave es la asonante
+// (para el color). Para que no quede todo pintado: sin palabras átonas ni la misma palabra
+// repetida, y las asonantes (suave: true) solo cuentan si una de las dos es la última de su
+// verso y las dos tienen más de una sílaba ("temas" / "eterna", pero no "es" / "tener").
 // versos: [['te', 'busco', 'en', 'el', 'balcón'], ...]
 export function rimasInternas(versos, distancia = 4) {
-    const datos = versos.map(palabras => palabras.map(palabra => {
+    const datos = versos.map(palabras => palabras.map((palabra, n) => {
         const p = String(palabra ?? '').toLowerCase().normalize('NFC');
         const a = ATONAS.has(p) ? null : analizarPalabra(p);
-        return a && { texto: sinTildes(a.palabra), consonante: consonanteDe(a), asonante: asonanteDe(a) };
+        return a && {
+            texto: sinTildes(a.palabra), consonante: consonanteDe(a), asonante: asonanteDe(a),
+            final: n === palabras.length - 1, larga: a.nucleos.length > 1,
+        };
     }));
     return datos.map((palabras, i) => palabras.map(dato => {
         if (!dato || distancia < 1) return null;
-        const cerca = datos.slice(Math.max(0, i - distancia + 1), i + distancia).flat();
-        return cerca.some(otro => otro && otro.consonante === dato.consonante && otro.texto !== dato.texto)
-            ? dato.asonante : null;
+        const cerca = datos.slice(Math.max(0, i - distancia + 1), i + distancia).flat()
+            .filter(otro => otro && otro.texto !== dato.texto);
+        if (cerca.some(otro => otro.consonante === dato.consonante)) return { clave: dato.asonante, suave: false };
+        const asonante = otro => otro.asonante === dato.asonante && (otro.final || dato.final) && otro.larga && dato.larga;
+        return cerca.some(asonante) ? { clave: dato.asonante, suave: true } : null;
     }));
 }
