@@ -207,10 +207,11 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .editor { flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0; }
 .editor-titulo { border: 0; background: none; outline: none; font-size: 22px; font-weight: 400; padding: 16px 0 12px; }
 .editor-cuerpo { flex: 1; display: flex; align-items: flex-start; gap: 8px; min-height: 0; overflow-y: auto; }
-.editor-texto, .editor-fondo, .silabas { font-size: 17px; line-height: 23px; }
+.editor-texto, .editor-fondo, .silabas { font-size: var(--libreta-letra, 17px); line-height: var(--libreta-alto, 23px); }
+.editor-texto, .editor-fondo { font-family: var(--libreta-fuente, inherit); }
 .editor-capas { flex: 1; position: relative; min-height: 100%; }
 /* Renglones de cuaderno, uno por línea de texto (se apagan desde la barra). */
-.editor-capas.renglones { background: repeating-linear-gradient(to bottom, transparent 0 22px, var(--renglon) 22px 23px); }
+.editor-capas.renglones { background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--libreta-alto, 23px) - 1px), var(--renglon) calc(var(--libreta-alto, 23px) - 1px) var(--libreta-alto, 23px)); }
 .editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: transparent; pointer-events: none; }
 .editor-fondo mark { color: transparent; border-radius: 4px; }
 /* Separadores de partes ([Estribillo], [Hook]...): violeta, como lo especial. */
@@ -225,7 +226,7 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
     outline: none; resize: none; padding: 0; overflow: hidden; -webkit-appearance: none; appearance: none;
 }
 .silabas { width: 20px; flex-shrink: 0; color: var(--texto-3); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
-.silabas div { height: 23px; }
+.silabas div { height: var(--libreta-alto, 23px); }
 .silabas.oculto { display: none; }
 /* Sugerencias pegadas al teclado y de su mismo color, como una fila más del teclado. */
 .sugerencias {
@@ -262,28 +263,28 @@ body.editando .vista#vista-editor {
 }
 
 /* Temas de la libreta (Métrica Extras). "Gris liso" usa los colores de arriba.
-   Solo cambian la libreta mientras se escribe; la muestra en Ajustes usa el mismo color. */
-body.editando[data-libreta="blanco"], .muestra-tema[data-libreta="blanco"],
-body.editando[data-libreta="papel"], .muestra-tema[data-libreta="papel"],
-body.editando[data-libreta="lavanda"], .muestra-tema[data-libreta="lavanda"] {
+   Solo cambian la libreta mientras se escribe (no la hoja de ajustes); la muestra usa el mismo color. */
+body.editando[data-libreta="blanco"] #vista-editor, .muestra-tema[data-libreta="blanco"],
+body.editando[data-libreta="papel"] #vista-editor, .muestra-tema[data-libreta="papel"],
+body.editando[data-libreta="lavanda"] #vista-editor, .muestra-tema[data-libreta="lavanda"] {
     color-scheme: light;
     --texto: #1c1530; --texto-2: rgba(60, 50, 90, 0.62); --texto-3: rgba(60, 50, 90, 0.32);
     --separador: rgba(60, 50, 90, 0.12); --vidrio: rgba(255, 255, 255, 0.55); --vidrio-borde: rgba(255, 255, 255, 0.85);
     --acento: #3c4043; --renglon: rgba(60, 60, 67, 0.08); --teclado: #d1d4da;
 }
-body.editando[data-libreta="pizarra"], .muestra-tema[data-libreta="pizarra"],
-body.editando[data-libreta="medianoche"], .muestra-tema[data-libreta="medianoche"] {
+body.editando[data-libreta="pizarra"] #vista-editor, .muestra-tema[data-libreta="pizarra"],
+body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libreta="medianoche"] {
     color-scheme: dark;
     --texto: #f1f4ee; --texto-2: rgba(240, 244, 236, 0.6); --texto-3: rgba(240, 244, 236, 0.32);
     --separador: rgba(255, 255, 255, 0.1); --vidrio: rgba(255, 255, 255, 0.1); --vidrio-borde: rgba(255, 255, 255, 0.12);
     --acento: #e8eaed; --renglon: rgba(255, 255, 255, 0.06); --teclado: #2c2c2e;
 }
-body.editando[data-libreta="blanco"], .muestra-tema[data-libreta="blanco"] { --libreta: #ffffff; }
-body.editando[data-libreta="papel"], .muestra-tema[data-libreta="papel"] { --libreta: #f5ecd7; --texto: #3a2e1e; --renglon: rgba(120, 90, 40, 0.11); --teclado: #e4d9c0; }
-body.editando[data-libreta="lavanda"], .muestra-tema[data-libreta="lavanda"] { --libreta: #ece6ff; --renglon: rgba(123, 97, 255, 0.1); --teclado: #d9d1f5; }
-body.editando[data-libreta="pizarra"], .muestra-tema[data-libreta="pizarra"] { --libreta: #24332c; --teclado: #1b2621; }
-body.editando[data-libreta="medianoche"], .muestra-tema[data-libreta="medianoche"] { --libreta: #0d1230; --texto: #e6e9ff; --teclado: #161b3d; }
-body.editando { color: var(--texto); }
+body.editando[data-libreta="blanco"] #vista-editor, .muestra-tema[data-libreta="blanco"] { --libreta: #ffffff; }
+body.editando[data-libreta="papel"] #vista-editor, .muestra-tema[data-libreta="papel"] { --libreta: #f5ecd7; --texto: #3a2e1e; --renglon: rgba(120, 90, 40, 0.11); --teclado: #e4d9c0; }
+body.editando[data-libreta="lavanda"] #vista-editor, .muestra-tema[data-libreta="lavanda"] { --libreta: #ece6ff; --renglon: rgba(123, 97, 255, 0.1); --teclado: #d9d1f5; }
+body.editando[data-libreta="pizarra"] #vista-editor, .muestra-tema[data-libreta="pizarra"] { --libreta: #24332c; --teclado: #1b2621; }
+body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libreta="medianoche"] { --libreta: #0d1230; --texto: #e6e9ff; --teclado: #161b3d; }
+#vista-editor { color: var(--texto); }
 .celda-tema { flex-direction: row; align-items: center; gap: 12px; }
 .muestra-tema { width: 28px; height: 28px; border-radius: 8px; background: var(--libreta); border: 1px solid var(--separador); flex-shrink: 0; }
 .marca-tema { margin-left: auto; display: flex; color: var(--acento); }
@@ -344,3 +345,15 @@ body.editando { color: var(--texto); }
 .boton-texto { margin-top: 12px; color: var(--destacado); font-weight: 500; }
 .nota.centrada { text-align: center; }
 .celda-extras > span:first-child { color: var(--destacado); font-weight: 600; }
+
+/* Ajustes de la libreta: hoja más baja, sin brillos. */
+.hoja-ajustes { background: var(--fondo); text-align: left; }
+.hoja-titulo { font-size: 20px; font-weight: 600; margin: 0 0 8px; text-align: center; }
+.hoja-ajustes .encabezado-grupo { margin: 20px 4px 6px; }
+.hoja-ajustes .segmentado { margin-top: 0; }
+#opciones-libreta button[data-opcion="serif"] { font-family: ui-serif, "New York", Georgia, serif; }
+#opciones-libreta button[data-opcion="maquina"] { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+/* Mantener apretada una tarjeta la borra: sin menú de copiar ni selección de iOS. */
+.tarjeta-letra button { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.tarjeta-letra.apretada { transform: scale(0.96); transition: transform .4s; }

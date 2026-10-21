@@ -1,7 +1,7 @@
 // Service worker: guarda todo en caché para que la app ande sin internet.
 // Cambiá VERSION cada vez que cambien los archivos: así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
-const VERSION = 'metrica-v20';
+const VERSION = 'metrica-v21';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -21,6 +21,7 @@ const ARCHIVOS = [
     'js/logica/compra.js',
     'js/logica/secciones.js',
     'js/logica/ortografia.js',
+    'js/logica/libreta.js',
     'iconos/icono.svg',
     'iconos/icono-180.png',
     'iconos/icono-192.png',
