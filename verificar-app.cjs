@@ -219,6 +219,15 @@ const servidor = http.createServer((req, res) => {
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo']);
         await page.screenshot({path: `capturas/editor-internas-${tema}.png`});
+        // Cada terminación con su color, sin repetir aunque haya muchas, y siempre el mismo en toda la letra.
+        await escribir(['canción', 'luna', 'casa', 'vida', 'mesa', 'fuego', 'amigo', 'mundo', 'corazón', 'fortuna', 'nada', 'risa', 'besa', 'juego', 'trigo', 'segundo'].join('\n'));
+        const clases = await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className.replace(' suave', '')));
+        assert.equal(new Set(clases.slice(0, 8)).size, 8, clases.join());
+        assert.deepEqual(clases.slice(8), clases.slice(0, 8));
+        const fondos = await page.locator('#editor-fondo mark').evaluateAll(ms => ms.slice(0, 8).map(m => getComputedStyle(m).backgroundColor));
+        assert.equal(new Set(fondos).size, 8, fondos.join());
+        await page.screenshot({path: `capturas/editor-colores-${tema}.png`});
+        await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('[data-ajuste="internas"] [data-opcion="dos"]').click();
         assert.deepEqual(await marcas(), ['rima-0:mino', 'rima-0:tino'], 'a 2 versos, tengo y vengo quedan lejos');

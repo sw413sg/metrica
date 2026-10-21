@@ -42,10 +42,10 @@ Hecho:
 - [x] Pintar solo la parte que rima, desde la sílaba tónica ("can**ción**", "ra**zón**"), no la palabra entera.
 - [x] Consonante con fondo lleno y asonante con el mismo color pero más suave (`rimanConsonante` en `js/logica/rimas.js`).
 - [x] Rimas internas (`rimasInternas` en `js/logica/rimas.js`): palabras del medio que riman consonante con otra distinta a menos de 4 versos (ajustable en la ruedita: No, 2, 4 u 8). Para no pintar todo: solo consonantes, sin átonas y sin la misma palabra repetida.
+- [x] Un color fijo para cada terminación en toda la letra, con 12 colores (`.rima-0` a `.rima-11` en `estilos.css`) en el orden en que aparecen, para que no se repitan.
 
 Pendiente, todo entra en el lanzamiento, en este orden:
-1. Un color fijo para cada terminación (por ejemplo, "-ón" siempre del mismo color en toda la letra), con una paleta amplia, para que no se repitan.
-2. Rimas multisilábicas (más de una sílaba que rima, como "camino / destino").
+1. Rimas multisilábicas (más de una sílaba que rima, como "camino / destino").
 
 ## Internet y nube
 - Todo funciona sin internet. Lo único que usa internet es la música de YouTube y SoundCloud: en la web y en la app nativa va con los reproductores oficiales, y sin conexión la app tiene que seguir andando sin errores.

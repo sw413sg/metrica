@@ -30,11 +30,6 @@
     --renglon: rgba(60, 60, 67, 0.08);
     --teclado: #f1f3f4;
     /* Colores para pintar rimas */
-    --rima-1: rgba(48, 176, 199, 0.35);
-    --rima-2: rgba(255, 45, 85, 0.3);
-    --rima-3: rgba(255, 204, 0, 0.4);
-    --rima-4: rgba(175, 82, 222, 0.3);
-    --rima-5: rgba(52, 199, 89, 0.3);
 }
 /* Oscuro: según el sistema, salvo que en Ajustes se elija Claro; o siempre si se elige Oscuro. */
 @media (prefers-color-scheme: dark) {
@@ -275,11 +270,20 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .editor-fondo mark { color: transparent; border-radius: 4px; }
 /* Separadores de partes ([Estribillo], [Hook]...): violeta, como lo especial. */
 .editor-fondo mark.seccion { background: var(--destacado-suave); box-shadow: inset 3px 0 0 var(--destacado); border-radius: 4px; }
-.rima-0 { --fondo-rima: var(--rima-1); }
-.rima-1 { --fondo-rima: var(--rima-2); }
-.rima-2 { --fondo-rima: var(--rima-3); }
-.rima-3 { --fondo-rima: var(--rima-4); }
-.rima-4 { --fondo-rima: var(--rima-5); }
+/* Un color por terminación, en el orden en que aparecen en la letra: 12 tonos, cada uno
+   lejos del anterior, para que no se repitan ni se confundan los vecinos. */
+.rima-0 { --fondo-rima: hsl(190 75% 50% / 0.35); }
+.rima-1 { --fondo-rima: hsl(345 100% 60% / 0.3); }
+.rima-2 { --fondo-rima: hsl(48 100% 50% / 0.4); }
+.rima-3 { --fondo-rima: hsl(280 70% 62% / 0.42); }
+.rima-4 { --fondo-rima: hsl(135 60% 50% / 0.3); }
+.rima-5 { --fondo-rima: hsl(25 100% 55% / 0.35); }
+.rima-6 { --fondo-rima: hsl(215 90% 60% / 0.3); }
+.rima-7 { --fondo-rima: hsl(315 75% 60% / 0.3); }
+.rima-8 { --fondo-rima: hsl(80 70% 45% / 0.35); }
+.rima-9 { --fondo-rima: hsl(0 80% 60% / 0.3); }
+.rima-10 { --fondo-rima: hsl(165 70% 42% / 0.35); }
+.rima-11 { --fondo-rima: hsl(250 75% 65% / 0.4); }
 mark[class*="rima-"] { background: var(--fondo-rima); }
 /* Asonante: el mismo color que su grupo, más suave. */
 mark.suave { background: color-mix(in srgb, var(--fondo-rima) 40%, transparent); }
