@@ -360,6 +360,14 @@ editorTexto.addEventListener('click', () => {
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
 });
 
+// La barra aparece solo al tocar: si se cierra el teclado o se desliza la letra para leerla, se va.
+const ocultarSugerencias = () => {
+    $('sugerencias').hidden = true;
+    reemplazo = null;
+};
+editorTexto.addEventListener('blur', ocultarSugerencias);
+for (const evento of ['touchmove', 'wheel']) editorTexto.closest('.editor').addEventListener(evento, ocultarSugerencias, { passive: true });
+
 // Tocar una sugerencia la agrega donde está el cursor (o cambia la palabra tocada), sin cerrar el teclado.
 // En iOS el toque llega como mousedown: sin esto el texto pierde el foco y el teclado se cierra.
 for (const evento of ['pointerdown', 'mousedown']) $('sugerencias').addEventListener(evento, e => e.preventDefault());
