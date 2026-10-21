@@ -26,3 +26,7 @@ test('todo lo que está en la caché existe', () => {
         if (archivo !== './') assert.ok(fs.existsSync(archivo), `${archivo} no existe`);
     }
 });
+
+test('la versión es un número con un decimal, como se ve en Ajustes', () => {
+    assert.match(sw.match(/const VERSION = '([^']+)'/)[1], /^metrica-\d+\.\d+$/);
+});

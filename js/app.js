@@ -897,12 +897,35 @@ refrescarPalabras();
 // Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
 setTimeout(() => { indiceRimas(); corregir(''); }, 300);
 
+// La versión es el nombre de la caché del service worker ("metrica-0.2" -> "0.2").
+async function mostrarVersion() {
+    const claves = await caches.keys();
+    const version = claves.find(c => c.startsWith('metrica-'))?.slice('metrica-'.length);
+    if (version) $('version').textContent = version;
+}
+
+// Forzar actualización: borra la caché y el service worker y recarga, así baja todo de nuevo.
+// Sin internet no se hace, para no quedarse sin la app.
+$('forzar-actualizacion').addEventListener('click', async () => {
+    if (!navigator.onLine) {
+        $('version').textContent = 'Sin internet';
+        return setTimeout(mostrarVersion, 2000);
+    }
+    $('forzar-actualizacion').classList.add('girando');
+    const registros = await navigator.serviceWorker?.getRegistrations() ?? [];
+    await Promise.all(registros.map(r => r.unregister()));
+    await Promise.all((await caches.keys()).map(c => caches.delete(c)));
+    location.reload();
+});
+
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     // Cuando llega una versión nueva, recargamos una vez para usarla (las letras
     // están en localStorage, así que no se pierde nada).
     const habiaVersion = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => { if (habiaVersion) location.reload(); });
     navigator.serviceWorker.register('sw.js');
+    mostrarVersion();
+    navigator.serviceWorker.ready.then(mostrarVersion);
     // Pedimos que el navegador no borre las letras guardadas si le falta espacio.
     navigator.storage?.persist?.();
 }

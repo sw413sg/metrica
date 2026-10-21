@@ -163,6 +163,11 @@ a { color: var(--acento); text-decoration: none; }
 .celda:has(> .icono-celda) + .celda::before, .celda + .celda:has(> .icono-celda)::before { left: 60px; }
 .celda a { flex: 1; color: var(--texto); }
 .valor, .chevron { color: var(--texto-2); }
+/* Al lado de la versión: fuerza a bajar la versión nueva. Gira mientras actualiza. */
+.boton-actualizar { display: grid; place-items: center; width: 32px; height: 32px; margin: -6px -6px -6px 0; border-radius: 50%; color: var(--texto-2); }
+.boton-actualizar:active { background: var(--acento-suave); }
+.boton-actualizar.girando .icono { animation: girar 0.8s linear infinite; }
+@keyframes girar { to { rotate: 360deg; } }
 .celda-boton { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; color: var(--texto); }
 .subtitulo { color: var(--texto-2); font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subtitulo:empty { display: none; }
