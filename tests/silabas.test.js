@@ -74,6 +74,8 @@ test('rimasMultisilabicas: pinta desde antes de la tónica si las vocales de ant
     const lejos = [['se', 'pasa', 'volando'], ['uno'], ['dos'], ['tres'], ['un', 'tune', 'sonando']];
     assert.deepEqual(rimasMultisilabicas(lejos, [0, null, null, null, 0]), [[], [], [], [], []]);
     assert.deepEqual(rimasMultisilabicas(lejos, [0, null, null, null, 0], 5)[0], [null, null, 0]);
+    // Ni de una estrofa a otra.
+    assert.deepEqual(rimasMultisilabicas([['se', 'pasa', 'volando'], [], ['un', 'tune', 'sonando']], [0, null, 0]), [[], [], []]);
     // Sin grupo de rima, nada.
     assert.deepEqual(rimasMultisilabicas([['volando'], ['sonando']], [null, null]), [[], []]);
     assert.deepEqual(rimasMultisilabicas([], []), []);
