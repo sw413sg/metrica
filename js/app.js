@@ -367,6 +367,12 @@ const ocultarSugerencias = () => {
 };
 editorTexto.addEventListener('blur', ocultarSugerencias);
 for (const evento of ['touchmove', 'wheel']) editorTexto.closest('.editor').addEventListener(evento, ocultarSugerencias, { passive: true });
+// Deslizar bastante (más de 150px) también cierra el teclado; poco, no: capaz solo querías ver un verso de abajo.
+let inicioDeslizar = 0;
+editorTexto.closest('.editor').addEventListener('touchstart', e => { inicioDeslizar = e.touches[0].clientY; }, { passive: true });
+editorTexto.closest('.editor').addEventListener('touchmove', e => {
+    if (Math.abs(e.touches[0].clientY - inicioDeslizar) > 150) editorTexto.blur();
+}, { passive: true });
 
 // Tocar una sugerencia la agrega donde está el cursor (o cambia la palabra tocada), sin cerrar el teclado.
 // En iOS el toque llega como mousedown: sin esto el texto pierde el foco y el teclado se cierra.
