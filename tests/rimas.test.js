@@ -171,9 +171,12 @@ test('rimasInternas: asonantes, con la última palabra de un verso', () => {
     const a = { clave: 'a', suave: true };
     assert.deepEqual(rimasInternas([['más', 'cuenta'], ['guardar', 'experto']]), [[a, null], [a, null]], 'dos agudas cerradas');
     assert.deepEqual(rimasInternas([['ya', 'cuenta'], ['guardar', 'experto']]), [[null, null], [null, null]], '"ya" es abierta');
+    const e = { clave: 'e', suave: true };
+    assert.deepEqual(rimasInternas([['agrandé', 'sombras'], ['sed', 'luna']]), [[e, null], [e, null]], 'é con ed');
+    assert.deepEqual(rimasInternas([['estar', 'sombras'], ['ya', 'luna']]), [[null, null], [null, null]], '"ya" es abierta y corta');
     const ee = { clave: 'ee', suave: true };
-    assert.deepEqual(rimasInternas([['encontré', 'solo'], ['protegerte', 'mail']]), [[ee, null], [ee, null]], 'é con e-e');
-    assert.deepEqual(rimasInternas([['encontré', 'solo'], ['siento', 'mail']]), [[null, null], [null, null]], 'é con e-o no');
+    assert.deepEqual(rimasInternas([['encontré', 'solo'], ['protegerte', 'luna']]), [[ee, null], [ee, null]], 'é con e-e');
+    assert.deepEqual(rimasInternas([['encontré', 'solo'], ['siento', 'luna']]), [[null, null], [null, null]], 'é con e-o no');
 });
 
 test('rimasInternas: respeta la distancia y no pinta de más', () => {
