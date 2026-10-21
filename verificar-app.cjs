@@ -199,8 +199,8 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#lista-letras .tarjeta-letra button').click();
         assert.match(await page.locator('#editor-texto').inputValue(), /^Caminante[\s\S]*detrás$/);
         assert.equal(await page.locator('#editor-fondo mark').count(), 5);
-        // Al entrar a una letra empezada, el cursor queda al final del texto (y se abre el teclado).
-        assert.equal(await page.evaluate(() => document.activeElement.id), 'editor-texto');
+        // Al entrar a una letra empezada no se abre el teclado: no hay nada enfocado.
+        assert.equal(await page.evaluate(() => document.activeElement.id), '');
         // Borrar está abajo de todo en la ruedita y pide confirmación.
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('#borrar-letra').click();
