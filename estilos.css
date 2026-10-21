@@ -246,6 +246,11 @@ a { color: var(--acento); text-decoration: none; }
 .tiempos span:first-child { font-weight: 700; }
 .tiempos span.activo { background: linear-gradient(135deg, var(--destacado), var(--destacado-2)); color: #fff; box-shadow: 0 0 16px var(--destacado-suave); }
 .deslizador { flex: 1; min-width: 0; accent-color: var(--destacado); }
+/* Barra de la libreta con 10 puntos marcados abajo: al soltar, se imanta al más cercano. */
+.fila-deslizador { margin-top: 12px; padding: 0 4px; }
+.fila-deslizador .deslizador { display: block; width: 100%; margin: 0; }
+.puntos-deslizador { display: flex; justify-content: space-between; padding: 4px 10px 0; }
+.puntos-deslizador span { width: 4px; height: 4px; border-radius: 50%; background: var(--texto-3); }
 /* Tempo: el número abajo del nombre, la barra y el botón para volver a 90 BPM. */
 .celda-tempo .etiqueta-tempo { flex: 0 0 auto !important; display: flex; flex-direction: column; line-height: 1.2; }
 .celda-tempo .valor { font-size: 13px; }

@@ -240,14 +240,18 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#abrir-ajustes-libreta').click();
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), true);
         await page.locator('#mostrar-silabas').click();
-        await page.locator('[data-ajuste="tamano"] [data-opcion="grande"]').click();
-        await page.locator('[data-ajuste="separacion"] [data-opcion="amplia"]').click();
+        // Tamaño y separaciones: barras de 10 puntos imantados.
+        assert.equal(await page.locator('.fila-deslizador').count(), 3);
+        assert.equal(await page.locator('.fila-deslizador').first().locator('.puntos-deslizador span').count(), 10);
+        assert.equal(await page.locator('input[data-ajuste="tamano"]').inputValue(), '4');
+        await page.locator('input[data-ajuste="tamano"]').fill('7');
+        await page.locator('input[data-ajuste="separacion"]').fill('7');
         await page.locator('[data-ajuste="fuente"] [data-opcion="serif"]').click();
-        await page.locator('[data-ajuste="letras"] [data-opcion="junta"]').click();
+        await page.locator('input[data-ajuste="letras"]').fill('1');
         await page.screenshot({path: `capturas/ajustes-libreta-${tema}.png`});
         await page.locator('#cerrar-ajustes-libreta').click();
         const estiloTexto = () => page.locator('#editor-texto').evaluate(t => [getComputedStyle(t).fontSize, getComputedStyle(t).lineHeight, getComputedStyle(t).fontFamily]);
-        assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '34px']);
+        assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '35px']);
         assert.match((await estiloTexto())[2], /serif/);
         // Letras más juntas, igual en el texto y en la copia que pinta las rimas.
         const espaciado = await page.evaluate(() => ['editor-texto', 'editor-fondo'].map(id => getComputedStyle(document.getElementById(id)).letterSpacing));
@@ -260,15 +264,15 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
         await page.reload();
         await page.locator('#lista-letras .tarjeta-letra button').click();
-        assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '34px']);
+        assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '35px']);
         assert.equal(await page.locator('#silabas').isVisible(), false);
         await page.locator('#abrir-ajustes-libreta').click();
         assert.equal(await page.locator('[data-ajuste="fuente"] [aria-selected="true"]').textContent(), 'Serif');
         await page.locator('#mostrar-silabas').click();
-        await page.locator('[data-ajuste="tamano"] [data-opcion="mediano"]').click();
-        await page.locator('[data-ajuste="separacion"] [data-opcion="normal"]').click();
+        await page.locator('input[data-ajuste="tamano"]').fill('4');
+        await page.locator('input[data-ajuste="separacion"]').fill('3');
         await page.locator('[data-ajuste="fuente"] [data-opcion="sistema"]').click();
-        await page.locator('[data-ajuste="letras"] [data-opcion="normal"]').click();
+        await page.locator('input[data-ajuste="letras"]').fill('5');
         await page.locator('#ajustes-libreta').click({position: {x: 10, y: 10}});
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), false);
         assert.deepEqual((await estiloTexto()).slice(0, 2), ['17px', '23px']);

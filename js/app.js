@@ -429,18 +429,49 @@ for (const id of ['alternar-colores', 'alternar-renglones']) {
 }
 aplicarAlternables();
 
-// Ajustes de la libreta (la ruedita): sílabas, tamaño de letra, separación y fuente.
-function aplicarAjustesLibreta() {
-    const ajustes = leerAjustesLibreta(localStorage);
-    const { tamano, alto, letras, fuente } = estiloLibreta(ajustes);
+// Ajustes de la libreta (la ruedita): sílabas, tamaño de letra, separaciones, rimas internas y fuente.
+function aplicarEstiloLibreta() {
+    const { tamano, alto, letras, fuente } = estiloLibreta(leerAjustesLibreta(localStorage));
     document.documentElement.style.setProperty('--libreta-letra', `${tamano}px`);
     document.documentElement.style.setProperty('--libreta-alto', `${alto}px`);
     document.documentElement.style.setProperty('--libreta-fuente', fuente);
     document.documentElement.style.setProperty('--libreta-letras', `${letras}em`);
+}
+
+// Barra de 10 puntos imantados (Slider con step en SwiftUI): al soltar cae siempre en un punto.
+function deslizadorLibreta(clave, ajuste, elegida) {
+    const opciones = Object.keys(ajuste.opciones);
+    const barra = document.createElement('input');
+    barra.type = 'range';
+    barra.className = 'deslizador';
+    barra.min = 0;
+    barra.max = opciones.length - 1;
+    barra.step = 1;
+    barra.value = opciones.indexOf(elegida);
+    barra.dataset.ajuste = clave;
+    barra.setAttribute('aria-label', ajuste.nombre);
+    barra.addEventListener('input', () => {
+        guardarAjusteLibreta(localStorage, clave, opciones[barra.value]);
+        aplicarEstiloLibreta();
+        actualizarEditor();
+    });
+    const puntos = document.createElement('div');
+    puntos.className = 'puntos-deslizador';
+    puntos.append(...opciones.map(() => document.createElement('span')));
+    const fila = document.createElement('div');
+    fila.className = 'fila-deslizador';
+    fila.append(barra, puntos);
+    return fila;
+}
+
+function aplicarAjustesLibreta() {
+    aplicarEstiloLibreta();
+    const ajustes = leerAjustesLibreta(localStorage);
     $('opciones-libreta').replaceChildren(...Object.entries(AJUSTES_LIBRETA).flatMap(([clave, ajuste]) => {
         const titulo = document.createElement('h3');
         titulo.className = 'encabezado-grupo';
         titulo.textContent = ajuste.nombre;
+        if (ajuste.deslizador) return [titulo, deslizadorLibreta(clave, ajuste, ajustes[clave])];
         const grupo = document.createElement('div');
         grupo.className = 'segmentado';
         grupo.setAttribute('role', 'tablist');
