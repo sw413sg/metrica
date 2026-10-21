@@ -44,8 +44,20 @@ export function vocalPrincipal(p, nucleo) {
 
 // Separa la palabra en núcleos vocálicos y encuentra la vocal tónica.
 // Devuelve null si no es una palabra en español (números, espacios, sin vocales).
+// Palabras en inglés que se usan mucho en letras, escritas como suenan en castellano,
+// para que rimen y cuenten sílabas como se cantan ("face" rima con "vez").
+export const ANGLICISMOS = new Map(Object.entries({
+    face: 'feis', mail: 'meil', babe: 'beib', baby: 'beibi', lady: 'leidi', crazy: 'creisi', sorry: 'sori',
+    like: 'laik', life: 'laif', nice: 'nais', night: 'nait', light: 'lait', fly: 'flai', high: 'jai', bye: 'bai',
+    time: 'taim', mind: 'maind', style: 'stail', freestyle: 'fristail', shine: 'shain', smile: 'smail', drive: 'draiv',
+    fire: 'fáier', flow: 'flou', show: 'shou', phone: 'fon', money: 'mani', love: 'lov', hate: 'jeit',
+    game: 'gueim', fake: 'feik', play: 'plei', okay: 'okéi', hey: 'jei', beat: 'bit', street: 'strit',
+    team: 'tim', feat: 'fit', crew: 'cru', tune: 'tiun', rapper: 'ráper', hood: 'jud', boy: 'boi', check: 'chec',
+}));
+
 export function analizarPalabra(palabra) {
-    const p = String(palabra).trim().toLowerCase().normalize('NFC');
+    const escrita = String(palabra).trim().toLowerCase().normalize('NFC');
+    const p = ANGLICISMOS.get(escrita) ?? escrita;
     if (!/^[a-záéíóúüñ]+$/.test(p)) return null;
 
     const nucleos = [];
@@ -168,8 +180,9 @@ export function rimanConsonante(palabras) {
 // Rimas internas: para cada palabra de cada verso, { clave, suave } si rima con otra palabra
 // distinta a menos de `distancia` versos (0 = apagadas); si no, null. La clave es la asonante
 // (para el color). Para que no quede todo pintado: sin palabras átonas ni la misma palabra
-// repetida, y las asonantes (suave: true) solo cuentan si una de las dos es la última de su
-// verso y las dos tienen más de una sílaba ("temas" / "eterna", pero no "es" / "tener").
+// repetida, y las asonantes (suave: true) solo cuentan si las dos tienen más de una sílaba
+// y la otra es la última de su verso ("temas" / "eterna", pero no "es" / "tener") o ya rima
+// consonante con alguna ("solo" se suma a "todos" / "modos"). Dos del medio sueltas, no.
 // No cruzan de una estrofa a otra: un verso sin palabras (renglón vacío) las corta.
 // versos: [['te', 'busco', 'en', 'el', 'balcón'], ...]
 export function rimasInternas(versos, distancia = 4) {
@@ -182,14 +195,20 @@ export function rimasInternas(versos, distancia = 4) {
             final: n === palabras.length - 1, larga: a.nucleos.length > 1,
         };
     }));
+    const cercanas = (dato, i) => datos.slice(Math.max(0, i - distancia + 1), i + distancia)
+        .filter((_, k) => estrofa[Math.max(0, i - distancia + 1) + k] === estrofa[i]).flat()
+        .filter(otro => otro && otro.texto !== dato.texto);
+    // Primero las consonantes; después, las asonantes que se suman a una rima que ya está
+    // (la última palabra de un verso o una consonante del medio).
+    datos.forEach((palabras, i) => palabras.forEach(dato => {
+        if (dato) dato.rimaConsonante = distancia > 0 && cercanas(dato, i).some(otro => otro.consonante === dato.consonante);
+    }));
     return datos.map((palabras, i) => palabras.map(dato => {
         if (!dato || distancia < 1) return null;
-        const cerca = datos.slice(Math.max(0, i - distancia + 1), i + distancia)
-            .filter((_, k) => estrofa[Math.max(0, i - distancia + 1) + k] === estrofa[i]).flat()
-            .filter(otro => otro && otro.texto !== dato.texto);
-        if (cerca.some(otro => otro.consonante === dato.consonante)) return { clave: dato.asonante, suave: false };
-        const asonante = otro => otro.asonante === dato.asonante && (otro.final || dato.final) && otro.larga && dato.larga;
-        return cerca.some(asonante) ? { clave: dato.asonante, suave: true } : null;
+        if (dato.rimaConsonante) return { clave: dato.asonante, suave: false };
+        const asonante = otro => otro.asonante === dato.asonante && otro.larga && dato.larga
+            && (otro.final || dato.final || otro.rimaConsonante);
+        return cercanas(dato, i).some(asonante) ? { clave: dato.asonante, suave: true } : null;
     }));
 }
 

@@ -159,13 +159,13 @@ test('rimasInternas: palabras del medio que riman consonante con otras cercanas'
     ]);
 });
 
-test('rimasInternas: asonantes, solo con la última palabra de un verso', () => {
+test('rimasInternas: asonantes, con la última palabra de un verso', () => {
     const suave = clave => ({ clave, suave: true });
     // "temas" / "eterna": e-a, y "eterna" cierra el verso.
     assert.deepEqual(rimasInternas([['te', 'llevo', 'en', 'mis', 'temas', 'tu', 'tinta', 'es', 'eterna']]),
         [[null, null, null, null, suave('ea'), null, null, null, suave('ea')]]);
-    // Dos del medio que solo asonan no se pintan ("casa" / "mala").
-    assert.deepEqual(rimasInternas([['casa', 'mala', 'sol']]), [[null, null, null]]);
+    // Dos del medio que solo asonan, a más de un verso, no se pintan ("casa" / "mala").
+    assert.deepEqual(rimasInternas([['casa', 'sol'], ['un', 'pez'], ['mala', 'luz']]), [[null, null], [null, null], [null, null]]);
     // Las de una sílaba no cuentan como asonantes ("es" / "tener").
     assert.deepEqual(rimasInternas([['no', 'es', 'tener']]), [[null, null, null]]);
 });
@@ -181,4 +181,19 @@ test('rimasInternas: respeta la distancia y no pinta de más', () => {
     // Palabras átonas ("con" / "son") no se pintan.
     assert.deepEqual(rimasInternas([['con', 'son', 'mar']]), [[null, null, null]]);
     assert.deepEqual(rimasInternas([]), []);
+});
+
+test('palabras en inglés: riman como suenan', () => {
+    asonan('face', 'vez');
+    asonan('mail', 'él');
+    riman('face', 'reis');
+    assert.equal(analizarPalabra('Face').nucleos.length, 1);
+    assert.equal(claveAsonante('baby'), 'ei');
+});
+
+test('rimasInternas: una asonante del medio se suma a una consonante del medio ("solo" / "todos modos")', () => {
+    const suave = clave => ({ clave, suave: true });
+    assert.deepEqual(rimasInternas([['con', 'mi', 'música', 'y', 'solo', 'el', 'mes'], ['te', 'busqué', 'de', 'todos', 'modos', 'otra', 'vez']])[0][4], suave('oo'));
+    // Si "todos" no rimara consonante con nada, "solo" quedaría sin pintar.
+    assert.deepEqual(rimasInternas([['y', 'solo', 'el', 'mes'], ['de', 'todos', 'otra', 'vez']])[0][1], null);
 });
