@@ -6,6 +6,7 @@ import { contarSilabasVerso } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
+import { crearCorrector } from './logica/ortografia.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -15,8 +16,13 @@ const todasLasPalabras = parsearPalabras(textoPalabras);
 const palabrasSimples = parsearPalabras(textoPalabrasSimples);
 
 // El índice de rimas tarda un par de segundos en armarse: se arma una sola vez.
-let indice = null;
-const indiceRimas = () => indice ??= crearIndiceRimas(todasLasPalabras, parsearFrecuencias(textoFrecuencias));
+let indice = null, frecuencias = null, corrector = null;
+const frecuenciasDePalabras = () => frecuencias ??= parsearFrecuencias(textoFrecuencias);
+const indiceRimas = () => indice ??= crearIndiceRimas(todasLasPalabras, frecuenciasDePalabras());
+// Errores de tipeo: corregir('balcon') -> 'balcón' (null si está bien escrita).
+const corregir = palabra => (corrector ??= crearCorrector(todasLasPalabras, frecuenciasDePalabras()))(palabra);
+// La palabra como se quiso escribir, para que rime bien aunque falte la tilde.
+const bienEscrita = palabra => palabra && (corregir(palabra) ?? palabra);
 
 // ---------- Pestañas (TabView) ----------
 function mostrarPestana(nombre) {
@@ -83,35 +89,39 @@ function actualizarEditor() {
 
     const versos = editorTexto.value.split('\n');
 
-    // Sílabas por verso (vacío en los versos sin palabras).
+    // Sílabas por verso (vacío en los versos sin palabras), contando las palabras como se quisieron escribir.
     $('silabas').replaceChildren(...versos.map(verso => {
         const fila = document.createElement('div');
-        fila.textContent = esSeparador(verso) ? '' : contarSilabasVerso(verso) || '';
+        fila.textContent = esSeparador(verso) ? '' : contarSilabasVerso(verso.replace(/\p{L}+/gu, bienEscrita)) || '';
         return fila;
     }));
 
     // Rimas pintadas: la última palabra de cada verso, con el color de su grupo.
+    // Las palabras mal escritas van subrayadas.
     const finales = versos.map(verso => esSeparador(verso) ? null : verso.match(/(\p{L}+)[^\p{L}]*$/u));
     const grupos = $('alternar-colores').getAttribute('aria-pressed') === 'true'
-        ? agruparRimas(finales.map(f => f?.[1])) : [];
+        ? agruparRimas(finales.map(f => bienEscrita(f?.[1]))) : [];
+    const marca = (clase, texto) => {
+        const elemento = document.createElement('mark');
+        elemento.className = clase;
+        elemento.textContent = texto;
+        return elemento;
+    };
     $('editor-fondo').replaceChildren(...versos.flatMap((verso, i) => {
         const fin = i < versos.length - 1 ? '\n' : '';
-        if (esSeparador(verso)) {
-            const marca = document.createElement('mark');
-            marca.className = 'seccion';
-            marca.textContent = verso;
-            return [marca, fin];
-        }
-        if (grupos[i] == null) return [verso + fin];
-        const marca = document.createElement('mark');
-        marca.className = `rima-${grupos[i] % 5}`;
-        marca.textContent = finales[i][1];
-        return [verso.slice(0, finales[i].index), marca, verso.slice(finales[i].index + finales[i][1].length) + fin];
+        if (esSeparador(verso)) return [marca('seccion', verso), fin];
+        const partes = verso.split(/(\p{L}+)/u).map((parte, j) => {
+            if (j % 2 === 0) return parte;
+            const esFinal = grupos[i] != null && j === verso.split(/(\p{L}+)/u).length - 2;
+            const clases = [esFinal && `rima-${grupos[i] % 5}`, corregir(parte) && 'error'].filter(Boolean);
+            return clases.length ? marca(clases.join(' '), parte) : parte;
+        });
+        return [...partes, fin];
     }));
 
     // Sugerencias para la última palabra escrita (en un verso vacío, la del verso anterior).
     const antes = editorTexto.value.slice(0, editorTexto.selectionEnd).split('\n').filter(v => !esSeparador(v)).join('\n');
-    const ultima = antes.match(/(\p{L}+)[^\p{L}]*$/u)?.[1];
+    const ultima = bienEscrita(antes.match(/(\p{L}+)[^\p{L}]*$/u)?.[1]);
     reemplazo = null;
     mostrarSugerencias(ultima);
 }
@@ -159,7 +169,14 @@ editorTexto.addEventListener('click', () => {
     const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
     const despues = value.slice(selectionStart).match(/^\p{L}*/u)[0];
     if (!antes && !despues) return;
-    mostrarSugerencias(antes + despues, `Cambiar «${antes + despues}»:`);
+    // Si está mal escrita, primero va la corrección y después las rimas de la palabra corregida.
+    const correccion = corregir(antes + despues);
+    if (correccion) {
+        mostrarSugerencias(correccion, `Cambiar «${antes + despues}»:`, [correccion, ...buscarRimas(correccion, indiceRimas()).slice(0, 20)]);
+        $('sugerencias').querySelector('.sugerencia').classList.add('correccion');
+    } else {
+        mostrarSugerencias(antes + despues, `Cambiar «${antes + despues}»:`);
+    }
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
 });
 
@@ -455,7 +472,7 @@ renderizarLetras();
 renderizarRimas();
 refrescarPalabras();
 // Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
-setTimeout(indiceRimas, 300);
+setTimeout(() => { indiceRimas(); corregir(''); }, 300);
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     // Cuando llega una versión nueva, recargamos una vez para usarla (las letras
