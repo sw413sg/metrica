@@ -157,3 +157,10 @@ export function agruparRimas(palabras) {
         return grupos.get(clave);
     });
 }
+
+// Para pintar más fuerte las consonantes: para cada palabra, si otra de la lista
+// rima consonante con ella ("corazón" / "canción"). Las demás de su grupo son asonantes.
+export function rimanConsonante(palabras) {
+    const claves = palabras.map(p => (p && claveConsonante(p)) || null);
+    return claves.map((clave, i) => clave != null && claves.some((otra, j) => j !== i && otra === clave));
+}
