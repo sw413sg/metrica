@@ -168,6 +168,9 @@ test('rimasInternas: asonantes, con la última palabra de un verso', () => {
     assert.deepEqual(rimasInternas([['casa', 'sol'], ['un', 'pez'], ['mala', 'luz']]), [[null, null], [null, null], [null, null]]);
     // Las de una sílaba no cuentan como asonantes ("es" / "tener").
     assert.deepEqual(rimasInternas([['no', 'es', 'tener']]), [[null, null, null]]);
+    const a = { clave: 'a', suave: true };
+    assert.deepEqual(rimasInternas([['más', 'cuenta'], ['guardar', 'experto']]), [[a, null], [a, null]], 'dos agudas cerradas');
+    assert.deepEqual(rimasInternas([['ya', 'cuenta'], ['guardar', 'experto']]), [[null, null], [null, null]], '"ya" es abierta');
 });
 
 test('rimasInternas: respeta la distancia y no pinta de más', () => {

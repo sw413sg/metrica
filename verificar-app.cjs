@@ -40,6 +40,11 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#vista-editor').isVisible(), true);
         assert.equal(await page.locator('#barra-pestanas').isVisible(), false);
         await page.locator('#editor-titulo').fill('Sacred Geometry');
+        // Lo que va entre paréntesis no rima: riman "fin" y "seguir", no "(al)".
+        await page.locator('#editor-texto').fill('Llegamos al fin (al)\nno pude seguir');
+        assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
+            ['rima-0 suave:fin', 'rima-0 suave:guir']);
+        assert.equal(await page.locator('#editor-fondo').textContent(), 'Llegamos al fin (al)\nno pude seguir');
         // Multisilábicas: "no hay ca-MI-no" / "se hace ca-MI-no" riman desde "ca", y "al an-DAR" / "vista a-TRÁS" desde "al".
         await page.locator('#editor-texto').fill('Caminante, no hay camino,\nse hace camino al andar.\nAl andar se hace camino\ny al volver la vista atrás');
         assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
