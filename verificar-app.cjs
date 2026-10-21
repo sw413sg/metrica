@@ -146,6 +146,17 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#sugerencias').isVisible(), false, 'cerrar el teclado la saca');
         await tocarVacio();
         assert.equal(await page.locator('#sugerencias').isVisible(), true);
+        // Deslizar poco deja el teclado; deslizar bastante lo cierra.
+        const deslizar = dy => page.locator('.editor').evaluate((e, dy) => {
+            const toque = y => new Touch({identifier: 1, target: e, clientY: y});
+            e.dispatchEvent(new TouchEvent('touchstart', {touches: [toque(400)]}));
+            e.dispatchEvent(new TouchEvent('touchmove', {touches: [toque(400 - dy)]}));
+        }, dy);
+        await deslizar(60);
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'editor-texto', 'poco no cierra el teclado');
+        await deslizar(200);
+        assert.notEqual(await page.evaluate(() => document.activeElement.id), 'editor-texto', 'bastante cierra el teclado');
+        await tocarVacio();
         await page.locator('.sugerencia', {hasText: 'Estribillo'}).click();
         assert.match(await page.locator('#editor-texto').inputValue(), /detrás\n\n\[Estribillo\]\nverso nuevo$/);
         assert.equal(await page.locator('#editor-fondo mark.seccion').textContent(), '[Estribillo]');
