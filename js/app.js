@@ -2,7 +2,7 @@
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante } from './logica/rimas.js';
-import { contarSilabasVerso, inicioTonica } from './logica/silabas.js';
+import { contarSilabasVerso, inicioTonica, rimasMultisilabicas } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
@@ -228,6 +228,8 @@ function actualizarEditor() {
     const grupos = pintar ? agruparRimas(palabrasFinales) : [];
     // Consonante con el fondo lleno; asonante con el mismo color, más suave.
     const consonantes = rimanConsonante(palabrasFinales);
+    // Multisilábicas: si las sílabas de antes de la tónica también riman, se pintan desde ahí.
+    const multis = pintar ? rimasMultisilabicas(palabras, grupos) : [];
     const internas = pintar ? rimasInternas(palabras, estiloLibreta(leerAjustesLibreta(localStorage)).internas) : [];
     // Cada terminación, un color fijo en toda la letra (12 en estilos.css, .rima-0 a .rima-11):
     // las internas que suenan como un grupo de finales usan su color.
@@ -255,13 +257,16 @@ function actualizarEditor() {
             if (j % 2 === 0) return parte;
             const n = (j - 1) / 2;
             const esFinal = j === trozos.length - 2;
+            const multi = multis[i]?.[n];
             let clase = null;
-            if (esFinal && grupos[i] != null) clase = `rima-${grupos[i] % COLORES_RIMA}${consonantes[i] ? '' : ' suave'}`;
+            if ((esFinal || multi != null) && grupos[i] != null) clase = `rima-${grupos[i] % COLORES_RIMA}${consonantes[i] ? '' : ' suave'}`;
             else if (internas[i]?.[n]) clase = `rima-${colorDe(internas[i][n]) % COLORES_RIMA}`;
             if (!clase) return parte;
-            // Se pinta solo desde la sílaba tónica. Si se corrigió más que una tilde, se mira lo escrito.
+            // Se pinta solo desde la sílaba tónica (o desde antes, si es multisilábica).
+            // Si se corrigió más que una tilde, se mira lo escrito.
             const corregida = palabras[i][n];
-            const desde = Math.max(0, inicioTonica(corregida.length === parte.length ? corregida : parte));
+            const igual = corregida.length === parte.length;
+            const desde = multi != null ? (igual ? multi : 0) : Math.max(0, inicioTonica(igual ? corregida : parte));
             return [parte.slice(0, desde), marca(clase, parte.slice(desde))];
         });
         renglon.append(...partes.flat());

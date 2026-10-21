@@ -36,7 +36,7 @@ function seUne(p, nucleo, i) {
 
 // Vocal que suena más fuerte dentro de un núcleo: la de tilde, si no la fuerte,
 // si no la segunda ("ruido", "viuda").
-function vocalPrincipal(p, nucleo) {
+export function vocalPrincipal(p, nucleo) {
     return nucleo.find(j => CON_TILDE.includes(p[j]))
         ?? nucleo.find(j => FUERTES.includes(p[j]))
         ?? nucleo[nucleo.length - 1];
