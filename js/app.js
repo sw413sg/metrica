@@ -178,7 +178,10 @@ $('sugerencias').addEventListener('click', e => {
     const boton = e.target.closest('.sugerencia');
     if (!boton) return;
     if (reemplazo?.seccion) {
-        editorTexto.setRangeText(separador(boton.textContent), reemplazo.inicio, reemplazo.fin, 'end');
+        // Si el renglón de arriba tiene texto, deja uno en blanco antes del separador.
+        const arriba = editorTexto.value.slice(0, Math.max(0, reemplazo.inicio - 1));
+        const espacio = arriba.slice(arriba.lastIndexOf('\n') + 1).trim() ? '\n' : '';
+        editorTexto.setRangeText(espacio + separador(boton.textContent), reemplazo.inicio, reemplazo.fin, 'end');
     } else if (reemplazo) {
         // Si la palabra empezaba con mayúscula, la nueva también.
         const mayuscula = /^\p{Lu}/u.test(editorTexto.value[reemplazo.inicio]);
