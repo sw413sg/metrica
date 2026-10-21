@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contarSilabasVerso, separarSilabas } from '../js/logica/silabas.js';
+import { contarSilabasVerso, separarSilabas, inicioTonica } from '../js/logica/silabas.js';
 
 test('separar sílabas', () => {
     assert.deepEqual(separarSilabas('cuidado'), ['cui', 'da', 'do']);
@@ -45,4 +45,15 @@ test('la "y" sola hace sinalefa', () => {
 test('verso vacío o sin palabras', () => {
     assert.equal(contarSilabasVerso(''), 0);
     assert.equal(contarSilabasVerso('  ... 123 '), 0);
+});
+
+test('inicioTonica: dónde empieza la sílaba tónica, para pintar solo la parte que rima', () => {
+    assert.equal(inicioTonica('canción'), 3);
+    assert.equal(inicioTonica('razón'), 2);
+    assert.equal(inicioTonica('camino'), 2);
+    assert.equal(inicioTonica('pájaro'), 0);
+    assert.equal(inicioTonica('atrás'), 1);
+    assert.equal(inicioTonica('Corazón'), 4);
+    assert.equal(inicioTonica('sol'), 0);
+    assert.equal(inicioTonica('123'), -1);
 });

@@ -13,7 +13,7 @@ Publicada en https://sw413sg.github.io/metrica/ (GitHub Pages desde `main`, sin 
 - **Editor de una letra**:
   - Fondo liso, gris oscuro `#2d2e32` en modo oscuro. Al bajar, el título se va con el texto y arriba quedan solo los botones.
   - Cuenta las sílabas métricas de cada verso, con sinalefa (`js/logica/silabas.js`).
-  - Pinta del mismo color las palabras finales de cada verso que riman (ver "Pendiente").
+  - Pinta del mismo color la parte que rima de las palabras finales de cada verso, desde la sílaba tónica ("can**ción**", con `inicioTonica` de `js/logica/silabas.js`; ver "Pendiente").
   - Las sugerencias aparecen pegadas al teclado solo al tocar una palabra o un renglón vacío, no mientras se escribe (pedido de Swa). Tocar una palabra muestra rimas para cambiarla, y «Cambiar» alterna a sinónimos (`js/logica/sinonimos.js`).
   - Las palabras mal escritas o sin tilde no se marcan, pero riman, cuentan sílabas y sugieren como la palabra corregida (`js/logica/ortografia.js`).
   - Tocar un renglón vacío marca la parte: [Intro], [Estribillo]... (`js/logica/secciones.js`).
@@ -39,13 +39,13 @@ Hecho:
 - [x] Favoritos y letras guardadas (en localStorage).
 - [x] Modo freestyle con timer, beats con BPM y sílaba fuerte marcada. Los beats tienen que ser propios o con licencia para uso comercial, anotada en el repo.
 - [x] Funciona sin internet, salvo la música de YouTube y SoundCloud.
+- [x] Pintar solo la parte que rima, desde la sílaba tónica ("can**ción**", "ra**zón**"), no la palabra entera.
 
 Pendiente, todo entra en el lanzamiento, en este orden:
-1. Pintar solo la parte que rima, desde la vocal tónica ("can**ción**", "ra**zón**"), no la palabra entera.
-2. Consonante con fondo lleno y asonante con el mismo color pero más suave.
-3. Rimas internas: pintar también las palabras del medio que riman con otras cercanas, por defecto dentro de 4 versos y con la distancia ajustable. Cuidá que no quede todo pintado.
-4. Un color fijo para cada terminación (por ejemplo, "-ón" siempre del mismo color en toda la letra), con una paleta amplia, para que no se repitan.
-5. Rimas multisilábicas (más de una sílaba que rima, como "camino / destino").
+1. Consonante con fondo lleno y asonante con el mismo color pero más suave.
+2. Rimas internas: pintar también las palabras del medio que riman con otras cercanas, por defecto dentro de 4 versos y con la distancia ajustable. Cuidá que no quede todo pintado.
+3. Un color fijo para cada terminación (por ejemplo, "-ón" siempre del mismo color en toda la letra), con una paleta amplia, para que no se repitan.
+4. Rimas multisilábicas (más de una sílaba que rima, como "camino / destino").
 
 ## Internet y nube
 - Todo funciona sin internet. Lo único que usa internet es la música de YouTube y SoundCloud: en la web y en la app nativa va con los reproductores oficiales, y sin conexión la app tiene que seguir andando sin errores.

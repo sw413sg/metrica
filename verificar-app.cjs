@@ -43,7 +43,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').fill('Caminante, no hay camino,\nse hace camino al andar.\nAl andar se hace camino\ny al volver la vista atrás');
         assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
         assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
-            ['rima-0:camino', 'rima-1:andar', 'rima-0:camino', 'rima-1:atrás']);
+            ['rima-0:mino', 'rima-1:dar', 'rima-0:mino', 'rima-1:trás']);
         // Mientras se escribe no hay sugerencias: aparecen solo al tocar una palabra.
         assert.equal(await page.locator('#sugerencias').isVisible(), false);
         await page.locator('#editor-texto').evaluate(t => { t.value += '\ndetrás'; t.dispatchEvent(new Event('input')); });
