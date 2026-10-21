@@ -1,6 +1,6 @@
 // Sílabas y métrica. Sin DOM.
 // Los núcleos vocálicos (diptongos, hiatos, u muda) y el acento salen de rimas.js.
-import { analizarPalabra, vocalPrincipal } from './rimas.js';
+import { analizarPalabra, vocalPrincipal, numerarEstrofas } from './rimas.js';
 
 // Grupos de dos consonantes que no se separan: van juntos a la sílaba siguiente.
 const INSEPARABLES = new Set(['pr', 'pl', 'br', 'bl', 'fr', 'fl', 'tr', 'dr', 'cr', 'cl', 'gr', 'gl', 'kr', 'kl',
@@ -39,8 +39,10 @@ export function inicioTonica(palabra) {
 // versos: las palabras de cada verso; grupos: el grupo de rima de cada verso (de agruparRimas).
 // Devuelve, para cada verso, desde qué letra pintar cada palabra ([null, 0, 0]: la segunda
 // y la tercera enteras), o [] si rima con una sola sílaba. Se miran hasta 3 sílabas de más,
-// y solo contra versos cercanos (a menos de `distancia`), para no pintar de más en letras largas.
+// y solo contra versos cercanos (a menos de `distancia` y de la misma estrofa), para no pintar
+// de más en letras largas.
 export function rimasMultisilabicas(versos, grupos, distancia = 4) {
+    const estrofa = numerarEstrofas(versos);
     const silabas = versos.map(palabras => {
         const lista = [];
         let tonica = -1;
@@ -62,7 +64,7 @@ export function rimasMultisilabicas(versos, grupos, distancia = 4) {
         if (grupos[i] == null || verso.tonica < 0) return [];
         let extra = 0;
         silabas.forEach((otro, j) => {
-            if (j === i || Math.abs(j - i) >= distancia || grupos[j] !== grupos[i] || otro.tonica < 0) return;
+            if (j === i || Math.abs(j - i) >= distancia || estrofa[j] !== estrofa[i] || grupos[j] !== grupos[i] || otro.tonica < 0) return;
             let k = 0;
             while (k < 3 && iguales(verso, otro, k + 1)) k++;
             extra = Math.max(extra, k);

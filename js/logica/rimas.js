@@ -170,8 +170,10 @@ export function rimanConsonante(palabras) {
 // (para el color). Para que no quede todo pintado: sin palabras átonas ni la misma palabra
 // repetida, y las asonantes (suave: true) solo cuentan si una de las dos es la última de su
 // verso y las dos tienen más de una sílaba ("temas" / "eterna", pero no "es" / "tener").
+// No cruzan de una estrofa a otra: un verso sin palabras (renglón vacío) las corta.
 // versos: [['te', 'busco', 'en', 'el', 'balcón'], ...]
 export function rimasInternas(versos, distancia = 4) {
+    const estrofa = numerarEstrofas(versos);
     const datos = versos.map(palabras => palabras.map((palabra, n) => {
         const p = String(palabra ?? '').toLowerCase().normalize('NFC');
         const a = ATONAS.has(p) ? null : analizarPalabra(p);
@@ -182,10 +184,17 @@ export function rimasInternas(versos, distancia = 4) {
     }));
     return datos.map((palabras, i) => palabras.map(dato => {
         if (!dato || distancia < 1) return null;
-        const cerca = datos.slice(Math.max(0, i - distancia + 1), i + distancia).flat()
+        const cerca = datos.slice(Math.max(0, i - distancia + 1), i + distancia)
+            .filter((_, k) => estrofa[Math.max(0, i - distancia + 1) + k] === estrofa[i]).flat()
             .filter(otro => otro && otro.texto !== dato.texto);
         if (cerca.some(otro => otro.consonante === dato.consonante)) return { clave: dato.asonante, suave: false };
         const asonante = otro => otro.asonante === dato.asonante && (otro.final || dato.final) && otro.larga && dato.larga;
         return cerca.some(asonante) ? { clave: dato.asonante, suave: true } : null;
     }));
+}
+
+// Número de estrofa de cada verso: sube en cada verso sin palabras (renglón vacío o [Estribillo]).
+export function numerarEstrofas(versos) {
+    let estrofa = 0;
+    return versos.map(palabras => palabras.length ? estrofa : ++estrofa);
 }

@@ -176,6 +176,8 @@ test('rimasInternas: respeta la distancia y no pinta de más', () => {
     assert.deepEqual(rimasInternas(versos, 4), [[o], [null], [null], [o]], 'la misma palabra repetida no cuenta');
     assert.deepEqual(rimasInternas(versos, 3), [[null], [null], [null], [null]]);
     assert.deepEqual(rimasInternas(versos, 0), [[null], [null], [null], [null]]);
+    // No cruzan el renglón vacío entre estrofas.
+    assert.deepEqual(rimasInternas([['canción'], [], ['corazón']]), [[null], [], [null]]);
     // Palabras átonas ("con" / "son") no se pintan.
     assert.deepEqual(rimasInternas([['con', 'son', 'mar']]), [[null, null, null]]);
     assert.deepEqual(rimasInternas([]), []);
