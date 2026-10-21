@@ -501,6 +501,18 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual(await page.locator('#lista-letras .titulo-letra').allTextContents(), ['Sin internet']);
         versionNueva = '';
 
+        // Ajustes muestra la versión, y la flecha fuerza a bajarla de nuevo sin perder las letras.
+        const version = fs.readFileSync(path.join(__dirname, 'sw.js'), 'utf8').match(/const VERSION = 'metrica-([^']+)'/)[1];
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        await page.waitForFunction(v => document.getElementById('version').textContent === v, version);
+        await page.screenshot({path: `capturas/ajustes-version-${tema}.png`});
+        const recargaForzada = page.waitForEvent('load');
+        await page.locator('#forzar-actualizacion').click();
+        await recargaForzada;
+        await page.evaluate(() => navigator.serviceWorker.ready);
+        await page.waitForFunction(v => document.getElementById('version').textContent === v, version);
+        assert.deepEqual(await page.locator('#lista-letras .titulo-letra').allTextContents(), ['Sin internet']);
+
         assert.deepEqual(errores, []);
         await page.close();
     }
