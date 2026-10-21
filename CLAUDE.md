@@ -1,6 +1,6 @@
 # Métrica: guía para agentes
 
-App: "Métrica" (en la tienda "Métrica: rimas y letras"), para escribir canciones. Repo: github.com/sw413sg/metrica (viene de Genwords). Las prioridades las define Proshe, no las cambies sin preguntar.
+App: "Métrica" (en la tienda "Métrica: rimas y letras"), para escribir canciones. Repo: github.com/sw413sg/metrica (viene de Genwords).
 
 ## Meta
 Convertir la web en "Métrica: rimas y letras", una app de iPhone para escribir canciones en español: primero como web app para probar todo, y cuando esté lista, pasarla 1 a 1 a SwiftUI para publicarla en App Store.
