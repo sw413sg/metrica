@@ -108,14 +108,27 @@ function actualizarEditor() {
     };
     $('editor-fondo').replaceChildren(...versos.flatMap((verso, i) => {
         const fin = i < versos.length - 1 ? '\n' : '';
-        if (esSeparador(verso)) return [marca('seccion', verso), fin];
+        const renglon = document.createElement('span');
+        if (esSeparador(verso)) {
+            renglon.append(marca('seccion', verso));
+            return [renglon, fin];
+        }
         const partes = verso.split(/(\p{L}+)/u).map((parte, j) => {
             if (j % 2 === 0) return parte;
             const esFinal = grupos[i] != null && j === verso.split(/(\p{L}+)/u).length - 2;
             return esFinal ? marca(`rima-${grupos[i] % 5}`, parte) : parte;
         });
-        return [...partes, fin];
+        renglon.append(...partes);
+        return [renglon, fin];
     }));
+
+    // Un verso largo ocupa varios renglones: la fila de sílabas mide lo mismo que su verso.
+    const renglones = $('editor-fondo').children;
+    const alto = parseFloat(getComputedStyle(editorTexto).lineHeight);
+    [...$('silabas').children].forEach((fila, i) => {
+        const lineas = new Set([...renglones[i]?.getClientRects() ?? []].map(r => Math.round(r.top))).size;
+        fila.style.height = `${Math.max(1, lineas) * alto}px`;
+    });
 
     // Sugerencias para la última palabra escrita (en un verso vacío, la del verso anterior).
     const antes = editorTexto.value.slice(0, editorTexto.selectionEnd).split('\n').filter(v => !esSeparador(v)).join('\n');
