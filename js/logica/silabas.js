@@ -38,8 +38,9 @@ export function inicioTonica(palabra) {
 // de antes, aunque sean de otras palabras ("se pasa vo-lan-do" / "un tune so-nan-do": o-a-o).
 // versos: las palabras de cada verso; grupos: el grupo de rima de cada verso (de agruparRimas).
 // Devuelve, para cada verso, desde qué letra pintar cada palabra ([null, 0, 0]: la segunda
-// y la tercera enteras), o [] si rima con una sola sílaba. Se miran hasta 3 sílabas de más.
-export function rimasMultisilabicas(versos, grupos) {
+// y la tercera enteras), o [] si rima con una sola sílaba. Se miran hasta 3 sílabas de más,
+// y solo contra versos cercanos (a menos de `distancia`), para no pintar de más en letras largas.
+export function rimasMultisilabicas(versos, grupos, distancia = 4) {
     const silabas = versos.map(palabras => {
         const lista = [];
         let tonica = -1;
@@ -61,7 +62,7 @@ export function rimasMultisilabicas(versos, grupos) {
         if (grupos[i] == null || verso.tonica < 0) return [];
         let extra = 0;
         silabas.forEach((otro, j) => {
-            if (j === i || grupos[j] !== grupos[i] || otro.tonica < 0) return;
+            if (j === i || Math.abs(j - i) >= distancia || grupos[j] !== grupos[i] || otro.tonica < 0) return;
             let k = 0;
             while (k < 3 && iguales(verso, otro, k + 1)) k++;
             extra = Math.max(extra, k);
