@@ -97,16 +97,24 @@ function arrastrarParaBorrar(tarjeta, boton, letra) {
         arrastrando = false;
         cancelAnimationFrame(cuadro);
         const borrar = sobreTacho();
-        tacho.classList.remove('visible', 'encima');
-        tarjeta.classList.remove('arrastrando', 'sobre-tacho');
-        if (borrar) {
-            tarjeta.classList.add('tirada');
-            setTimeout(() => { borrarLetra(localStorage, letra.id); renderizarLetras(); }, 250);
-        } else {
+        // Mientras pregunta, la tarjeta queda sobre el tacho.
+        const soltar = () => {
+            tacho.classList.remove('visible', 'encima');
+            tarjeta.classList.remove('arrastrando', 'sobre-tacho');
+        };
+        const volver = () => {
+            soltar();
             tarjeta.classList.add('volviendo');
             tarjeta.style.transform = '';
             setTimeout(() => tarjeta.classList.remove('volviendo'), 300);
-        }
+        };
+        if (!borrar) return volver();
+        confirmarBorrado(letra, ok => {
+            if (!ok) return volver();
+            soltar();
+            tarjeta.classList.add('tirada');
+            setTimeout(() => { borrarLetra(localStorage, letra.id); renderizarLetras(); }, 250);
+        });
     };
     boton.addEventListener('pointerdown', e => {
         arrastrada = false;
@@ -127,6 +135,21 @@ function arrastrarParaBorrar(tarjeta, boton, letra) {
     boton.addEventListener('contextmenu', e => e.preventDefault());
     // Después de arrastrar no se abre la letra.
     return () => { const fue = arrastrada; arrastrada = false; return fue; };
+}
+
+// Pregunta antes de borrar (como .alert de iOS); avisa con true si se confirmó.
+function confirmarBorrado(letra, responder) {
+    const alerta = $('confirmar-borrado');
+    const titulo = letra.titulo?.trim() || 'Sin título';
+    $('confirmar-borrado-texto').textContent = `«${titulo}» se va a borrar y no se puede deshacer.`;
+    alerta.hidden = false;
+    const cerrar = ok => {
+        alerta.hidden = true;
+        $('aceptar-borrado').onclick = $('cancelar-borrado').onclick = null;
+        responder(ok);
+    };
+    $('aceptar-borrado').onclick = () => cerrar(true);
+    $('cancelar-borrado').onclick = () => cerrar(false);
 }
 
 const editorTexto = $('editor-texto');

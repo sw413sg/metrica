@@ -231,6 +231,18 @@
         </div>
     </div>
 
+    <!-- Confirmar antes de borrar una letra (en SwiftUI: .alert con un botón .destructive). -->
+    <div class="alerta-fondo" id="confirmar-borrado" hidden>
+        <div class="alerta" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-borrado-titulo">
+            <h2 id="confirmar-borrado-titulo">¿Borrar la letra?</h2>
+            <p id="confirmar-borrado-texto"></p>
+            <div class="alerta-botones">
+                <button id="cancelar-borrado">Cancelar</button>
+                <button class="texto-rojo" id="aceptar-borrado">Borrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Paywall (en SwiftUI: .sheet). Pago único, sin suscripción. -->
     <div class="hoja-fondo" id="paywall" hidden>
         <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="paywall-titulo">

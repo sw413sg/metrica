@@ -207,6 +207,23 @@ const servidor = http.createServer((req, res) => {
         assert.match(await page.locator('#tacho').getAttribute('class'), /encima/);
         await page.screenshot({path: `capturas/letras-tacho-${tema}.png`});
         await page.mouse.up();
+        // Antes de borrar pregunta; "Cancelar" la deja como estaba.
+        assert.equal(await page.locator('#confirmar-borrado').isVisible(), true);
+        assert.match(await page.locator('#confirmar-borrado-texto').textContent(), /«Para borrar»/);
+        await page.waitForTimeout(300);
+        await page.screenshot({path: `capturas/letras-confirmar-${tema}.png`});
+        await page.locator('#cancelar-borrado').click();
+        await page.waitForTimeout(400);
+        assert.equal(await page.locator('#confirmar-borrado').isVisible(), false);
+        assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 1);
+        const caja3 = await tarjeta.boundingBox();
+        await page.mouse.move(caja3.x + caja3.width / 2, caja3.y + caja3.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(800);
+        const tacho2 = await page.locator('#tacho').boundingBox();
+        await page.mouse.move(tacho2.x + tacho2.width / 2, tacho2.y + tacho2.height / 2, {steps: 8});
+        await page.mouse.up();
+        await page.locator('#aceptar-borrado').click();
         await page.waitForTimeout(500);
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
         // Un toque común sigue abriendo la letra (ver arriba): acá ya no queda ninguna.
