@@ -84,6 +84,15 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «balcon»:');
         assert.ok((await page.locator('.sugerencia').allTextContents()).includes('corazón'));
         await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
+        // Un verso largo se parte en dos renglones: su número de sílabas queda a su altura
+        // y el siguiente verso arranca al lado de su número.
+        await page.locator('#editor-texto').evaluate(t => { t.value += '\nY te hice un tema cada día por si quieres recordar lo nuestro\ny te hago un tema'; t.dispatchEvent(new Event('input')); });
+        const filas = await page.locator('#silabas div').evaluateAll(fs => fs.slice(-2).map(f => Math.round(f.getBoundingClientRect().top)));
+        const versos = await page.locator('#editor-fondo > span').evaluateAll(vs => vs.slice(-2).map(v => Math.round(v.getClientRects()[0].top)));
+        assert.ok(filas.every((f, i) => Math.abs(f - versos[i]) <= 2), `${filas} vs ${versos}`);
+        assert.ok(versos[1] - versos[0] >= 46, 'el verso largo ocupa dos renglones');
+        await page.screenshot({path: `capturas/editor-verso-largo-${tema}.png`});
+        await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         // Tocar un renglón vacío ofrece marcar la parte de la letra.
         await page.locator('#editor-texto').evaluate(t => {
             t.value += '\n\nverso nuevo';
