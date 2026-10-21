@@ -224,7 +224,9 @@ function actualizarEditor() {
     // Rimas pintadas: la última palabra de cada verso, con el color de su grupo, y las
     // rimas internas (palabras que riman con otras cercanas), con el color de su rima.
     const pintar = $('alternar-colores').getAttribute('aria-pressed') === 'true';
-    const palabras = versos.map(verso => esSeparador(verso) ? [] : (verso.match(/\p{L}+/gu) ?? []).map(bienEscrita));
+    // Lo que va entre paréntesis son coros o agregados, "(nos)": no rima ni corta el verso.
+    const sinAgregados = versos.map(verso => verso.replace(/\([^)]*\)/g, agregado => ' '.repeat(agregado.length)));
+    const palabras = sinAgregados.map((verso, i) => esSeparador(versos[i]) ? [] : (verso.match(/\p{L}+/gu) ?? []).map(bienEscrita));
     const palabrasFinales = palabras.map(p => p.at(-1));
     const grupos = pintar ? agruparRimas(palabrasFinales) : [];
     // Consonante con el fondo lleno; asonante con el mismo color, más suave.
@@ -253,7 +255,10 @@ function actualizarEditor() {
             renglon.append(marca('seccion', verso));
             return [renglon, fin];
         }
-        const trozos = verso.split(/(\p{L}+)/u);
+        // Se corta sin los agregados, pero se muestra el texto como está escrito.
+        let desdeTrozo = 0;
+        const trozos = sinAgregados[i].split(/(\p{L}+)/u)
+            .map(trozo => verso.slice(desdeTrozo, desdeTrozo += trozo.length));
         const partes = trozos.map((parte, j) => {
             if (j % 2 === 0) return parte;
             const n = (j - 1) / 2;

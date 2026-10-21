@@ -185,6 +185,9 @@ export function rimanConsonante(palabras) {
 // consonante con alguna ("solo" se suma a "todos" / "modos"). Dos del medio sueltas, no.
 // No cruzan de una estrofa a otra: un verso sin palabras (renglón vacío) las corta.
 // versos: [['te', 'busco', 'en', 'el', 'balcón'], ...]
+// Verbos de una sílaba que se dicen casi sin acento: no arman rima sueltos ("es" / "tener").
+const VERBOS_CORTOS = new Set(['es', 'son', 'sos', 'soy', 'voy', 'hay']);
+
 export function rimasInternas(versos, distancia = 4) {
     const estrofa = numerarEstrofas(versos);
     const datos = versos.map(palabras => palabras.map((palabra, n) => {
@@ -192,14 +195,15 @@ export function rimasInternas(versos, distancia = 4) {
         const a = ATONAS.has(p) ? null : analizarPalabra(p);
         return a && {
             texto: sinTildes(a.palabra), consonante: consonanteDe(a), asonante: asonanteDe(a),
-            final: n === palabras.length - 1, larga: a.nucleos.length > 1,
+            final: n === palabras.length - 1, larga: a.nucleos.length > 1, aguda: a.tonico === a.nucleos.length - 1 && !/[aeiouáéíóú]$/.test(a.palabra) && !VERBOS_CORTOS.has(p),
         };
     }));
     const cercanas = (dato, i) => datos.slice(Math.max(0, i - distancia + 1), i + distancia)
         .filter((_, k) => estrofa[Math.max(0, i - distancia + 1) + k] === estrofa[i]).flat()
         .filter(otro => otro && otro.texto !== dato.texto);
     // Primero las consonantes; después, las asonantes que se suman a una rima que ya está
-    // (la última palabra de un verso o una consonante del medio).
+    // (la última palabra de un verso o una consonante del medio), o dos agudas que terminan
+    // en consonante, que suenan fuerte aunque estén sueltas ("más" / "guardar").
     datos.forEach((palabras, i) => palabras.forEach(dato => {
         if (dato) dato.rimaConsonante = distancia > 0 && cercanas(dato, i).some(otro => otro.consonante === dato.consonante);
     }));
@@ -207,7 +211,8 @@ export function rimasInternas(versos, distancia = 4) {
         if (!dato || distancia < 1) return null;
         if (dato.rimaConsonante) return { clave: dato.asonante, suave: false };
         const asonante = otro => otro.asonante === dato.asonante && otro.larga && dato.larga
-            && (otro.final || dato.final || otro.rimaConsonante);
+            && (otro.final || dato.final || otro.rimaConsonante)
+            || otro.asonante === dato.asonante && otro.aguda && dato.aguda && (otro.larga || dato.larga);
         return cercanas(dato, i).some(asonante) ? { clave: dato.asonante, suave: true } : null;
     }));
 }
