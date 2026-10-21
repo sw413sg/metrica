@@ -10,6 +10,7 @@ import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
+import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
@@ -51,9 +52,10 @@ function renderizarLetras() {
         span.textContent = texto;
         return span;
     };
-    $('lista-letras').replaceChildren(...letras.map(letra => {
+    $('lista-letras').replaceChildren(...letras.map((letra, i) => {
         const tarjeta = document.createElement('li');
-        tarjeta.className = 'tarjeta-letra';
+        // La primera (la última que se tocó) va grande, arriba; el resto de a dos.
+        tarjeta.className = i === 0 ? 'tarjeta-letra destacada' : 'tarjeta-letra';
         const boton = document.createElement('button');
         const fecha = new Date(letra.editada).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
         boton.append(parte('fecha-letra', fecha), parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
@@ -666,7 +668,31 @@ $('restaurar-compra').addEventListener('click', () => {
 });
 $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); renderizarExtras(); });
 
+// ---------- Apariencia (claro / oscuro / sistema) ----------
+function renderizarApariencia() {
+    const actual = leerApariencia(localStorage);
+    document.documentElement.dataset.apariencia = actual;
+    $('apariencia').replaceChildren(...Object.entries(APARIENCIAS).map(([clave, nombre]) => {
+        const celda = document.createElement('li');
+        celda.className = 'celda';
+        const boton = document.createElement('button');
+        boton.className = 'celda-boton celda-tema';
+        boton.dataset.apariencia = clave;
+        boton.setAttribute('aria-pressed', clave === actual);
+        const texto = document.createElement('span');
+        texto.textContent = nombre;
+        const marca = document.createElement('span');
+        marca.className = 'marca-apariencia';
+        marca.innerHTML = clave === actual ? TILDE : '';
+        boton.append(texto, marca);
+        boton.addEventListener('click', () => { elegirApariencia(localStorage, clave); renderizarApariencia(); });
+        celda.append(boton);
+        return celda;
+    }));
+}
+
 // ---------- Inicio ----------
+renderizarApariencia();
 renderizarExtras();
 renderizarLetras();
 renderizarRimas();
