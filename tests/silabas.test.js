@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contarSilabasVerso, separarSilabas, inicioTonica } from '../js/logica/silabas.js';
+import { contarSilabasVerso, separarSilabas, inicioTonica, rimasMultisilabicas } from '../js/logica/silabas.js';
 
 test('separar sílabas', () => {
     assert.deepEqual(separarSilabas('cuidado'), ['cui', 'da', 'do']);
@@ -56,4 +56,21 @@ test('inicioTonica: dónde empieza la sílaba tónica, para pintar solo la parte
     assert.equal(inicioTonica('Corazón'), 4);
     assert.equal(inicioTonica('sol'), 0);
     assert.equal(inicioTonica('123'), -1);
+});
+
+test('rimasMultisilabicas: pinta desde antes de la tónica si las vocales de antes también riman', () => {
+    // vo-LAN-do / so-NAN-do: o-a-o, una sílaba de más.
+    assert.deepEqual(rimasMultisilabicas([['se', 'pasa', 'volando'], ['un', 'tune', 'sonando']], [0, 0]),
+        [[null, null, 0], [null, null, 0]]);
+    // Cruza palabras: "ca-sa BLAN-ca" / "pla-za MAN-ca": a-a-a-a, dos de más ("casa" entera).
+    assert.deepEqual(rimasMultisilabicas([['la', 'casa', 'blanca'], ['mi', 'plaza', 'manca']], [0, 0]),
+        [[null, 0, 0], [null, 0, 0]]);
+    // Una sola de más: "sa" / "za" riman, "ca" / "pie" no.
+    assert.deepEqual(rimasMultisilabicas([['tu', 'casa', 'blanca'], ['mi', 'pieza', 'manca']], [0, 0]),
+        [[null, 2, 0], [null, 3, 0]]);
+    // ca-MI-no / des-TI-no: antes de la tónica, a y e no coinciden. Rima de una sola sílaba tónica.
+    assert.deepEqual(rimasMultisilabicas([['camino'], ['destino']], [0, 0]), [[], []]);
+    // Sin grupo de rima, nada.
+    assert.deepEqual(rimasMultisilabicas([['volando'], ['sonando']], [null, null]), [[], []]);
+    assert.deepEqual(rimasMultisilabicas([], []), []);
 });

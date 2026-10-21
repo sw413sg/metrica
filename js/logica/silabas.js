@@ -1,6 +1,6 @@
 // Sílabas y métrica. Sin DOM.
 // Los núcleos vocálicos (diptongos, hiatos, u muda) y el acento salen de rimas.js.
-import { analizarPalabra } from './rimas.js';
+import { analizarPalabra, vocalPrincipal } from './rimas.js';
 
 // Grupos de dos consonantes que no se separan: van juntos a la sílaba siguiente.
 const INSEPARABLES = new Set(['pr', 'pl', 'br', 'bl', 'fr', 'fl', 'tr', 'dr', 'cr', 'cl', 'gr', 'gl', 'kr', 'kl',
@@ -32,6 +32,45 @@ export function inicioTonica(palabra) {
     const a = analizarPalabra(palabra);
     if (!a) return -1;
     return separarSilabas(palabra).slice(0, a.tonico).join('').length;
+}
+
+// Rimas multisilábicas: además de rimar desde la tónica, coinciden las vocales de las sílabas
+// de antes, aunque sean de otras palabras ("se pasa vo-lan-do" / "un tune so-nan-do": o-a-o).
+// versos: las palabras de cada verso; grupos: el grupo de rima de cada verso (de agruparRimas).
+// Devuelve, para cada verso, desde qué letra pintar cada palabra ([null, 0, 0]: la segunda
+// y la tercera enteras), o [] si rima con una sola sílaba. Se miran hasta 3 sílabas de más.
+export function rimasMultisilabicas(versos, grupos) {
+    const silabas = versos.map(palabras => {
+        const lista = [];
+        let tonica = -1;
+        palabras.forEach((palabra, n) => {
+            const a = analizarPalabra(palabra);
+            if (!a) return;
+            let inicio = 0;
+            separarSilabas(palabra).forEach((silaba, k) => {
+                const vocal = a.palabra[vocalPrincipal(a.palabra, a.nucleos[k])].normalize('NFD')[0];
+                lista.push({ n, inicio, vocal });
+                inicio += silaba.length;
+            });
+            if (n === palabras.length - 1) tonica = lista.length - a.nucleos.length + a.tonico;
+        });
+        return { lista, tonica };
+    });
+    const iguales = (a, b, k) => a.lista[a.tonica - k] && b.lista[b.tonica - k] && a.lista[a.tonica - k].vocal === b.lista[b.tonica - k].vocal;
+    return silabas.map((verso, i) => {
+        if (grupos[i] == null || verso.tonica < 0) return [];
+        let extra = 0;
+        silabas.forEach((otro, j) => {
+            if (j === i || grupos[j] !== grupos[i] || otro.tonica < 0) return;
+            let k = 0;
+            while (k < 3 && iguales(verso, otro, k + 1)) k++;
+            extra = Math.max(extra, k);
+        });
+        if (!extra) return [];
+        const desde = versos[i].map(() => null);
+        for (const { n, inicio } of verso.lista.slice(verso.tonica - extra, verso.tonica + 1)) desde[n] = Math.min(desde[n] ?? inicio, inicio);
+        return desde;
+    });
 }
 
 const VOCAL_INICIAL = /^h?[aeiouáéíóúü]/;
