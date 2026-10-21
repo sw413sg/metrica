@@ -127,6 +127,12 @@ const servidor = http.createServer((req, res) => {
         // Los renglones llegan hasta abajo aunque la letra sea larga.
         await page.locator('#editor-texto').evaluate(t => { t.value += '\nverso'.repeat(40); t.dispatchEvent(new Event('input')); });
         assert.ok(await page.evaluate(() => document.querySelector('.editor-capas').offsetHeight >= document.querySelector('#editor-texto').offsetHeight));
+        // Al bajar, el título se va con el texto y arriba quedan solo los botones.
+        await page.locator('.editor').evaluate(e => { e.scrollTop = 400; });
+        assert.ok((await page.locator('#editor-titulo').boundingBox()).y < 0, 'el título se escondió');
+        assert.ok((await page.locator('#abrir-ajustes-libreta').boundingBox()).y >= 0, 'los botones siguen a la vista');
+        await page.screenshot({path: `capturas/editor-bajando-${tema}.png`});
+        await page.locator('.editor').evaluate(e => { e.scrollTop = 0; });
         await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         await page.screenshot({path: `capturas/editor-${tema}.png`});
         // Con el teclado abierto (se ven 500 px), la barra de sugerencias queda pegada arriba.
@@ -145,6 +151,54 @@ const servidor = http.createServer((req, res) => {
             document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px');
             document.body.classList.remove('teclado-abierto');
         });
+        // Música: la nota abre la hoja para pegar un link; un link que no sirve avisa.
+        await page.locator('#abrir-musica').click();
+        assert.equal(await page.locator('#hoja-musica').isVisible(), true);
+        await page.locator('#link-musica').fill('https://spotify.com/track/1');
+        await page.locator('#escuchar-musica').click();
+        assert.match(await page.locator('#musica-aviso').textContent(), /no es de YouTube ni de SoundCloud/);
+        // Con un link de YouTube aparece el banner (acá con un YouTube de mentira, sin internet).
+        await page.route('https://www.youtube.com/iframe_api', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
+            window.YT = { PlayerState: { PLAYING: 1 }, Player: function (lugar, o) {
+                const p = window.__yt = this; p.t = 30; p.vol = 0;
+                p.setVolume = v => { p.vol = v; };
+                p.playVideo = () => o.events.onStateChange({ data: 1 });
+                p.pauseVideo = () => o.events.onStateChange({ data: 2 });
+                p.getVideoData = () => ({ title: 'Tema de prueba' });
+                p.getCurrentTime = () => p.t; p.getDuration = () => 200; p.seekTo = s => { p.t = s; };
+                p.destroy = () => { window.__ytCerrado = true; };
+                setTimeout(() => o.events.onReady({ target: p }));
+            } };
+            setTimeout(() => onYouTubeIframeAPIReady());`}));
+        await page.locator('#link-musica').fill('https://youtu.be/dQw4w9WgXcQ');
+        await page.locator('#escuchar-musica').click();
+        assert.equal(await page.locator('#hoja-musica').isVisible(), false);
+        await page.locator('#reproductor-titulo', {hasText: 'Tema de prueba'}).waitFor();
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
+        assert.equal(await page.evaluate(() => window.__yt.vol), 70);
+        await page.locator('#musica-play').click();
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Reproducir');
+        await page.locator('#musica-adelantar').click();
+        assert.equal(await page.evaluate(() => window.__yt.t), 40);
+        await page.locator('#musica-atrasar').click();
+        await page.locator('#musica-atrasar').click();
+        assert.equal(await page.evaluate(() => window.__yt.t), 20);
+        await page.locator('#musica-subir').click();
+        assert.equal(await page.evaluate(() => window.__yt.vol), 80);
+        assert.match(await page.locator('#reproductor-fuente').textContent(), /YouTube · volumen 80%/);
+        // El banner queda abajo, adentro de la pantalla y sin tapar el texto.
+        const banner = await page.locator('#reproductor').boundingBox();
+        assert.ok(banner.y + banner.height <= 844 && banner.y > 600, JSON.stringify(banner));
+        await page.screenshot({path: `capturas/editor-musica-${tema}.png`});
+        await page.locator('#musica-cerrar').click();
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        assert.equal(await page.evaluate(() => window.__ytCerrado), true);
+        // Sin internet, avisa.
+        await page.context().setOffline(true);
+        await page.locator('#abrir-musica').click();
+        assert.match(await page.locator('#musica-aviso').textContent(), /Sin internet/);
+        await page.locator('#cerrar-musica').click();
+        await page.context().setOffline(false);
         // Los renglones arrancan prendidos y se apagan.
         assert.match(await page.locator('.editor-capas').evaluate(e => getComputedStyle(e).backgroundImage), /repeating-linear-gradient/);
         await page.locator('#alternar-renglones').click();

@@ -1,7 +1,7 @@
 // Service worker: guarda todo en caché para que la app ande sin internet.
 // Cambiá VERSION cada vez que cambien los archivos: así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
-const VERSION = 'metrica-v31';
+const VERSION = 'metrica-v33';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -25,6 +25,7 @@ const ARCHIVOS = [
     'js/logica/libreta.js',
     'js/logica/sinonimos.js',
     'js/logica/apariencia.js',
+    'js/logica/musica.js',
     'iconos/icono.svg',
     'iconos/icono-180.png',
     'iconos/icono-192.png',
@@ -44,6 +45,7 @@ self.addEventListener('activate', evento => {
 });
 
 self.addEventListener('fetch', evento => {
-    if (evento.request.method !== 'GET') return;
+    // Solo lo de la app: los reproductores de música (YouTube, SoundCloud) van directo a internet.
+    if (evento.request.method !== 'GET' || new URL(evento.request.url).origin !== location.origin) return;
     evento.respondWith(caches.match(evento.request).then(guardado => guardado || fetch(evento.request)));
 });

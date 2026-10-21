@@ -60,7 +60,7 @@
         --destacado-suave: rgba(157, 139, 255, 0.18);
         --verde: #30d158;
         --segmento: rgba(255, 255, 255, 0.16);
-        --libreta: #1a1c1d;
+        --libreta: #2d2e32;
         --renglon: rgba(255, 255, 255, 0.05);
         --teclado: #2d2e30;
         color-scheme: dark;
@@ -88,7 +88,7 @@
     --destacado-suave: rgba(157, 139, 255, 0.18);
     --verde: #30d158;
     --segmento: rgba(255, 255, 255, 0.16);
-    --libreta: #1a1c1d;
+    --libreta: #2d2e32;
     --renglon: rgba(255, 255, 255, 0.05);
     --teclado: #2d2e30;
     color-scheme: dark;
@@ -97,10 +97,10 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-/* Fondo con granulado al 10% (ruido de SVG, sin archivos). La libreta va lisa (ver más abajo). */
+/* Fondo con granulado al 5% (ruido de SVG, sin archivos). La libreta va lisa (ver más abajo). */
 body {
     background:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
         var(--fondo);
     background-attachment: fixed;
     color: var(--texto);
@@ -255,9 +255,10 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 
 /* Editor de letra */
 .vista#vista-editor { overflow: hidden; }
-.editor { flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0; }
+.editor { flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0; overflow-y: auto; }
+/* El título se desplaza con el texto y se esconde al bajar: arriba solo quedan los botones. */
 .editor-titulo { border: 0; background: none; outline: none; font-size: 22px; font-weight: 400; padding: 16px 0 12px; }
-.editor-cuerpo { flex: 1; display: flex; align-items: flex-start; gap: 8px; min-height: 0; overflow-y: auto; }
+.editor-cuerpo { flex: 1 0 auto; display: flex; align-items: flex-start; gap: 8px; }
 .editor-texto, .editor-fondo, .silabas { font-size: var(--libreta-letra, 17px); line-height: var(--libreta-alto, 23px); }
 .editor-texto, .editor-fondo { font-family: var(--libreta-fuente, inherit); letter-spacing: var(--libreta-letras, 0); }
 .editor-capas { flex: 1; position: relative; min-height: 100%; }
@@ -456,3 +457,27 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .alerta-botones button + button { border-left: 1px solid var(--separador); font-weight: 600; }
 .alerta-botones .texto-rojo { color: #ff3b30; }
 @keyframes aparecer-alerta { from { opacity: 0; transform: scale(1.1); } }
+
+/* Reproductor de música: banner de vidrio abajo (lo ubica js/app.js con bottom). */
+.reproductor {
+    position: fixed; left: 12px; right: 12px; z-index: 15; max-width: 406px; margin: 0 auto;
+    padding: 10px 12px; border-radius: 24px; display: flex; flex-direction: column; gap: 6px;
+}
+.reproductor[hidden] { display: none; }
+.reproductor.sobre-borde { margin-bottom: env(safe-area-inset-bottom); }
+.reproductor-fila { display: flex; align-items: center; gap: 10px; }
+.reproductor-marco { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--relleno); }
+.reproductor-marco iframe { width: 64px; height: 64px; border: 0; margin: -10px; pointer-events: none; }
+.reproductor-datos { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.reproductor-titulo { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reproductor-fuente { font-size: 12px; color: var(--texto-2); }
+.reproductor-controles { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+.boton-musica { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--texto); flex-shrink: 0; }
+.boton-musica .icono { width: 22px; height: 22px; }
+.boton-musica:active { background: var(--acento-suave); }
+.boton-play { width: 48px; height: 48px; background: var(--destacado); color: #fff; }
+.boton-play .icono-relleno, .boton-musica .icono-relleno { fill: currentColor; }
+/* Con música, el contenido deja lugar abajo para el banner. */
+body.con-musica .pantalla { padding-bottom: calc(92px + var(--alto-reproductor, 120px) + env(safe-area-inset-bottom)); }
+body.con-musica .editor-cuerpo { padding-bottom: var(--alto-reproductor, 120px); }
+#hoja-musica .buscador { margin-top: 8px; }

@@ -10,6 +10,7 @@ import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
+import { leerLink, moverSegundos, cambiarVolumen } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -41,6 +42,7 @@ document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListe
 function mostrarVista(id) {
     document.querySelectorAll('#pantalla-letras .vista').forEach(v => v.classList.toggle('activa', v.id === id));
     document.body.classList.toggle('editando', id === 'vista-editor');
+    ubicarReproductor();
 }
 
 function renderizarLetras() {
@@ -178,7 +180,7 @@ function abrirEditor(letra) {
 // Desplaza la libreta para que el cursor (la palabra tocada) quede a la vista, arriba del teclado.
 // La posición sale de la copia de abajo del texto, que tiene las mismas letras en el mismo lugar.
 function mostrarCursor() {
-    const cuerpo = editorTexto.closest('.editor-cuerpo');
+    const cuerpo = editorTexto.closest('.editor');
     let falta = editorTexto.selectionStart;
     const recorrido = document.createTreeWalker($('editor-fondo'), NodeFilter.SHOW_TEXT);
     let nodo;
@@ -200,7 +202,9 @@ function mostrarCursorDespues() {
 // Alto del texto, o de toda la libreta si es corto (así se puede tocar en cualquier parte).
 function ajustarAltoTexto() {
     editorTexto.style.height = 'auto';
-    editorTexto.style.height = Math.max(editorTexto.scrollHeight, editorTexto.closest('.editor-cuerpo').clientHeight) + 'px';
+    const libreta = editorTexto.closest('.editor');
+    const abajo = parseFloat(getComputedStyle(editorTexto.closest('.editor-cuerpo')).paddingBottom) || 0;
+    editorTexto.style.height = Math.max(editorTexto.scrollHeight, libreta.clientHeight - $('editor-titulo').offsetHeight - abajo) + 'px';
 }
 
 function actualizarEditor() {
@@ -690,6 +694,166 @@ $('restaurar-compra').addEventListener('click', () => {
     $('paywall-nota').textContent = tieneExtras(localStorage) ? 'Tu compra ya está activa.' : 'No encontramos compras para restaurar.';
 });
 $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); renderizarExtras(); });
+
+// ---------- Música para escribir encima (YouTube o SoundCloud) ----------
+// Usa los reproductores oficiales, que se bajan recién cuando se pega un link (necesitan internet).
+const PASO_SEGUNDOS = 10, PASO_VOLUMEN = 10;
+let musica = null; // { fuente, alternar(), mover(segundos), volumen(0-100), cerrar() }
+let volumen = 70, sonando = false;
+
+function cargarScript(src) {
+    return new Promise((listo, error) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = listo;
+        script.onerror = error;
+        document.head.append(script);
+    });
+}
+const apiYouTube = () => window.YT?.Player ? Promise.resolve() : new Promise((listo, error) => {
+    window.onYouTubeIframeAPIReady = listo;
+    cargarScript('https://www.youtube.com/iframe_api').catch(error);
+});
+const apiSoundCloud = () => window.SC?.Widget ? Promise.resolve() : cargarScript('https://w.soundcloud.com/player/api.js');
+
+function mostrarEstadoMusica() {
+    const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud' }[musica?.fuente] ?? '';
+    $('reproductor-fuente').textContent = `${nombre} · volumen ${volumen}%`;
+    $('musica-play').setAttribute('aria-label', sonando ? 'Pausar' : 'Reproducir');
+    $('musica-play').innerHTML = sonando
+        ? '<svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>'
+        : '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M7 4l13 8-13 8z"/></svg>';
+}
+
+function avisoMusica(texto) {
+    $('musica-aviso').textContent = texto;
+    $('musica-aviso').hidden = !texto;
+}
+
+async function escucharMusica() {
+    const link = leerLink($('link-musica').value);
+    if (!link) return avisoMusica('Ese link no es de YouTube ni de SoundCloud.');
+    if (!navigator.onLine) return avisoMusica('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
+    avisoMusica('');
+    cerrarMusica();
+    $('hoja-musica').hidden = true;
+    $('reproductor-titulo').textContent = 'Cargando…';
+    $('reproductor').hidden = false;
+    document.body.classList.add('con-musica');
+    musica = { fuente: link.fuente };
+    mostrarEstadoMusica();
+    const lugar = document.createElement('div');
+    $('reproductor-marco').replaceChildren(lugar);
+    try {
+        if (link.fuente === 'youtube') {
+            await apiYouTube();
+            const reproductor = new YT.Player(lugar, {
+                videoId: link.id, width: 64, height: 64,
+                playerVars: { autoplay: 1, playsinline: 1, start: link.inicio, controls: 0, rel: 0 },
+                events: {
+                    onReady: e => { e.target.setVolume(volumen); e.target.playVideo(); },
+                    onStateChange: e => {
+                        sonando = e.data === YT.PlayerState.PLAYING;
+                        const titulo = reproductor.getVideoData?.().title;
+                        if (titulo) $('reproductor-titulo').textContent = titulo;
+                        mostrarEstadoMusica();
+                    },
+                    onError: () => { $('reproductor-titulo').textContent = 'No se pudo reproducir este video'; },
+                },
+            });
+            Object.assign(musica, {
+                alternar: () => sonando ? reproductor.pauseVideo() : reproductor.playVideo(),
+                mover: cambio => reproductor.seekTo(moverSegundos(reproductor.getCurrentTime(), cambio, reproductor.getDuration()), true),
+                volumen: v => reproductor.setVolume(v),
+                cerrar: () => reproductor.destroy(),
+            });
+        } else {
+            await apiSoundCloud();
+            const marco = document.createElement('iframe');
+            marco.allow = 'autoplay';
+            marco.title = 'SoundCloud';
+            marco.src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(link.url)}&auto_play=true&visual=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false`;
+            lugar.replaceWith(marco);
+            const widget = SC.Widget(marco);
+            const { Events } = SC.Widget;
+            widget.bind(Events.READY, () => {
+                widget.setVolume(volumen);
+                widget.play();
+                widget.getCurrentSound(cancion => { if (cancion?.title) $('reproductor-titulo').textContent = cancion.title; });
+            });
+            widget.bind(Events.PLAY, () => { sonando = true; mostrarEstadoMusica(); });
+            widget.bind(Events.PAUSE, () => { sonando = false; mostrarEstadoMusica(); });
+            widget.bind(Events.FINISH, () => { sonando = false; mostrarEstadoMusica(); });
+            widget.bind(Events.ERROR, () => { $('reproductor-titulo').textContent = 'No se pudo reproducir esta canción'; });
+            Object.assign(musica, {
+                alternar: () => widget.toggle(),
+                mover: cambio => widget.getPosition(ms => widget.getDuration(total =>
+                    widget.seekTo(moverSegundos(ms / 1000, cambio, total / 1000) * 1000))),
+                volumen: v => widget.setVolume(v),
+                cerrar: () => marco.remove(),
+            });
+        }
+    } catch {
+        $('reproductor-titulo').textContent = 'No se pudo cargar el reproductor. ¿Hay internet?';
+    }
+}
+
+function cerrarMusica() {
+    musica?.cerrar?.();
+    musica = null;
+    sonando = false;
+    $('reproductor-marco').replaceChildren();
+    $('reproductor').hidden = true;
+    document.body.classList.remove('con-musica');
+}
+
+// El banner va abajo: en la libreta, arriba de las sugerencias (o del teclado); en las pestañas, arriba de la barra.
+function ubicarReproductor() {
+    const banner = $('reproductor');
+    if (banner.hidden) return;
+    let abajo;
+    if (document.body.classList.contains('editando')) {
+        const visible = window.visualViewport;
+        const teclado = visible ? Math.max(0, innerHeight - visible.offsetTop - visible.height) : 0;
+        abajo = teclado + $('sugerencias').offsetHeight;
+    } else {
+        abajo = innerHeight - $('barra-pestanas').getBoundingClientRect().top;
+    }
+    banner.style.bottom = `${abajo + 8}px`;
+    banner.classList.toggle('sobre-borde', document.body.classList.contains('editando') && abajo === 0);
+    document.documentElement.style.setProperty('--alto-reproductor', `${banner.offsetHeight + 16}px`);
+}
+new ResizeObserver(ubicarReproductor).observe($('sugerencias'));
+new ResizeObserver(ubicarReproductor).observe($('reproductor'));
+window.visualViewport?.addEventListener('resize', ubicarReproductor);
+window.visualViewport?.addEventListener('scroll', ubicarReproductor);
+addEventListener('resize', ubicarReproductor);
+
+$('abrir-musica').addEventListener('click', () => {
+    avisoMusica(navigator.onLine ? '' : 'Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
+    $('hoja-musica').hidden = false;
+    $('link-musica').focus();
+});
+$('cerrar-musica').addEventListener('click', () => { $('hoja-musica').hidden = true; });
+$('hoja-musica').addEventListener('click', e => { if (e.target === $('hoja-musica')) $('hoja-musica').hidden = true; });
+$('pegar-musica').addEventListener('click', async () => {
+    try { $('link-musica').value = await navigator.clipboard.readText(); } catch { avisoMusica('No pude leer lo copiado: pegalo con el dedo en el campo.'); }
+});
+$('escuchar-musica').addEventListener('click', escucharMusica);
+$('link-musica').addEventListener('keydown', e => { if (e.key === 'Enter') escucharMusica(); });
+$('musica-play').addEventListener('click', () => musica?.alternar?.());
+$('musica-atrasar').addEventListener('click', () => musica?.mover?.(-PASO_SEGUNDOS));
+$('musica-adelantar').addEventListener('click', () => musica?.mover?.(PASO_SEGUNDOS));
+for (const [id, cambio] of [['musica-bajar', -PASO_VOLUMEN], ['musica-subir', PASO_VOLUMEN]]) {
+    $(id).addEventListener('click', () => {
+        volumen = cambiarVolumen(volumen, cambio);
+        musica?.volumen?.(volumen);
+        mostrarEstadoMusica();
+    });
+}
+$('musica-cerrar').addEventListener('click', cerrarMusica);
+// Tocar los botones del banner no le saca el foco al texto (el teclado queda abierto).
+for (const evento of ['pointerdown', 'mousedown']) $('reproductor').addEventListener(evento, e => { if (e.target.closest('button')) e.preventDefault(); });
 
 // ---------- Apariencia (claro / oscuro / sistema) ----------
 function renderizarApariencia() {
