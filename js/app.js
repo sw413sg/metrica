@@ -136,19 +136,16 @@ function mostrarSugerencias(palabra, etiqueta) {
     $('sugerencias').scrollLeft = 0;
 }
 
-// Tocar la última palabra de un verso muestra otras que riman con ella, para cambiarla.
+// Tocar una palabra muestra otras que riman con ella, para cambiarla.
 editorTexto.addEventListener('click', () => {
     const { value, selectionStart } = editorTexto;
-    const inicioVerso = value.lastIndexOf('\n', selectionStart - 1) + 1;
-    const finVerso = value.indexOf('\n', selectionStart) < 0 ? value.length : value.indexOf('\n', selectionStart);
-    const final = value.slice(inicioVerso, finVerso).match(/(\p{L}+)[^\p{L}]*$/u);
-    if (!final) return;
-    const inicio = inicioVerso + final.index;
-    const fin = inicio + final[1].length;
-    // Solo si el cursor quedó sobre la palabra y no al final de todo (ahí se sigue escribiendo).
-    if (selectionStart < inicio || selectionStart > fin || selectionStart === value.length) return;
-    mostrarSugerencias(final[1], `Cambiar «${final[1]}»:`);
-    reemplazo = { inicio, fin };
+    // Solo si no está al final de todo (ahí se sigue escribiendo).
+    if (selectionStart === value.length) return;
+    const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
+    const despues = value.slice(selectionStart).match(/^\p{L}*/u)[0];
+    if (!antes && !despues) return;
+    mostrarSugerencias(antes + despues, `Cambiar «${antes + despues}»:`);
+    reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
 });
 
 // Tocar una sugerencia la agrega donde está el cursor (o cambia la palabra tocada), sin cerrar el teclado.
@@ -157,7 +154,10 @@ $('sugerencias').addEventListener('click', e => {
     const boton = e.target.closest('.sugerencia');
     if (!boton) return;
     if (reemplazo) {
-        editorTexto.setRangeText(boton.textContent, reemplazo.inicio, reemplazo.fin, 'end');
+        // Si la palabra empezaba con mayúscula, la nueva también.
+        const mayuscula = /^\p{Lu}/u.test(editorTexto.value[reemplazo.inicio]);
+        const nueva = mayuscula ? boton.textContent[0].toUpperCase() + boton.textContent.slice(1) : boton.textContent;
+        editorTexto.setRangeText(nueva, reemplazo.inicio, reemplazo.fin, 'end');
     } else {
         const { value, selectionStart, selectionEnd } = editorTexto;
         const espacio = selectionStart > 0 && !/\s/.test(value[selectionStart - 1]) ? ' ' : '';

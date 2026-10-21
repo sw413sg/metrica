@@ -52,7 +52,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#alternar-colores').click();
         assert.equal(await page.locator('#editor-fondo mark').count(), 0);
         await page.locator('#alternar-colores').click();
-        // Tocar la última palabra de un verso muestra rimas para cambiarla.
+        // Tocar una palabra muestra rimas para cambiarla, también en el medio del verso.
         const original = await page.locator('#editor-texto').inputValue();
         await page.locator('#editor-texto').evaluate(t => {
             t.focus();
@@ -64,6 +64,14 @@ const servidor = http.createServer((req, res) => {
         await page.locator('.sugerencia').first().click();
         assert.ok((await page.locator('#editor-texto').inputValue()).includes(`se hace camino al ${otra}.`));
         await page.screenshot({path: `capturas/editor-cambiar-${tema}.png`});
+        await page.locator('#editor-texto').evaluate(t => {
+            t.setSelectionRange(t.value.indexOf('Caminante') + 3, t.value.indexOf('Caminante') + 3);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «Caminante»:');
+        const otra2 = await page.locator('.sugerencia').first().textContent();
+        await page.locator('.sugerencia').first().click();
+        assert.ok((await page.locator('#editor-texto').inputValue()).startsWith(`${otra2[0].toUpperCase() + otra2.slice(1)}, no hay`));
         await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         // Los renglones llegan hasta abajo aunque la letra sea larga.
         await page.locator('#editor-texto').evaluate(t => { t.value += '\nverso'.repeat(40); t.dispatchEvent(new Event('input')); });
