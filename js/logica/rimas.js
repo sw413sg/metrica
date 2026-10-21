@@ -203,8 +203,9 @@ export function rimasInternas(versos, distancia = 4) {
         .filter((_, k) => estrofa[Math.max(0, i - distancia + 1) + k] === estrofa[i]).flat()
         .filter(otro => otro && otro.texto !== dato.texto);
     // Primero las consonantes; después, las asonantes que se suman a una rima que ya está
-    // (la última palabra de un verso o una consonante del medio), dos agudas que terminan
-    // en consonante, que suenan fuerte aunque estén sueltas ("más" / "guardar"), y una aguda
+    // (la última palabra de un verso o una consonante del medio), dos agudas que suenan fuerte
+    // aunque estén sueltas, si al menos una termina en consonante y las de una sílaba también
+    // ("más" / "guardar", "agrandé" / "sed"; "ya" y "sé" no), y una aguda
     // abierta con una llana de la misma vocal repetida ("encontré" / "protegerte": é / e-e).
     datos.forEach((palabras, i) => palabras.forEach(dato => {
         if (dato) dato.rimaConsonante = distancia > 0 && cercanas(dato, i).some(otro => otro.consonante === dato.consonante);
@@ -214,7 +215,7 @@ export function rimasInternas(versos, distancia = 4) {
         if (dato.rimaConsonante) return { clave: dato.asonante, suave: false };
         const misma = otro => otro.asonante === dato.asonante;
         const asonante = otro => misma(otro) && otro.larga && dato.larga && (otro.final || dato.final || otro.rimaConsonante)
-            || misma(otro) && [otro, dato].every(d => d.aguda && !d.abierta && !d.corta) && (otro.larga || dato.larga);
+            || misma(otro) && [otro, dato].every(d => d.aguda && !d.corta && (d.larga || !d.abierta)) && !(otro.abierta && dato.abierta) && (otro.larga || dato.larga);
         const eco = otro => [otro, dato].every(d => d.larga && d.abierta) && otro.aguda !== dato.aguda
             && (otro.asonante + dato.asonante).length === 3 && new Set(otro.asonante + dato.asonante).size === 1;
         if (cercanas(dato, i).some(asonante)) return { clave: dato.asonante, suave: true };
