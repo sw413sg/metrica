@@ -17,7 +17,7 @@ Publicada en https://sw413sg.github.io/metrica/ (GitHub Pages desde `main`, sin 
   - Las sugerencias aparecen pegadas al teclado solo al tocar una palabra o un renglón vacío, no mientras se escribe (pedido de Swa). Tocar una palabra muestra rimas para cambiarla, y «Cambiar» alterna a sinónimos (`js/logica/sinonimos.js`).
   - Las palabras mal escritas o sin tilde no se marcan, pero riman, cuentan sílabas y sugieren como la palabra corregida (`js/logica/ortografia.js`).
   - Tocar un renglón vacío marca la parte: [Intro], [Estribillo]... (`js/logica/secciones.js`).
-  - La ruedita abre los ajustes: sílabas, tema, tamaño, separación de renglones y de letras, rimas internas, fuente y, abajo de todo, borrar la letra con confirmación (`js/logica/libreta.js`).
+  - La ruedita abre los ajustes: sílabas, tema, tamaño, separación de renglones y de letras (barras de 10 puntos imantados, pedido de Swa), rimas internas, fuente y, abajo de todo, borrar la letra con confirmación (`js/logica/libreta.js`).
   - La nota musical reproduce un link de YouTube o SoundCloud en un banner abajo, con pausa, ±10 s, volumen y cerrar (`js/logica/musica.js`).
 - **Rimas** (juntó a la vieja pestaña Palabras): 6 tarjetas que cambian solas, al azar o con las rimas más usadas de la palabra buscada, y abajo la lista completa. Buscador consonante y asonante en `js/logica/rimas.js`. Sin búsqueda se ven las palabras favoritas (estrella en la lista o tocar una tarjeta).
 - **Freestyle** (`js/logica/freestyle.js`): palabra nueva cada 2 compases con la sílaba tónica marcada, beat con BPM (barra y botón para volver a 90) y aro de la ronda que se carga de violeta. Los beats se sintetizan con Web Audio en `js/beats.js`, sin archivos de audio (licencias en `beats/LICENCIA.md`).
