@@ -15,6 +15,7 @@ import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/aparienc
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
+const COLORES_RIMA = 12;
 
 const todasLasPalabras = parsearPalabras(textoPalabras);
 const palabrasSimples = parsearPalabras(textoPalabrasSimples);
@@ -228,7 +229,8 @@ function actualizarEditor() {
     // Consonante con el fondo lleno; asonante con el mismo color, más suave.
     const consonantes = rimanConsonante(palabrasFinales);
     const internas = pintar ? rimasInternas(palabras, estiloLibreta(leerAjustesLibreta(localStorage)).internas) : [];
-    // Cada rima, un color: las internas que suenan como un grupo de finales usan su color.
+    // Cada terminación, un color fijo en toda la letra (12 en estilos.css, .rima-0 a .rima-11):
+    // las internas que suenan como un grupo de finales usan su color.
     const colores = new Map();
     grupos.forEach((grupo, i) => { if (grupo != null) colores.set(claveAsonante(palabrasFinales[i]), grupo); });
     const colorDe = clave => {
@@ -254,8 +256,8 @@ function actualizarEditor() {
             const n = (j - 1) / 2;
             const esFinal = j === trozos.length - 2;
             let clase = null;
-            if (esFinal && grupos[i] != null) clase = `rima-${grupos[i] % 5}${consonantes[i] ? '' : ' suave'}`;
-            else if (internas[i]?.[n]) clase = `rima-${colorDe(internas[i][n]) % 5}`;
+            if (esFinal && grupos[i] != null) clase = `rima-${grupos[i] % COLORES_RIMA}${consonantes[i] ? '' : ' suave'}`;
+            else if (internas[i]?.[n]) clase = `rima-${colorDe(internas[i][n]) % COLORES_RIMA}`;
             if (!clase) return parte;
             // Se pinta solo desde la sílaba tónica. Si se corrigió más que una tilde, se mira lo escrito.
             const corregida = palabras[i][n];
