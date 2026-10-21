@@ -177,6 +177,9 @@ export function rimanConsonante(palabras) {
     return claves.map((clave, i) => clave != null && claves.some((otra, j) => j !== i && otra === clave));
 }
 
+// Verbos de una sílaba que se dicen casi sin acento: no arman rima sueltos ("es" / "tener").
+const VERBOS_CORTOS = new Set(['es', 'son', 'sos', 'soy', 'voy', 'hay']);
+
 // Rimas internas: para cada palabra de cada verso, { clave, suave } si rima con otra palabra
 // distinta a menos de `distancia` versos (0 = apagadas); si no, null. La clave es la asonante
 // (para el color). Para que no quede todo pintado: sin palabras átonas ni la misma palabra
@@ -185,9 +188,6 @@ export function rimanConsonante(palabras) {
 // consonante con alguna ("solo" se suma a "todos" / "modos"). Dos del medio sueltas, no.
 // No cruzan de una estrofa a otra: un verso sin palabras (renglón vacío) las corta.
 // versos: [['te', 'busco', 'en', 'el', 'balcón'], ...]
-// Verbos de una sílaba que se dicen casi sin acento: no arman rima sueltos ("es" / "tener").
-const VERBOS_CORTOS = new Set(['es', 'son', 'sos', 'soy', 'voy', 'hay']);
-
 export function rimasInternas(versos, distancia = 4) {
     const estrofa = numerarEstrofas(versos);
     const datos = versos.map(palabras => palabras.map((palabra, n) => {
@@ -195,25 +195,32 @@ export function rimasInternas(versos, distancia = 4) {
         const a = ATONAS.has(p) ? null : analizarPalabra(p);
         return a && {
             texto: sinTildes(a.palabra), consonante: consonanteDe(a), asonante: asonanteDe(a),
-            final: n === palabras.length - 1, larga: a.nucleos.length > 1, aguda: a.tonico === a.nucleos.length - 1 && !/[aeiouáéíóú]$/.test(a.palabra) && !VERBOS_CORTOS.has(p),
+            final: n === palabras.length - 1, larga: a.nucleos.length > 1, corta: VERBOS_CORTOS.has(p),
+            aguda: a.tonico === a.nucleos.length - 1, abierta: /[aeiouáéíóú]$/.test(a.palabra),
         };
     }));
     const cercanas = (dato, i) => datos.slice(Math.max(0, i - distancia + 1), i + distancia)
         .filter((_, k) => estrofa[Math.max(0, i - distancia + 1) + k] === estrofa[i]).flat()
         .filter(otro => otro && otro.texto !== dato.texto);
     // Primero las consonantes; después, las asonantes que se suman a una rima que ya está
-    // (la última palabra de un verso o una consonante del medio), o dos agudas que terminan
-    // en consonante, que suenan fuerte aunque estén sueltas ("más" / "guardar").
+    // (la última palabra de un verso o una consonante del medio), dos agudas que terminan
+    // en consonante, que suenan fuerte aunque estén sueltas ("más" / "guardar"), y una aguda
+    // abierta con una llana de la misma vocal repetida ("encontré" / "protegerte": é / e-e).
     datos.forEach((palabras, i) => palabras.forEach(dato => {
         if (dato) dato.rimaConsonante = distancia > 0 && cercanas(dato, i).some(otro => otro.consonante === dato.consonante);
     }));
     return datos.map((palabras, i) => palabras.map(dato => {
         if (!dato || distancia < 1) return null;
         if (dato.rimaConsonante) return { clave: dato.asonante, suave: false };
-        const asonante = otro => otro.asonante === dato.asonante && otro.larga && dato.larga
-            && (otro.final || dato.final || otro.rimaConsonante)
-            || otro.asonante === dato.asonante && otro.aguda && dato.aguda && (otro.larga || dato.larga);
-        return cercanas(dato, i).some(asonante) ? { clave: dato.asonante, suave: true } : null;
+        const misma = otro => otro.asonante === dato.asonante;
+        const asonante = otro => misma(otro) && otro.larga && dato.larga && (otro.final || dato.final || otro.rimaConsonante)
+            || misma(otro) && [otro, dato].every(d => d.aguda && !d.abierta && !d.corta) && (otro.larga || dato.larga);
+        const eco = otro => [otro, dato].every(d => d.larga && d.abierta) && otro.aguda !== dato.aguda
+            && (otro.asonante + dato.asonante).length === 3 && new Set(otro.asonante + dato.asonante).size === 1;
+        if (cercanas(dato, i).some(asonante)) return { clave: dato.asonante, suave: true };
+        // La aguda toma la clave de la llana (é -> e-e), para que las dos se pinten del mismo color.
+        if (cercanas(dato, i).some(eco)) return { clave: dato.asonante[0].repeat(2), suave: true };
+        return null;
     }));
 }
 
