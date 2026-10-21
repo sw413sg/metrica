@@ -52,6 +52,23 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#alternar-colores').click();
         assert.equal(await page.locator('#editor-fondo mark').count(), 0);
         await page.locator('#alternar-colores').click();
+        // Tocar la última palabra de un verso muestra rimas para cambiarla.
+        const original = await page.locator('#editor-texto').inputValue();
+        await page.locator('#editor-texto').evaluate(t => {
+            t.focus();
+            t.setSelectionRange(t.value.indexOf('andar') + 2, t.value.indexOf('andar') + 2);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «andar»:');
+        const otra = await page.locator('.sugerencia').first().textContent();
+        await page.locator('.sugerencia').first().click();
+        assert.ok((await page.locator('#editor-texto').inputValue()).includes(`se hace camino al ${otra}.`));
+        await page.screenshot({path: `capturas/editor-cambiar-${tema}.png`});
+        await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
+        // Los renglones llegan hasta abajo aunque la letra sea larga.
+        await page.locator('#editor-texto').evaluate(t => { t.value += '\nverso'.repeat(40); t.dispatchEvent(new Event('input')); });
+        assert.ok(await page.evaluate(() => document.querySelector('.editor-capas').offsetHeight >= document.querySelector('#editor-texto').offsetHeight));
+        await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         await page.screenshot({path: `capturas/editor-${tema}.png`});
         // Con el teclado abierto (se ven 500 px), la barra de sugerencias queda pegada arriba.
         await page.evaluate(() => {

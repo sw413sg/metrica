@@ -66,14 +66,19 @@ function abrirEditor(letra) {
     letraActual = letra;
     $('editor-titulo').value = letra.titulo;
     editorTexto.value = letra.texto;
-    actualizarEditor();
     mostrarVista('vista-editor');
+    actualizarEditor();
     $('editor-titulo').focus();
 }
 
-function actualizarEditor() {
+// Alto del texto, o de toda la libreta si es corto (así se puede tocar en cualquier parte).
+function ajustarAltoTexto() {
     editorTexto.style.height = 'auto';
-    editorTexto.style.height = editorTexto.scrollHeight + 'px';
+    editorTexto.style.height = Math.max(editorTexto.scrollHeight, editorTexto.closest('.editor-cuerpo').clientHeight) + 'px';
+}
+
+function actualizarEditor() {
+    ajustarAltoTexto();
 
     const versos = editorTexto.value.split('\n');
 
@@ -99,30 +104,65 @@ function actualizarEditor() {
 
     // Sugerencias para la última palabra escrita (en un verso vacío, la del verso anterior).
     const ultima = editorTexto.value.slice(0, editorTexto.selectionEnd).match(/(\p{L}+)[^\p{L}]*$/u)?.[1];
-    const rimas = ultima ? buscarRimas(ultima, indiceRimas()).slice(0, 20) : [];
+    reemplazo = null;
+    mostrarSugerencias(ultima);
+}
+
+// Si se está cambiando una palabra, dónde está: { inicio, fin }. Si no, las sugerencias se agregan.
+let reemplazo = null;
+
+function mostrarSugerencias(palabra, etiqueta) {
+    const rimas = palabra ? buscarRimas(palabra, indiceRimas()).slice(0, 20) : [];
     if (rimas.length) {
-        $('sugerencias').replaceChildren(...rimas.map(rima => {
+        const botones = rimas.map(rima => {
             const boton = document.createElement('button');
             boton.className = 'sugerencia';
             boton.textContent = rima;
             return boton;
-        }));
+        });
+        if (etiqueta) {
+            const texto = document.createElement('span');
+            texto.className = 'sugerencias-etiqueta';
+            texto.textContent = etiqueta;
+            botones.unshift(texto);
+        }
+        $('sugerencias').replaceChildren(...botones);
     } else {
         const vacio = document.createElement('span');
         vacio.className = 'sugerencias-vacio';
-        vacio.textContent = ultima ? `No encontré rimas para «${ultima}»` : 'Acá van a aparecer rimas mientras escribís';
+        vacio.textContent = palabra ? `No encontré rimas para «${palabra}»` : 'Acá van a aparecer rimas mientras escribís';
         $('sugerencias').replaceChildren(vacio);
     }
+    $('sugerencias').scrollLeft = 0;
 }
 
-// Tocar una sugerencia la agrega donde está el cursor, sin cerrar el teclado.
+// Tocar la última palabra de un verso muestra otras que riman con ella, para cambiarla.
+editorTexto.addEventListener('click', () => {
+    const { value, selectionStart } = editorTexto;
+    const inicioVerso = value.lastIndexOf('\n', selectionStart - 1) + 1;
+    const finVerso = value.indexOf('\n', selectionStart) < 0 ? value.length : value.indexOf('\n', selectionStart);
+    const final = value.slice(inicioVerso, finVerso).match(/(\p{L}+)[^\p{L}]*$/u);
+    if (!final) return;
+    const inicio = inicioVerso + final.index;
+    const fin = inicio + final[1].length;
+    // Solo si el cursor quedó sobre la palabra y no al final de todo (ahí se sigue escribiendo).
+    if (selectionStart < inicio || selectionStart > fin || selectionStart === value.length) return;
+    mostrarSugerencias(final[1], `Cambiar «${final[1]}»:`);
+    reemplazo = { inicio, fin };
+});
+
+// Tocar una sugerencia la agrega donde está el cursor (o cambia la palabra tocada), sin cerrar el teclado.
 $('sugerencias').addEventListener('pointerdown', e => e.preventDefault());
 $('sugerencias').addEventListener('click', e => {
     const boton = e.target.closest('.sugerencia');
     if (!boton) return;
-    const { value, selectionStart, selectionEnd } = editorTexto;
-    const espacio = selectionStart > 0 && !/\s/.test(value[selectionStart - 1]) ? ' ' : '';
-    editorTexto.setRangeText(espacio + boton.textContent, selectionStart, selectionEnd, 'end');
+    if (reemplazo) {
+        editorTexto.setRangeText(boton.textContent, reemplazo.inicio, reemplazo.fin, 'end');
+    } else {
+        const { value, selectionStart, selectionEnd } = editorTexto;
+        const espacio = selectionStart > 0 && !/\s/.test(value[selectionStart - 1]) ? ' ' : '';
+        editorTexto.setRangeText(espacio + boton.textContent, selectionStart, selectionEnd, 'end');
+    }
     editorTexto.focus();
     actualizarEditor();
     guardarActual();
@@ -135,6 +175,7 @@ if (window.visualViewport) {
         document.documentElement.style.setProperty('--arriba-visible', `${visualViewport.offsetTop}px`);
         // Con el teclado abierto no hace falta dejar lugar para la barrita de inicio del iPhone.
         document.body.classList.toggle('teclado-abierto', visualViewport.height < innerHeight * 0.8);
+        if (document.body.classList.contains('editando')) ajustarAltoTexto();
     };
     visualViewport.addEventListener('resize', ajustarAlTeclado);
     visualViewport.addEventListener('scroll', ajustarAlTeclado);
