@@ -919,18 +919,28 @@ async function mostrarVersion() {
     if (version) $('version').textContent = version;
 }
 
-// Forzar actualización: borra la caché y el service worker y recarga, así baja todo de nuevo.
-// Sin internet no se hace, para no quedarse sin la app.
+// Forzar actualización: le pide al service worker que busque la versión nueva. Si hay,
+// la baja y la app se recarga sola; si no, avisa. No borra nada, así nunca se queda sin la app
+// (borrar todo y recargar dejaba el iPhone bajando 8 MB de diccionario dos veces).
+function avisarVersion(texto) {
+    $('forzar-actualizacion').classList.remove('girando');
+    $('version').textContent = texto;
+    setTimeout(mostrarVersion, 2000);
+}
 $('forzar-actualizacion').addEventListener('click', async () => {
-    if (!navigator.onLine) {
-        $('version').textContent = 'Sin internet';
-        return setTimeout(mostrarVersion, 2000);
-    }
+    if ($('forzar-actualizacion').classList.contains('girando')) return;
+    if (!navigator.onLine) return avisarVersion('Sin internet');
     $('forzar-actualizacion').classList.add('girando');
-    const registros = await navigator.serviceWorker?.getRegistrations() ?? [];
-    await Promise.all(registros.map(r => r.unregister()));
-    await Promise.all((await caches.keys()).map(c => caches.delete(c)));
-    location.reload();
+    try {
+        const registro = await navigator.serviceWorker.getRegistration();
+        await registro.update();
+        const nueva = registro.installing ?? registro.waiting;
+        if (!nueva) return avisarVersion('Ya tenés la última');
+        navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+        nueva.addEventListener('statechange', () => { if (nueva.state === 'redundant') avisarVersion('No se pudo bajar'); });
+    } catch {
+        avisarVersion('No se pudo buscar');
+    }
 });
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

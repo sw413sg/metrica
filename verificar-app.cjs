@@ -521,11 +521,20 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         await page.waitForFunction(v => document.getElementById('version').textContent === v, version);
         await page.screenshot({path: `capturas/ajustes-version-${tema}.png`});
+        // Con versión nueva publicada, la flecha la baja y recarga.
+        versionNueva = `\n// prueba forzada ${tema}`;
         const recargaForzada = page.waitForEvent('load');
         await page.locator('#forzar-actualizacion').click();
         await recargaForzada;
         await page.evaluate(() => navigator.serviceWorker.ready);
+        // Sin versión nueva, avisa que ya está al día y no recarga.
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        await page.locator('#forzar-actualizacion').click();
+        await page.waitForFunction(() => document.getElementById('version').textContent === 'Ya tenés la última');
+        assert.equal(await page.locator('#forzar-actualizacion.girando').count(), 0);
         await page.waitForFunction(v => document.getElementById('version').textContent === v, version);
+        versionNueva = '';
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         assert.deepEqual(await page.locator('#lista-letras .titulo-letra').allTextContents(), ['Sin internet']);
 
         assert.deepEqual(errores, []);
