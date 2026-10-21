@@ -1,6 +1,6 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
-import { palabrasAlAzar, filtrarPorTerminacion } from './logica/generador.js';
+import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas } from './logica/rimas.js';
 import { contarSilabasVerso } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
@@ -32,7 +32,7 @@ const bienEscrita = palabra => palabra && (corregir(palabra) ?? palabra);
 function mostrarPestana(nombre) {
     document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
     document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
-    if (nombre === 'palabras') reanudarPalabras(); else pausarPalabras();
+    if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
     if (nombre !== 'freestyle') terminarRonda();
 }
 document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListener('click', () => mostrarPestana(b.dataset.pestana)));
@@ -445,7 +445,7 @@ $('abrir-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta'
 $('cerrar-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = true; });
 $('ajustes-libreta').addEventListener('click', e => { if (e.target === $('ajustes-libreta')) $('ajustes-libreta').hidden = true; });
 
-// ---------- Rimas ----------
+// ---------- Rimas (palabras al azar o que riman con la que se escribe) ----------
 let tipoRima = 'consonante';
 
 // Botón de estrella para marcar una palabra como favorita.
@@ -470,39 +470,55 @@ function celdaPalabra(palabra, alCambiar) {
     const boton = document.createElement('button');
     boton.className = 'celda-boton';
     boton.textContent = palabra;
-    boton.addEventListener('click', () => { $('buscar-rima').value = palabra; renderizarRimas(); });
+    boton.addEventListener('click', () => { $('buscar-rima').value = palabra; buscarRima(); });
     celda.append(boton, botonFavorito(palabra, alCambiar));
     return celda;
 }
 
+const palabraBuscada = () => $('buscar-rima').value.trim().toLowerCase();
+const rimasBuscadas = () => buscarRimas(palabraBuscada(), indiceRimas(), { tipo: tipoRima }).slice(0, 100);
+
+// Abajo de las tarjetas, la lista completa de rimas (o las favoritas si no se buscó nada).
 function renderizarRimas() {
-    const palabra = $('buscar-rima').value.trim().toLowerCase();
-    // Sin búsqueda se muestran las favoritas.
-    const lista = palabra ? buscarRimas(palabra, indiceRimas(), { tipo: tipoRima }).slice(0, 100) : listarFavoritos(localStorage);
+    const palabra = palabraBuscada();
+    const lista = palabra ? rimasBuscadas() : listarFavoritos(localStorage);
     $('resultados-rimas').replaceChildren(...lista.map(p => celdaPalabra(p, palabra ? undefined : renderizarRimas)));
-    $('encabezado-favoritas').hidden = Boolean(palabra) || !lista.length;
+    $('encabezado-resultados').hidden = !lista.length;
+    $('encabezado-resultados').textContent = palabra ? `Todas las rimas ${tipoRima}s` : 'Favoritas';
     $('rimas-vacio').textContent = !palabra
         ? 'Escribí una palabra para ver con qué rima. Tocá la estrella para guardarla en favoritas.'
         : `No encontré rimas ${tipoRima}s para «${palabra}».`;
     $('rimas-vacio').hidden = lista.length > 0;
 }
 
-$('buscar-rima').addEventListener('input', renderizarRimas);
+function buscarRima() {
+    renderizarRimas();
+    if (temporizador === null) return refrescarPalabras();
+    pausarPalabras();
+    reanudarPalabras();
+}
+
+$('buscar-rima').addEventListener('input', buscarRima);
 document.querySelectorAll('#tipo-rima button').forEach(b => b.addEventListener('click', () => {
     tipoRima = b.dataset.tipo;
     document.querySelectorAll('#tipo-rima button').forEach(o => o.setAttribute('aria-selected', o === b));
-    renderizarRimas();
+    buscarRima();
 }));
 
-// ---------- Palabras al azar ----------
+// Las 6 tarjetas cambian cada 5 segundos.
 const CANTIDAD = 6;
 const SEGUNDOS = 5;
 let temporizador = null;
 let pausadoPorUsuario = false;
 
+// De dónde salen las tarjetas: las rimas más usadas de la palabra escrita, o todo el diccionario.
 function poolActual() {
-    const base = $('palabras-simples').checked ? palabrasSimples : todasLasPalabras;
-    return filtrarPorTerminacion(base, $('terminacion').value);
+    const simples = $('palabras-simples').checked;
+    if (!palabraBuscada()) return simples ? palabrasSimples : todasLasPalabras;
+    const rimas = rimasBuscadas().slice(0, 60);
+    if (!simples) return rimas;
+    const conjunto = new Set(palabrasSimples);
+    return rimas.filter(p => conjunto.has(p));
 }
 
 function refrescarPalabras() {
@@ -513,10 +529,15 @@ function refrescarPalabras() {
         tarjeta.className = 'palabra';
         tarjeta.textContent = palabra;
         tarjeta.setAttribute('aria-pressed', listarFavoritos(localStorage).includes(palabra));
-        tarjeta.addEventListener('click', () => tarjeta.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra)));
+        tarjeta.addEventListener('click', () => {
+            tarjeta.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra));
+            if (!palabraBuscada()) renderizarRimas();
+        });
         return tarjeta;
     }));
-    $('palabras-total').textContent = `${pool.length.toLocaleString('es-AR')} palabras disponibles`;
+    $('palabras-total').textContent = palabraBuscada()
+        ? `Tocá una palabra para guardarla en favoritas. Las tarjetas muestran ${pool.length} rimas que se usan mucho.`
+        : `Tocá una palabra para guardarla en favoritas. ${pool.length.toLocaleString('es-AR')} palabras disponibles.`;
     animarProgreso();
 }
 
@@ -553,10 +574,11 @@ $('refrescar-palabras').addEventListener('click', () => {
     reanudarPalabras();
 });
 $('palabras-simples').addEventListener('change', refrescarPalabras);
-$('terminacion').addEventListener('input', refrescarPalabras);
 
 // ---------- Freestyle ----------
 let ronda = null; // { inicio, palabra, proxima } mientras se está jugando
+const COMPASES_POR_PALABRA = 2;
+const BPM_POR_DEFECTO = 90;
 
 $('fs-beat').replaceChildren(...Object.entries(BEATS).map(([clave, beat]) => new Option(beat.nombre, clave)));
 const ajustesFreestyle = () => ({ beat: BEATS[$('fs-beat').value], bpm: Number($('fs-bpm').value) });
@@ -581,7 +603,8 @@ function alPasoFreestyle(paso) {
     $('fs-reloj').textContent = formatoReloj(restantes);
     if (restantes === 0) return terminarRonda(true);
     document.querySelectorAll('#fs-tiempos span').forEach((s, i) => s.classList.toggle('activo', i + 1 === tiempoDelPaso(paso)));
-    if (cambiaLaPalabra(paso, Number($('fs-compases').value))) {
+    $('fs-reloj').style.setProperty('--avance', 1 - restantes / Number($('fs-duracion').value));
+    if (cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) {
         ronda.palabra = ronda.proxima ?? palabraAlAzar();
         ronda.proxima = palabraAlAzar();
         mostrarPalabra(ronda.palabra);
@@ -592,6 +615,7 @@ function alPasoFreestyle(paso) {
 function empezarRonda() {
     ronda = { inicio: performance.now() };
     $('fs-reloj').classList.remove('terminado');
+    $('fs-reloj').style.setProperty('--avance', 0);
     $('fs-empezar').textContent = 'Parar';
     iniciarBeat(ajustesFreestyle, alPasoFreestyle);
 }
@@ -602,6 +626,7 @@ function terminarRonda(porTiempo = false) {
     detenerBeat();
     $('fs-empezar').textContent = 'Empezar';
     document.querySelectorAll('#fs-tiempos span').forEach(s => s.classList.remove('activo'));
+    if (!porTiempo) $('fs-reloj').style.setProperty('--avance', 0);
     if (porTiempo) {
         $('fs-reloj').textContent = '¡Tiempo!';
         $('fs-reloj').classList.add('terminado');
@@ -610,6 +635,10 @@ function terminarRonda(porTiempo = false) {
 
 $('fs-empezar').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
 $('fs-bpm').addEventListener('input', () => { $('fs-bpm-valor').textContent = `${$('fs-bpm').value} BPM`; });
+$('fs-bpm-reiniciar').addEventListener('click', () => {
+    $('fs-bpm').value = BPM_POR_DEFECTO;
+    $('fs-bpm').dispatchEvent(new Event('input'));
+});
 $('fs-duracion').addEventListener('change', () => { if (!ronda) $('fs-reloj').textContent = formatoReloj(Number($('fs-duracion').value)); });
 
 // ---------- Métrica Extras (paywall) ----------

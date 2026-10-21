@@ -77,32 +77,12 @@
             </div>
         </section>
 
-        <!-- Rimas -->
+        <!-- Rimas: palabras al azar y, si se escribe una palabra, sus rimas (antes eran dos pestañas). -->
         <section class="pantalla" id="pantalla-rimas" data-pestana="rimas">
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Rimas</h1>
             <div class="contenido">
-                <input class="buscador" id="buscar-rima" type="search" placeholder="Buscá una palabra" autocomplete="off" autocapitalize="none">
-                <div class="segmentado" role="tablist" id="tipo-rima">
-                    <button role="tab" aria-selected="true" data-tipo="consonante">Consonante</button>
-                    <button role="tab" aria-selected="false" data-tipo="asonante">Asonante</button>
-                </div>
-                <h2 class="encabezado-grupo" id="encabezado-favoritas" hidden>Favoritas</h2>
-                <ul class="lista-agrupada" id="resultados-rimas"></ul>
-                <p class="vacio" id="rimas-vacio">Escribí una palabra para ver con qué rima.</p>
-                <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
-                <button class="publicidad" data-paywall>
-                    <span class="publicidad-etiqueta">Publicidad</span>
-                    <span>Acá va un anuncio. <strong>Sacalo con Métrica Extras</strong></span>
-                </button>
-            </div>
-        </section>
-
-        <!-- Palabras al azar (lo que hacía la versión anterior) -->
-        <section class="pantalla" id="pantalla-palabras" data-pestana="palabras">
-            <header class="barra-nav"></header>
-            <h1 class="titulo-grande">Palabras</h1>
-            <div class="contenido">
+                <!-- 6 palabras que cambian cada 5 segundos: al azar o, con una palabra escrita, que riman con ella -->
                 <div class="grilla-palabras" id="grilla-palabras"></div>
                 <div class="barra-progreso"><div id="progreso"></div></div>
                 <div class="botones">
@@ -111,16 +91,24 @@
                 </div>
                 <ul class="lista-agrupada">
                     <li class="celda">
+                        <span class="icono-celda" style="background:#7b61ff"><svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></span>
+                        <label for="buscar-rima">Rimas</label>
+                        <input class="campo-celda" id="buscar-rima" type="search" placeholder="ej. canción" autocomplete="off" autocapitalize="none">
+                    </li>
+                    <li class="celda">
+                        <span class="icono-celda" style="background:#34c759"><svg viewBox="0 0 24 24" class="icono"><path d="M5 7h14M5 12h10M5 17h6"/></svg></span>
                         <label for="palabras-simples">Palabras simples</label>
                         <input type="checkbox" class="interruptor" id="palabras-simples">
                     </li>
-                    <li class="celda">
-                        <label for="terminacion">Terminación</label>
-                        <input class="campo-celda" id="terminacion" placeholder="ej. ción" autocomplete="off" autocapitalize="none">
-                    </li>
                 </ul>
-                <p class="nota">Tocá una palabra para guardarla en favoritas (las ves en Rimas).</p>
+                <div class="segmentado" role="tablist" id="tipo-rima">
+                    <button role="tab" aria-selected="true" data-tipo="consonante">Consonante</button>
+                    <button role="tab" aria-selected="false" data-tipo="asonante">Asonante</button>
+                </div>
                 <p class="nota" id="palabras-total"></p>
+                <h2 class="encabezado-grupo" id="encabezado-resultados" hidden>Favoritas</h2>
+                <ul class="lista-agrupada" id="resultados-rimas"></ul>
+                <p class="vacio" id="rimas-vacio">Escribí una palabra para ver con qué rima.</p>
                 <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
                 <button class="publicidad" data-paywall>
                     <span class="publicidad-etiqueta">Publicidad</span>
@@ -135,6 +123,7 @@
             <h1 class="titulo-grande">Freestyle</h1>
             <div class="contenido">
                 <div class="tarjeta-freestyle">
+                    <!-- El aro se va cargando de violeta mientras pasa la ronda -->
                     <p class="reloj" id="fs-reloj">1:00</p>
                     <p class="palabra-fs" id="fs-palabra">¿Listo?</p>
                     <p class="proxima" id="fs-proxima">Tocá Empezar y hacé caer la sílaba marcada en el 1.</p>
@@ -145,23 +134,21 @@
                 </div>
                 <ul class="lista-agrupada">
                     <li class="celda">
+                        <span class="icono-celda" style="background:#ff2d55"><svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span>
                         <label for="fs-beat">Beat</label>
                         <select class="campo-celda" id="fs-beat"></select>
                     </li>
-                    <li class="celda">
-                        <label for="fs-bpm">Tempo</label>
+                    <li class="celda celda-tempo">
+                        <span class="icono-celda" style="background:#ff9500"><svg viewBox="0 0 24 24" class="icono"><path d="M8 21h8l-3-17h-2zM12 14l5-6"/></svg></span>
+                        <label for="fs-bpm" class="etiqueta-tempo">Tempo<span class="valor" id="fs-bpm-valor">90 BPM</span></label>
                         <input type="range" class="deslizador" id="fs-bpm" min="60" max="140" step="1" value="90">
-                        <span class="valor" id="fs-bpm-valor">90 BPM</span>
+                        <!-- Vuelve al tempo de siempre (90 BPM) -->
+                        <button class="boton-reiniciar" id="fs-bpm-reiniciar" aria-label="Volver a 90 BPM">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg>
+                        </button>
                     </li>
                     <li class="celda">
-                        <label for="fs-compases">Palabra nueva cada</label>
-                        <select class="campo-celda" id="fs-compases">
-                            <option value="1">1 compás</option>
-                            <option value="2" selected>2 compases</option>
-                            <option value="4">4 compases</option>
-                        </select>
-                    </li>
-                    <li class="celda">
+                        <span class="icono-celda" style="background:#5856d6"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/></svg></span>
                         <label for="fs-duracion">Ronda</label>
                         <select class="campo-celda" id="fs-duracion">
                             <option value="30">30 segundos</option>
@@ -170,7 +157,6 @@
                         </select>
                     </li>
                 </ul>
-                <p class="nota">Las palabras salen de las 20.000 más usadas. Los beats son propios de Métrica.</p>
             </div>
         </section>
 
@@ -306,9 +292,6 @@
         </button>
         <button data-pestana="rimas" aria-selected="false">
             <svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>Rimas
-        </button>
-        <button data-pestana="palabras" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="15" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/></svg>Palabras
         </button>
         <button data-pestana="freestyle" aria-selected="false">
             <svg viewBox="0 0 24 24" class="icono"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>Freestyle

@@ -182,10 +182,11 @@ a { color: var(--acento); text-decoration: none; }
 }
 .tarjeta-nueva .icono { width: 40px; height: 40px; stroke-width: 2.4; }
 .tarjeta-letra { border-radius: 22px; min-height: 210px; overflow: hidden; }
-/* La última letra en la que se escribió va arriba, a lo ancho, y muestra más texto. */
-.tarjeta-letra.destacada { grid-column: 1 / -1; grid-row: 1; min-height: 190px; }
+/* La última letra en la que se escribió es más alta (solo crece para abajo: dos filas) y muestra más texto. */
+.grilla-letras { grid-auto-flow: dense; }
+.tarjeta-letra.destacada { grid-row: span 2; }
 .tarjeta-letra.destacada .titulo-letra { font-size: 20px; }
-.tarjeta-letra.destacada .texto-letra { -webkit-line-clamp: 6; }
+.tarjeta-letra.destacada .texto-letra { -webkit-line-clamp: 18; }
 .tarjeta-letra button { width: 100%; height: 100%; padding: 16px; display: flex; flex-direction: column; gap: 6px; text-align: left; color: var(--texto); }
 .fecha-letra { color: var(--texto-2); font-size: 12px; }
 .titulo-letra { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
@@ -222,13 +223,18 @@ a { color: var(--acento); text-decoration: none; }
 
 /* Freestyle */
 .tarjeta-freestyle { border-radius: 24px; padding: 24px 16px 20px; text-align: center; margin-top: 8px; }
-/* El reloj de la ronda en un aro con brillo. */
+/* El reloj de la ronda en un aro que se va cargando de violeta (--avance de 0 a 1, lo pone js/app.js).
+   En SwiftUI: Circle().trim(from: 0, to: avance).stroke(...). */
+@property --avance { syntax: '<number>'; inherits: false; initial-value: 0; }
 .reloj {
-    width: 128px; height: 128px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
-    font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--texto);
-    border: 3px solid transparent;
-    background: linear-gradient(var(--celda), var(--celda)) padding-box,
-                linear-gradient(var(--separador), var(--separador)) border-box;
+    --avance: 0;
+    width: 148px; height: 148px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+    font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--texto);
+    border: 8px solid transparent;
+    background: linear-gradient(var(--tarjeta), var(--tarjeta)) padding-box,
+                conic-gradient(var(--destacado-2), var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0) border-box;
+    box-shadow: 0 0 calc(var(--avance) * 24px) var(--destacado-suave);
+    transition: --avance .3s linear;
 }
 .reloj.terminado { color: var(--acento); font-size: 24px; }
 .palabra-fs { margin: 16px 0 4px; font-size: 44px; font-weight: 700; overflow-wrap: anywhere; }
@@ -239,7 +245,12 @@ a { color: var(--acento); text-decoration: none; }
 .tiempos span { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--relleno); color: var(--texto-2); font-size: 15px; font-variant-numeric: tabular-nums; }
 .tiempos span:first-child { font-weight: 700; }
 .tiempos span.activo { background: linear-gradient(135deg, var(--destacado), var(--destacado-2)); color: #fff; box-shadow: 0 0 16px var(--destacado-suave); }
-.deslizador { flex: 1; min-width: 0; accent-color: var(--acento); }
+.deslizador { flex: 1; min-width: 0; accent-color: var(--destacado); }
+/* Tempo: el número abajo del nombre, la barra y el botón para volver a 90 BPM. */
+.celda-tempo .etiqueta-tempo { flex: 0 0 auto !important; display: flex; flex-direction: column; line-height: 1.2; }
+.celda-tempo .valor { font-size: 13px; }
+.boton-reiniciar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--texto-2); background: var(--relleno); flex-shrink: 0; }
+.boton-reiniciar .icono { width: 18px; height: 18px; }
 select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--texto-2); text-align-last: right; }
 
 /* Editor de letra */
