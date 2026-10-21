@@ -44,9 +44,9 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
         assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
             ['rima-0:camino', 'rima-1:andar', 'rima-0:camino', 'rima-1:atrás']);
-        assert.ok((await page.locator('.sugerencia').allTextContents()).includes('detrás'));
-        await page.locator('#editor-texto').press('Enter');
-        await page.locator('.sugerencia', {hasText: /^detrás$/}).click();
+        // Mientras se escribe no hay sugerencias: aparecen solo al tocar una palabra.
+        assert.equal(await page.locator('#sugerencias').isVisible(), false);
+        await page.locator('#editor-texto').evaluate(t => { t.value += '\ndetrás'; t.dispatchEvent(new Event('input')); });
         assert.match(await page.locator('#editor-texto').inputValue(), /atrás\ndetrás$/);
         assert.equal(await page.locator('#editor-fondo mark').count(), 5);
         await page.locator('#alternar-colores').click();
@@ -92,7 +92,6 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').evaluate(t => { t.value += '\nte busco desde el balcon'; t.dispatchEvent(new Event('input')); });
         assert.equal(await page.locator('#editor-fondo mark.error').count(), 0);
         assert.equal((await page.locator('#silabas div').allTextContents()).at(-1), '8'); // balcón es aguda
-        assert.ok((await page.locator('.sugerencia').allTextContents()).includes('corazón'));
         await page.locator('#editor-texto').evaluate(t => {
             t.setSelectionRange(t.value.length - 3, t.value.length - 3);
             t.dispatchEvent(new MouseEvent('click'));
@@ -131,6 +130,10 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         await page.screenshot({path: `capturas/editor-${tema}.png`});
         // Con el teclado abierto (se ven 500 px), la barra de sugerencias queda pegada arriba.
+        await page.locator('#editor-texto').evaluate(t => {
+            t.setSelectionRange(t.value.indexOf('andar') + 2, t.value.indexOf('andar') + 2);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
         await page.evaluate(() => {
             document.documentElement.style.setProperty('--alto-visible', '500px');
             document.body.classList.add('teclado-abierto');
@@ -154,11 +157,16 @@ const servidor = http.createServer((req, res) => {
         await page.locator('[data-ajuste="tamano"] [data-opcion="grande"]').click();
         await page.locator('[data-ajuste="separacion"] [data-opcion="amplia"]').click();
         await page.locator('[data-ajuste="fuente"] [data-opcion="serif"]').click();
+        await page.locator('[data-ajuste="letras"] [data-opcion="junta"]').click();
         await page.screenshot({path: `capturas/ajustes-libreta-${tema}.png`});
         await page.locator('#cerrar-ajustes-libreta').click();
         const estiloTexto = () => page.locator('#editor-texto').evaluate(t => [getComputedStyle(t).fontSize, getComputedStyle(t).lineHeight, getComputedStyle(t).fontFamily]);
         assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '34px']);
         assert.match((await estiloTexto())[2], /serif/);
+        // Letras más juntas, igual en el texto y en la copia que pinta las rimas.
+        const espaciado = await page.evaluate(() => ['editor-texto', 'editor-fondo'].map(id => getComputedStyle(document.getElementById(id)).letterSpacing));
+        assert.equal(espaciado[0], espaciado[1]);
+        assert.ok(parseFloat(espaciado[0]) < 0, espaciado[0]);
         assert.equal(await page.locator('#silabas').isVisible(), false);
         await page.screenshot({path: `capturas/editor-grande-serif-${tema}.png`});
         // Todo se recuerda después de recargar.
@@ -174,6 +182,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('[data-ajuste="tamano"] [data-opcion="mediano"]').click();
         await page.locator('[data-ajuste="separacion"] [data-opcion="normal"]').click();
         await page.locator('[data-ajuste="fuente"] [data-opcion="sistema"]').click();
+        await page.locator('[data-ajuste="letras"] [data-opcion="normal"]').click();
         await page.locator('#ajustes-libreta').click({position: {x: 10, y: 10}});
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), false);
         assert.deepEqual((await estiloTexto()).slice(0, 2), ['17px', '23px']);
@@ -190,8 +199,17 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#lista-letras .tarjeta-letra button').click();
         assert.match(await page.locator('#editor-texto').inputValue(), /^Caminante[\s\S]*detrás$/);
         assert.equal(await page.locator('#editor-fondo mark').count(), 5);
-        page.once('dialog', d => d.accept());
+        // Al entrar a una letra empezada, el cursor queda al final del texto (y se abre el teclado).
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'editor-texto');
+        // Borrar está abajo de todo en la ruedita y pide confirmación.
+        await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('#borrar-letra').click();
+        assert.equal(await page.locator('#confirmar-borrado').isVisible(), true);
+        await page.locator('#cancelar-borrado').click();
+        assert.equal(await page.locator('#vista-editor').isVisible(), true);
+        await page.locator('#borrar-letra').click();
+        await page.locator('#aceptar-borrado').click();
+        assert.equal(await page.locator('#ajustes-libreta').isVisible(), false);
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
 
@@ -368,8 +386,9 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').fill('Pizarra con tiza\ny una sonrisa');
         assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(36, 51, 44)');
         await page.screenshot({path: `capturas/editor-pizarra-${tema}.png`});
-        page.once('dialog', d => d.accept());
+        await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('#borrar-letra').click();
+        await page.locator('#aceptar-borrado').click();
         // Volver a la versión gratis: el tema de pago vuelve a gris y vuelve la publicidad.
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         await page.locator('#borrar-compra').click();

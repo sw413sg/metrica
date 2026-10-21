@@ -1,4 +1,4 @@
-// Ajustes de la libreta: tamaño de letra, separación entre renglones y fuente.
+// Ajustes de la libreta: tamaño de letra, separación entre renglones y entre letras, y fuente.
 // Se guardan en el almacén (localStorage en la web). Sin DOM.
 export const AJUSTES_LIBRETA = {
     tamano: {
@@ -7,9 +7,15 @@ export const AJUSTES_LIBRETA = {
         opciones: { chico: { nombre: 'Chico', valor: 15 }, mediano: { nombre: 'Mediano', valor: 17 }, grande: { nombre: 'Grande', valor: 20 } },
     },
     separacion: {
-        nombre: 'Separación',
+        nombre: 'Separación de renglones',
         porDefecto: 'normal',
         opciones: { junta: { nombre: 'Junta', valor: 1.2 }, normal: { nombre: 'Normal', valor: 1.35 }, amplia: { nombre: 'Amplia', valor: 1.7 } },
+    },
+    // Separación horizontal entre letras (letter-spacing, en SwiftUI .tracking), en em.
+    letras: {
+        nombre: 'Separación de letras',
+        porDefecto: 'normal',
+        opciones: { junta: { nombre: 'Junta', valor: -0.04 }, normal: { nombre: 'Normal', valor: 0 }, amplia: { nombre: 'Amplia', valor: 0.06 } },
     },
     fuente: {
         nombre: 'Fuente',
@@ -40,12 +46,13 @@ export function guardarAjusteLibreta(almacen, clave, opcion) {
 }
 
 // Lo que necesita la pantalla: tamaño y alto de renglón en px (enteros, para que los renglones
-// pintados caigan justo) y la fuente.
+// pintados caigan justo), la separación entre letras en em y la fuente.
 export function estiloLibreta(ajustes) {
     const tamano = AJUSTES_LIBRETA.tamano.opciones[ajustes.tamano].valor;
     return {
         tamano,
         alto: Math.round(tamano * AJUSTES_LIBRETA.separacion.opciones[ajustes.separacion].valor),
+        letras: AJUSTES_LIBRETA.letras.opciones[ajustes.letras].valor,
         fuente: AJUSTES_LIBRETA.fuente.opciones[ajustes.fuente].valor,
     };
 }

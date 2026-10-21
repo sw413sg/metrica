@@ -47,9 +47,6 @@
                         <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>Letras
                     </button>
                     <div class="acciones-barra">
-                        <button class="boton-barra" id="borrar-letra" aria-label="Borrar letra">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
-                        </button>
                         <button class="boton-barra" id="alternar-colores" aria-pressed="true" aria-label="Pintar rimas">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>
                         </button>
@@ -73,10 +70,8 @@
                         </div>
                     </div>
                 </div>
-                <!-- Sugerencias de rima sobre el teclado: tocá una para agregarla -->
-                <div class="sugerencias" id="sugerencias">
-                    <span class="sugerencias-vacio">Acá van a aparecer rimas mientras escribís</span>
-                </div>
+                <!-- Sobre el teclado, solo al tocar una palabra (rimas o sinónimos para cambiarla) o un renglón vacío (partes) -->
+                <div class="sugerencias" id="sugerencias" hidden></div>
             </div>
         </section>
 
@@ -226,8 +221,12 @@
             <h3 class="encabezado-grupo">Tema</h3>
             <ul class="lista-agrupada" id="temas-libreta"></ul>
             <p class="nota">Los temas con candado vienen con Métrica Extras.</p>
-            <!-- Un control segmentado por ajuste (tamaño, separación, fuente): lo arma js/app.js -->
+            <!-- Un control segmentado por ajuste (tamaño, separaciones, fuente): lo arma js/app.js -->
             <div id="opciones-libreta"></div>
+            <!-- Abajo de todo, borrar la letra (pide confirmación). -->
+            <ul class="lista-agrupada lista-borrar">
+                <li class="celda"><button class="celda-boton texto-rojo" id="borrar-letra">Borrar letra</button></li>
+            </ul>
         </div>
     </div>
 

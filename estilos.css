@@ -208,7 +208,7 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .editor-titulo { border: 0; background: none; outline: none; font-size: 22px; font-weight: 400; padding: 16px 0 12px; }
 .editor-cuerpo { flex: 1; display: flex; align-items: flex-start; gap: 8px; min-height: 0; overflow-y: auto; }
 .editor-texto, .editor-fondo, .silabas { font-size: var(--libreta-letra, 17px); line-height: var(--libreta-alto, 23px); }
-.editor-texto, .editor-fondo { font-family: var(--libreta-fuente, inherit); }
+.editor-texto, .editor-fondo { font-family: var(--libreta-fuente, inherit); letter-spacing: var(--libreta-letras, 0); }
 .editor-capas { flex: 1; position: relative; min-height: 100%; }
 /* Renglones de cuaderno, uno por línea de texto (se apagan desde la barra). */
 .editor-capas.renglones { background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--libreta-alto, 23px) - 1px), var(--renglon) calc(var(--libreta-alto, 23px) - 1px) var(--libreta-alto, 23px)); }
@@ -234,6 +234,7 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
     padding: 0 0 env(safe-area-inset-bottom);
 }
 body.teclado-abierto .sugerencias { padding-bottom: 0; }
+.sugerencias[hidden] { display: none; }
 .sugerencias-vacio { color: var(--texto-2); font-size: 15px; padding: 12px 16px; }
 .sugerencias-etiqueta { align-self: center; flex-shrink: 0; color: var(--texto-2); font-size: 14px; padding: 0 4px 0 16px; white-space: nowrap; }
 /* Cambiar / Sinónimos: se toca para alternar qué se sugiere. */
@@ -353,6 +354,8 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .hoja-titulo { font-size: 20px; font-weight: 600; margin: 0 0 8px; text-align: center; }
 .hoja-ajustes .encabezado-grupo { margin: 20px 4px 6px; }
 .hoja-ajustes .segmentado { margin-top: 0; }
+.hoja-ajustes .lista-borrar { margin-top: 28px; }
+.lista-borrar .celda-boton { align-items: center; }
 #opciones-libreta button[data-opcion="serif"] { font-family: ui-serif, "New York", Georgia, serif; }
 #opciones-libreta button[data-opcion="maquina"] { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 
