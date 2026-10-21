@@ -262,8 +262,15 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
         // Un toque común sigue abriendo la letra (ver arriba): acá ya no queda ninguna.
 
+        // Rimas: 6 palabras al azar que cambian solas; escribir una palabra las cambia por rimas.
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        assert.equal(await page.locator('.palabra').count(), 6);
+        assert.equal(await page.locator('#barra-pestanas [data-pestana="palabras"]').count(), 0);
+        await page.screenshot({path: `capturas/rimas-azar-${tema}.png`});
         await page.locator('#buscar-rima').fill('canción');
+        const tarjetas = await page.locator('.palabra').allTextContents();
+        assert.equal(tarjetas.length, 6);
+        assert.ok(tarjetas.every(p => /[oó]n$/.test(p)), tarjetas.join());
         const consonantes = await page.locator('#resultados-rimas .celda').allTextContents();
         assert.equal(consonantes.length, 100);
         assert.ok(consonantes.slice(0, 5).includes('corazón'), consonantes.slice(0, 5).join());
@@ -274,57 +281,56 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#tipo-rima [data-tipo="asonante"]').getAttribute('aria-selected'), 'true');
         const asonantes = await page.locator('#resultados-rimas .celda').allTextContents();
         assert.ok(asonantes.length > 0 && !asonantes.some(p => consonantes.includes(p)));
+        assert.ok((await page.locator('.palabra').allTextContents()).every(p => asonantes.includes(p)));
         await page.screenshot({path: `capturas/rimas-asonante-${tema}.png`});
         // Favoritas: la estrella guarda la palabra y aparece sin búsqueda.
         const primera = asonantes[0];
         await page.locator('#resultados-rimas .estrella').first().click();
         assert.equal(await page.locator('#resultados-rimas .estrella').first().getAttribute('aria-pressed'), 'true');
         await page.locator('#buscar-rima').fill('');
-        assert.equal(await page.locator('#encabezado-favoritas').isVisible(), true);
+        assert.equal(await page.locator('#encabezado-resultados').textContent(), 'Favoritas');
         assert.deepEqual(await page.locator('#resultados-rimas .celda').allTextContents(), [primera]);
         await page.screenshot({path: `capturas/favoritas-${tema}.png`});
         await page.locator('#resultados-rimas .celda-boton').first().click();
         assert.equal(await page.locator('#buscar-rima').inputValue(), primera);
         await page.locator('#buscar-rima').fill('xyz');
         assert.match(await page.locator('#rimas-vacio').textContent(), /No encontré rimas asonantes/);
+        assert.equal(await page.locator('.palabra').count(), 0);
         await page.locator('#tipo-rima [data-tipo="consonante"]').click();
-
-        await page.locator('#barra-pestanas [data-pestana="palabras"]').click();
-        assert.equal(await page.locator('.palabra').count(), 6);
+        await page.locator('#buscar-rima').fill('');
+        // Tocar una tarjeta la guarda en favoritas; pausar y palabras simples.
         await page.locator('#pausar-palabras').click();
         const tocada = await page.locator('.palabra').first().textContent();
         await page.locator('.palabra').first().click();
         assert.equal(await page.locator('.palabra').first().getAttribute('aria-pressed'), 'true');
+        assert.ok((await page.locator('#resultados-rimas .celda').allTextContents()).includes(tocada));
         await page.locator('#pausar-palabras').click();
-        await page.locator('#terminacion').fill('ción');
-        assert.ok((await page.locator('.palabra').allTextContents()).every(p => p.endsWith('ción')));
-        await page.locator('#terminacion').fill('');
         await page.locator('#palabras-simples').check();
-        assert.equal(await page.locator('#palabras-total').textContent(), '20.000 palabras disponibles');
-        await page.screenshot({path: `capturas/palabras-${tema}.png`});
+        assert.match(await page.locator('#palabras-total').textContent(), /20\.000 palabras disponibles/);
 
-        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
-        await page.locator('#buscar-rima').fill('');
-        assert.equal((await page.locator('#resultados-rimas .celda').allTextContents())[0], tocada);
-
-        // Freestyle: el beat avanza, la palabra cambia cada compás y tiene la tónica marcada.
+        // Freestyle: el beat avanza, la palabra cambia y tiene la tónica marcada; el aro se carga.
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         assert.deepEqual(await page.locator('#fs-beat option').allTextContents(), ['Boom bap', 'Trap', 'Metrónomo']);
+        assert.equal(await page.locator('#fs-compases').count(), 0);
         await page.locator('#fs-bpm').fill('140');
         assert.equal(await page.locator('#fs-bpm-valor').textContent(), '140 BPM');
-        await page.locator('#fs-compases').selectOption('1');
         await page.locator('#fs-empezar').click();
         assert.equal(await page.locator('#fs-empezar').textContent(), 'Parar');
         await page.locator('#fs-palabra .tonica').waitFor();
         const palabra1 = await page.locator('#fs-palabra').textContent();
         assert.equal(await page.locator('#fs-tiempos .activo').count(), 1);
         assert.match(await page.locator('#fs-proxima').textContent(), /^Después: /);
-        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabra1, {timeout: 4000});
+        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabra1, {timeout: 6000});
         assert.match(await page.locator('#fs-reloj').textContent(), /^0:5\d$/);
+        assert.ok(Number(await page.locator('#fs-reloj').evaluate(r => r.style.getPropertyValue('--avance'))) > 0);
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
         await page.locator('#fs-empezar').click();
         assert.equal(await page.locator('#fs-empezar').textContent(), 'Empezar');
         assert.equal(await page.locator('#fs-tiempos .activo').count(), 0);
+        // El botón de al lado del tempo lo vuelve a 90.
+        await page.locator('#fs-bpm-reiniciar').click();
+        assert.equal(await page.locator('#fs-bpm').inputValue(), '90');
+        assert.equal(await page.locator('#fs-bpm-valor').textContent(), '90 BPM');
 
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();
