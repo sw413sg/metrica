@@ -213,6 +213,8 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .editor-capas.renglones { background: repeating-linear-gradient(to bottom, transparent 0 22px, var(--renglon) 22px 23px); }
 .editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: transparent; pointer-events: none; }
 .editor-fondo mark { color: transparent; border-radius: 4px; }
+/* Separadores de partes ([Estribillo], [Hook]...): violeta, como lo especial. */
+.editor-fondo mark.seccion { background: var(--destacado-suave); box-shadow: inset 3px 0 0 var(--destacado); border-radius: 4px; }
 .rima-0 { background: var(--rima-1); }
 .rima-1 { background: var(--rima-2); }
 .rima-2 { background: var(--rima-3); }
