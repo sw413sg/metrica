@@ -260,15 +260,17 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 
 /* Editor de letra */
 .vista#vista-editor { overflow: hidden; }
-.editor { flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0; overflow-y: auto; }
+.editor { flex: 1; display: flex; flex-direction: column; padding: 0 16px; min-height: 0; overflow-y: auto; }
 /* El título se desplaza con el texto y se esconde al bajar: arriba solo quedan los botones. */
 .editor-titulo { border: 0; background: none; outline: none; font-size: 22px; font-weight: 400; padding: 16px 0 12px; }
-.editor-cuerpo { flex: 1 0 auto; display: flex; align-items: flex-start; gap: 8px; }
+/* El cuerpo llega hasta los bordes de la pantalla (margen negativo) para que los renglones vayan
+   de borde a borde, como en un cuaderno; el texto queda a 16px, como en Keep. */
+.editor-cuerpo { flex: 1 0 auto; display: flex; align-items: flex-start; gap: 8px; margin-inline: -16px; padding-inline: 16px; }
 .editor-texto, .editor-fondo, .silabas { font-size: var(--libreta-letra, 17px); line-height: var(--libreta-alto, 23px); }
 .editor-texto, .editor-fondo { font-family: var(--libreta-fuente, inherit); letter-spacing: var(--libreta-letras, 0); }
 .editor-capas { flex: 1; position: relative; min-height: 100%; }
 /* Renglones de cuaderno, uno por línea de texto (se apagan desde la barra). */
-.editor-capas.renglones { background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--libreta-alto, 23px) - 1px), var(--renglon) calc(var(--libreta-alto, 23px) - 1px) var(--libreta-alto, 23px)); }
+.editor-cuerpo:has(> .editor-capas.renglones) { background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--libreta-alto, 23px) - 1px), var(--renglon) calc(var(--libreta-alto, 23px) - 1px) var(--libreta-alto, 23px)); }
 .editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: transparent; pointer-events: none; }
 .editor-fondo mark { color: transparent; border-radius: 4px; }
 /* Separadores de partes ([Estribillo], [Hook]...): violeta, como lo especial. */

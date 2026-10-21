@@ -11,7 +11,7 @@ Publicada en https://sw413sg.github.io/metrica/ (GitHub Pages desde `main`, sin 
 - **Diseño general** (`estilos.css`): colores y tipografía tipo Google Keep, con grises neutros y tab bar flotante. Fondo liso con granulado al 5%, sin degradado (pedido de Swa); la libreta no lleva granulado. La franja de la hora en Safari usa el color promedio del fondo por `theme-color`. Botones, buscador y controles de vidrio de iOS 26, y listas como Ajustes de iOS (referencia: https://sw413sg.github.io/cumpleanos-prototipo/). El violeta (`--destacado`) es solo para lo especial: pestaña elegida, letra nueva, sílaba fuerte y Métrica Extras.
 - **Letras**: la última letra va grande arriba y el resto de a dos. Mantener apretada una tarjeta y arrastrarla al tacho la borra, con confirmación. Se guardan solas en localStorage (`js/logica/sesiones.js`).
 - **Editor de una letra**:
-  - Fondo liso, gris oscuro `#2d2e32` en modo oscuro. Al bajar, el título se va con el texto y arriba quedan solo los botones.
+  - Fondo liso, gris oscuro `#2d2e32` en modo oscuro. Texto a 16px del borde, como Keep, y renglones de borde a borde, como un cuaderno (pedido de Swa). Al bajar, el título se va con el texto y arriba quedan solo los botones.
   - Cuenta las sílabas métricas de cada verso, con sinalefa (`js/logica/silabas.js`).
   - Pinta del mismo color la parte que rima de las palabras finales de cada verso, desde la sílaba tónica ("can**ción**", con `inicioTonica` de `js/logica/silabas.js`; ver "Pendiente").
   - Las sugerencias aparecen pegadas al teclado solo al tocar una palabra o un renglón vacío, no mientras se escribe (pedido de Swa). Tocar una palabra muestra rimas para cambiarla, y «Cambiar» alterna a sinónimos (`js/logica/sinonimos.js`).
