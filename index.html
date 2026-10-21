@@ -50,6 +50,10 @@
                         <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>Letras
                     </button>
                     <div class="acciones-barra">
+                        <!-- Música de fondo: pegar un link de YouTube o SoundCloud -->
+                        <button class="boton-barra" id="abrir-musica" aria-label="Escuchar música">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+                        </button>
                         <button class="boton-barra" id="alternar-colores" aria-pressed="true" aria-label="Pintar rimas">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>
                         </button>
@@ -226,6 +230,56 @@
             <ul class="lista-agrupada lista-borrar">
                 <li class="celda"><button class="celda-boton texto-rojo" id="borrar-letra">Borrar letra</button></li>
             </ul>
+        </div>
+    </div>
+
+    <!-- Música: pegar el link (en SwiftUI: .sheet con un TextField). -->
+    <div class="hoja-fondo" id="hoja-musica" hidden>
+        <div class="hoja hoja-ajustes" role="dialog" aria-modal="true" aria-labelledby="hoja-musica-titulo">
+            <button class="boton-barra cerrar-hoja" id="cerrar-musica" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <h2 class="hoja-titulo" id="hoja-musica-titulo">Música</h2>
+            <p class="nota">Pegá el link de una canción de YouTube o SoundCloud para escribir mientras suena.</p>
+            <input class="buscador" id="link-musica" type="url" placeholder="https://youtu.be/… o https://soundcloud.com/…" autocomplete="off" autocapitalize="none" spellcheck="false">
+            <p class="nota texto-rojo" id="musica-aviso" hidden></p>
+            <div class="botones">
+                <button class="boton-gris" id="pegar-musica">Pegar</button>
+                <button class="boton-relleno" id="escuchar-musica">Escuchar</button>
+            </div>
+            <p class="nota">Es lo único de Métrica que necesita internet.</p>
+        </div>
+    </div>
+
+    <!-- Reproductor: banner abajo, en la libreta arriba de las sugerencias y en las pestañas arriba de la barra. -->
+    <div class="reproductor vidrio" id="reproductor" hidden>
+        <div class="reproductor-fila">
+            <!-- Acá va el reproductor oficial (YouTube o SoundCloud), chiquito -->
+            <div class="reproductor-marco" id="reproductor-marco"></div>
+            <div class="reproductor-datos">
+                <span class="reproductor-titulo" id="reproductor-titulo">Cargando…</span>
+                <span class="reproductor-fuente" id="reproductor-fuente"></span>
+            </div>
+            <button class="boton-musica" id="musica-cerrar" aria-label="Cerrar el reproductor">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <div class="reproductor-controles">
+            <button class="boton-musica" id="musica-bajar" aria-label="Bajar el volumen">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 12h4"/></svg>
+            </button>
+            <button class="boton-musica" id="musica-atrasar" aria-label="Atrasar 10 segundos">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M11 7L5 12l6 5zM19 7l-6 5 6 5z"/></svg>
+            </button>
+            <button class="boton-musica boton-play" id="musica-play" aria-label="Pausar">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
+            </button>
+            <button class="boton-musica" id="musica-adelantar" aria-label="Adelantar 10 segundos">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M13 7l6 5-6 5zM5 7l6 5-6 5z"/></svg>
+            </button>
+            <button class="boton-musica" id="musica-subir" aria-label="Subir el volumen">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 12h4M19 10v4"/></svg>
+            </button>
         </div>
     </div>
 
