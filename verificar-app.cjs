@@ -72,20 +72,17 @@ const servidor = http.createServer((req, res) => {
         const otra2 = await page.locator('.sugerencia').first().textContent();
         await page.locator('.sugerencia').first().click();
         assert.ok((await page.locator('#editor-texto').inputValue()).startsWith(`${otra2[0].toUpperCase() + otra2.slice(1)}, no hay`));
-        // Una palabra sin tilde se subraya, rima igual y al tocarla se ofrece la corrección.
+        // Una palabra sin tilde no se marca, pero rima y cuenta como si tuviera la tilde.
         await page.locator('#editor-texto').evaluate(t => { t.value += '\nte busco desde el balcon'; t.dispatchEvent(new Event('input')); });
-        assert.deepEqual(await page.locator('#editor-fondo mark.error').allTextContents(), ['balcon']);
+        assert.equal(await page.locator('#editor-fondo mark.error').count(), 0);
         assert.equal((await page.locator('#silabas div').allTextContents()).at(-1), '8'); // balcón es aguda
         assert.ok((await page.locator('.sugerencia').allTextContents()).includes('corazón'));
         await page.locator('#editor-texto').evaluate(t => {
             t.setSelectionRange(t.value.length - 3, t.value.length - 3);
             t.dispatchEvent(new MouseEvent('click'));
         });
-        assert.equal(await page.locator('.sugerencia.correccion').textContent(), 'balcón');
-        await page.screenshot({path: `capturas/editor-error-${tema}.png`});
-        await page.locator('.sugerencia.correccion').click();
-        assert.match(await page.locator('#editor-texto').inputValue(), /desde el balcón$/);
-        assert.equal(await page.locator('#editor-fondo mark.error').count(), 0);
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «balcon»:');
+        assert.ok((await page.locator('.sugerencia').allTextContents()).includes('corazón'));
         await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         // Tocar un renglón vacío ofrece marcar la parte de la letra.
         await page.locator('#editor-texto').evaluate(t => {

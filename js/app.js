@@ -97,7 +97,6 @@ function actualizarEditor() {
     }));
 
     // Rimas pintadas: la última palabra de cada verso, con el color de su grupo.
-    // Las palabras mal escritas van subrayadas.
     const finales = versos.map(verso => esSeparador(verso) ? null : verso.match(/(\p{L}+)[^\p{L}]*$/u));
     const grupos = $('alternar-colores').getAttribute('aria-pressed') === 'true'
         ? agruparRimas(finales.map(f => bienEscrita(f?.[1]))) : [];
@@ -113,8 +112,7 @@ function actualizarEditor() {
         const partes = verso.split(/(\p{L}+)/u).map((parte, j) => {
             if (j % 2 === 0) return parte;
             const esFinal = grupos[i] != null && j === verso.split(/(\p{L}+)/u).length - 2;
-            const clases = [esFinal && `rima-${grupos[i] % 5}`, corregir(parte) && 'error'].filter(Boolean);
-            return clases.length ? marca(clases.join(' '), parte) : parte;
+            return esFinal ? marca(`rima-${grupos[i] % 5}`, parte) : parte;
         });
         return [...partes, fin];
     }));
@@ -169,14 +167,8 @@ editorTexto.addEventListener('click', () => {
     const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
     const despues = value.slice(selectionStart).match(/^\p{L}*/u)[0];
     if (!antes && !despues) return;
-    // Si está mal escrita, primero va la corrección y después las rimas de la palabra corregida.
-    const correccion = corregir(antes + despues);
-    if (correccion) {
-        mostrarSugerencias(correccion, `Cambiar «${antes + despues}»:`, [correccion, ...buscarRimas(correccion, indiceRimas()).slice(0, 20)]);
-        $('sugerencias').querySelector('.sugerencia').classList.add('correccion');
-    } else {
-        mostrarSugerencias(antes + despues, `Cambiar «${antes + despues}»:`);
-    }
+    // Si está mal escrita no se avisa: solo se muestran las rimas de la palabra que se quiso escribir.
+    mostrarSugerencias(bienEscrita(antes + despues), `Cambiar «${antes + despues}»:`);
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
 });
 
