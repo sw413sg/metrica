@@ -1,4 +1,4 @@
-// Ajustes de la libreta: tamaño de letra, separación entre renglones y entre letras, y fuente.
+// Ajustes de la libreta: tamaño de letra, separación entre renglones y entre letras, rimas internas y fuente.
 // Se guardan en el almacén (localStorage en la web). Sin DOM.
 export const AJUSTES_LIBRETA = {
     tamano: {
@@ -16,6 +16,12 @@ export const AJUSTES_LIBRETA = {
         nombre: 'Separación de letras',
         porDefecto: 'normal',
         opciones: { junta: { nombre: 'Junta', valor: -0.04 }, normal: { nombre: 'Normal', valor: 0 }, amplia: { nombre: 'Amplia', valor: 0.06 } },
+    },
+    // Rimas internas: a cuántos versos se buscan las palabras del medio que riman.
+    internas: {
+        nombre: 'Rimas internas',
+        porDefecto: 'cuatro',
+        opciones: { no: { nombre: 'No', valor: 0 }, dos: { nombre: '2 versos', valor: 2 }, cuatro: { nombre: '4 versos', valor: 4 }, ocho: { nombre: '8 versos', valor: 8 } },
     },
     fuente: {
         nombre: 'Fuente',
@@ -53,6 +59,7 @@ export function estiloLibreta(ajustes) {
         tamano,
         alto: Math.round(tamano * AJUSTES_LIBRETA.separacion.opciones[ajustes.separacion].valor),
         letras: AJUSTES_LIBRETA.letras.opciones[ajustes.letras].valor,
+        internas: AJUSTES_LIBRETA.internas.opciones[ajustes.internas].valor,
         fuente: AJUSTES_LIBRETA.fuente.opciones[ajustes.fuente].valor,
     };
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas } from '../js/logica/rimas.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
@@ -147,4 +147,23 @@ test('rimanConsonante: marca las que tienen pareja consonante en la letra', () =
     assert.deepEqual(rimanConsonante(['casa', 'mala', 'pasa']), [true, false, true]);
     assert.deepEqual(rimanConsonante(['voz', 'dos']), [true, true]); // seseo
     assert.deepEqual(rimanConsonante([]), []);
+});
+
+test('rimasInternas: palabras del medio que riman consonante con otras cercanas', () => {
+    const versos = [['tengo', 'un', 'camino', 'y', 'un', 'destino'], ['la', 'luna', 'me', 'mira'], ['vengo', 'de', 'lejos']];
+    assert.deepEqual(rimasInternas(versos), [
+        ['eo', null, 'io', null, null, 'io'],
+        [null, null, null, null],
+        ['eo', null, null],
+    ]);
+});
+
+test('rimasInternas: respeta la distancia y no pinta de más', () => {
+    const versos = [['canción'], ['nada'], ['nada'], ['corazón']];
+    assert.deepEqual(rimasInternas(versos, 4), [['o'], [null], [null], ['o']], 'la misma palabra repetida no cuenta');
+    assert.deepEqual(rimasInternas(versos, 3), [[null], [null], [null], [null]]);
+    assert.deepEqual(rimasInternas(versos, 0), [[null], [null], [null], [null]]);
+    // Asonantes ("casa" / "mala") y palabras átonas ("con" / "son") no se pintan por dentro.
+    assert.deepEqual(rimasInternas([['casa', 'mala', 'con', 'son']]), [[null, null, null, null]]);
+    assert.deepEqual(rimasInternas([]), []);
 });
