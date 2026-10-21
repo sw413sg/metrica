@@ -379,3 +379,18 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .tacho.encima { background: #ff3b30; color: #fff; border-color: transparent; transform: scale(1.04); }
 .tacho.encima .tapa-tacho { transform: rotate(-25deg) translate(-1px, -2px); }
 @keyframes sacudir { 25% { rotate: -12deg; } 50% { rotate: 10deg; } 75% { rotate: -6deg; } }
+
+/* Alerta para confirmar el borrado (como .alert de iOS). */
+.alerta-fondo { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.35); }
+.alerta-fondo[hidden] { display: none; }
+.alerta {
+    width: 270px; border-radius: 14px; overflow: hidden; text-align: center;
+    background: var(--tarjeta); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); animation: aparecer-alerta .2s ease-out;
+}
+.alerta h2 { font-size: 17px; font-weight: 600; margin: 20px 16px 4px; }
+.alerta p { font-size: 13px; color: var(--texto-2); margin: 0 16px 18px; }
+.alerta-botones { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--separador); }
+.alerta-botones button { padding: 12px; font-size: 17px; background: none; border: 0; color: inherit; font-family: inherit; cursor: pointer; }
+.alerta-botones button + button { border-left: 1px solid var(--separador); font-weight: 600; }
+.alerta-botones .texto-rojo { color: #ff3b30; }
+@keyframes aparecer-alerta { from { opacity: 0; transform: scale(1.1); } }
