@@ -205,9 +205,12 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#cerrar-musica').click();
         await page.context().setOffline(false);
         // Los renglones arrancan prendidos y se apagan.
-        assert.match(await page.locator('.editor-capas').evaluate(e => getComputedStyle(e).backgroundImage), /repeating-linear-gradient/);
+        assert.match(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), /repeating-linear-gradient/);
+        // De borde a borde, como un cuaderno, y el texto a 16px del borde, como en Keep.
+        assert.deepEqual(await page.locator('.editor-cuerpo').evaluate(e => [e.getBoundingClientRect().left, e.getBoundingClientRect().right]), [0, 390]);
+        assert.equal(await page.locator('#editor-titulo').evaluate(e => e.getBoundingClientRect().left), 16);
         await page.locator('#alternar-renglones').click();
-        assert.equal(await page.locator('.editor-capas').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
+        assert.equal(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
         await page.locator('#alternar-renglones').click();
         // Rimas internas: se pintan las palabras del medio que riman consonante con otras cercanas.
         const textoAntes = await page.locator('#editor-texto').inputValue();
