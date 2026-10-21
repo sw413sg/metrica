@@ -21,6 +21,12 @@ Esqueleto de la web app en `index.html` (pestañas Letras, Rimas, Freestyle y Aj
 3. Favoritos y sesiones guardadas (por ahora en localStorage).
 4. Modo freestyle: palabras con timer tipo batalla, beats con control de tempo (BPM) y la sílaba que cae en el tiempo fuerte del compás marcada. Los beats tienen que ser propios o con licencia que permita usarlos en una app comercial; anotá la licencia de cada uno en el repo.
 5. Todo tiene que funcionar sin internet (en la web, con service worker y el diccionario local; nada de APIs externas).
+6. Rimas pintadas en la libreta, mejoradas (entra todo en el lanzamiento, en este orden; lo priorizó Proshe):
+   1. Pintar solo la parte que rima, desde la vocal tónica ("can**ción**", "ra**zón**"), no la palabra entera.
+   2. Consonante con fondo lleno y asonante con el mismo color pero más suave.
+   3. Rimas internas: pintar también las palabras del medio del verso que riman con otras cercanas (por defecto dentro de 4 versos, ajustable desde la ruedita). Cuidá que no quede todo pintado.
+   4. Un color fijo para cada terminación (por ejemplo "-ón" siempre del mismo color en toda la letra), con una paleta amplia, para que no se repitan.
+   5. Rimas multisilábicas (más de una sílaba que rima, como "camino / destino").
 
 ## Monetización
 Modelo: app gratis que funciona completa, más un pago único "Métrica Extras" (USD 4,99), sin suscripción. Lo decidió Swa (2026-10-21): el pago quita la publicidad y desbloquea los temas de la libreta y los widgets. Las funciones básicas (rimas incluidas) nunca se bloquean.
