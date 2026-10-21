@@ -72,6 +72,21 @@ const servidor = http.createServer((req, res) => {
         const otra2 = await page.locator('.sugerencia').first().textContent();
         await page.locator('.sugerencia').first().click();
         assert.ok((await page.locator('#editor-texto').inputValue()).startsWith(`${otra2[0].toUpperCase() + otra2.slice(1)}, no hay`));
+        // Tocar un renglón vacío ofrece marcar la parte de la letra.
+        await page.locator('#editor-texto').evaluate(t => {
+            t.value += '\n\nverso nuevo';
+            t.dispatchEvent(new Event('input'));
+            const vacio = t.value.indexOf('\n\n') + 1;
+            t.setSelectionRange(vacio, vacio);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Marcar:');
+        assert.deepEqual(await page.locator('.sugerencia').allTextContents(), ['Intro', 'Estribillo', 'Hook', 'Verso', 'Final']);
+        await page.locator('.sugerencia', {hasText: 'Estribillo'}).click();
+        assert.match(await page.locator('#editor-texto').inputValue(), /\n\[Estribillo\]\nverso nuevo$/);
+        assert.equal(await page.locator('#editor-fondo mark.seccion').textContent(), '[Estribillo]');
+        assert.deepEqual((await page.locator('#silabas div').allTextContents()).slice(-2), ['', '4']);
+        await page.screenshot({path: `capturas/editor-seccion-${tema}.png`});
         await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         // Los renglones llegan hasta abajo aunque la letra sea larga.
         await page.locator('#editor-texto').evaluate(t => { t.value += '\nverso'.repeat(40); t.dispatchEvent(new Event('input')); });

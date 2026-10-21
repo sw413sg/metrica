@@ -6,6 +6,7 @@ import { contarSilabasVerso } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
+import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
@@ -85,16 +86,22 @@ function actualizarEditor() {
     // Sílabas por verso (vacío en los versos sin palabras).
     $('silabas').replaceChildren(...versos.map(verso => {
         const fila = document.createElement('div');
-        fila.textContent = contarSilabasVerso(verso) || '';
+        fila.textContent = esSeparador(verso) ? '' : contarSilabasVerso(verso) || '';
         return fila;
     }));
 
     // Rimas pintadas: la última palabra de cada verso, con el color de su grupo.
-    const finales = versos.map(verso => verso.match(/(\p{L}+)[^\p{L}]*$/u));
+    const finales = versos.map(verso => esSeparador(verso) ? null : verso.match(/(\p{L}+)[^\p{L}]*$/u));
     const grupos = $('alternar-colores').getAttribute('aria-pressed') === 'true'
         ? agruparRimas(finales.map(f => f?.[1])) : [];
     $('editor-fondo').replaceChildren(...versos.flatMap((verso, i) => {
         const fin = i < versos.length - 1 ? '\n' : '';
+        if (esSeparador(verso)) {
+            const marca = document.createElement('mark');
+            marca.className = 'seccion';
+            marca.textContent = verso;
+            return [marca, fin];
+        }
         if (grupos[i] == null) return [verso + fin];
         const marca = document.createElement('mark');
         marca.className = `rima-${grupos[i] % 5}`;
@@ -103,7 +110,8 @@ function actualizarEditor() {
     }));
 
     // Sugerencias para la última palabra escrita (en un verso vacío, la del verso anterior).
-    const ultima = editorTexto.value.slice(0, editorTexto.selectionEnd).match(/(\p{L}+)[^\p{L}]*$/u)?.[1];
+    const antes = editorTexto.value.slice(0, editorTexto.selectionEnd).split('\n').filter(v => !esSeparador(v)).join('\n');
+    const ultima = antes.match(/(\p{L}+)[^\p{L}]*$/u)?.[1];
     reemplazo = null;
     mostrarSugerencias(ultima);
 }
@@ -111,8 +119,7 @@ function actualizarEditor() {
 // Si se está cambiando una palabra, dónde está: { inicio, fin }. Si no, las sugerencias se agregan.
 let reemplazo = null;
 
-function mostrarSugerencias(palabra, etiqueta) {
-    const rimas = palabra ? buscarRimas(palabra, indiceRimas()).slice(0, 20) : [];
+function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(palabra, indiceRimas()).slice(0, 20) : []) {
     if (rimas.length) {
         const botones = rimas.map(rima => {
             const boton = document.createElement('button');
@@ -136,9 +143,17 @@ function mostrarSugerencias(palabra, etiqueta) {
     $('sugerencias').scrollLeft = 0;
 }
 
-// Tocar una palabra muestra otras que riman con ella, para cambiarla.
+// Tocar un renglón vacío ofrece marcar una parte de la letra; tocar una palabra muestra
+// otras que riman con ella, para cambiarla.
 editorTexto.addEventListener('click', () => {
     const { value, selectionStart } = editorTexto;
+    const inicioVerso = value.lastIndexOf('\n', selectionStart - 1) + 1;
+    const finVerso = value.indexOf('\n', selectionStart) < 0 ? value.length : value.indexOf('\n', selectionStart);
+    if (!value.slice(inicioVerso, finVerso).trim()) {
+        mostrarSugerencias(null, 'Marcar:', SECCIONES);
+        reemplazo = { inicio: inicioVerso, fin: finVerso, seccion: true };
+        return;
+    }
     // Solo si no está al final de todo (ahí se sigue escribiendo).
     if (selectionStart === value.length) return;
     const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
@@ -153,7 +168,9 @@ $('sugerencias').addEventListener('pointerdown', e => e.preventDefault());
 $('sugerencias').addEventListener('click', e => {
     const boton = e.target.closest('.sugerencia');
     if (!boton) return;
-    if (reemplazo) {
+    if (reemplazo?.seccion) {
+        editorTexto.setRangeText(separador(boton.textContent), reemplazo.inicio, reemplazo.fin, 'end');
+    } else if (reemplazo) {
         // Si la palabra empezaba con mayúscula, la nueva también.
         const mayuscula = /^\p{Lu}/u.test(editorTexto.value[reemplazo.inicio]);
         const nueva = mayuscula ? boton.textContent[0].toUpperCase() + boton.textContent.slice(1) : boton.textContent;
