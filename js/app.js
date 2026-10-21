@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
@@ -28,7 +28,8 @@ const indiceSinonimos = () => sinonimos ??= crearIndiceSinonimos(textoSinonimos,
 // Errores de tipeo: corregir('balcon') -> 'balcón' (null si está bien escrita).
 const corregir = palabra => (corrector ??= crearCorrector(todasLasPalabras, frecuenciasDePalabras()))(palabra);
 // La palabra como se quiso escribir, para que rime bien aunque falte la tilde.
-const bienEscrita = palabra => palabra && (corregir(palabra) ?? palabra);
+// Las palabras en inglés que se usan en letras (face, mail...) no se corrigen.
+const bienEscrita = palabra => palabra && (ANGLICISMOS.has(palabra.toLowerCase()) ? palabra : corregir(palabra) ?? palabra);
 
 // ---------- Pestañas (TabView) ----------
 function mostrarPestana(nombre) {
