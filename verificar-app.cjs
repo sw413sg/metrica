@@ -179,23 +179,37 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
 
-        // Mantener apretada una tarjeta pregunta si borrarla, sin abrirla.
+        // Para borrar: mantener apretada la tarjeta y arrastrarla al tacho que aparece arriba.
         await page.locator('#nueva-letra').click();
         await page.locator('#editor-titulo').fill('Para borrar');
         await page.locator('#editor-atras').click();
         const tarjeta = page.locator('#lista-letras .tarjeta-letra button');
-        let pregunta = '';
-        page.once('dialog', d => { pregunta = d.message(); d.dismiss(); });
-        await tarjeta.dispatchEvent('pointerdown');
-        await page.waitForTimeout(800);
-        await tarjeta.dispatchEvent('pointerup');
-        await tarjeta.dispatchEvent('click');
-        assert.equal(pregunta, '¿Borrar «Para borrar»? No se puede deshacer.');
+        assert.equal(await page.locator('#tacho').isVisible(), false);
+        const caja = await tarjeta.boundingBox();
+        // Soltarla en otro lado la deja como estaba y no la abre.
+        await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(600);
+        assert.equal(await page.locator('#tacho').isVisible(), true);
+        await page.mouse.move(caja.x + caja.width / 2 + 5, caja.y + caja.height / 2 + 200, {steps: 5});
+        await page.mouse.up();
+        await page.waitForTimeout(400);
         assert.equal(await page.locator('#vista-editor').isVisible(), false);
         assert.equal(await tarjeta.count(), 1);
-        page.once('dialog', d => d.accept());
-        await tarjeta.click({button: 'right'});
+        assert.equal(await page.locator('#tacho').isVisible(), false);
+        // Al tacho: se borra.
+        const caja2 = await tarjeta.boundingBox();
+        await page.mouse.move(caja2.x + caja2.width / 2, caja2.y + caja2.height / 2);
+        await page.mouse.down();
+        await page.waitForTimeout(800); // que termine de aparecer el tacho
+        const tacho = await page.locator('#tacho').boundingBox();
+        await page.mouse.move(tacho.x + tacho.width / 2, tacho.y + tacho.height / 2, {steps: 8});
+        assert.match(await page.locator('#tacho').getAttribute('class'), /encima/);
+        await page.screenshot({path: `capturas/letras-tacho-${tema}.png`});
+        await page.mouse.up();
+        await page.waitForTimeout(500);
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
+        // Un toque común sigue abriendo la letra (ver arriba): acá ya no queda ninguna.
 
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         await page.locator('#buscar-rima').fill('canción');

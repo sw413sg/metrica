@@ -55,36 +55,78 @@ function renderizarLetras() {
         const boton = document.createElement('button');
         const fecha = new Date(letra.editada).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
         boton.append(parte('fecha-letra', fecha), parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
-        const fueParaBorrar = mantenerParaBorrar(tarjeta, boton, letra);
-        boton.addEventListener('click', () => { if (!fueParaBorrar()) abrirEditor(letra); });
+        const fueArrastrada = arrastrarParaBorrar(tarjeta, boton, letra);
+        boton.addEventListener('click', () => { if (!fueArrastrada()) abrirEditor(letra); });
         tarjeta.append(boton);
         return tarjeta;
     }));
     $('letras-vacio').hidden = letras.length > 0;
 }
 
-// Mantener apretada una tarjeta (o clic derecho en la compu) pregunta si borrarla.
-// En SwiftUI: .contextMenu con un botón "Borrar" (role: .destructive).
-function mantenerParaBorrar(tarjeta, boton, letra) {
-    let espera = null, borrando = false;
-    const soltar = () => { clearTimeout(espera); tarjeta.classList.remove('apretada'); };
-    const preguntar = () => {
-        soltar();
-        borrando = true;
-        if (confirm(`¿Borrar «${letra.titulo || 'Sin título'}»? No se puede deshacer.`)) {
-            borrarLetra(localStorage, letra.id);
-            renderizarLetras();
+// Para borrar una letra se mantiene apretada la tarjeta y se la arrastra al tacho, que aparece
+// entre el título y las tarjetas. En SwiftUI: .draggable en la tarjeta y .dropDestination en el tacho.
+function arrastrarParaBorrar(tarjeta, boton, letra) {
+    let espera = null, arrastrando = false, arrastrada = false, inicio = null, desde = null, dedo = null, cuadro = null;
+    const tacho = $('tacho');
+    const sobreTacho = () => {
+        const r = tacho.getBoundingClientRect();
+        return dedo.x >= r.left && dedo.x <= r.right && dedo.y >= r.top - 12 && dedo.y <= r.bottom + 12;
+    };
+    // La tarjeta sigue al dedo aunque la grilla se corra cuando aparece el tacho
+    // (offsetLeft/offsetTop no cambian con el transform, solo con la grilla).
+    const seguir = () => {
+        const x = dedo.x - inicio.x - (tarjeta.offsetLeft - desde.left);
+        const y = dedo.y - inicio.y - (tarjeta.offsetTop - desde.top);
+        tarjeta.style.transform = `translate(${x}px, ${y}px)`;
+        tacho.classList.toggle('encima', sobreTacho());
+        tarjeta.classList.toggle('sobre-tacho', sobreTacho());
+        cuadro = requestAnimationFrame(seguir);
+    };
+    const empezar = () => {
+        arrastrando = arrastrada = true;
+        desde = { left: tarjeta.offsetLeft, top: tarjeta.offsetTop };
+        tarjeta.classList.add('arrastrando');
+        tacho.classList.add('visible');
+        navigator.vibrate?.(10);
+        seguir();
+    };
+    const terminar = () => {
+        clearTimeout(espera);
+        inicio = null;
+        if (!arrastrando) return;
+        arrastrando = false;
+        cancelAnimationFrame(cuadro);
+        const borrar = sobreTacho();
+        tacho.classList.remove('visible', 'encima');
+        tarjeta.classList.remove('arrastrando', 'sobre-tacho');
+        if (borrar) {
+            tarjeta.classList.add('tirada');
+            setTimeout(() => { borrarLetra(localStorage, letra.id); renderizarLetras(); }, 250);
+        } else {
+            tarjeta.classList.add('volviendo');
+            tarjeta.style.transform = '';
+            setTimeout(() => tarjeta.classList.remove('volviendo'), 300);
         }
     };
-    boton.addEventListener('pointerdown', () => {
-        borrando = false;
-        tarjeta.classList.add('apretada');
-        espera = setTimeout(preguntar, 550);
+    boton.addEventListener('pointerdown', e => {
+        arrastrada = false;
+        inicio = dedo = { x: e.clientX, y: e.clientY };
+        boton.setPointerCapture?.(e.pointerId);
+        espera = setTimeout(empezar, 350);
     });
-    for (const evento of ['pointerup', 'pointerleave', 'pointercancel']) boton.addEventListener(evento, soltar);
-    boton.addEventListener('contextmenu', e => { e.preventDefault(); if (!borrando) preguntar(); });
-    // Después de mantener apretado no se abre la letra.
-    return () => { const fue = borrando; borrando = false; return fue; };
+    boton.addEventListener('pointermove', e => {
+        if (!inicio) return; // el mouse pasando por arriba, sin apretar
+        dedo = { x: e.clientX, y: e.clientY };
+        // Si se mueve antes de tiempo es que quiere desplazar la pantalla, no arrastrar.
+        if (!arrastrando && Math.hypot(dedo.x - inicio.x, dedo.y - inicio.y) > 10) clearTimeout(espera);
+    });
+    boton.addEventListener('pointerup', terminar);
+    boton.addEventListener('pointercancel', terminar);
+    // Mientras se arrastra, que el dedo no desplace la pantalla (iOS).
+    boton.addEventListener('touchmove', e => { if (arrastrando) e.preventDefault(); }, { passive: false });
+    boton.addEventListener('contextmenu', e => e.preventDefault());
+    // Después de arrastrar no se abre la letra.
+    return () => { const fue = arrastrada; arrastrada = false; return fue; };
 }
 
 const editorTexto = $('editor-texto');
