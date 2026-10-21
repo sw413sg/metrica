@@ -225,7 +225,11 @@ function actualizarEditor() {
     // rimas internas (palabras que riman con otras cercanas), con el color de su rima.
     const pintar = $('alternar-colores').getAttribute('aria-pressed') === 'true';
     // Lo que va entre paréntesis son coros o agregados, "(nos)": no rima ni corta el verso.
-    const sinAgregados = versos.map(verso => verso.replace(/\([^)]*\)/g, agregado => ' '.repeat(agregado.length)));
+    // Si el verso entero va entre paréntesis, es un verso más y rima como cualquiera.
+    const sinAgregados = versos.map(verso => {
+        const sin = verso.replace(/\([^)]*\)/g, agregado => ' '.repeat(agregado.length));
+        return /\p{L}/u.test(sin) ? sin : verso;
+    });
     const palabras = sinAgregados.map((verso, i) => esSeparador(versos[i]) ? [] : (verso.match(/\p{L}+/gu) ?? []).map(bienEscrita));
     const palabrasFinales = palabras.map(p => p.at(-1));
     const grupos = pintar ? agruparRimas(palabrasFinales) : [];
