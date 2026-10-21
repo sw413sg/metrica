@@ -215,6 +215,9 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .editor-fondo mark { color: transparent; border-radius: 4px; }
 /* Separadores de partes ([Estribillo], [Hook]...): violeta, como lo especial. */
 .editor-fondo mark.seccion { background: var(--destacado-suave); box-shadow: inset 3px 0 0 var(--destacado); border-radius: 4px; }
+/* Palabras mal escritas: subrayado ondulado rojo, como el corrector de iOS. */
+.editor-fondo mark.error { text-decoration: underline wavy #ff3b30; text-decoration-thickness: 1.5px; text-underline-offset: 3px; text-decoration-skip-ink: none; }
+.editor-fondo mark.error:not([class*="rima-"]) { background: none; }
 .rima-0 { background: var(--rima-1); }
 .rima-1 { background: var(--rima-2); }
 .rima-2 { background: var(--rima-3); }
@@ -237,6 +240,7 @@ body.teclado-abierto .sugerencias { padding-bottom: 0; }
 .sugerencias-etiqueta { align-self: center; flex-shrink: 0; color: var(--texto-2); font-size: 14px; padding: 0 4px 0 16px; white-space: nowrap; }
 .sugerencia { padding: 11px 16px; font-size: 18px; color: var(--texto); white-space: nowrap; }
 .sugerencia + .sugerencia { border-left: 1px solid var(--separador); }
+.sugerencia.correccion { font-weight: 600; color: var(--destacado); }
 /* La libreta va sobre gris liso, sin brillos. */
 body.editando, body.editando .vista#vista-editor { background: var(--libreta); }
 
