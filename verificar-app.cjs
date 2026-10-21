@@ -342,11 +342,11 @@ const servidor = http.createServer((req, res) => {
         const fondo = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--fondo').trim());
         const fondoSistema = await fondo();
         await page.locator('button[data-apariencia="oscuro"]').click();
-        assert.equal(await fondo(), '#1b1c1e');
+        assert.equal(await fondo(), '#18191b');
         await page.locator('button[data-apariencia="claro"]').click();
-        assert.equal(await fondo(), '#f1f3f4');
+        assert.equal(await fondo(), '#eceff1');
         await page.reload();
-        assert.equal(await fondo(), '#f1f3f4');
+        assert.equal(await fondo(), '#eceff1');
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         await page.locator('button[data-apariencia="sistema"]').click();
         assert.equal(await fondo(), fondoSistema);

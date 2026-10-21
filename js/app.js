@@ -695,6 +695,10 @@ $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage);
 function renderizarApariencia() {
     const actual = leerApariencia(localStorage);
     document.documentElement.dataset.apariencia = actual;
+    // La franja de la hora en Safari sigue a la apariencia elegida.
+    const [claro, oscuro] = document.querySelectorAll('meta[name="theme-color"]');
+    claro.content = actual === 'oscuro' ? '#323337' : '#f7f8f8';
+    oscuro.content = actual === 'claro' ? '#f7f8f8' : '#323337';
     $('apariencia').replaceChildren(...Object.entries(APARIENCIAS).map(([clave, nombre]) => {
         const celda = document.createElement('li');
         celda.className = 'celda';
