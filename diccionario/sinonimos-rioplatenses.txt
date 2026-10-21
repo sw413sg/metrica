@@ -1,0 +1,42 @@
+# Sinónimos rioplatenses propios de Métrica (no vienen del tesauro de LibreOffice).
+# Cada renglón es un grupo de palabras que significan lo mismo: cada una sugiere a las demás.
+# Se suman primero, antes que los grupos del tesauro. Regenerar con: node generar-sinonimos.cjs
+trabajo,laburo,changa,curro
+trabajar,laburar
+dinero,plata,guita,mango,mangos,biyuya
+chico,pibe,purrete,gurí,nene
+chica,piba,nena,gurisa
+mujer,mina,piba
+hombre,tipo,chabón,flaco
+amigo,amigazo,hermano,compañero,compa
+colectivo,bondi
+auto,coche,nave
+policía,cana,yuta,rati
+cárcel,cana,gayola
+casa,cucha,bulín
+comer,morfar,manducar
+comida,morfi,morfa
+dormir,apolillar
+novia,jermu,piba
+problema,quilombo,bardo,lío
+lío,quilombo,bardo,despelote
+mentira,chamuyo,verso,bolazo
+mentir,chamuyar,versear
+hablar,charlar,chamuyar
+enojado,caliente,embroncado,podrido
+enojo,bronca,calentura
+cansado,fundido,reventado,muerto
+genial,bárbaro,copado,groso,zarpado
+lindo,bonito,divino,precioso
+borracho,mamado,curda,escabiado
+cabeza,bocho,mate,marote
+mirar,junar,relojear,campanear
+entender,cazar,captar
+tonto,boludo,gil,salame,nabo
+aburrido,embolado,denso
+rápido,ligero,volando
+fiesta,joda,boliche,baile
+miedo,cagazo,julepe,cuiqui
+suerte,culo,leche,orto
+barrio,cuadra,esquina,arrabal
+tango,milonga

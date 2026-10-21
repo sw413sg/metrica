@@ -72,6 +72,22 @@ const servidor = http.createServer((req, res) => {
         const otra2 = await page.locator('.sugerencia').first().textContent();
         await page.locator('.sugerencia').first().click();
         assert.ok((await page.locator('#editor-texto').inputValue()).startsWith(`${otra2[0].toUpperCase() + otra2.slice(1)}, no hay`));
+        // Tocar «Cambiar» muestra sinónimos en vez de rimas, y tocar uno cambia la palabra.
+        await page.locator('#editor-texto').evaluate(t => {
+            t.setSelectionRange(t.value.indexOf('camino') + 2, t.value.indexOf('camino') + 2);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «camino»:');
+        await page.locator('.sugerencias-alternar').click();
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Sinónimos «camino»:');
+        const sinonimos = await page.locator('.sugerencia').allTextContents();
+        assert.ok(sinonimos.includes('senda'), sinonimos.join(', '));
+        await page.screenshot({path: `capturas/editor-sinonimos-${tema}.png`});
+        await page.locator('.sugerencias-alternar').click();
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «camino»:');
+        await page.locator('.sugerencias-alternar').click();
+        await page.locator('.sugerencia', {hasText: /^senda$/}).click();
+        assert.ok((await page.locator('#editor-texto').inputValue()).includes('no hay senda,'));
         // Una palabra sin tilde no se marca, pero rima y cuenta como si tuviera la tilde.
         await page.locator('#editor-texto').evaluate(t => { t.value += '\nte busco desde el balcon'; t.dispatchEvent(new Event('input')); });
         assert.equal(await page.locator('#editor-fondo mark.error').count(), 0);
