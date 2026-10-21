@@ -249,3 +249,86 @@ body.editando .vista#vista-editor {
     position: fixed; left: 0; right: 0; max-width: 430px; margin: 0 auto;
     top: var(--arriba-visible, 0px); height: var(--alto-visible, 100%);
 }
+
+/* Temas de la libreta (Métrica Extras). "Gris liso" usa los colores de arriba.
+   Solo cambian la libreta mientras se escribe; la muestra en Ajustes usa el mismo color. */
+body.editando[data-libreta="blanco"], .muestra-tema[data-libreta="blanco"],
+body.editando[data-libreta="papel"], .muestra-tema[data-libreta="papel"],
+body.editando[data-libreta="lavanda"], .muestra-tema[data-libreta="lavanda"] {
+    color-scheme: light;
+    --texto: #1c1530; --texto-2: rgba(60, 50, 90, 0.62); --texto-3: rgba(60, 50, 90, 0.32);
+    --separador: rgba(60, 50, 90, 0.12); --vidrio: rgba(255, 255, 255, 0.55); --vidrio-borde: rgba(255, 255, 255, 0.85);
+    --acento: #7b61ff; --renglon: rgba(60, 60, 67, 0.16); --teclado: #d1d4da;
+}
+body.editando[data-libreta="pizarra"], .muestra-tema[data-libreta="pizarra"],
+body.editando[data-libreta="medianoche"], .muestra-tema[data-libreta="medianoche"] {
+    color-scheme: dark;
+    --texto: #f1f4ee; --texto-2: rgba(240, 244, 236, 0.6); --texto-3: rgba(240, 244, 236, 0.32);
+    --separador: rgba(255, 255, 255, 0.1); --vidrio: rgba(255, 255, 255, 0.1); --vidrio-borde: rgba(255, 255, 255, 0.12);
+    --acento: #b5a8ff; --renglon: rgba(255, 255, 255, 0.12); --teclado: #2c2c2e;
+}
+body.editando[data-libreta="blanco"], .muestra-tema[data-libreta="blanco"] { --libreta: #ffffff; }
+body.editando[data-libreta="papel"], .muestra-tema[data-libreta="papel"] { --libreta: #f5ecd7; --texto: #3a2e1e; --renglon: rgba(120, 90, 40, 0.22); --teclado: #e4d9c0; }
+body.editando[data-libreta="lavanda"], .muestra-tema[data-libreta="lavanda"] { --libreta: #ece6ff; --renglon: rgba(123, 97, 255, 0.2); --teclado: #d9d1f5; }
+body.editando[data-libreta="pizarra"], .muestra-tema[data-libreta="pizarra"] { --libreta: #24332c; --teclado: #1b2621; }
+body.editando[data-libreta="medianoche"], .muestra-tema[data-libreta="medianoche"] { --libreta: #0d1230; --texto: #e6e9ff; --teclado: #161b3d; }
+body.editando { color: var(--texto); }
+.celda-tema { flex-direction: row; align-items: center; gap: 12px; }
+.muestra-tema { width: 28px; height: 28px; border-radius: 8px; background: var(--libreta); border: 1px solid var(--separador); flex-shrink: 0; }
+.marca-tema { margin-left: auto; display: flex; color: var(--acento); }
+.marca-tema .icono { width: 20px; height: 20px; }
+.celda-tema:has(.marca-tema rect) { color: var(--texto-2); }
+.texto-rojo { color: #ff3b30; }
+
+/* Espacio de publicidad simulado: un banner de vidrio. Con Extras no se muestra. */
+.publicidad {
+    width: 100%; margin-top: 20px; padding: 14px 16px; border-radius: 18px; text-align: left;
+    display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--texto-2);
+    background: var(--vidrio); border: 1px dashed var(--texto-3);
+}
+.publicidad strong { color: var(--acento); font-weight: 600; }
+.publicidad-etiqueta { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-3); }
+.publicidad[hidden] { display: none; }
+
+/* Paywall: hoja de vidrio que sube desde abajo (.sheet en SwiftUI). */
+.hoja-fondo { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(10, 8, 20, 0.35); }
+.hoja-fondo[hidden] { display: none; }
+.hoja {
+    position: relative; width: 100%; max-width: 430px; max-height: 94%; overflow-y: auto;
+    padding: 28px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: 34px 34px 0 0; text-align: center;
+    background:
+        radial-gradient(circle at 15% 0%, var(--brillo-1) 0, transparent 50%),
+        radial-gradient(circle at 90% 20%, var(--brillo-2) 0, transparent 45%),
+        var(--fondo);
+    border: 1px solid var(--vidrio-borde); box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+    animation: subir .28s ease-out;
+}
+@keyframes subir { from { transform: translateY(40px); opacity: 0; } }
+.cerrar-hoja { position: absolute; top: 14px; right: 14px; color: var(--texto-2); }
+.paywall-icono {
+    width: 76px; height: 76px; margin: 8px auto 12px; border-radius: 22px; display: grid; place-items: center; color: #fff;
+    background: linear-gradient(135deg, #f3d38a, var(--acento), var(--acento-2)); box-shadow: 0 12px 30px var(--acento-suave);
+}
+.paywall-icono .icono { width: 40px; height: 40px; fill: currentColor; stroke-width: 1.5; }
+.paywall-titulo { font-size: 28px; font-weight: 700; margin: 0; }
+.paywall-bajada { color: var(--texto-2); margin: 6px 8px 0; font-size: 15px; }
+.beneficios { text-align: left; }
+.beneficios .icono { color: var(--acento); flex-shrink: 0; }
+.beneficios .celda { justify-content: flex-start; gap: 14px; }
+.beneficios .celda > span { display: flex; flex-direction: column; gap: 2px; }
+.beneficios .subtitulo { white-space: normal; }
+.hoja .encabezado-grupo { text-align: left; margin-left: 4px; }
+.widgets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.widget {
+    aspect-ratio: 1; border-radius: 24px; padding: 14px; display: flex; flex-direction: column; text-align: left;
+    background: var(--tarjeta); border: 1px solid var(--vidrio-borde); box-shadow: var(--sombra);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+}
+.widget-etiqueta { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--acento); }
+.widget-palabra { margin-top: auto; font-size: 24px; font-weight: 700; overflow-wrap: anywhere; }
+.widget-titulo { margin-top: auto; font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.widget-pie { font-size: 12px; color: var(--texto-2); }
+.boton-comprar { width: 100%; margin-top: 22px; }
+.boton-comprar:disabled { opacity: 0.6; }
+.boton-texto { margin-top: 12px; color: var(--acento); font-weight: 500; }
+.nota.centrada { text-align: center; }

@@ -168,6 +168,52 @@ const servidor = http.createServer((req, res) => {
         }
         await page.screenshot({path: `capturas/ajustes-${tema}.png`});
 
+        // Métrica Extras: sin comprar hay publicidad y los temas de pago tienen candado.
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        assert.equal(await page.locator('#pantalla-rimas .publicidad').isVisible(), true);
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        assert.equal(await page.locator('#temas-libreta .celda').count(), 6);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 4);
+        await page.locator('[data-tema="pizarra"]').click();
+        assert.equal(await page.locator('#paywall').isVisible(), true);
+        assert.match(await page.locator('#comprar-extras').textContent(), /^Desbloquear por USD 4,99$/);
+        assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+        await page.waitForTimeout(400); // que termine de subir la hoja
+        await page.screenshot({path: `capturas/paywall-${tema}.png`});
+        await page.locator('#comprar-extras').scrollIntoViewIfNeeded();
+        await page.screenshot({path: `capturas/paywall-abajo-${tema}.png`});
+        await page.locator('#restaurar-compra').click();
+        assert.match(await page.locator('#paywall-nota').textContent(), /No encontramos compras/);
+        await page.locator('#cerrar-paywall').click();
+        assert.equal(await page.locator('#paywall').isVisible(), false);
+        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        // Comprar: se va la publicidad, se desbloquean los temas y queda después de recargar.
+        await page.locator('.celda-extras').click();
+        await page.locator('#comprar-extras').click();
+        assert.equal(await page.locator('#comprar-extras').isDisabled(), true);
+        await page.locator('#cerrar-paywall').click();
+        await page.locator('[data-tema="pizarra"]').click();
+        assert.equal(await page.locator('#paywall').isVisible(), false);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 0);
+        await page.reload();
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        assert.match(await page.locator('#estado-extras').textContent(), /Comprado/);
+        await page.screenshot({path: `capturas/ajustes-extras-${tema}.png`, fullPage: true});
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        assert.equal(await page.locator('#pantalla-rimas .publicidad').isVisible(), false);
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+        await page.locator('#nueva-letra').click();
+        await page.locator('#editor-texto').fill('Pizarra con tiza\ny una sonrisa');
+        assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(36, 51, 44)');
+        await page.screenshot({path: `capturas/editor-pizarra-${tema}.png`});
+        page.once('dialog', d => d.accept());
+        await page.locator('#borrar-letra').click();
+        // Volver a la versión gratis: el tema de pago vuelve a gris y vuelve la publicidad.
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        await page.locator('#borrar-compra').click();
+        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 4);
+
         // Sin internet: recarga desde el service worker y anda todo.
         await page.context().setOffline(true);
         await page.reload();
