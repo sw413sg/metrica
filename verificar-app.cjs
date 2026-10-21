@@ -132,6 +132,20 @@ const servidor = http.createServer((req, res) => {
         });
         assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Marcar:');
         assert.deepEqual(await page.locator('.sugerencia').allTextContents(), ['Intro', 'Estribillo', 'Hook', 'Verso', 'Final']);
+        // Si se desliza la letra o se cierra el teclado, la barra se va.
+        const tocarVacio = () => page.locator('#editor-texto').evaluate(t => {
+            t.focus();
+            const vacio = t.value.indexOf('\n\n') + 1;
+            t.setSelectionRange(vacio, vacio);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
+        await page.locator('.editor').dispatchEvent('wheel');
+        assert.equal(await page.locator('#sugerencias').isVisible(), false, 'deslizar la saca');
+        await tocarVacio();
+        await page.locator('#editor-texto').evaluate(t => t.blur());
+        assert.equal(await page.locator('#sugerencias').isVisible(), false, 'cerrar el teclado la saca');
+        await tocarVacio();
+        assert.equal(await page.locator('#sugerencias').isVisible(), true);
         await page.locator('.sugerencia', {hasText: 'Estribillo'}).click();
         assert.match(await page.locator('#editor-texto').inputValue(), /detrás\n\n\[Estribillo\]\nverso nuevo$/);
         assert.equal(await page.locator('#editor-fondo mark.seccion').textContent(), '[Estribillo]');
