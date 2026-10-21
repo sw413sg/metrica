@@ -70,6 +70,10 @@ test('rimasMultisilabicas: pinta desde antes de la tónica si las vocales de ant
         [[null, 2, 0], [null, 3, 0]]);
     // ca-MI-no / des-TI-no: antes de la tónica, a y e no coinciden. Rima de una sola sílaba tónica.
     assert.deepEqual(rimasMultisilabicas([['camino'], ['destino']], [0, 0]), [[], []]);
+    // Solo contra versos cercanos: a 4 versos o más, "volando" y "sonando" riman solo desde la tónica.
+    const lejos = [['se', 'pasa', 'volando'], ['uno'], ['dos'], ['tres'], ['un', 'tune', 'sonando']];
+    assert.deepEqual(rimasMultisilabicas(lejos, [0, null, null, null, 0]), [[], [], [], [], []]);
+    assert.deepEqual(rimasMultisilabicas(lejos, [0, null, null, null, 0], 5)[0], [null, null, 0]);
     // Sin grupo de rima, nada.
     assert.deepEqual(rimasMultisilabicas([['volando'], ['sonando']], [null, null]), [[], []]);
     assert.deepEqual(rimasMultisilabicas([], []), []);
