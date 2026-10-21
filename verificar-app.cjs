@@ -43,12 +43,17 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').fill('Caminante, no hay camino,\nse hace camino al andar.\nAl andar se hace camino\ny al volver la vista atrás');
         assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
         assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
-            ['rima-0:mino', 'rima-1:dar', 'rima-0:mino', 'rima-1:trás']);
+            ['rima-0:mino', 'rima-1 suave:dar', 'rima-0:mino', 'rima-1 suave:trás']);
         // Mientras se escribe no hay sugerencias: aparecen solo al tocar una palabra.
         assert.equal(await page.locator('#sugerencias').isVisible(), false);
         await page.locator('#editor-texto').evaluate(t => { t.value += '\ndetrás'; t.dispatchEvent(new Event('input')); });
         assert.match(await page.locator('#editor-texto').inputValue(), /atrás\ndetrás$/);
         assert.equal(await page.locator('#editor-fondo mark').count(), 5);
+        // Con «detrás», «atrás» pasa a rimar consonante (fondo lleno); «andar» sigue asonante (suave).
+        assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className)),
+            ['rima-0', 'rima-1 suave', 'rima-0', 'rima-1', 'rima-1']);
+        const fondoRima = selector => page.locator(`#editor-fondo ${selector}`).first().evaluate(m => getComputedStyle(m).backgroundColor);
+        assert.notEqual(await fondoRima('mark.rima-1.suave'), await fondoRima('mark.rima-1:not(.suave)'));
         await page.locator('#alternar-colores').click();
         assert.equal(await page.locator('#editor-fondo mark').count(), 0);
         await page.locator('#alternar-colores').click();

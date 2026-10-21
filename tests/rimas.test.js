@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante } from '../js/logica/rimas.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
@@ -140,4 +140,11 @@ test('agruparRimas: numera los grupos en orden y deja sola a la que no rima', ()
     assert.deepEqual(agruparRimas(['corazón', 'luna', 'canción', 'fortuna', 'mesa', null]), [0, 1, 0, 1, null, null]);
     assert.deepEqual(agruparRimas(['amor', 'dolor', 'corazón']), [0, 0, 0]);
     assert.deepEqual(agruparRimas([]), []);
+});
+
+test('rimanConsonante: marca las que tienen pareja consonante en la letra', () => {
+    assert.deepEqual(rimanConsonante(['corazón', 'luna', 'canción', 'fortuna', 'amor', null]), [true, true, true, true, false, false]);
+    assert.deepEqual(rimanConsonante(['casa', 'mala', 'pasa']), [true, false, true]);
+    assert.deepEqual(rimanConsonante(['voz', 'dos']), [true, true]); // seseo
+    assert.deepEqual(rimanConsonante([]), []);
 });

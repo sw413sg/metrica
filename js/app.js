@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica } from './logica/silabas.js';
 import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
@@ -221,8 +221,10 @@ function actualizarEditor() {
 
     // Rimas pintadas: la última palabra de cada verso, con el color de su grupo.
     const finales = versos.map(verso => esSeparador(verso) ? null : verso.match(/(\p{L}+)[^\p{L}]*$/u));
-    const grupos = $('alternar-colores').getAttribute('aria-pressed') === 'true'
-        ? agruparRimas(finales.map(f => bienEscrita(f?.[1]))) : [];
+    const palabrasFinales = finales.map(f => bienEscrita(f?.[1]));
+    const grupos = $('alternar-colores').getAttribute('aria-pressed') === 'true' ? agruparRimas(palabrasFinales) : [];
+    // Consonante con el fondo lleno; asonante con el mismo color, más suave.
+    const consonantes = rimanConsonante(palabrasFinales);
     const marca = (clase, texto) => {
         const elemento = document.createElement('mark');
         elemento.className = clase;
@@ -243,7 +245,7 @@ function actualizarEditor() {
             // Se pinta solo desde la sílaba tónica. Si se corrigió más que una tilde, se mira lo escrito.
             const corregida = bienEscrita(parte);
             const desde = Math.max(0, inicioTonica(corregida.length === parte.length ? corregida : parte));
-            return [parte.slice(0, desde), marca(`rima-${grupos[i] % 5}`, parte.slice(desde))];
+            return [parte.slice(0, desde), marca(`rima-${grupos[i] % 5}${consonantes[i] ? '' : ' suave'}`, parte.slice(desde))];
         });
         renglon.append(...partes.flat());
         return [renglon, fin];

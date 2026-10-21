@@ -40,12 +40,12 @@ Hecho:
 - [x] Modo freestyle con timer, beats con BPM y sílaba fuerte marcada. Los beats tienen que ser propios o con licencia para uso comercial, anotada en el repo.
 - [x] Funciona sin internet, salvo la música de YouTube y SoundCloud.
 - [x] Pintar solo la parte que rima, desde la sílaba tónica ("can**ción**", "ra**zón**"), no la palabra entera.
+- [x] Consonante con fondo lleno y asonante con el mismo color pero más suave (`rimanConsonante` en `js/logica/rimas.js`).
 
 Pendiente, todo entra en el lanzamiento, en este orden:
-1. Consonante con fondo lleno y asonante con el mismo color pero más suave.
-2. Rimas internas: pintar también las palabras del medio que riman con otras cercanas, por defecto dentro de 4 versos y con la distancia ajustable. Cuidá que no quede todo pintado.
-3. Un color fijo para cada terminación (por ejemplo, "-ón" siempre del mismo color en toda la letra), con una paleta amplia, para que no se repitan.
-4. Rimas multisilábicas (más de una sílaba que rima, como "camino / destino").
+1. Rimas internas: pintar también las palabras del medio que riman con otras cercanas, por defecto dentro de 4 versos y con la distancia ajustable. Cuidá que no quede todo pintado.
+2. Un color fijo para cada terminación (por ejemplo, "-ón" siempre del mismo color en toda la letra), con una paleta amplia, para que no se repitan.
+3. Rimas multisilábicas (más de una sílaba que rima, como "camino / destino").
 
 ## Internet y nube
 - Todo funciona sin internet. Lo único que usa internet es la música de YouTube y SoundCloud: en la web y en la app nativa va con los reproductores oficiales, y sin conexión la app tiene que seguir andando sin errores.
