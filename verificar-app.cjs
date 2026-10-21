@@ -131,15 +131,36 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#alternar-renglones').click();
         assert.equal(await page.locator('.editor-capas').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
         await page.locator('#alternar-renglones').click();
-        // Apagar las sílabas se recuerda después de recargar.
-        await page.locator('#alternar-silabas').click();
+        // La ruedita abre los ajustes de la libreta: sílabas, tamaño, separación y fuente.
+        await page.locator('#abrir-ajustes-libreta').click();
+        assert.equal(await page.locator('#ajustes-libreta').isVisible(), true);
+        await page.locator('#mostrar-silabas').click();
+        await page.locator('[data-ajuste="tamano"] [data-opcion="grande"]').click();
+        await page.locator('[data-ajuste="separacion"] [data-opcion="amplia"]').click();
+        await page.locator('[data-ajuste="fuente"] [data-opcion="serif"]').click();
+        await page.screenshot({path: `capturas/ajustes-libreta-${tema}.png`});
+        await page.locator('#cerrar-ajustes-libreta').click();
+        const estiloTexto = () => page.locator('#editor-texto').evaluate(t => [getComputedStyle(t).fontSize, getComputedStyle(t).lineHeight, getComputedStyle(t).fontFamily]);
+        assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '34px']);
+        assert.match((await estiloTexto())[2], /serif/);
+        assert.equal(await page.locator('#silabas').isVisible(), false);
+        await page.screenshot({path: `capturas/editor-grande-serif-${tema}.png`});
+        // Todo se recuerda después de recargar.
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
         await page.reload();
         await page.locator('#lista-letras .tarjeta-letra button').click();
-        assert.equal(await page.locator('#alternar-silabas').getAttribute('aria-pressed'), 'false');
+        assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '34px']);
         assert.equal(await page.locator('#silabas').isVisible(), false);
-        await page.locator('#alternar-silabas').click();
+        await page.locator('#abrir-ajustes-libreta').click();
+        assert.equal(await page.locator('[data-ajuste="fuente"] [aria-selected="true"]').textContent(), 'Serif');
+        await page.locator('#mostrar-silabas').click();
+        await page.locator('[data-ajuste="tamano"] [data-opcion="mediano"]').click();
+        await page.locator('[data-ajuste="separacion"] [data-opcion="normal"]').click();
+        await page.locator('[data-ajuste="fuente"] [data-opcion="sistema"]').click();
+        await page.locator('#ajustes-libreta').click({position: {x: 10, y: 10}});
+        assert.equal(await page.locator('#ajustes-libreta').isVisible(), false);
+        assert.deepEqual((await estiloTexto()).slice(0, 2), ['17px', '23px']);
         assert.equal(await page.locator('#silabas').isVisible(), true);
         await page.locator('#editor-atras').click();
 
@@ -156,6 +177,24 @@ const servidor = http.createServer((req, res) => {
         page.once('dialog', d => d.accept());
         await page.locator('#borrar-letra').click();
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
+        assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
+
+        // Mantener apretada una tarjeta pregunta si borrarla, sin abrirla.
+        await page.locator('#nueva-letra').click();
+        await page.locator('#editor-titulo').fill('Para borrar');
+        await page.locator('#editor-atras').click();
+        const tarjeta = page.locator('#lista-letras .tarjeta-letra button');
+        let pregunta = '';
+        page.once('dialog', d => { pregunta = d.message(); d.dismiss(); });
+        await tarjeta.dispatchEvent('pointerdown');
+        await page.waitForTimeout(800);
+        await tarjeta.dispatchEvent('pointerup');
+        await tarjeta.dispatchEvent('click');
+        assert.equal(pregunta, '¿Borrar «Para borrar»? No se puede deshacer.');
+        assert.equal(await page.locator('#vista-editor').isVisible(), false);
+        assert.equal(await tarjeta.count(), 1);
+        page.once('dialog', d => d.accept());
+        await tarjeta.click({button: 'right'});
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
 
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
@@ -232,7 +271,17 @@ const servidor = http.createServer((req, res) => {
         // Métrica Extras: sin comprar hay publicidad y los temas de pago tienen candado.
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         assert.equal(await page.locator('#pantalla-rimas .publicidad').isVisible(), true);
-        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        // Los temas están en la ruedita de la libreta.
+        const abrirTemas = async () => {
+            await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+            await page.locator('#nueva-letra').click();
+            await page.locator('#abrir-ajustes-libreta').click();
+        };
+        const cerrarLibreta = async () => {
+            await page.locator('#cerrar-ajustes-libreta').click();
+            await page.locator('#editor-atras').click();
+        };
+        await abrirTemas();
         assert.equal(await page.locator('#temas-libreta .celda').count(), 6);
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 4);
         await page.locator('[data-tema="pizarra"]').click();
@@ -248,14 +297,19 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#cerrar-paywall').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        await cerrarLibreta();
         // Comprar: se va la publicidad, se desbloquean los temas y queda después de recargar.
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         await page.locator('.celda-extras').click();
         await page.locator('#comprar-extras').click();
         assert.equal(await page.locator('#comprar-extras').isDisabled(), true);
         await page.locator('#cerrar-paywall').click();
+        await abrirTemas();
         await page.locator('[data-tema="pizarra"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 0);
+        await page.screenshot({path: `capturas/ajustes-libreta-temas-${tema}.png`});
+        await cerrarLibreta();
         await page.reload();
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         assert.match(await page.locator('#estado-extras').textContent(), /Comprado/);
@@ -265,7 +319,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#nueva-letra').click();
         await page.locator('#editor-texto').fill('Pizarra con tiza\ny una sonrisa');
-        assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'rgb(36, 51, 44)');
+        assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(36, 51, 44)');
         await page.screenshot({path: `capturas/editor-pizarra-${tema}.png`});
         page.once('dialog', d => d.accept());
         await page.locator('#borrar-letra').click();
@@ -273,7 +327,9 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         await page.locator('#borrar-compra').click();
         assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        await abrirTemas();
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 4);
+        await cerrarLibreta();
 
         // Sin internet: recarga desde el service worker y anda todo.
         await page.context().setOffline(true);

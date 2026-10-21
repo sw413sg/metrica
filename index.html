@@ -51,8 +51,8 @@
                         <button class="boton-barra" id="alternar-renglones" aria-pressed="true" aria-label="Mostrar renglones">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
-                        <button class="boton-barra" id="alternar-silabas" aria-pressed="true" aria-label="Mostrar sílabas">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M10 4L8 20M16 4l-2 16M5 9h15M4 15h15"/></svg>
+                        <button class="boton-barra" id="abrir-ajustes-libreta" aria-label="Ajustes de la libreta">
+                            <svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
                         </button>
                     </div>
                 </header>
@@ -190,9 +190,6 @@
                 <ul class="lista-agrupada">
                     <li class="celda"><span>Tema</span><span class="valor">Según el sistema</span></li>
                 </ul>
-                <h2 class="encabezado-grupo">Libreta</h2>
-                <ul class="lista-agrupada" id="temas-libreta"></ul>
-                <p class="nota">Los temas con candado vienen con Métrica Extras.</p>
                 <h2 class="encabezado-grupo">Acerca de</h2>
                 <ul class="lista-agrupada">
                     <li class="celda"><span>Versión</span><span class="valor">0.1 (prueba)</span></li>
@@ -207,6 +204,27 @@
             </div>
         </section>
     </main>
+
+    <!-- Ajustes de la libreta (en SwiftUI: .sheet con .presentationDetents([.medium])). -->
+    <div class="hoja-fondo" id="ajustes-libreta" hidden>
+        <div class="hoja hoja-ajustes" role="dialog" aria-modal="true" aria-labelledby="ajustes-libreta-titulo">
+            <button class="boton-barra cerrar-hoja" id="cerrar-ajustes-libreta" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <h2 class="hoja-titulo" id="ajustes-libreta-titulo">Libreta</h2>
+            <ul class="lista-agrupada">
+                <li class="celda">
+                    <label for="mostrar-silabas">Sílabas por verso</label>
+                    <input type="checkbox" class="interruptor" id="mostrar-silabas" checked>
+                </li>
+            </ul>
+            <h3 class="encabezado-grupo">Tema</h3>
+            <ul class="lista-agrupada" id="temas-libreta"></ul>
+            <p class="nota">Los temas con candado vienen con Métrica Extras.</p>
+            <!-- Un control segmentado por ajuste (tamaño, separación, fuente): lo arma js/app.js -->
+            <div id="opciones-libreta"></div>
+        </div>
+    </div>
 
     <!-- Paywall (en SwiftUI: .sheet). Pago único, sin suscripción. -->
     <div class="hoja-fondo" id="paywall" hidden>

@@ -7,6 +7,7 @@ import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes,
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
+import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -54,11 +55,36 @@ function renderizarLetras() {
         const boton = document.createElement('button');
         const fecha = new Date(letra.editada).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
         boton.append(parte('fecha-letra', fecha), parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
-        boton.addEventListener('click', () => abrirEditor(letra));
+        const fueParaBorrar = mantenerParaBorrar(tarjeta, boton, letra);
+        boton.addEventListener('click', () => { if (!fueParaBorrar()) abrirEditor(letra); });
         tarjeta.append(boton);
         return tarjeta;
     }));
     $('letras-vacio').hidden = letras.length > 0;
+}
+
+// Mantener apretada una tarjeta (o clic derecho en la compu) pregunta si borrarla.
+// En SwiftUI: .contextMenu con un botón "Borrar" (role: .destructive).
+function mantenerParaBorrar(tarjeta, boton, letra) {
+    let espera = null, borrando = false;
+    const soltar = () => { clearTimeout(espera); tarjeta.classList.remove('apretada'); };
+    const preguntar = () => {
+        soltar();
+        borrando = true;
+        if (confirm(`¿Borrar «${letra.titulo || 'Sin título'}»? No se puede deshacer.`)) {
+            borrarLetra(localStorage, letra.id);
+            renderizarLetras();
+        }
+    };
+    boton.addEventListener('pointerdown', () => {
+        borrando = false;
+        tarjeta.classList.add('apretada');
+        espera = setTimeout(preguntar, 550);
+    });
+    for (const evento of ['pointerup', 'pointerleave', 'pointercancel']) boton.addEventListener(evento, soltar);
+    boton.addEventListener('contextmenu', e => { e.preventDefault(); if (!borrando) preguntar(); });
+    // Después de mantener apretado no se abre la letra.
+    return () => { const fue = borrando; borrando = false; return fue; };
 }
 
 const editorTexto = $('editor-texto');
@@ -236,10 +262,17 @@ editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(
 $('editor-titulo').addEventListener('input', guardarActual);
 // Colores, renglones y sílabas se prenden y apagan, y se recuerda la elección.
 function aplicarAlternables() {
-    $('silabas').classList.toggle('oculto', $('alternar-silabas').getAttribute('aria-pressed') !== 'true');
+    $('silabas').classList.toggle('oculto', !$('mostrar-silabas').checked);
     document.querySelector('.editor-capas').classList.toggle('renglones', $('alternar-renglones').getAttribute('aria-pressed') === 'true');
 }
-for (const id of ['alternar-colores', 'alternar-renglones', 'alternar-silabas']) {
+$('mostrar-silabas').checked = localStorage.getItem('metrica.alternar-silabas') !== 'false';
+$('mostrar-silabas').addEventListener('change', () => {
+    localStorage.setItem('metrica.alternar-silabas', $('mostrar-silabas').checked);
+    aplicarAlternables();
+
+    actualizarEditor();
+});
+for (const id of ['alternar-colores', 'alternar-renglones']) {
     if (localStorage.getItem(`metrica.${id}`) === 'false') $(id).setAttribute('aria-pressed', 'false');
     $(id).addEventListener('click', e => {
         const boton = e.currentTarget;
@@ -250,6 +283,42 @@ for (const id of ['alternar-colores', 'alternar-renglones', 'alternar-silabas'])
     });
 }
 aplicarAlternables();
+
+// Ajustes de la libreta (la ruedita): sílabas, tamaño de letra, separación y fuente.
+function aplicarAjustesLibreta() {
+    const ajustes = leerAjustesLibreta(localStorage);
+    const { tamano, alto, fuente } = estiloLibreta(ajustes);
+    document.documentElement.style.setProperty('--libreta-letra', `${tamano}px`);
+    document.documentElement.style.setProperty('--libreta-alto', `${alto}px`);
+    document.documentElement.style.setProperty('--libreta-fuente', fuente);
+    $('opciones-libreta').replaceChildren(...Object.entries(AJUSTES_LIBRETA).flatMap(([clave, ajuste]) => {
+        const titulo = document.createElement('h3');
+        titulo.className = 'encabezado-grupo';
+        titulo.textContent = ajuste.nombre;
+        const grupo = document.createElement('div');
+        grupo.className = 'segmentado';
+        grupo.setAttribute('role', 'tablist');
+        grupo.dataset.ajuste = clave;
+        grupo.append(...Object.entries(ajuste.opciones).map(([opcion, { nombre }]) => {
+            const boton = document.createElement('button');
+            boton.setAttribute('role', 'tab');
+            boton.setAttribute('aria-selected', opcion === ajustes[clave]);
+            boton.dataset.opcion = opcion;
+            boton.textContent = nombre;
+            boton.addEventListener('click', () => {
+                guardarAjusteLibreta(localStorage, clave, opcion);
+                aplicarAjustesLibreta();
+                actualizarEditor();
+            });
+            return boton;
+        }));
+        return [titulo, grupo];
+    }));
+}
+aplicarAjustesLibreta();
+$('abrir-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = false; });
+$('cerrar-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = true; });
+$('ajustes-libreta').addEventListener('click', e => { if (e.target === $('ajustes-libreta')) $('ajustes-libreta').hidden = true; });
 
 // ---------- Rimas ----------
 let tipoRima = 'consonante';
