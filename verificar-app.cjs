@@ -45,6 +45,9 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent)),
             ['rima-0 suave:fin', 'rima-0 suave:guir']);
         assert.equal(await page.locator('#editor-fondo').textContent(), 'Llegamos al fin (al)\nno pude seguir');
+        // Un verso entero entre paréntesis sí rima: "cuánto" y "pensando" con "dejarnos".
+        await page.locator('#editor-texto').fill('(hace cuánto estás pensando en dejarnos)');
+        assert.deepEqual(await page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.textContent)), ['cuánto', 'sando', 'jarnos']);
         // Multisilábicas: "no hay ca-MI-no" / "se hace ca-MI-no" riman desde "ca", y "al an-DAR" / "vista a-TRÁS" desde "al".
         await page.locator('#editor-texto').fill('Caminante, no hay camino,\nse hace camino al andar.\nAl andar se hace camino\ny al volver la vista atrás');
         assert.deepEqual(await page.locator('#silabas div').allTextContents(), ['8', '8', '8', '8']);
