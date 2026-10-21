@@ -170,15 +170,9 @@ function abrirEditor(letra) {
     editorTexto.value = letra.texto;
     mostrarVista('vista-editor');
     actualizarEditor();
-    // Se abre el teclado enseguida (iOS solo lo abre si se llama dentro del toque):
-    // en una letra nueva en el título, en una empezada al final del texto.
-    if (letra.texto) {
-        editorTexto.focus();
-        editorTexto.setSelectionRange(letra.texto.length, letra.texto.length);
-        mostrarCursorDespues();
-    } else {
-        $('editor-titulo').focus();
-    }
+    // Al entrar a una letra empezada no se abre el teclado (se lee primero, pedido de Swa);
+    // en una nueva sí, en el título.
+    if (!letra.texto) $('editor-titulo').focus();
 }
 
 // Desplaza la libreta para que el cursor (la palabra tocada) quede a la vista, arriba del teclado.
@@ -701,6 +695,10 @@ $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage);
 function renderizarApariencia() {
     const actual = leerApariencia(localStorage);
     document.documentElement.dataset.apariencia = actual;
+    // La franja de la hora en Safari sigue a la apariencia elegida.
+    const [claro, oscuro] = document.querySelectorAll('meta[name="theme-color"]');
+    claro.content = actual === 'oscuro' ? '#323337' : '#f7f8f8';
+    oscuro.content = actual === 'claro' ? '#f7f8f8' : '#323337';
     $('apariencia').replaceChildren(...Object.entries(APARIENCIAS).map(([clave, nombre]) => {
         const celda = document.createElement('li');
         celda.className = 'celda';
