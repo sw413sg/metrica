@@ -168,7 +168,37 @@ function abrirEditor(letra) {
     editorTexto.value = letra.texto;
     mostrarVista('vista-editor');
     actualizarEditor();
-    $('editor-titulo').focus();
+    // Se abre el teclado enseguida (iOS solo lo abre si se llama dentro del toque):
+    // en una letra nueva en el título, en una empezada al final del texto.
+    if (letra.texto) {
+        editorTexto.focus();
+        editorTexto.setSelectionRange(letra.texto.length, letra.texto.length);
+        mostrarCursorDespues();
+    } else {
+        $('editor-titulo').focus();
+    }
+}
+
+// Desplaza la libreta para que el cursor (la palabra tocada) quede a la vista, arriba del teclado.
+// La posición sale de la copia de abajo del texto, que tiene las mismas letras en el mismo lugar.
+function mostrarCursor() {
+    const cuerpo = editorTexto.closest('.editor-cuerpo');
+    let falta = editorTexto.selectionStart;
+    const recorrido = document.createTreeWalker($('editor-fondo'), NodeFilter.SHOW_TEXT);
+    let nodo;
+    while ((nodo = recorrido.nextNode()) && falta > nodo.length) falta -= nodo.length;
+    if (!nodo) return;
+    const rango = document.createRange();
+    rango.setStart(nodo, Math.min(falta, nodo.length));
+    const cursor = rango.getClientRects()[0] ?? nodo.parentElement.getBoundingClientRect();
+    const visible = cuerpo.getBoundingClientRect();
+    const margen = parseFloat(getComputedStyle(editorTexto).lineHeight);
+    if (cursor.bottom + margen > visible.bottom) cuerpo.scrollTop += cursor.bottom + margen - visible.bottom;
+    else if (cursor.top - margen < visible.top) cuerpo.scrollTop -= visible.top - cursor.top + margen;
+}
+// El teclado tarda en subir: se acomoda de nuevo cuando termina.
+function mostrarCursorDespues() {
+    for (const ms of [0, 300, 600]) setTimeout(mostrarCursor, ms);
 }
 
 // Alto del texto, o de toda la libreta si es corto (así se puede tocar en cualquier parte).
@@ -223,11 +253,9 @@ function actualizarEditor() {
         fila.style.height = `${Math.max(1, lineas) * alto}px`;
     });
 
-    // Sugerencias para la última palabra escrita (en un verso vacío, la del verso anterior).
-    const antes = editorTexto.value.slice(0, editorTexto.selectionEnd).split('\n').filter(v => !esSeparador(v)).join('\n');
-    const ultima = bienEscrita(antes.match(/(\p{L}+)[^\p{L}]*$/u)?.[1]);
+    // Mientras se escribe no se sugiere nada: las sugerencias aparecen al tocar una palabra.
     reemplazo = null;
-    mostrarSugerencias(ultima);
+    $('sugerencias').hidden = true;
 }
 
 // Si se está cambiando una palabra, dónde está: { inicio, fin }. Si no, las sugerencias se agregan.
@@ -245,7 +273,7 @@ function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(pal
         const vacio = document.createElement('span');
         vacio.className = 'sugerencias-vacio';
         const que = alternable && verSinonimos ? 'sinónimos' : 'rimas';
-        vacio.textContent = palabra ? `No encontré ${que} para «${palabra}»` : 'Acá van a aparecer rimas mientras escribís';
+        vacio.textContent = `No encontré ${que} para «${palabra}»`;
         botones.push(vacio);
     }
     if (etiqueta && (rimas.length || alternable)) {
@@ -256,6 +284,7 @@ function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(pal
     }
     $('sugerencias').replaceChildren(...botones);
     $('sugerencias').scrollLeft = 0;
+    $('sugerencias').hidden = false;
 }
 
 // La palabra que se tocó para cambiarla: primero muestra rimas y, si se toca «Cambiar», sinónimos.
@@ -275,13 +304,17 @@ editorTexto.addEventListener('click', () => {
     if (!value.slice(inicioVerso, finVerso).trim()) {
         mostrarSugerencias(null, 'Marcar:', SECCIONES);
         reemplazo = { inicio: inicioVerso, fin: finVerso, seccion: true };
+        mostrarCursorDespues();
         return;
     }
+    $('sugerencias').hidden = true;
+    reemplazo = null;
     // Solo si no está al final de todo (ahí se sigue escribiendo).
     if (selectionStart === value.length) return;
     const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
     const despues = value.slice(selectionStart).match(/^\p{L}*/u)[0];
     if (!antes && !despues) return;
+    mostrarCursorDespues();
     // Si está mal escrita no se avisa: solo se muestran las rimas (o sinónimos) de la palabra que se quiso escribir.
     tocada = antes + despues;
     verSinonimos = false;
@@ -290,11 +323,13 @@ editorTexto.addEventListener('click', () => {
 });
 
 // Tocar una sugerencia la agrega donde está el cursor (o cambia la palabra tocada), sin cerrar el teclado.
-$('sugerencias').addEventListener('pointerdown', e => e.preventDefault());
+// En iOS el toque llega como mousedown: sin esto el texto pierde el foco y el teclado se cierra.
+for (const evento of ['pointerdown', 'mousedown']) $('sugerencias').addEventListener(evento, e => e.preventDefault());
 $('sugerencias').addEventListener('click', e => {
     if (e.target.closest('.sugerencias-alternar')) {
         verSinonimos = !verSinonimos;
         mostrarCambio();
+        editorTexto.focus();
         return;
     }
     const boton = e.target.closest('.sugerencia');
@@ -326,7 +361,10 @@ if (window.visualViewport) {
         document.documentElement.style.setProperty('--arriba-visible', `${visualViewport.offsetTop}px`);
         // Con el teclado abierto no hace falta dejar lugar para la barrita de inicio del iPhone.
         document.body.classList.toggle('teclado-abierto', visualViewport.height < innerHeight * 0.8);
-        if (document.body.classList.contains('editando')) ajustarAltoTexto();
+        if (document.body.classList.contains('editando')) {
+            ajustarAltoTexto();
+            if (document.activeElement === editorTexto) mostrarCursor();
+        }
     };
     visualViewport.addEventListener('resize', ajustarAlTeclado);
     visualViewport.addEventListener('scroll', ajustarAlTeclado);
@@ -335,12 +373,13 @@ if (window.visualViewport) {
 
 $('nueva-letra').addEventListener('click', () => abrirEditor(nuevaLetra()));
 $('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
-$('borrar-letra').addEventListener('click', () => {
-    if (!confirm('¿Borrar esta letra? No se puede deshacer.')) return;
+$('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, ok => {
+    if (!ok) return;
+    $('ajustes-libreta').hidden = true;
     borrarLetra(localStorage, letraActual.id);
     mostrarVista('vista-lista-letras');
     renderizarLetras();
-});
+}));
 editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); });
 $('editor-titulo').addEventListener('input', guardarActual);
 // Colores, renglones y sílabas se prenden y apagan, y se recuerda la elección.
@@ -370,10 +409,11 @@ aplicarAlternables();
 // Ajustes de la libreta (la ruedita): sílabas, tamaño de letra, separación y fuente.
 function aplicarAjustesLibreta() {
     const ajustes = leerAjustesLibreta(localStorage);
-    const { tamano, alto, fuente } = estiloLibreta(ajustes);
+    const { tamano, alto, letras, fuente } = estiloLibreta(ajustes);
     document.documentElement.style.setProperty('--libreta-letra', `${tamano}px`);
     document.documentElement.style.setProperty('--libreta-alto', `${alto}px`);
     document.documentElement.style.setProperty('--libreta-fuente', fuente);
+    document.documentElement.style.setProperty('--libreta-letras', `${letras}em`);
     $('opciones-libreta').replaceChildren(...Object.entries(AJUSTES_LIBRETA).flatMap(([clave, ajuste]) => {
         const titulo = document.createElement('h3');
         titulo.className = 'encabezado-grupo';
