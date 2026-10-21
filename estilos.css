@@ -354,6 +354,28 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 #opciones-libreta button[data-opcion="serif"] { font-family: ui-serif, "New York", Georgia, serif; }
 #opciones-libreta button[data-opcion="maquina"] { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 
-/* Mantener apretada una tarjeta la borra: sin menú de copiar ni selección de iOS. */
+/* Arrastrar una tarjeta al tacho la borra (sin menú de copiar ni selección de iOS). */
+.tarjeta-letra { position: relative; }
 .tarjeta-letra button { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-.tarjeta-letra.apretada { transform: scale(0.96); transition: transform .4s; }
+.tarjeta-letra.arrastrando {
+    z-index: 30; scale: 1.05; rotate: -2deg; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    transition: scale .2s ease-out, rotate .2s ease-out, box-shadow .2s;
+}
+.tarjeta-letra.arrastrando.sobre-tacho { scale: .75; opacity: .85; }
+.tarjeta-letra.volviendo { transition: transform .3s cubic-bezier(.34, 1.56, .64, 1), scale .3s, rotate .3s; }
+.tarjeta-letra.tirada { transition: scale .25s ease-in, opacity .25s; scale: 0.1; opacity: 0; }
+.tacho {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    height: 0; margin: 0; opacity: 0; overflow: hidden; border-radius: 22px;
+    color: var(--texto-2); font-size: 15px; font-weight: 500;
+    background: var(--relleno); border: 2px dashed transparent;
+    transform: translateY(-12px) scale(.85); visibility: hidden;
+    transition: height .35s cubic-bezier(.34, 1.56, .64, 1), margin .35s, opacity .2s, transform .35s cubic-bezier(.34, 1.56, .64, 1), background .2s, color .2s, visibility 0s .35s;
+}
+.tacho.visible { height: 72px; margin: 4px 0 12px; opacity: 1; transform: none; border-color: var(--separador); visibility: visible; transition-delay: 0s; }
+.tacho.visible .icono { animation: sacudir .5s .15s ease-in-out; }
+.tacho .icono { width: 28px; height: 28px; }
+.tacho .tapa-tacho { transform-origin: 19px 6px; transition: transform .25s cubic-bezier(.34, 1.56, .64, 1); }
+.tacho.encima { background: #ff3b30; color: #fff; border-color: transparent; transform: scale(1.04); }
+.tacho.encima .tapa-tacho { transform: rotate(-25deg) translate(-1px, -2px); }
+@keyframes sacudir { 25% { rotate: -12deg; } 50% { rotate: 10deg; } 75% { rotate: -6deg; } }
