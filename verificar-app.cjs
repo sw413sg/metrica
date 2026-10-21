@@ -332,6 +332,19 @@ const servidor = http.createServer((req, res) => {
             assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
         }
         await page.screenshot({path: `capturas/ajustes-${tema}.png`});
+        // Apariencia: Oscuro y Claro mandan sobre el sistema, y se recuerda.
+        const fondo = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--fondo').trim());
+        const fondoSistema = await fondo();
+        await page.locator('button[data-apariencia="oscuro"]').click();
+        assert.equal(await fondo(), '#1b1c1e');
+        await page.locator('button[data-apariencia="claro"]').click();
+        assert.equal(await fondo(), '#f1f3f4');
+        await page.reload();
+        assert.equal(await fondo(), '#f1f3f4');
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        await page.locator('button[data-apariencia="sistema"]').click();
+        assert.equal(await fondo(), fondoSistema);
+        assert.equal(await page.locator('button[data-apariencia="sistema"]').getAttribute('aria-pressed'), 'true');
 
         // Métrica Extras: sin comprar hay publicidad y los temas de pago tienen candado.
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();

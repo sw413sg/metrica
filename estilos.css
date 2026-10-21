@@ -4,20 +4,20 @@
     color-scheme: light dark;
     /* Colores de Google Keep: grises neutros. El violeta (--destacado) queda solo
        para lo especial: la pestaña elegida, la letra nueva, la sílaba fuerte y Métrica Extras. */
-    --fondo: #ffffff;
-    --brillo-1: transparent;
-    --brillo-2: transparent;
-    --brillo-3: transparent;
+    --fondo: #f1f3f4;
     --tarjeta: #ffffff;
-    --vidrio: rgba(241, 243, 244, 0.85);
-    --vidrio-borde: #e0e0e0;
+    /* Vidrio de iOS 26 (Liquid Glass): translúcido, con un borde que brilla arriba. */
+    --vidrio: rgba(255, 255, 255, 0.55);
+    --vidrio-borde: rgba(255, 255, 255, 0.8);
+    --vidrio-brillo: rgba(255, 255, 255, 0.9);
     --sombra: none;
+    --sombra-vidrio: 0 6px 20px rgba(0, 0, 0, 0.08);
     --celda: #ffffff;
     --texto: #202124;
     --texto-2: #5f6368;
     --texto-3: #9aa0a6;
     --separador: #e0e0e0;
-    --relleno: #f1f3f4;
+    --relleno: #e8eaed;
     --acento: #3c4043;
     --acento-2: #5f6368;
     --acento-suave: rgba(60, 64, 67, 0.1);
@@ -36,16 +36,16 @@
     --rima-4: rgba(175, 82, 222, 0.3);
     --rima-5: rgba(52, 199, 89, 0.3);
 }
+/* Oscuro: según el sistema, salvo que en Ajustes se elija Claro; o siempre si se elige Oscuro. */
 @media (prefers-color-scheme: dark) {
-    :root {
-        --fondo: #202124;
-        --brillo-1: transparent;
-        --brillo-2: transparent;
-        --brillo-3: transparent;
+    :root:not([data-apariencia="claro"]) {
+        --fondo: #1b1c1e;
         --tarjeta: #2d2e30;
-        --vidrio: rgba(60, 64, 67, 0.85);
-        --vidrio-borde: #5f6368;
+        --vidrio: rgba(255, 255, 255, 0.09);
+        --vidrio-borde: rgba(255, 255, 255, 0.14);
+        --vidrio-brillo: rgba(255, 255, 255, 0.18);
         --sombra: none;
+        --sombra-vidrio: 0 6px 20px rgba(0, 0, 0, 0.35);
         --celda: #2d2e30;
         --texto: #e8eaed;
         --texto-2: #9aa0a6;
@@ -63,16 +63,44 @@
         --libreta: #202124;
         --renglon: rgba(255, 255, 255, 0.05);
         --teclado: #2d2e30;
+        color-scheme: dark;
     }
 }
+:root[data-apariencia="oscuro"] {
+        --fondo: #1b1c1e;
+    --tarjeta: #2d2e30;
+    --vidrio: rgba(255, 255, 255, 0.09);
+    --vidrio-borde: rgba(255, 255, 255, 0.14);
+    --vidrio-brillo: rgba(255, 255, 255, 0.18);
+    --sombra: none;
+    --sombra-vidrio: 0 6px 20px rgba(0, 0, 0, 0.35);
+    --celda: #2d2e30;
+    --texto: #e8eaed;
+    --texto-2: #9aa0a6;
+    --texto-3: #5f6368;
+    --separador: #3c4043;
+    --relleno: #3c4043;
+    --acento: #e8eaed;
+    --acento-2: #9aa0a6;
+    --acento-suave: rgba(232, 234, 237, 0.12);
+    --destacado: #9d8bff;
+    --destacado-2: #e08cf5;
+    --destacado-suave: rgba(157, 139, 255, 0.18);
+    --verde: #30d158;
+    --segmento: rgba(255, 255, 255, 0.16);
+    --libreta: #202124;
+    --renglon: rgba(255, 255, 255, 0.05);
+    --teclado: #2d2e30;
+    color-scheme: dark;
+}
+:root[data-apariencia="claro"] { color-scheme: light; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
+/* Fondo con granulado al 30% (ruido de SVG, sin archivos). La libreta va lisa (ver más abajo). */
 body {
     background:
-        radial-gradient(circle at 12% 8%, var(--brillo-1) 0, transparent 45%),
-        radial-gradient(circle at 92% 35%, var(--brillo-2) 0, transparent 42%),
-        radial-gradient(circle at 25% 92%, var(--brillo-3) 0, transparent 50%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .3 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E"),
         var(--fondo);
     background-attachment: fixed;
     color: var(--texto);
@@ -85,16 +113,15 @@ button, input, textarea { font: inherit; color: inherit; }
 button { background: none; border: 0; padding: 0; cursor: pointer; }
 a { color: var(--acento); text-decoration: none; }
 
-/* Vidrio: lo translúcido que flota (barra de pestañas, botones, sugerencias). */
-.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .buscador, .segmentado {
-    background: var(--vidrio); border: 1px solid var(--vidrio-borde); box-shadow: var(--sombra);
+/* Vidrio de iOS 26: lo que se toca y flota (barra de pestañas, botones, buscador, controles).
+   Translúcido, con brillo en el borde de arriba. En SwiftUI: .glassEffect(). */
+.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .buscador, .segmentado, .boton-gris, .boton-relleno, .boton-redondo {
+    background: var(--vidrio); border: 1px solid var(--vidrio-borde);
+    box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--sombra-vidrio);
     -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
 }
-/* Tarjetas: lo que contiene contenido (listas, palabras, letras). */
-.lista-agrupada, .palabra, .tarjeta-freestyle, .tarjeta-letra {
-    background: var(--tarjeta); border: 1px solid var(--vidrio-borde); box-shadow: var(--sombra);
-    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-}
+/* Tarjetas: lo que contiene contenido (listas, palabras, letras), lisas y sin borde. */
+.lista-agrupada, .palabra, .tarjeta-freestyle, .tarjeta-letra { background: var(--tarjeta); }
 
 .icono { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -112,6 +139,8 @@ a { color: var(--acento); text-decoration: none; }
     min-height: 56px; padding: calc(env(safe-area-inset-top) + 6px) 16px 0;
     color: var(--acento); flex-shrink: 0;
 }
+/* Sin botones arriba, el título grande arranca apenas termina la barra de estado. */
+.barra-nav:empty { min-height: 0; padding-top: calc(env(safe-area-inset-top) + 10px); }
 .titulo-grande { font-size: 34px; font-weight: 700; letter-spacing: 0.01em; margin: 0 16px 8px; }
 .boton-barra { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--acento); }
 .boton-barra .icono { width: 21px; height: 21px; }
@@ -121,11 +150,17 @@ a { color: var(--acento); text-decoration: none; }
 
 /* Listas agrupadas (List con .insetGrouped) */
 .encabezado-grupo { font-size: 13px; font-weight: 400; text-transform: uppercase; color: var(--texto-2); margin: 24px 16px 6px; }
-.lista-agrupada { list-style: none; margin: 16px 0 0; padding: 0; border-radius: 20px; overflow: hidden; }
+.lista-agrupada { list-style: none; margin: 16px 0 0; padding: 0; border-radius: 22px; overflow: hidden; }
 .lista-agrupada:empty { display: none; }
 .encabezado-grupo + .lista-agrupada { margin-top: 0; }
 .celda { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; padding: 12px 18px; position: relative; }
-.celda + .celda::before { content: ""; position: absolute; top: 0; left: 18px; right: 18px; border-top: 0.5px solid var(--separador); }
+.celda + .celda::before { content: ""; position: absolute; top: 0; left: 18px; right: 0; border-top: 0.5px solid var(--separador); }
+/* Ícono en un cuadradito de color a la izquierda, como en Ajustes de iOS (Label en SwiftUI). */
+.icono-celda { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.icono-celda .icono { width: 18px; height: 18px; }
+.celda:has(> .icono-celda) { justify-content: flex-start; }
+.celda:has(> .icono-celda) > label, .celda:has(> .icono-celda) > .celda-texto { flex: 1; }
+.celda:has(> .icono-celda) + .celda::before, .celda + .celda:has(> .icono-celda)::before { left: 60px; }
 .celda a { flex: 1; color: var(--texto); }
 .valor, .chevron { color: var(--texto-2); }
 .celda-boton { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; color: var(--texto); }
@@ -142,15 +177,19 @@ a { color: var(--acento); text-decoration: none; }
 .grilla-letras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
 .grilla-letras ul { display: contents; list-style: none; }
 .tarjeta-nueva {
-    min-height: 168px; border-radius: 22px; display: grid; place-items: center; color: #fff;
+    min-height: 210px; border-radius: 22px; display: grid; place-items: center; color: #fff;
     background: linear-gradient(135deg, var(--destacado), var(--destacado-2)); box-shadow: 0 10px 30px var(--destacado-suave);
 }
 .tarjeta-nueva .icono { width: 40px; height: 40px; stroke-width: 2.4; }
-.tarjeta-letra { border-radius: 22px; min-height: 168px; overflow: hidden; }
+.tarjeta-letra { border-radius: 22px; min-height: 210px; overflow: hidden; }
+/* La última letra en la que se escribió va arriba, a lo ancho, y muestra más texto. */
+.tarjeta-letra.destacada { grid-column: 1 / -1; grid-row: 1; min-height: 190px; }
+.tarjeta-letra.destacada .titulo-letra { font-size: 20px; }
+.tarjeta-letra.destacada .texto-letra { -webkit-line-clamp: 6; }
 .tarjeta-letra button { width: 100%; height: 100%; padding: 16px; display: flex; flex-direction: column; gap: 6px; text-align: left; color: var(--texto); }
 .fecha-letra { color: var(--texto-2); font-size: 12px; }
-.titulo-letra { font-weight: 500; font-size: 16px; overflow-wrap: anywhere; }
-.texto-letra { color: var(--texto-2); font-size: 14px; line-height: 1.35; white-space: pre-line; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; }
+.titulo-letra { font-weight: 600; font-size: 17px; overflow-wrap: anywhere; }
+.texto-letra { color: var(--texto-2); font-size: 14px; line-height: 1.35; white-space: pre-line; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; }
 
 /* Interruptor (Toggle) */
 .interruptor { appearance: none; width: 51px; height: 31px; border-radius: 16px; background: var(--relleno); position: relative; margin: 0; flex-shrink: 0; transition: background .2s; }
@@ -159,24 +198,25 @@ a { color: var(--acento); text-decoration: none; }
 .interruptor:checked::after { transform: translateX(20px); }
 
 /* Buscador y control segmentado (Picker .segmented) */
-.buscador { width: 100%; border-radius: 16px; padding: 12px 16px; outline: none; }
-.buscador:focus { border-color: var(--acento); }
-.segmentado { display: flex; border-radius: 16px; padding: 4px; margin-top: 12px; }
-.segmentado button { flex: 1; padding: 8px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--texto-2); }
+.buscador { width: 100%; border-radius: 24px; padding: 12px 18px; outline: none; }
+.buscador:focus { border-color: var(--texto-3); }
+.segmentado { display: flex; border-radius: 22px; padding: 4px; margin-top: 12px; }
+.segmentado button { flex: 1; padding: 8px; border-radius: 18px; font-size: 14px; font-weight: 600; color: var(--texto-2); }
 .segmentado button[aria-selected="true"] { color: var(--texto); }
 .segmentado button[aria-selected="true"] { background: var(--segmento); box-shadow: 0 3px 8px rgba(0,0,0,.12); }
 
 /* Botones */
 .botones { display: flex; gap: 12px; margin-top: 16px; }
-.boton-relleno, .boton-gris { flex: 1; padding: 15px; border-radius: 18px; font-weight: 600; }
-.boton-relleno { background: var(--acento); color: var(--fondo); }
+.boton-relleno, .boton-gris { flex: 1; padding: 15px; border-radius: 26px; font-weight: 600; }
+/* Botón principal: vidrio con tinte oscuro (.glassProminent en SwiftUI). */
+.boton-relleno { background: color-mix(in srgb, var(--acento) 88%, transparent); color: var(--tarjeta); border-color: transparent; }
 .boton-comprar { background: linear-gradient(135deg, var(--destacado), var(--destacado-2)); color: #fff; box-shadow: 0 8px 24px var(--destacado-suave); }
 .boton-gris { background: var(--vidrio); border: 1px solid var(--vidrio-borde); color: var(--acento); }
 
 /* Palabras al azar */
 .grilla-palabras { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
 .palabra[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--acento); color: var(--acento); }
-.palabra { border-radius: 20px; padding: 22px 8px; text-align: center; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.palabra { border-radius: 22px; padding: 22px 8px; text-align: center; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
 .barra-progreso { height: 4px; border-radius: 2px; background: var(--relleno); margin-top: 16px; overflow: hidden; }
 .barra-progreso div { height: 100%; width: 100%; background: var(--acento); transform-origin: left; }
 
@@ -348,6 +388,12 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .boton-texto { margin-top: 12px; color: var(--destacado); font-weight: 500; }
 .nota.centrada { text-align: center; }
 .celda-extras > span:first-child { color: var(--destacado); font-weight: 600; }
+.icono-extras { background: linear-gradient(135deg, var(--destacado), var(--destacado-2)); }
+.icono-extras .icono { fill: currentColor; }
+/* Botones de una sola acción, centrados. */
+.celda-centrada { align-items: center; }
+.marca-apariencia { margin-left: auto; display: flex; color: var(--destacado); }
+.marca-apariencia .icono { width: 20px; height: 20px; }
 
 /* Ajustes de la libreta: hoja más baja, sin brillos. */
 .hoja-ajustes { background: var(--fondo); text-align: left; }
