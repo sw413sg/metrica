@@ -32,6 +32,12 @@ export function msPorTiempo(bpm) {
     return 60000 / bpm;
 }
 
+// Cuánto dura cada palabra: `compases` compases de 4 tiempos. La barrita de abajo de la
+// palabra se vacía en este tiempo.
+export function msPorPalabra(bpm, compases) {
+    return msPorTiempo(bpm) * 4 * compases;
+}
+
 // Cada paso es un cuarto de tiempo.
 export function msPorPaso(bpm) {
     return msPorTiempo(bpm) / 4;

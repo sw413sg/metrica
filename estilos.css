@@ -323,6 +323,14 @@ a { color: var(--acento); text-decoration: none; }
 }
 .cuenta-fs { margin: 4px 0 0; font-size: var(--fs-cuenta); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto-2); line-height: 1; }
 .cuenta-fs:empty { display: none; }
+/* Lo que le queda a la palabra: una barrita que se vacía hacia el centro. Solo jugando. */
+.barra-palabra {
+    position: relative; z-index: 2; display: block; width: 40%; height: 4px; margin: 8px 0 2px;
+    border-radius: 2px; background: var(--destacado); transform: scaleX(1); visibility: hidden;
+}
+.barra-palabra.corriendo { visibility: visible; animation: vaciar-palabra var(--ms-palabra, 5333ms) linear forwards; }
+#pantalla-freestyle:not(.jugando) .barra-palabra { animation-play-state: paused; }
+@keyframes vaciar-palabra { to { transform: scaleX(0); } }
 .palabra-fs .tonica, .proxima-palabra .tonica { color: var(--destacado); text-decoration: none; }
 .proximas { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin: 10px 0 0; }
 .proxima-item { text-align: center; }

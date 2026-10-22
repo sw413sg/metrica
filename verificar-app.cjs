@@ -734,6 +734,16 @@ const servidor = http.createServer((req, res) => {
         const cuenta = await page.locator('#fs-cuenta').textContent();
         const segundosCuenta = cuenta.split(':').reduce((m, s) => m * 60 + Number(s), 0);
         assert.ok(segundosCuenta < 58 && segundosCuenta > 40, cuenta);
+        // La barrita de abajo de la palabra se vacía mientras dura la palabra.
+        const escalaBarra = () => page.locator('#fs-barra-palabra').evaluate(e => new DOMMatrix(getComputedStyle(e).transform).a);
+        assert.equal(await page.locator('#fs-barra-palabra').isVisible(), true);
+        const escala1 = await escalaBarra();
+        await page.waitForTimeout(600);
+        const escala2 = await escalaBarra();
+        assert.ok(escala2 < escala1 && escala2 > 0, `${escala1} -> ${escala2}`);
+        const barraCaja = await page.locator('#fs-barra-palabra').boundingBox();
+        const palabraCaja = await page.locator('#fs-palabra').boundingBox();
+        assert.ok(barraCaja.y > palabraCaja.y + palabraCaja.height - 2 && barraCaja.y < palabraCaja.y + palabraCaja.height + 16, 'abajo de la palabra');
         // Jugando, el título se va sin mover nada; al parar vuelve.
         const tituloFs = page.locator('#pantalla-freestyle .titulo-grande');
         await page.waitForTimeout(400);
