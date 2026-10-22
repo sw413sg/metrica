@@ -124,9 +124,10 @@ a { color: var(--acento); text-decoration: none; }
 .app { max-width: 430px; margin: 0 auto; height: 100%; }
 .pantalla, .vista { display: none; height: 100%; flex-direction: column; overflow-y: auto; }
 .pantalla.activa, .vista.activa { display: flex; }
-.pantalla { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+/* Sin padding en la pantalla: el scroll llega hasta el borde y pasa por detrás
+   de la barra. El relleno va en el contenido, para poder subir lo último. */
 .pantalla#pantalla-letras { overflow: hidden; }
-.contenido { padding: 0 16px 24px; }
+.contenido { padding: 0 16px calc(24px + 92px + env(safe-area-inset-bottom)); }
 
 /* Barra de navegación y título grande */
 .barra-nav {
@@ -396,7 +397,8 @@ body.teclado-abierto .sugerencias { padding-bottom: 0; }
 body.editando, body.editando .vista#vista-editor { background: var(--libreta); }
 
 /* Tab bar */
-/* Barra de pestañas flotante de vidrio, como en iOS 26. */
+/* Barra de pestañas flotante de vidrio, como en iOS 26. El fondo queda
+   translúcido (el de .vidrio, más arriba) para que se vea lo que scrollea atrás. */
 .barra-pestanas {
     position: fixed; left: 16px; right: 16px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 10;
     max-width: 398px; margin: 0 auto; padding: 5px;
@@ -408,7 +410,6 @@ body.editando, body.editando .vista#vista-editor { background: var(--libreta); }
 }
 .barra-pestanas button[aria-selected="true"] { color: var(--destacado); background: var(--destacado-suave); }
 body.editando .barra-pestanas { display: none; }
-body.editando .pantalla#pantalla-letras { padding-bottom: 0; }
 /* En iPhone el teclado tapa la parte de abajo: el editor ocupa solo lo que se ve
    (lo calcula js/app.js), así la barra de sugerencias queda justo arriba del teclado. */
 body.editando .vista#vista-editor {
