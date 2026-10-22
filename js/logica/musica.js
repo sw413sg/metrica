@@ -118,6 +118,20 @@ export function pausarAlOcultar({ fuente, sonando, editor, teclado, freestyle })
     return fuente === 'youtube' && Boolean(teclado);
 }
 
+// Formato grande (cuadro de 200 al lado de los controles): YouTube siempre que no esté
+// plegado; SoundCloud solo en Freestyle, con la portada. Plegado, SoundCloud sigue sonando.
+export function tarjetaGrande({ fuente, plegado, freestyle }) {
+    if (plegado) return false;
+    return fuente === 'youtube' || (fuente === 'soundcloud' && Boolean(freestyle));
+}
+
+// Portada de una canción de SoundCloud (getCurrentSound), en 500×500. Si el tema no
+// tiene, la foto del artista. null si no hay ninguna.
+export function portadaSoundCloud(cancion) {
+    const url = cancion?.artwork_url || cancion?.user?.avatar_url;
+    return url ? String(url).replace(/-(large|t\d+x\d+|crop)\./, '-t500x500.') : null;
+}
+
 // «Mostrar video para reproducir»: con YouTube plegado, primero lo muestra.
 export function alternarReproduccion({ fuente, plegado, sonando }) {
     const mostrar = muestraVideo(fuente) && plegado && !sonando;

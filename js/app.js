@@ -10,7 +10,7 @@ import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
-import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar } from './logica/musica.js';
+import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -725,9 +725,21 @@ function pintarPalabra(elemento, palabra) {
     }));
 }
 
+// La palabra del aro va en una línea: si no entra, se achica la letra hasta que entre.
+// En SwiftUI: .lineLimit(1).minimumScaleFactor(0.4).
+function ajustarPalabraFs() {
+    const palabra = $('fs-palabra');
+    palabra.style.fontSize = '';
+    if (!palabra.clientWidth || palabra.scrollWidth <= palabra.clientWidth) return;
+    const tamano = parseFloat(getComputedStyle(palabra).fontSize);
+    palabra.style.fontSize = `${Math.floor(tamano * palabra.clientWidth / palabra.scrollWidth * 0.97)}px`;
+}
+new ResizeObserver(ajustarPalabraFs).observe($('fs-reloj'));
+
 function mostrarCola() {
     const { ahora, despues, luego } = proximasPalabras(cola);
     pintarPalabra($('fs-palabra'), ahora);
+    ajustarPalabraFs();
     pintarPalabra($('fs-despues'), despues);
     pintarPalabra($('fs-luego'), luego);
 }
@@ -844,6 +856,7 @@ function terminarRonda(porTiempo = false) {
         $('fs-cuenta').textContent = '0:00';
         $('fs-reloj').style.setProperty('--avance', '1');
         $('fs-palabra').textContent = '¡Tiempo!';
+        ajustarPalabraFs();
         $('fs-despues').replaceChildren();
         $('fs-luego').replaceChildren();
         cola = [];
@@ -868,7 +881,8 @@ function sincronizarLinkFreestyle() {
     $('fs-elegir').hidden = hay;
     $('fs-play').hidden = hay;
     ocultarMusicaSiHaceFalta();
-    ubicarReproductor();
+    if (musica) aplicarVideo();
+    else ubicarReproductor();
 }
 
 function renderizarDuraciones() {
@@ -1059,11 +1073,16 @@ function mostrarEstadoMusica() {
 
 function aplicarVideo() {
     const esYouTube = musica?.fuente === 'youtube';
+    const freestyle = document.body.classList.contains('freestyle-link');
+    const grande = tarjetaGrande({ fuente: musica?.fuente, plegado, freestyle });
     const card = $('reproductor');
     card.classList.toggle('youtube', Boolean(esYouTube));
     card.classList.toggle('plegado', Boolean(esYouTube && plegado));
-    $('musica-plegar').hidden = !(esYouTube && !plegado);
+    card.classList.toggle('grande', grande);
+    $('musica-plegar').hidden = !grande;
     $('musica-mostrar').hidden = !(esYouTube && plegado);
+    // SoundCloud chico en Freestyle: la flechita lo vuelve a agrandar.
+    $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && freestyle && plegado);
     mostrarEstadoMusica();
     ubicarReproductor();
 }
@@ -1224,7 +1243,14 @@ async function escucharMusica(texto) {
                     pintarProgreso();
                 });
                 widget.getCurrentSound(cancion => {
-                    if (generacion === generacionMusica && cancion?.title) $('reproductor-titulo').textContent = cancion.title;
+                    if (generacion !== generacionMusica) return;
+                    if (cancion?.title) $('reproductor-titulo').textContent = cancion.title;
+                    const portada = portadaSoundCloud(cancion);
+                    if (!portada) return;
+                    const imagen = document.createElement('img');
+                    imagen.src = portada;
+                    imagen.alt = '';
+                    $('reproductor-marco').replaceChildren(imagen);
                 });
                 // Si saliste del editor (o cerraste) mientras cargaba, no arranca oculto.
                 if (reproductorVisible()) widget.play();
@@ -1257,6 +1283,7 @@ async function escucharMusica(texto) {
         $('reproductor-titulo').textContent = 'No se pudo cargar el reproductor. ¿Hay internet?';
         $('musica-plegar').hidden = true;
         $('musica-mostrar').hidden = true;
+        $('musica-agrandar').hidden = true;
     }
 }
 
@@ -1281,7 +1308,7 @@ function cerrarMusica() {
     $('reproductor-marco').replaceChildren();
     $('reproductor-oculto').replaceChildren();
     $('reproductor').hidden = true;
-    $('reproductor').classList.remove('youtube', 'plegado', 'arrastrando');
+    $('reproductor').classList.remove('youtube', 'plegado', 'grande', 'arrastrando');
     document.body.classList.remove('con-musica');
     pintarProgreso();
     aplicarVideo();
@@ -1324,13 +1351,23 @@ $('musica-mostrar').addEventListener('click', () => {
     if (decision.accion === 'reproducir') musica.reproducir();
 });
 $('musica-plegar').addEventListener('click', () => {
-    if (musica?.fuente !== 'youtube' || plegado) return;
+    if (!musica || plegado) return;
+    // SoundCloud se achica y sigue sonando: no hay video que tenga que verse.
+    if (musica.fuente === 'soundcloud') {
+        plegado = true;
+        return aplicarVideo();
+    }
     const decision = plegarVideo(sonando);
     plegado = true;
     if (decision.pausar) {
         plegarAlPausar = true;
         musica.pausar();
     } else aplicarVideo();
+});
+$('musica-agrandar').addEventListener('click', () => {
+    if (musica?.fuente !== 'soundcloud') return;
+    plegado = false;
+    aplicarVideo();
 });
 $('musica-atrasar').addEventListener('click', () => musica?.mover?.(-PASO_SEGUNDOS));
 $('musica-adelantar').addEventListener('click', () => musica?.mover?.(PASO_SEGUNDOS));

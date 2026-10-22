@@ -252,13 +252,20 @@ a { color: var(--acento); text-decoration: none; }
 #pantalla-rimas .vacio { margin: 28px 8px; }
 
 /* Freestyle (freestyle_v2_A): el aro se llena de violeta y adentro van la palabra
-   y los segundos que quedan. Con un link el aro se achica para dejar la tarjeta.
-   En SwiftUI: Circle().trim. */
+   y los segundos que quedan. La palabra va siempre en una línea: si no entra, app.js
+   le achica la letra. Con un link, el aro ocupa todo el alto que sobra y la bandeja
+   queda pegada a la tarjeta del reproductor. En SwiftUI: Circle().trim. */
 @property --avance { syntax: '<number>'; inherits: false; initial-value: 0; }
-#pantalla-freestyle { --aro: 250px; --fs-palabra: 44px; --fs-cuenta: 20px; --fs-proxima: 20px; }
-#pantalla-freestyle.con-link { --aro: 200px; --fs-palabra: 38px; }
-#pantalla-freestyle.con-youtube { --aro: 150px; --fs-palabra: 30px; --fs-cuenta: 15px; --fs-proxima: 17px; }
+#pantalla-freestyle { --aro: 270px; --fs-palabra: 46px; --fs-cuenta: 20px; --fs-proxima: 20px; }
 .escenario-fs { width: var(--aro); height: var(--aro); margin: 4px auto 0; }
+#pantalla-freestyle.con-link .contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#pantalla-freestyle.con-link .escenario-fs {
+    flex: 1 1 0; min-height: 140px; width: 100%; height: auto; margin: 0; container-type: size;
+    display: flex; align-items: center; justify-content: center;
+}
+#pantalla-freestyle.con-link {
+    --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075);
+}
 .reloj {
     --avance: 0;
     width: var(--aro); height: var(--aro); border-radius: 50%;
@@ -273,7 +280,7 @@ a { color: var(--acento); text-decoration: none; }
 }
 .palabra-fs {
     margin: 0; max-width: 100%; font-size: var(--fs-palabra); font-weight: 700; letter-spacing: -1px;
-    line-height: 1; text-align: center; overflow-wrap: anywhere;
+    line-height: 1.1; text-align: center; white-space: nowrap;
 }
 .cuenta-fs { margin: 4px 0 0; font-size: var(--fs-cuenta); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto-2); line-height: 1; }
 .palabra-fs .tonica, .proxima-palabra .tonica { color: var(--destacado); text-decoration: none; }
@@ -296,6 +303,8 @@ a { color: var(--acento); text-decoration: none; }
 }
 .duraciones-fs::-webkit-scrollbar, .beats-fs::-webkit-scrollbar { display: none; }
 .duraciones-fs { flex: 1; }
+/* Las duraciones se reparten toda la bandeja, con el texto al medio de cada una. */
+.duraciones-fs .chip-fs { flex: 1 0 auto; justify-content: center; }
 .chip-fs {
     flex-shrink: 0; height: 36px; padding: 0 8px; border-radius: 16px;
     font-size: 15px; font-weight: 600; background: var(--celda); color: var(--texto);
@@ -320,8 +329,9 @@ a { color: var(--acento); text-decoration: none; }
 }
 #fs-elegir[hidden] { display: none; }
 #fs-link-aviso { margin: 8px 4px 0; }
+/* La tarjeta va 84 px arriba del borde y --alto-reproductor ya suma 24 de aire: quedan 12 entre bandeja y tarjeta. */
 #pantalla-freestyle.con-link .contenido {
-    padding-bottom: calc(24px + 92px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
+    padding-bottom: calc(72px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
 }
 .deslizador { flex: 1; min-width: 0; accent-color: var(--destacado); }
 /* Barra de la libreta con 10 puntos marcados abajo: al soltar, se imanta al más cercano. */
@@ -573,35 +583,34 @@ body.freestyle-link:not(.editando):not(.teclado-abierto) .reproductor:not([hidde
 }
 .reproductor-cuerpo { position: relative; z-index: 1; padding: 9px 12px 11px; display: flex; flex-direction: column; }
 .reproductor-principal { display: flex; align-items: center; gap: 6px; }
-.reproductor:not(.youtube) .reproductor-principal,
-.reproductor.plegado .reproductor-principal { height: 40px; }
-.reproductor.youtube:not(.plegado) .reproductor-principal { align-items: stretch; gap: 10px; }
-/* SoundCloud y YouTube plegado: una sola fila. Los contenedores se disuelven. */
-.reproductor:not(.youtube) .reproductor-lado,
-.reproductor.plegado .reproductor-lado,
-.reproductor:not(.youtube) .reproductor-acciones,
-.reproductor.plegado .reproductor-acciones { display: contents; }
+.reproductor:not(.grande) .reproductor-principal { height: 40px; }
+.reproductor.grande .reproductor-principal { align-items: stretch; gap: 10px; }
+/* Formato chico (SoundCloud en el editor o plegado, YouTube plegado): una sola fila.
+   Los contenedores se disuelven. */
+.reproductor:not(.grande) .reproductor-lado,
+.reproductor:not(.grande) .reproductor-acciones { display: contents; }
 .reproductor-lado { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
 .reproductor-datos { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .reproductor-titulo { font-size: 15px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .reproductor-fuente { font-size: 12px; line-height: 1.2; color: var(--texto-2); }
 /* 200×200: el viewport mínimo de YouTube. Radio 14, entero, sin nada encima.
-   Queda por encima de la zona táctil de la barra, que lo pisa 4 px por el margen. */
+   Queda por encima de la zona táctil de la barra, que lo pisa 4 px por el margen.
+   Con SoundCloud en Freestyle, en el mismo cuadro va la portada del tema. */
 .reproductor-marco { display: none; width: 200px; height: 200px; flex-shrink: 0; position: relative; z-index: 2; border-radius: 14px; overflow: hidden; background: #1d1e21; }
-.reproductor.youtube:not(.plegado) .reproductor-marco { display: block; }
+.reproductor.grande .reproductor-marco { display: block; }
 .reproductor-marco iframe { width: 200px; height: 200px; border: 0; display: block; }
-.reproductor.youtube:not(.plegado) .reproductor-acciones {
+.reproductor-marco img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.reproductor.grande .reproductor-acciones {
     display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 10px 0; width: 100%;
 }
-.reproductor.youtube:not(.plegado) #musica-play { grid-column: 1 / -1; grid-row: 1; justify-self: center; width: 52px; height: 52px; }
-.reproductor.youtube:not(.plegado) #musica-atrasar { grid-column: 1; grid-row: 2; justify-self: start; }
-.reproductor.youtube:not(.plegado) #musica-adelantar { grid-column: 2; grid-row: 2; justify-self: end; }
-.reproductor.youtube:not(.plegado) #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
-.reproductor.youtube:not(.plegado) #musica-cerrar { grid-column: 2; grid-row: 3; justify-self: end; }
+.reproductor.grande #musica-play { grid-column: 1 / -1; grid-row: 1; justify-self: center; width: 52px; height: 52px; }
+.reproductor.grande #musica-atrasar { grid-column: 1; grid-row: 2; justify-self: start; }
+.reproductor.grande #musica-adelantar { grid-column: 2; grid-row: 2; justify-self: end; }
+.reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
+.reproductor.grande #musica-cerrar { grid-column: 2; grid-row: 3; justify-self: end; }
 .reproductor.plegado #musica-atrasar,
 .reproductor.plegado #musica-adelantar,
-.reproductor:not(.youtube) #musica-plegar,
-#musica-plegar[hidden] { display: none; }
+#musica-plegar[hidden], #musica-agrandar[hidden] { display: none; }
 .boton-musica, .boton-play { border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
 .boton-musica { width: 36px; height: 36px; color: var(--texto); }
 .boton-cerrar { color: var(--texto-2); }
