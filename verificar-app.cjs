@@ -683,6 +683,11 @@ const servidor = http.createServer((req, res) => {
             await page.mouse.move(caja.x + caja.width / 2 - paso * 50, caja.y + caja.height / 2, {steps: 5});
             await page.mouse.up();
         };
+        // Parar una ronda: el resplandor de abajo pausa y la flecha vuelve todo al principio.
+        const pararFs = async () => {
+            await page.locator('#fs-pausar').click();
+            await page.locator('#fs-reiniciar').click();
+        };
         const elegirBeatFs = async id => {
             const genero = id.startsWith('trap') ? 'Trap' : 'Boombap';
             for (let i = 0; i < 4; i++) {
@@ -714,12 +719,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-beats [data-genero="Boombap"]').getAttribute('aria-checked'), 'false');
         await page.screenshot({path: `capturas/freestyle-beats-${tema}.png`});
         await elegirBeatFs('trap-clasico');
-        // Sin link, el cajón del link va abajo de todo, pegado a la barra de pestañas, del alto del reproductor de YouTube.
+        // Sin link, el cajón del link va abajo de todo, pegado a la barra de pestañas. Sin recientes es solo el campo.
         const cajonFs = await page.locator('#fs-cajon').boundingBox();
         const barraPestanas = await page.locator('#barra-pestanas').boundingBox();
         const aireLink = barraPestanas.y - (cajonFs.y + cajonFs.height);
         assert.ok(aireLink >= 4 && aireLink <= 14, `aire entre el cajón y la barra: ${aireLink}`);
-        assert.ok(Math.abs(cajonFs.height - 252) <= 2, `alto del cajón: ${cajonFs.height}`);
+        assert.ok(cajonFs.height <= 64, `sin recientes el cajón se achica: ${cajonFs.height}`);
         const campoLink = await page.locator('#fs-link').boundingBox();
         const okLink = await page.locator('#fs-pegar').boundingBox();
         const buscarLink = await page.locator('#fs-buscar').boundingBox();
@@ -727,8 +732,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-buscar').textContent(), 'Buscar');
         // El texto de ayuda entra entero en el campo.
         assert.ok(await page.locator('#fs-link').evaluate(e => { e.value = e.placeholder; const entra = e.scrollWidth <= e.clientWidth; e.value = ''; return entra; }), 'el texto del campo entra');
-        assert.equal((await page.locator('#fs-recientes-caja summary').textContent()).trim(), 'Recientes');
-        assert.equal(await page.locator('#fs-recientes button').count(), 0);
+        assert.equal(await page.locator('#fs-recientes-caja').isVisible(), false);
         await page.screenshot({path: `capturas/freestyle-cajon-${tema}.png`});
         assert.equal(await page.locator('#fs-pegar').textContent(), 'OK');
         assert.equal(await page.locator('#fs-link').getAttribute('placeholder'), 'SoundCloud / YouTube / Playlist');
@@ -738,7 +742,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-palabra .tonica').waitFor();
         const palabra1 = await page.locator('#fs-palabra').textContent();
         await page.locator('#fs-play').click();
-        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Parar');
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Pausar');
         await page.waitForFunction(() => {
             const [m, s] = document.getElementById('fs-cuenta').textContent.split(':').map(Number);
             return m * 60 + s <= 58;
@@ -763,15 +767,35 @@ const servidor = http.createServer((req, res) => {
         await page.waitForTimeout(400);
         assert.equal(await tituloFs.evaluate(e => getComputedStyle(e).visibility), 'hidden');
         const aroJugando = (await page.locator('#fs-reloj').boundingBox()).y;
-        // La flecha reinicia el cronómetro sin cortar la ronda.
-        await page.locator('#fs-reiniciar').click();
-        assert.match(await page.locator('#fs-cuenta').textContent(), /^(1:00|0:59)$/);
-        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Parar');
+        // Jugando, la bandeja de tiempos se hunde en el cajón de abajo y queda un resplandor chico.
+        const bandejaFs = page.locator('.bandeja-fs');
+        assert.equal(await bandejaFs.evaluate(e => getComputedStyle(e).opacity), '0');
+        assert.equal(await page.locator('#fs-play').isVisible(), false);
+        assert.equal(await page.locator('#fs-pausar').isVisible(), true);
+        await page.screenshot({path: `capturas/freestyle-sin-bandeja-${tema}.png`});
+        // Tocar el resplandor pausa: vuelve la bandeja y el reloj se frena.
+        await page.locator('#fs-pausar').click();
+        await page.waitForTimeout(450);
+        assert.equal(await bandejaFs.evaluate(e => getComputedStyle(e).opacity), '1');
+        assert.equal(await page.locator('#fs-pausar').isVisible(), false);
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
+        const enPausa = await page.locator('#fs-cuenta').textContent();
+        await page.waitForTimeout(1100);
+        assert.equal(await page.locator('#fs-cuenta').textContent(), enPausa, 'en pausa el reloj no sigue');
         // Todo entra en la bandeja: play, reiniciar y las 4 duraciones, sin scroll.
         assert.ok(await page.locator('#fs-duraciones').evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'las duraciones entran');
         const reiniciarCaja = await page.locator('#fs-reiniciar').boundingBox();
         const unMin = await page.locator('#fs-duraciones [data-duracion="60"]').boundingBox();
         assert.ok(reiniciarCaja.x + reiniciarCaja.width <= unMin.x, 'reiniciar va a la izquierda de 1 min');
+        await page.locator('#fs-play').click();
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Pausar');
+        await page.waitForFunction(c => document.getElementById('fs-cuenta').textContent !== c, enPausa);
+        // Tocar el círculo también pausa.
+        await page.waitForTimeout(400);
+        await page.locator('#fs-reloj').click();
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
+        await page.locator('#fs-play').click();
+        await page.waitForTimeout(400);
         // El resplandor late en los kicks del beat.
         assert.ok(Number(await page.locator('#fs-efecto').getAttribute('data-golpes')) > 2, 'late con el bombo');
         // En los mp3 los kicks se leen del audio.
@@ -795,14 +819,14 @@ const servidor = http.createServer((req, res) => {
         assert.ok(efectoCaja.width > aroCaja.width + 60 && efectoCaja.y < aroCaja.y - 40, 'las luces salen del aro');
         assert.ok(efectoCaja.x >= -1 && efectoCaja.x + efectoCaja.width <= 391, JSON.stringify(efectoCaja));
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
-        await page.locator('#fs-play').click();
+        await pararFs();
         // Una captura por beat, para ver la forma de cada mood.
         if (tema === 'dark') for (const id of ['boom-bap-clasico', 'boom-bap-jazz', 'trap-grave']) {
             await elegirBeatFs(id);
             await page.locator('#fs-play').click();
             await page.waitForTimeout(1500);
             await page.screenshot({path: `capturas/efecto-${id}.png`});
-            await page.locator('#fs-play').click();
+            await pararFs();
         }
         if (tema === 'dark') await elegirBeatFs('trap-clasico');
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
@@ -824,7 +848,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-play').click();
         await page.waitForTimeout(500);
         assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'con efectos en 0 no hay luces');
-        await page.locator('#fs-play').click();
+        await pararFs();
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         await page.locator('#cantidad-efectos').fill('10');
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
@@ -852,7 +876,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-play').click();
         await page.waitForFunction(() => document.documentElement.dataset.beatSonando === 'archivo');
         await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabraJazz, {timeout: 8000});
-        await page.locator('#fs-play').click();
+        await pararFs();
         assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
         // Un link que no sirve avisa y no abre el reproductor.
         await page.locator('#fs-link').fill('https://spotify.com/track/1');
@@ -890,7 +914,6 @@ const servidor = http.createServer((req, res) => {
         const plays = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
         assert.deepEqual(plays, ['musica-play']);
         const player = await page.locator('#reproductor').boundingBox();
-        assert.ok(Math.abs(player.height - cajonFs.height) <= 2 && Math.abs(player.y - cajonFs.y) <= 2, `el cajón ocupa lo mismo que el reproductor: ${JSON.stringify({player, cajonFs})}`);
         const tab = await page.locator('#barra-pestanas').boundingBox();
         assert.equal(Math.round(player.x), 16, JSON.stringify(player));
         assert.ok(player.y + player.height <= tab.y + 1, JSON.stringify({player, tab}));
@@ -1020,8 +1043,12 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         await page.unroute('https://soundcloud.com/oembed**').catch(() => {});
-        // Recientes: los últimos 3, con el título acortado y de dónde vienen.
-        assert.deepEqual(await page.locator('#fs-recientes button').allTextContents(), [
+        // Recientes: los últimos 3, con el título acortado y de dónde vienen. Con 3, el cajón llega como mucho al alto del reproductor.
+        assert.equal((await page.locator('#fs-recientes-caja summary').textContent()).trim(), 'Recientes');
+        const cajonLleno = await page.locator('#fs-cajon').boundingBox();
+        assert.ok(cajonLleno.height > 150 && cajonLleno.height <= 252, `alto del cajón con 3 recientes: ${cajonLleno.height}`);
+        assert.ok(Math.abs(cajonLleno.y + cajonLleno.height - (844 - 84)) <= 2, 'pegado arriba de la barra');
+        assert.deepEqual(await page.locator('#fs-recientes .usar-reciente').allTextContents(), [
             'Beat nube RAGE (SCLOUD)', 'Beat de prueba sad 88bpm (YT)', 'Beat de prueba sad 88bpm (YT)',
         ]);
         // Buscar: un beat del teléfono suena en el mismo reproductor y queda primero en recientes.
@@ -1034,12 +1061,27 @@ const servidor = http.createServer((req, res) => {
         await page.waitForFunction(() => document.getElementById('fs-cuenta').textContent !== '1:00');
         await page.screenshot({path: `capturas/freestyle-archivo-${tema}.png`});
         await page.locator('#musica-cerrar').click();
-        assert.equal((await page.locator('#fs-recientes button').first().textContent()), 'boom-bap-jazz (ARCHIVO)');
-        assert.equal(await page.locator('#fs-recientes button').count(), 3);
+        assert.equal((await page.locator('#fs-recientes .usar-reciente').first().textContent()), 'boom-bap-jazz (ARCHIVO)');
+        assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 3);
         // Tocar el reciente del teléfono lo vuelve a sacar de lo guardado.
-        await page.locator('#fs-recientes button').first().click();
+        await page.locator('#fs-recientes .usar-reciente').first().click();
         await page.locator('#reproductor-titulo', {hasText: 'boom-bap-jazz'}).waitFor();
         await page.locator('#musica-cerrar').click();
+        // Plegar «Recientes» achica el cajón, que sigue pegado a la barra.
+        const cajonAbierto = await page.locator('#fs-cajon').boundingBox();
+        await page.locator('#fs-recientes-caja summary').click();
+        const cajonPlegado = await page.locator('#fs-cajon').boundingBox();
+        assert.ok(cajonPlegado.height < cajonAbierto.height - 80, `${cajonAbierto.height} -> ${cajonPlegado.height}`);
+        assert.ok(Math.abs(cajonPlegado.y + cajonPlegado.height - (844 - 84)) <= 2, 'plegado sigue pegado a la barra');
+        await page.locator('#fs-recientes-caja summary').click();
+        // El título llega hasta el borde (se corta con «…») y la cruz borra el reciente.
+        const filaReciente = await page.locator('#fs-recientes li').first().boundingBox();
+        const cruzReciente = await page.locator('#fs-recientes .borrar-reciente').first().boundingBox();
+        assert.ok(cruzReciente.x + cruzReciente.width >= filaReciente.x + filaReciente.width - 1, 'la cruz va al borde derecho');
+        await page.screenshot({path: `capturas/freestyle-recientes-${tema}.png`});
+        await page.locator('#fs-recientes .borrar-reciente').first().click();
+        assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 2);
+        assert.ok(!(await page.locator('#fs-recientes .usar-reciente').allTextContents()).some(t => t.includes('ARCHIVO')));
 
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();
@@ -1144,7 +1186,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         await page.locator('#fs-play').click();
         await page.locator('#fs-palabra .tonica').waitFor();
-        await page.locator('#fs-play').click();
+        await pararFs();
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#nueva-letra').click();
         await page.locator('#editor-titulo').fill('Sin internet');

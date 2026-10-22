@@ -13,7 +13,7 @@ import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearEfecto } from './efectos.js';
 import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
-import { leerRecientes, agregarReciente, titularReciente, etiquetaReciente, tituloDeArchivo } from './logica/recientes.js';
+import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -847,10 +847,12 @@ function actualizarEfecto() {
     else efecto.apagar();
 }
 
+// El play de la bandeja: Empezar, Pausar (jugando) o Seguir (en pausa).
 function marcarSonando(activo) {
     $('pantalla-freestyle').classList.toggle('sonando', activo);
-    $('fs-play').setAttribute('aria-label', activo ? 'Parar' : 'Empezar');
-    $('fs-play').innerHTML = activo ? ICONO_PAUSA_FS : ICONO_PLAY_FS;
+    const enPausa = Boolean(ronda?.pausa);
+    $('fs-play').setAttribute('aria-label', !activo ? 'Empezar' : enPausa ? 'Seguir' : 'Pausar');
+    $('fs-play').innerHTML = activo && !enPausa ? ICONO_PAUSA_FS : ICONO_PLAY_FS;
 }
 
 function empezarBeat() {
@@ -898,6 +900,7 @@ function pausarRonda() {
     if (!ronda || ronda.pausa) return;
     ronda.pausa = performance.now();
     detenerBeat();
+    marcarSonando(true);
     actualizarEfecto();
 }
 
@@ -906,7 +909,16 @@ function reanudarRonda() {
     ronda.inicio += performance.now() - ronda.pausa;
     ronda.pausa = null;
     if (ronda.modo === 'beat' || ronda.modo === 'archivo') ronda.modo = arrancarSonido();
+    marcarSonando(true);
     actualizarEfecto();
+}
+
+// Pausar mientras se juega (el resplandor de abajo o el círculo). Con un link pausa el
+// reproductor, y la ronda lo sigue.
+function pausarJugando() {
+    if (!ronda || ronda.pausa) return;
+    if (linkFreestyle) return musica?.pausar?.();
+    pausarRonda();
 }
 
 function terminarRonda(porTiempo = false) {
@@ -1096,17 +1108,21 @@ function sumarReciente(reciente) {
 
 function renderizarRecientes() {
     const lista = leerRecientes(localStorage);
-    if (!lista.length) {
-        const vacio = document.createElement('li');
-        vacio.className = 'vacio-recientes';
-        vacio.textContent = 'Todavía no hay';
-        return $('fs-recientes').replaceChildren(vacio);
-    }
+    // Sin recientes no hay desplegable: el cajón es solo el campo.
+    $('fs-recientes-caja').hidden = !lista.length;
     $('fs-recientes').replaceChildren(...lista.map(reciente => {
         const fila = document.createElement('li');
         const boton = document.createElement('button');
         boton.type = 'button';
-        boton.textContent = etiquetaReciente(reciente);
+        boton.className = 'usar-reciente';
+        // El título llega hasta el borde y se corta con «…»; el sufijo siempre se ve.
+        const titulo = document.createElement('span');
+        titulo.className = 'titulo-reciente';
+        titulo.textContent = reciente.titulo || 'Sin título';
+        const sufijo = document.createElement('span');
+        sufijo.className = 'sufijo-reciente';
+        sufijo.textContent = ` (${sufijoReciente(reciente)})`;
+        boton.append(titulo, sufijo);
         boton.addEventListener('click', async () => {
             if (reciente.fuente !== 'archivo') {
                 $('fs-link').value = reciente.link;
@@ -1116,7 +1132,17 @@ function renderizarRecientes() {
             if (!archivo) return avisoFs('Ese archivo ya no está guardado: buscalo de nuevo.');
             usarArchivoFreestyle(archivo, reciente);
         });
-        fila.append(boton);
+        const borrar = document.createElement('button');
+        borrar.type = 'button';
+        borrar.className = 'borrar-reciente';
+        borrar.setAttribute('aria-label', `Borrar ${reciente.titulo || 'este reciente'} de recientes`);
+        borrar.innerHTML = '<svg viewBox="0 0 24 24" class="icono"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+        borrar.addEventListener('click', () => {
+            quitarReciente(localStorage, reciente);
+            if (reciente.fuente === 'archivo') borrarArchivo(reciente.id);
+            renderizarRecientes();
+        });
+        fila.append(boton, borrar);
         return fila;
     }));
 }
@@ -1143,23 +1169,23 @@ $('fs-archivo').addEventListener('change', async () => {
 });
 renderizarRecientes();
 
-$('fs-play').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
-// Vuelve el cronómetro al principio. La ronda y la música siguen como estaban.
+$('fs-play').addEventListener('click', () => {
+    if (!ronda) return empezarRonda();
+    if (ronda.pausa) return reanudarRonda();
+    pausarRonda();
+});
+$('fs-pausar').addEventListener('click', pausarJugando);
+$('fs-reloj').addEventListener('click', pausarJugando);
+// La bandeja solo se ve en pausa: ahí la flecha vuelve todo al principio (cronómetro y
+// palabras). Con un link, la música queda donde estaba.
 $('fs-reiniciar').addEventListener('click', () => {
     const boton = $('fs-reiniciar');
     boton.classList.remove('girando');
     void boton.offsetWidth;
     boton.classList.add('girando');
-    if (!ronda) {
-        if (!cola.length) asegurarCola();
-        return mostrarCuentaIdle();
-    }
-    const ahora = performance.now();
-    ronda.inicio = ahora;
-    if (ronda.pausa) ronda.pausa = ahora;
-    indicePalabra = 0;
-    if (ronda.modo === 'reloj') reiniciarBarraPalabra();
-    pintarCuenta(estadoRonda(ronda.inicio, ahora, ronda.duracion));
+    if (ronda) return terminarRonda();
+    if (!cola.length) asegurarCola();
+    mostrarCuentaIdle();
 });
 // OK usa el link del campo; si está vacío, prueba con lo copiado.
 $('fs-pegar').addEventListener('click', async () => {

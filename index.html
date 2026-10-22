@@ -122,6 +122,8 @@
 
         <!-- Freestyle: aro con la palabra y los segundos que quedan. Bandeja de play y duración. -->
         <section class="pantalla" id="pantalla-freestyle" data-pestana="freestyle">
+            <!-- Luces: ocupan toda la pantalla, detrás de todo, y se desvanecen antes de llegar abajo. -->
+            <canvas class="efecto-fs" id="fs-efecto" aria-hidden="true"></canvas>
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Freestyle</h1>
             <div class="contenido">
@@ -134,8 +136,6 @@
                             <p class="cuenta-fs" id="fs-cuenta">1:00</p>
                         </div>
                     </div>
-                    <!-- Luces al ritmo del beat: más grande que el aro, detrás de la palabra. -->
-                    <canvas class="efecto-fs" id="fs-efecto" aria-hidden="true"></canvas>
                 </div>
                 <div class="proximas">
                     <div class="proxima-item despues">
@@ -156,6 +156,8 @@
                     </button>
                     <div class="duraciones-fs" id="fs-duraciones" role="radiogroup" aria-label="Duración de la ronda"></div>
                 </div>
+                <!-- Jugando, la bandeja se esconde y queda este resplandor chico: tocarlo pausa. -->
+                <button type="button" class="pausar-fs" id="fs-pausar" aria-label="Pausar"></button>
                 <div id="fs-elegir">
                     <div class="beats-fs" id="fs-beats" role="radiogroup" aria-label="Beat"></div>
                 </div>

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerRecientes, agregarReciente, titularReciente, etiquetaReciente, tituloDeArchivo, MAXIMO_RECIENTES } from '../js/logica/recientes.js';
+import { leerRecientes, agregarReciente, titularReciente, etiquetaReciente, tituloDeArchivo, MAXIMO_RECIENTES, quitarReciente, sufijoReciente } from '../js/logica/recientes.js';
 
 function almacen() {
     const datos = new Map();
@@ -41,4 +41,14 @@ test('recientes: lo que no se entiende no rompe', () => {
     const a = almacen();
     a.setItem('metrica.recientes', 'no es json');
     assert.deepEqual(leerRecientes(a), []);
+});
+
+test('recientes: se pueden borrar de a uno', () => {
+    const a = almacen();
+    agregarReciente(a, { fuente: 'youtube', link: 'https://youtu.be/uno', titulo: 'Uno' });
+    agregarReciente(a, { fuente: 'archivo', id: 'f1', titulo: 'Mío' });
+    assert.equal(quitarReciente(a, { fuente: 'archivo', id: 'f1' }), true);
+    assert.deepEqual(leerRecientes(a).map(r => r.titulo), ['Uno']);
+    assert.equal(quitarReciente(a, { fuente: 'archivo', id: 'f1' }), false);
+    assert.equal(sufijoReciente({ fuente: 'soundcloud' }), 'SCLOUD');
 });

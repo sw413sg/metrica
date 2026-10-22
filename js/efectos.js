@@ -1,12 +1,14 @@
 // Luces del aro de Freestyle: resplandor que late con cada tiempo y partículas según el
-// mood (luciérnagas, rayos, brillos, polvo o rombos). El canvas es más grande que el aro:
-// las luces también llenan los costados y el aire de arriba. Canvas 2D, sin librerías.
+// mood (luciérnagas, rayos, brillos, polvo o rombos). El canvas ocupa toda la pantalla:
+// las partículas vuelan por todos lados y el resplandor queda alrededor del aro. Canvas 2D, sin librerías.
 // Qué mood y cuándo late lo decide js/logica/ambiente.js. En SwiftUI: Canvas + TimelineView.
 import { MOODS, brilloDeGolpe } from './logica/ambiente.js';
 
 // Una forma por tipo: luciérnagas (puntos con halo que vagan), polvo (granitos que suben),
 // rombos (giran despacio), brillos (estrellitas rápidas) y rayos (chispas que salen del aro).
+// Cantidades para un canvas de 390×420; en uno más grande van más, a la misma densidad.
 const CANTIDAD = { luciernagas: 26, polvo: 60, brillos: 34, rayos: 22, rombos: 16 };
+const AREA_BASE = 390 * 420;
 
 const azar = (min, max) => min + Math.random() * (max - min);
 
@@ -59,7 +61,8 @@ export function crearEfecto(canvas, aro) {
     }
     function sembrar() {
         if (!ancho) return;
-        particulas = Array.from({ length: Math.round((CANTIDAD[mood.particulas] ?? 20) * cantidad) }, () => nueva());
+        const densidad = Math.max(1, ancho * alto / AREA_BASE);
+        particulas = Array.from({ length: Math.round((CANTIDAD[mood.particulas] ?? 20) * cantidad * densidad) }, () => nueva());
     }
 
     // Con el beat late solo el resplandor (pedido de Swa): las partículas van a su ritmo.
