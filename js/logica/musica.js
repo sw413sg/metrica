@@ -27,9 +27,40 @@ export function leerLink(texto) {
     }
     if (host === 'soundcloud.com' || host === 'on.soundcloud.com') {
         if (url.pathname.split('/').filter(Boolean).length === 0) return null;
+        // Sin ?si= ni utm: el widget abre la canción por el path. m.soundcloud.com
+        // ya quedó en soundcloud.com (arriba). El link corto se resuelve aparte.
         return { fuente: 'soundcloud', url: `https://${host}${url.pathname}` };
     }
     return null;
+}
+
+function urlDeSoundCloud(texto) {
+    let url;
+    try { url = new URL(texto); } catch { return null; }
+    if (url.protocol !== 'https:' || url.username) return null;
+    const host = url.hostname.replace(/^(www|m|music)\./, '');
+    if ((host !== 'api.soundcloud.com' && host !== 'soundcloud.com') || !url.pathname.split('/').filter(Boolean).length) return null;
+    return url.href;
+}
+
+// El reproductor oficial no abre los links cortos de la app (on.soundcloud.com/…):
+// w.soundcloud.com/player/?url=… responde 404, no carga el arranque y el widget
+// dispara ERROR («No se pudo reproducir»). oEmbed los cambia por
+// api.soundcloud.com/tracks/id y el navegador puede pedirlo (manda
+// Access-Control-Allow-Origin). Seguir el 302 no se puede: on.soundcloud.com
+// no manda CORS. Un link largo no pasa por acá.
+export async function resolverLinkSoundCloud(url, pedir = globalThis.fetch) {
+    let host;
+    try { host = new URL(url).hostname.replace(/^(www|m|music)\./, ''); } catch { return url; }
+    if (host !== 'on.soundcloud.com') return url;
+    const respuesta = await pedir(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`);
+    if (!respuesta.ok) throw new Error('soundcloud');
+    const datos = await respuesta.json();
+    const src = String(datos?.html ?? '').match(/src="([^"]+)"/i)?.[1]?.replace(/&amp;/g, '&');
+    const directa = src && new URL(src, 'https://w.soundcloud.com').searchParams.get('url');
+    const canonica = directa && urlDeSoundCloud(directa);
+    if (!canonica) throw new Error('soundcloud');
+    return canonica;
 }
 
 // Adelantar o atrasar sin pasarse del principio ni del final (en segundos).

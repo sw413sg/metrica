@@ -324,6 +324,40 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-play').click();
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         await page.locator('#musica-cerrar').click();
+        // El link corto de la app (on.soundcloud.com) se resuelve por oEmbed antes del widget.
+        // ?si=, utm y m.soundcloud.com no: el widget recibe el path en soundcloud.com.
+        const pedidosOembed = [];
+        await page.route('https://soundcloud.com/oembed**', ruta => {
+            pedidosOembed.push(new URL(ruta.request().url()).searchParams.get('url'));
+            return ruta.fulfill({contentType: 'application/json', body: JSON.stringify({
+                html: '<iframe src="https://w.soundcloud.com/player/?visual=true&url=https%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F2416843668&amp;show_artwork=true"></iframe>',
+            })});
+        });
+        await page.locator('#abrir-musica').click();
+        await page.locator('#link-musica').fill('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ');
+        await page.locator('#escuchar-musica').click();
+        await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
+        const srcCorto = new URL(await page.locator('#reproductor-oculto iframe').getAttribute('src'));
+        assert.equal(srcCorto.searchParams.get('url'), 'https://api.soundcloud.com/tracks/2416843668');
+        assert.equal(srcCorto.searchParams.get('auto_play'), 'false');
+        assert.deepEqual(pedidosOembed, ['https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ']);
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        await page.locator('#musica-cerrar').click();
+        for (const [link, canonica] of [
+            ['https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr?si=3F1AE1E53E9D468E99ECFEE926575E8D&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing', 'https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr'],
+            ['https://m.soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr?si=abc', 'https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr'],
+        ]) {
+            await page.locator('#abrir-musica').click();
+            await page.locator('#link-musica').fill(link);
+            await page.locator('#escuchar-musica').click();
+            await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
+            const src = new URL(await page.locator('#reproductor-oculto iframe').getAttribute('src'));
+            assert.equal(src.searchParams.get('url'), canonica, link);
+            assert.equal(await page.evaluate(() => window.__sc.paused), false, link);
+            await page.locator('#musica-cerrar').click();
+        }
+        assert.deepEqual(pedidosOembed, ['https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ']);
+        await page.unroute('https://soundcloud.com/oembed**');
         // Si salís del editor mientras SoundCloud carga, el READY no tiene que dar play.
         await page.unroute('https://w.soundcloud.com/player/api.js');
         await page.evaluate(() => { delete window.SC; });
