@@ -272,15 +272,16 @@ a { color: var(--acento); text-decoration: none; }
     --avance: 0;
     position: relative; z-index: 1;
     width: var(--aro); height: var(--aro); border-radius: 50%;
-    background: var(--vidrio); border: 1px solid var(--vidrio-borde);
-    box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--sombra-vidrio);
+    background: var(--vidrio);
+    box-shadow: inset 0 1px 0 var(--vidrio-brillo);
     -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
     display: flex; align-items: center; justify-content: center;
     transition: --avance .2s linear;
 }
 .reloj::before {
-    content: ''; position: absolute; inset: -1px; border-radius: 50%;
-    background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0);
+    /* El borde también es vidrio: lo que falta de la ronda deja ver las luces borrosas. */
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--vidrio-borde) 0);
     -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 12.5px), #000 calc(100% - 12px));
     mask: radial-gradient(farthest-side, transparent calc(100% - 12.5px), #000 calc(100% - 12px));
 }
