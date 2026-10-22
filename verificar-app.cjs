@@ -263,7 +263,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'YouTube · en pausa');
         assert.equal((await page.locator('#musica-mostrar').textContent()).trim(), 'Mostrar video para reproducir');
         // Achicado, la tarjeta explica por qué YouTube no puede seguir sonando.
-        assert.equal(await page.locator('#musica-nota-youtube').textContent(), 'Los videos de YouTube no se pueden minimizar por política de YouTube.');
+        assert.equal(await page.locator('#musica-nota-youtube').textContent(), 'Los videos no se pueden minimizar por política de YouTube');
         assert.equal(await page.locator('#musica-nota-youtube').isVisible(), true);
         const plegado = await page.locator('#reproductor').boundingBox();
         assert.ok(Math.abs(plegado.height - 184) <= 4, JSON.stringify(plegado.height));
@@ -719,9 +719,11 @@ const servidor = http.createServer((req, res) => {
         const barraPestanas = await page.locator('#barra-pestanas').boundingBox();
         const aireLink = barraPestanas.y - (campoLink.y + campoLink.height);
         assert.ok(aireLink >= 4 && aireLink <= 14, `aire entre el link y la barra: ${aireLink}`);
-        assert.ok(campoLink.height >= 52, `alto del campo: ${campoLink.height}`);
+        assert.ok(campoLink.height >= 50 && campoLink.height <= 56, `alto del campo: ${campoLink.height}`);
+        const centroTexto = await page.locator("#fs-link").boundingBox();
+        assert.ok(Math.abs(centroTexto.y + centroTexto.height / 2 - (campoLink.y + campoLink.height / 2)) <= 2, "texto centrado en el campo");
         assert.equal(await page.locator('#fs-pegar').textContent(), 'OK');
-        assert.equal(await page.locator('#fs-link').getAttribute('placeholder'), 'SoundCloud / YouTube / playlist');
+        assert.equal(await page.locator('#fs-link').getAttribute('placeholder'), 'SoundCloud / YouTube / Playlist');
         assert.ok(await page.locator('#fs-link').evaluate(e => e.scrollHeight <= e.clientHeight + 1), 'el texto del campo entra');
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         assert.equal(await page.locator('#reproductor').isVisible(), false);
