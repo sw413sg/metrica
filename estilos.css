@@ -297,7 +297,7 @@ a { color: var(--acento); text-decoration: none; }
 .duraciones-fs::-webkit-scrollbar, .beats-fs::-webkit-scrollbar { display: none; }
 .duraciones-fs { flex: 1; }
 .chip-fs {
-    flex-shrink: 0; height: 36px; padding: 0 10px; border-radius: 16px;
+    flex-shrink: 0; height: 36px; padding: 0 8px; border-radius: 16px;
     font-size: 15px; font-weight: 600; background: var(--celda); color: var(--texto);
     display: inline-flex; align-items: center;
 }

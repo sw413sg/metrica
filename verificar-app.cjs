@@ -647,9 +647,12 @@ const servidor = http.createServer((req, res) => {
 
         // Freestyle: bandeja de duración, beats, el reloj cuenta para atrás y el aro se llena.
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
-        assert.equal(await page.locator('.linea-compas, #fs-proxima, #fs-bpm, #fs-tiempos, #fs-empezar').count(), 0);
-        assert.equal(await page.getByText('Tocá').count(), 0);
-        assert.equal(await page.getByText(/Compás/).count(), 0);
+        const pantallaFs = page.locator('#pantalla-freestyle');
+        for (const sel of ['.linea-compas', '#fs-proxima', '#fs-bpm', '#fs-tiempos', '#fs-empezar']) {
+            assert.equal(await pantallaFs.locator(sel).count(), 0, sel);
+        }
+        assert.equal(await pantallaFs.getByText('Tocá').count(), 0);
+        assert.equal(await pantallaFs.getByText(/Compás/).count(), 0);
         assert.deepEqual(await page.locator('#fs-duraciones .chip-fs').allTextContents(), ['1 min', '1:30', '2 min', '★ Ilimitado']);
         assert.equal(await page.locator('#fs-duraciones [data-duracion="60"]').getAttribute('aria-checked'), 'true');
         assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
@@ -661,7 +664,8 @@ const servidor = http.createServer((req, res) => {
         const ilimitado = page.locator('#fs-duraciones [data-duracion="ilimitado"]');
         assert.equal(await ilimitado.getAttribute('aria-disabled'), 'true');
         assert.equal(await ilimitado.getAttribute('aria-checked'), 'false');
-        await ilimitado.click();
+        // aria-disabled no frena el toque en el navegador: abre el paywall. Playwright sí lo trata como deshabilitado.
+        await ilimitado.click({ force: true });
         assert.equal(await page.locator('#paywall').isVisible(), true);
         await page.locator('#cerrar-paywall').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
@@ -768,15 +772,15 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-link').fill('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ');
         await page.locator('#fs-link').press('Enter');
         await page.locator('#reproductor-titulo', {hasText: 'Beat nube'}).waitFor();
-        const srcCorto = new URL(await page.locator('#reproductor-oculto iframe').getAttribute('src'));
-        assert.equal(srcCorto.searchParams.get('url'), 'https://api.soundcloud.com/tracks/2416843668');
+        const srcBeat = new URL(await page.locator('#reproductor-oculto iframe').getAttribute('src'));
+        assert.equal(srcBeat.searchParams.get('url'), 'https://api.soundcloud.com/tracks/2416843668');
         assert.equal(await page.locator('#fs-play').isVisible(), false);
         assert.equal(await page.locator('#musica-play').isVisible(), true);
         const playsNube = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
         assert.deepEqual(playsNube, ['musica-play']);
-        const nube = await page.locator('#reproductor').boundingBox();
+        const beatNube = await page.locator('#reproductor').boundingBox();
         const tabNube = await page.locator('#barra-pestanas').boundingBox();
-        assert.ok(nube.y + nube.height <= tabNube.y + 1, JSON.stringify({nube, tabNube}));
+        assert.ok(beatNube.y + beatNube.height <= tabNube.y + 1, JSON.stringify({beatNube, tabNube}));
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         await page.unroute('https://soundcloud.com/oembed**').catch(() => {});
