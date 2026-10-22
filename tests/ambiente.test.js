@@ -87,3 +87,19 @@ test('los kicks se encuentran en el audio y caen en su paso', async () => {
     assert.deepEqual(pasosDeBombo(new Float32Array(100), frecuencia, bpm), []);
     assert.deepEqual(pasosDeBombo(null, frecuencia, bpm), []);
 });
+
+test('todas las luces van en violetas', () => {
+    const tono = hex => {
+        const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+        const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+        if (!d) return null;
+        const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        return (h * 60 + 360) % 360;
+    };
+    for (const [id, mood] of Object.entries(MOODS)) {
+        for (const color of mood.colores) {
+            const h = tono(color);
+            assert.ok(h >= 235 && h <= 290, `${id} ${color} ${h}`);
+        }
+    }
+});

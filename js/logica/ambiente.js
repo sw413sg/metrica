@@ -4,17 +4,18 @@
 // En SwiftUI: Canvas + TimelineView(.animation).
 
 // Cada mood: colores, qué partículas vuelan y cuánto se mueven (1 = normal).
+// Todos van en violetas (pedido de Swa): el mood se distingue por la forma, no por el color.
 export const MOODS = {
-    sad: { nombre: 'Sad', colores: ['#5b8def', '#8fb4ff', '#b7c8f5'], particulas: 'luciernagas', velocidad: 0.5 },
-    rage: { nombre: 'Rage', colores: ['#ff3b30', '#ff7a1a', '#ffd23f'], particulas: 'rayos', velocidad: 1.8 },
-    hyperpop: { nombre: 'Hyperpop', colores: ['#ff4fd8', '#3ff2ff', '#c6ff3f'], particulas: 'brillos', velocidad: 1.6 },
-    boombap: { nombre: 'Boom bap', colores: ['#f2b25c', '#d98b3a', '#fff0c9'], particulas: 'polvo', velocidad: 0.7 },
+    sad: { nombre: 'Sad', colores: ['#8f86ff', '#b8b0ff', '#6e66d9'], particulas: 'luciernagas', velocidad: 0.5 },
+    rage: { nombre: 'Rage', colores: ['#a855ff', '#c77dff', '#7b3fe4'], particulas: 'rayos', velocidad: 1.8 },
+    hyperpop: { nombre: 'Hyperpop', colores: ['#c86bff', '#e0a8ff', '#9b7bff'], particulas: 'brillos', velocidad: 1.6 },
+    boombap: { nombre: 'Boom bap', colores: ['#9b7bff', '#c3b2ff', '#7d5cff'], particulas: 'polvo', velocidad: 0.7 },
     trap: { nombre: 'Trap', colores: ['#9b7bff', '#c86bff', '#6b5bff'], particulas: 'rombos', velocidad: 1.1 },
-    drill: { nombre: 'Drill', colores: ['#7fd1ff', '#d9f2ff', '#4a7bd1'], particulas: 'rayos', velocidad: 1.3 },
-    lofi: { nombre: 'Lo-fi', colores: ['#ffb38a', '#ffd6a5', '#c3a6ff'], particulas: 'luciernagas', velocidad: 0.4 },
-    love: { nombre: 'Love', colores: ['#ff6f91', '#ff9ec4', '#ffc2d1'], particulas: 'luciernagas', velocidad: 0.6 },
-    reggaeton: { nombre: 'Reggaetón', colores: ['#ffcf3f', '#ff7a59', '#3fe0b5'], particulas: 'brillos', velocidad: 1.2 },
-    neutro: { nombre: 'Freestyle', colores: ['#9b7bff', '#c3b2ff', '#ffffff'], particulas: 'luciernagas', velocidad: 0.8 },
+    drill: { nombre: 'Drill', colores: ['#8f86ff', '#c3b2ff', '#5e4fd1'], particulas: 'rayos', velocidad: 1.3 },
+    lofi: { nombre: 'Lo-fi', colores: ['#b49cff', '#d6c8ff', '#9b7bff'], particulas: 'luciernagas', velocidad: 0.4 },
+    love: { nombre: 'Love', colores: ['#b77bff', '#d9b2ff', '#9b6bff'], particulas: 'luciernagas', velocidad: 0.6 },
+    reggaeton: { nombre: 'Reggaetón', colores: ['#a86bff', '#d0a8ff', '#8a5cff'], particulas: 'brillos', velocidad: 1.2 },
+    neutro: { nombre: 'Freestyle', colores: ['#9b7bff', '#c3b2ff', '#e5dcff'], particulas: 'luciernagas', velocidad: 0.8 },
 };
 
 // Palabras del título que deciden el mood, en orden: gana la primera que aparece en esta
