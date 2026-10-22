@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BEATS, CATALOGO_BEATS, DURACIONES, PASOS_POR_COMPAS, COMPASES_POR_RONDA, msPorTiempo, msPorPaso, sonidosDelPaso, tiempoDelPaso, cambiaLaPalabra,
     estadoCompas, proximasPalabras, avanzarPalabras, silabaFuerte, segundosRestantes, formatoReloj, estadoRonda,
-    elegirDuracion, etiquetaBeat, patronDeBeat, archivoDeBeat, segundosDeLoop, fuenteFreestyle, playEnBandeja, GENEROS_BEAT, beatsDeGenero, beatVecino } from '../js/logica/freestyle.js';
+    elegirDuracion, etiquetaBeat, patronDeBeat, archivoDeBeat, segundosDeLoop, fuenteFreestyle, playEnBandeja, GENEROS_BEAT, beatsDeGenero, beatVecino, msPorPalabra } from '../js/logica/freestyle.js';
 
 test('msPorTiempo y msPorPaso', () => {
     assert.equal(msPorTiempo(90), 60000 / 90);
@@ -151,4 +151,9 @@ test('deslizar el botón de un género pasa al beat de al lado, sin dar la vuelt
     assert.equal(beatVecino('boom-bap-bateria', -1), 'boom-bap-bateria');
     assert.equal(beatVecino('trap-grave', -1), 'trap-seco');
     assert.equal(beatVecino('no-esta', 1), CATALOGO_BEATS[0].id);
+});
+
+test('cada palabra dura 2 compases del beat: la barrita se vacía en ese tiempo', () => {
+    assert.equal(msPorPalabra(90, 2), 8 * 60000 / 90);
+    assert.equal(msPorPalabra(140, 2), 8 * 60000 / 140);
 });
