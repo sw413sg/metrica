@@ -1,11 +1,12 @@
 // Luces del aro de Freestyle: resplandor que late con cada tiempo y partículas según el
-// mood (luciérnagas, rayos, brillos, polvo o anillos). El canvas es más grande que el aro:
+// mood (luciérnagas, rayos, brillos, polvo o rombos). El canvas es más grande que el aro:
 // las luces también llenan los costados y el aire de arriba. Canvas 2D, sin librerías.
 // Qué mood y cuándo late lo decide js/logica/ambiente.js. En SwiftUI: Canvas + TimelineView.
 import { MOODS, brilloDeGolpe } from './logica/ambiente.js';
 
-// Anillos (trap) flotan como luciérnagas; el polvo sube y los brillos son estrellitas.
-const CANTIDAD = { luciernagas: 26, polvo: 40, brillos: 34, rayos: 16, anillos: 18 };
+// Una forma por tipo: luciérnagas (puntos con halo que vagan), polvo (granitos que suben),
+// rombos (giran despacio), brillos (estrellitas rápidas) y rayos (chispas que salen del aro).
+const CANTIDAD = { luciernagas: 26, polvo: 60, brillos: 34, rayos: 22, rombos: 16 };
 
 const azar = (min, max) => min + Math.random() * (max - min);
 
@@ -50,6 +51,11 @@ export function crearEfecto(canvas, aro) {
             tam: azar(1.2, 3.4), fase: azar(0, Math.PI * 2),
             color: mood.colores[Math.floor(Math.random() * mood.colores.length)],
         };
+    }
+    // Un punto en el borde del aro (de ahí salen las chispas).
+    function enElAro() {
+        const angulo = azar(0, Math.PI * 2);
+        return { x: cx + Math.cos(angulo) * r * 1.02, y: cy + Math.sin(angulo) * r * 1.02 };
     }
     function sembrar() {
         if (!ancho) return;
@@ -108,21 +114,20 @@ export function crearEfecto(canvas, aro) {
         // En claro, el color pesa más sobre el fondo: va más suave.
         const fuerza = encendido * (oscuro ? 1 : 0.6) * (0.3 + 0.7 * cantidad);
 
-        // Resplandor alrededor del aro: sale hacia afuera y se desvanece, como un blur.
-        const halo = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * (1.7 + 0.25 * brillo));
+        // Resplandor solo afuera del aro (pedido de Swa): no se ve en el vidrio del círculo.
+        // Sale del borde hacia afuera y se desvanece, como un blur.
+        const halo = ctx.createRadialGradient(cx, cy, r, cx, cy, r * (1.7 + 0.25 * brillo));
         halo.addColorStop(0, conAlfa(mood.colores[0], (0.2 + 0.35 * brillo) * fuerza));
         halo.addColorStop(0.45, conAlfa(mood.colores[1], (0.06 + 0.15 * brillo) * fuerza));
         halo.addColorStop(1, conAlfa(mood.colores[1], 0));
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, ancho, alto);
+        ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+        ctx.clip('evenodd');
         ctx.fillStyle = halo;
         ctx.fillRect(0, 0, ancho, alto);
-        // Y adentro, solo contra el borde, para no tapar la palabra.
-        const adentro = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r * 0.9);
-        adentro.addColorStop(0, conAlfa(mood.colores[0], 0));
-        adentro.addColorStop(1, conAlfa(mood.colores[0], (0.05 + 0.15 * brillo) * fuerza));
-        ctx.fillStyle = adentro;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.restore();
 
         if (!quieto.matches) {
             quizasRayo(ahora, dt);
@@ -138,6 +143,12 @@ export function crearEfecto(canvas, aro) {
         if (mood.particulas === 'polvo') {
             p.y -= 0.4 * v;
             p.x += Math.sin(p.fase + p.y / 30) * 0.2 * v;
+        } else if (mood.particulas === 'rayos') {
+            // Chispas: salen del aro hacia afuera, rápido.
+            const angulo = Math.atan2(p.y - cy, p.x - cx);
+            p.x += Math.cos(angulo) * 2.2 * v; p.y += Math.sin(angulo) * 2.2 * v;
+        } else if (mood.particulas === 'rombos') {
+            p.x += p.vx * 0.3 * v; p.y += p.vy * 0.3 * v;
         } else if (mood.particulas === 'brillos') {
             p.x += p.vx * 1.2 * v; p.y += p.vy * 1.2 * v;
             p.vx *= 0.96; p.vy *= 0.96;
@@ -149,7 +160,7 @@ export function crearEfecto(canvas, aro) {
         }
         p.fase += 0.04 * v;
         // Si se va del canvas, aparece en otro lado (el polvo, desde abajo).
-        if (p.x < -10 || p.x > ancho + 10 || p.y < -10 || p.y > alto + 10) Object.assign(p, nueva(mood.particulas === 'polvo'));
+        if (p.x < -10 || p.x > ancho + 10 || p.y < -10 || p.y > alto + 10) Object.assign(p, nueva(mood.particulas === 'polvo'), mood.particulas === 'rayos' ? enElAro() : {});
         const titila = 0.45 + 0.35 * Math.sin(p.fase * 3);
         // Cerca de la palabra se apagan, para que se lea.
         const cerca = Math.hypot(p.x - cx, p.y - cy) < r * 0.6 ? 0.25 : 1;
@@ -158,6 +169,32 @@ export function crearEfecto(canvas, aro) {
         if (mood.particulas === 'brillos') {
             ctx.fillStyle = conAlfa(p.color, alfa);
             estrella(p.x, p.y, tam * 1.6);
+        } else if (mood.particulas === 'polvo') {
+            // Granito de polvo, sin halo, como el ruido de un vinilo.
+            ctx.fillStyle = conAlfa(p.color, alfa * 0.9);
+            ctx.fillRect(p.x, p.y, tam * 0.7, tam * 0.7);
+        } else if (mood.particulas === 'rayos') {
+            // Chispa: un trazo corto en la dirección en que sale.
+            const angulo = Math.atan2(p.y - cy, p.x - cx);
+            ctx.strokeStyle = conAlfa(p.color, alfa);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - Math.cos(angulo) * tam * 5, p.y - Math.sin(angulo) * tam * 5);
+            ctx.stroke();
+        } else if (mood.particulas === 'rombos') {
+            // Rombo que gira despacio, solo el contorno.
+            const lado = tam * 2.6;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.fase);
+            ctx.strokeStyle = conAlfa(p.color, alfa);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(0, -lado); ctx.lineTo(lado * 0.6, 0); ctx.lineTo(0, lado); ctx.lineTo(-lado * 0.6, 0);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
         } else {
             // Luciérnaga: punto con halo.
             const luz = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, tam * 4);

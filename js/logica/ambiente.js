@@ -1,6 +1,6 @@
 // Ambiente del aro de Freestyle: luces que laten con el beat y cambian según el mood.
 // El mood sale del título del link (YouTube o SoundCloud) o del género del beat propio.
-// Sin DOM: acá solo se decide qué mood, a qué BPM y cuánto brilla en cada momento.
+// Sin DOM: acá solo se decide qué mood, dónde están los kicks y cuánto brilla cada golpe.
 // En SwiftUI: Canvas + TimelineView(.animation).
 
 // Cada mood: colores, qué partículas vuelan y cuánto se mueven (1 = normal).
@@ -9,7 +9,7 @@ export const MOODS = {
     rage: { nombre: 'Rage', colores: ['#ff3b30', '#ff7a1a', '#ffd23f'], particulas: 'rayos', velocidad: 1.8 },
     hyperpop: { nombre: 'Hyperpop', colores: ['#ff4fd8', '#3ff2ff', '#c6ff3f'], particulas: 'brillos', velocidad: 1.6 },
     boombap: { nombre: 'Boom bap', colores: ['#f2b25c', '#d98b3a', '#fff0c9'], particulas: 'polvo', velocidad: 0.7 },
-    trap: { nombre: 'Trap', colores: ['#9b7bff', '#c86bff', '#6b5bff'], particulas: 'anillos', velocidad: 1.1 },
+    trap: { nombre: 'Trap', colores: ['#9b7bff', '#c86bff', '#6b5bff'], particulas: 'rombos', velocidad: 1.1 },
     drill: { nombre: 'Drill', colores: ['#7fd1ff', '#d9f2ff', '#4a7bd1'], particulas: 'rayos', velocidad: 1.3 },
     lofi: { nombre: 'Lo-fi', colores: ['#ffb38a', '#ffd6a5', '#c3a6ff'], particulas: 'luciernagas', velocidad: 0.4 },
     love: { nombre: 'Love', colores: ['#ff6f91', '#ff9ec4', '#ffc2d1'], particulas: 'luciernagas', velocidad: 0.6 },
@@ -48,18 +48,15 @@ export function moodDeTitulo(titulo) {
     return PISTAS.find(([, pistas]) => pistas.some(p => aparece(texto, p)))?.[0] ?? 'neutro';
 }
 
-// Los beats propios ya dicen su género.
+// Los beats propios: Jazz va con luciérnagas de lo-fi, Grave (oscuro, de drill) con rayos
+// y el resto según su género.
 export function moodDeBeat(beat) {
+    if (beat?.id === 'boom-bap-jazz') return 'lofi';
+    if (beat?.id === 'trap-grave') return 'drill';
     const genero = normalizar(beat?.genero);
     if (genero.includes('boom')) return 'boombap';
     if (genero.includes('trap')) return 'trap';
     return 'neutro';
-}
-
-// "Beat 140 BPM", "88bpm" -> 140, 88. null si el título no lo dice o es raro.
-export function bpmDeTitulo(titulo) {
-    const numero = Number(normalizar(titulo).match(/(\d{2,3})\s*bpm/)?.[1]);
-    return numero >= 50 && numero <= 220 ? numero : null;
 }
 
 // Cantidad de efectos, de 0 (apagados) a 10 (todos). Se elige en Ajustes > Freestyle.

@@ -11,7 +11,7 @@ import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibret
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearEfecto } from './efectos.js';
-import { moodDeTitulo, moodDeBeat, bpmDeTitulo, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
+import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
 import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
@@ -415,7 +415,6 @@ let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segu
 let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = false;
 let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
-let actualEn = 0; // cuándo se leyó `actual` (performance.now), para seguir contando entre lecturas
 
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
 if (window.visualViewport) {
@@ -810,10 +809,10 @@ $('cantidad-efectos').addEventListener('input', () => {
 });
 aplicarCantidadEfectos();
 function ambienteActual() {
+    // Con un link el resplandor no late: el audio de YouTube y SoundCloud no se puede leer.
     if (linkFreestyle) {
         const titulo = musica ? $('reproductor-titulo').textContent : '';
-        const bpm = bpmDeTitulo(titulo) ?? BPM_FS;
-        return { mood: moodDeTitulo(titulo), bpm, reloj: () => sonando ? tiemposEn(posicionMusica(), bpm) : null };
+        return { mood: moodDeTitulo(titulo), reloj: null };
     }
     const { beat } = fuenteFreestyle({ beatId });
     const bpm = archivoDeBeat(beat.id)?.bpm ?? BPM_FS;
@@ -1184,11 +1183,6 @@ function avisoMusica(texto) {
     $('musica-aviso').hidden = !texto;
 }
 
-// Dónde va el tema ahora: la última lectura más lo que pasó desde entonces (como mucho 1 s).
-function posicionMusica() {
-    return actual + Math.min(1, (performance.now() - actualEn) / 1000);
-}
-
 function seguirProgreso(leer) {
     clearInterval(progresoTimer);
     progresoTimer = setInterval(leer, 250);
@@ -1197,7 +1191,6 @@ function seguirProgreso(leer) {
 function anotarTiempo(segundos, total = duracion) {
     if (arrastrando) return;
     actual = Math.max(0, Number(segundos) || 0);
-    actualEn = performance.now();
     if (total > 0) duracion = total;
     pintarProgreso();
 }
