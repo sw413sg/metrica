@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, urlWidgetSoundCloud } from '../js/logica/musica.js';
+import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, urlWidgetSoundCloud, resolverLinkSoundCloud } from '../js/logica/musica.js';
 
 test('links de YouTube en todas sus formas', () => {
     const esperado = { fuente: 'youtube', id: 'dQw4w9WgXcQ', inicio: 0 };
@@ -21,8 +21,55 @@ test('YouTube con minuto de inicio', () => {
 
 test('links de SoundCloud', () => {
     assert.deepEqual(leerLink('https://soundcloud.com/artista/tema?si=abc&utm_source=x'), { fuente: 'soundcloud', url: 'https://soundcloud.com/artista/tema' });
+    assert.deepEqual(leerLink('https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr?ref=clipboard&p=i&c=1&si=3F1AE1E53E9D468E99ECFEE926575E8D&utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing'), { fuente: 'soundcloud', url: 'https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr' });
     assert.deepEqual(leerLink('https://m.soundcloud.com/artista/tema'), { fuente: 'soundcloud', url: 'https://soundcloud.com/artista/tema' });
+    assert.deepEqual(leerLink('https://m.soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr?si=abc'), { fuente: 'soundcloud', url: 'https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr' });
     assert.deepEqual(leerLink('https://on.soundcloud.com/AbC123'), { fuente: 'soundcloud', url: 'https://on.soundcloud.com/AbC123' });
+    assert.deepEqual(leerLink('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ'), { fuente: 'soundcloud', url: 'https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ' });
+    assert.deepEqual(leerLink('https://www.on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ?si=abc&utm_source=clipboard'), { fuente: 'soundcloud', url: 'https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ' });
+});
+
+test('el link corto de la app se resuelve por oEmbed', async () => {
+    const pedidos = [];
+    const pedir = async (url) => {
+        pedidos.push(url);
+        return {
+            ok: true,
+            async json() {
+                return {
+                    title: 'TenchnoSad_88bpm-F# ambkr by swa',
+                    html: '<iframe width="100%" height="400" scrolling="no" frameborder="no" src="https://w.soundcloud.com/player/?visual=true&url=https%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F2416843668&amp;show_artwork=true"></iframe>',
+                };
+            },
+        };
+    };
+    const corto = 'https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ';
+    assert.equal(await resolverLinkSoundCloud(corto, pedir), 'https://api.soundcloud.com/tracks/2416843668');
+    assert.equal(pedidos.length, 1);
+    const pedido = new URL(pedidos[0]);
+    assert.equal(`${pedido.origin}${pedido.pathname}`, 'https://soundcloud.com/oembed');
+    assert.equal(pedido.searchParams.get('format'), 'json');
+    assert.equal(pedido.searchParams.get('url'), corto);
+});
+
+test('un link largo, con ?si= o de m.soundcloud.com no pide oEmbed', async () => {
+    let pedidos = 0;
+    const pedir = async () => { pedidos++; throw new Error('no tenía que pedir'); };
+    const largo = leerLink('https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr?si=3F1AE1E53E9D468E99ECFEE926575E8D&utm_source=clipboard');
+    const movil = leerLink('https://m.soundcloud.com/forss/flickermood?si=abc&utm_medium=text');
+    assert.equal(await resolverLinkSoundCloud(largo.url, pedir), 'https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr');
+    assert.equal(await resolverLinkSoundCloud(movil.url, pedir), 'https://soundcloud.com/forss/flickermood');
+    assert.equal(pedidos, 0);
+});
+
+test('oEmbed sin una canción de SoundCloud no deja pasar otra url', async () => {
+    const pedir = async () => ({
+        ok: true,
+        async json() { return { html: '<iframe src="https://evil.example/player?url=https%3A%2F%2Fevil.example%2Fx"></iframe>' }; },
+    });
+    await assert.rejects(() => resolverLinkSoundCloud('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ', pedir));
+    const caido = async () => ({ ok: false, async json() { return {}; } });
+    await assert.rejects(() => resolverLinkSoundCloud('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ', caido));
 });
 
 test('lo que no es un link de música no sirve', () => {

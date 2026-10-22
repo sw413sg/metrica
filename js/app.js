@@ -10,7 +10,7 @@ import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
-import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar } from './logica/musica.js';
+import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -1034,12 +1034,27 @@ async function escucharMusica() {
                 cerrar: () => reproductor.destroy(),
             });
         } else {
+            // El link corto se resuelve antes de armar el iframe. play() sigue en READY,
+            // igual que con un link largo: el widget recién puede sonar cuando avisa que
+            // está listo, y eso ya llega después de cargar. Llamarlo en el click, con el
+            // await de por medio, no encuentra un widget. Si iOS ignora el play() de
+            // READY (entra por postMessage, fuera del toque), el botón de la tarjeta lo
+            // llama dentro del click.
+            let urlCancion;
+            try {
+                urlCancion = await resolverLinkSoundCloud(link.url);
+            } catch {
+                if (generacion !== generacionMusica) return;
+                $('reproductor-titulo').textContent = 'No se pudo reproducir esta canción';
+                return;
+            }
+            if (generacion !== generacionMusica) return;
             await apiSoundCloud();
             if (generacion !== generacionMusica) return;
             const marco = document.createElement('iframe');
             marco.allow = 'autoplay; encrypted-media';
             marco.title = 'SoundCloud';
-            marco.src = urlWidgetSoundCloud(link.url);
+            marco.src = urlWidgetSoundCloud(urlCancion);
             $('reproductor-oculto').replaceChildren(marco);
             const widget = SC.Widget(marco);
             const { Events } = SC.Widget;
