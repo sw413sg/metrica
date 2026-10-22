@@ -37,7 +37,74 @@ export function moverSegundos(actual, cambio, duracion = Infinity) {
     return Math.min(Math.max(0, actual + cambio), duracion || Infinity);
 }
 
+// 72 -> "1:12". Sin horas si el tema dura menos de una.
+export function formatoTiempo(segundos) {
+    const total = Math.max(0, Math.floor(Number(segundos) || 0));
+    const horas = Math.floor(total / 3600);
+    const minutos = Math.floor(total / 60) % 60;
+    const resto = String(total % 60).padStart(2, '0');
+    return horas ? `${horas}:${String(minutos).padStart(2, '0')}:${resto}` : `${minutos}:${resto}`;
+}
+
+// Dónde va el punto de la barra, de 0 a 1.
+export function fraccionDe(actual, duracion) {
+    if (!duracion || duracion <= 0) return 0;
+    return Math.min(1, Math.max(0, actual / duracion));
+}
+
+// Segundos que corresponden a un toque en la pista (puntero y ancho en px).
+export function segundosEn(puntero, ancho, duracion) {
+    if (!ancho || !duracion || duracion <= 0) return 0;
+    return Math.min(1, Math.max(0, puntero / ancho)) * duracion;
+}
+
 // Volumen de 0 a 100, de a pasos.
 export function cambiarVolumen(actual, cambio) {
     return Math.min(100, Math.max(0, actual + cambio));
+}
+
+// Lado mínimo del reproductor de YouTube, en px. La política pide un viewport
+// de al menos 200×200 y no deja ocultarlo ni taparlo.
+export const LADO_YOUTUBE = 200;
+
+// Solo YouTube tiene que verse. SoundCloud se maneja con el iframe fuera de vista.
+export function muestraVideo(fuente) {
+    return fuente === 'youtube';
+}
+
+// Plegar esconde el video. Si está sonando hay que pausar antes: no puede
+// seguir un reproductor que el usuario no está viendo.
+export function plegarVideo(sonando) {
+    return { plegado: true, pausar: Boolean(sonando) };
+}
+
+// YouTube no puede seguir si la tarjeta no está en pantalla (teclado o fuera del editor).
+// SoundCloud sí puede sonar con el teclado abierto: el iframe ya vive fuera de vista.
+export function pausarAlOcultar({ fuente, sonando, editor, teclado }) {
+    if (!sonando) return false;
+    if (!editor) return true;
+    return fuente === 'youtube' && Boolean(teclado);
+}
+
+// «Mostrar video para reproducir»: con YouTube plegado, primero lo muestra.
+export function alternarReproduccion({ fuente, plegado, sonando }) {
+    const mostrar = muestraVideo(fuente) && plegado && !sonando;
+    return { plegado: mostrar ? false : Boolean(plegado), accion: sonando ? 'pausar' : 'reproducir' };
+}
+
+// Widget oficial de SoundCloud, sin la ficha visual: el iframe va fuera de vista
+// y los controles del banner lo manejan.
+export function urlWidgetSoundCloud(urlCancion) {
+    const parametros = new URLSearchParams({
+        url: urlCancion,
+        auto_play: 'true',
+        visual: 'false',
+        hide_related: 'true',
+        show_comments: 'false',
+        show_user: 'false',
+        show_reposts: 'false',
+        show_teaser: 'false',
+        show_artwork: 'false',
+    });
+    return `https://w.soundcloud.com/player/?${parametros}`;
 }

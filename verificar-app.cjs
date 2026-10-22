@@ -199,10 +199,10 @@ const servidor = http.createServer((req, res) => {
         // Con un link de YouTube aparece el banner (acá con un YouTube de mentira, sin internet).
         await page.route('https://www.youtube.com/iframe_api', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
             window.YT = { PlayerState: { PLAYING: 1 }, Player: function (lugar, o) {
-                const p = window.__yt = this; p.t = 30; p.vol = 0;
+                const p = window.__yt = this; p.t = 30; p.vol = 0; p.pausado = true;
                 p.setVolume = v => { p.vol = v; };
-                p.playVideo = () => o.events.onStateChange({ data: 1 });
-                p.pauseVideo = () => o.events.onStateChange({ data: 2 });
+                p.playVideo = () => { p.pausado = false; o.events.onStateChange({ data: 1 }); };
+                p.pauseVideo = () => { p.pausado = true; o.events.onStateChange({ data: 2 }); };
                 p.getVideoData = () => ({ title: 'Tema de prueba' });
                 p.getCurrentTime = () => p.t; p.getDuration = () => 200; p.seekTo = s => { p.t = s; };
                 p.destroy = () => { window.__ytCerrado = true; };
@@ -215,23 +215,115 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#reproductor-titulo', {hasText: 'Tema de prueba'}).waitFor();
         assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
         assert.equal(await page.evaluate(() => window.__yt.vol), 70);
-        await page.locator('#musica-play').click();
-        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Reproducir');
+        assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'YouTube');
+        assert.equal(
+            await page.locator('#musica-play').evaluate(e => getComputedStyle(e).backgroundColor),
+            await page.locator('#reproductor-titulo').evaluate(e => getComputedStyle(e).color),
+        );
+        // ±10 s y la barra: soltar en la mitad del tema deja el tiempo en 100 s.
         await page.locator('#musica-adelantar').click();
         assert.equal(await page.evaluate(() => window.__yt.t), 40);
         await page.locator('#musica-atrasar').click();
         await page.locator('#musica-atrasar').click();
         assert.equal(await page.evaluate(() => window.__yt.t), 20);
-        await page.locator('#musica-subir').click();
-        assert.equal(await page.evaluate(() => window.__yt.vol), 80);
-        assert.match(await page.locator('#reproductor-fuente').textContent(), /YouTube · volumen 80%/);
-        // El banner queda abajo, adentro de la pantalla y sin tapar el texto.
+        const pista = await page.locator('#musica-pista').boundingBox();
+        await page.mouse.move(pista.x + pista.width / 2, pista.y + pista.height / 2);
+        await page.mouse.down();
+        assert.equal(await page.locator('#reproductor').evaluate(e => e.classList.contains('arrastrando')), true);
+        assert.equal(Math.round(parseFloat(await page.locator('.reproductor-riel').evaluate(e => getComputedStyle(e).height))), 8);
+        assert.equal(Math.round(parseFloat(await page.locator('.reproductor-punto').evaluate(e => getComputedStyle(e).width))), 22);
+        assert.ok(Number(await page.locator('#musica-tiempo').evaluate(e => getComputedStyle(e).fontWeight)) >= 700);
+        await page.mouse.up();
+        assert.ok(Math.abs(await page.evaluate(() => window.__yt.t) - 100) < 2);
+        assert.equal((await page.locator('#musica-tiempo').textContent()).trim(), '1:40');
+        assert.equal(Math.round(parseFloat(await page.locator('.reproductor-riel').evaluate(e => getComputedStyle(e).height))), 4);
+        // La tarjeta queda abajo, con 16 px a los costados y 8 px del borde. El video mide 200×200, radio 14, sin nada encima.
         const banner = await page.locator('#reproductor').boundingBox();
-        assert.ok(banner.y + banner.height <= 844 && banner.y > 600, JSON.stringify(banner));
+        assert.equal(Math.round(banner.x), 16, JSON.stringify(banner));
+        assert.equal(Math.round(banner.width), 358, JSON.stringify(banner));
+        assert.ok(Math.abs(banner.height - 252) <= 2, JSON.stringify(banner));
+        assert.ok(Math.abs(banner.y + banner.height - 836) <= 2, JSON.stringify(banner));
+        const marco = await page.locator('#reproductor-marco').boundingBox();
+        assert.equal(Math.round(marco.width), 200, JSON.stringify(marco));
+        assert.equal(Math.round(marco.height), 200, JSON.stringify(marco));
+        assert.equal(await page.locator('#reproductor-marco').evaluate(e => getComputedStyle(e).overflow), 'hidden');
+        assert.equal(await page.locator('#reproductor-marco').evaluate(e => getComputedStyle(e).borderRadius), '14px');
+        assert.equal(await page.locator('#reproductor-marco').evaluate(e => {
+            const r = e.getBoundingClientRect();
+            const encima = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+            return e.contains(encima);
+        }), true);
+        assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).width), 52);
+        const aire = await page.locator('.editor-cuerpo').evaluate(e => parseFloat(getComputedStyle(e).paddingBottom));
+        assert.ok(aire >= banner.height + 16, String(aire));
+        // Plegar esconde el video y pausa. Para volver a sonar hay que mostrar el video.
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Reproducir');
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-disabled'), 'true');
+        assert.equal(await page.evaluate(() => window.__yt.pausado), true);
+        assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'YouTube · en pausa');
+        assert.equal((await page.locator('#musica-mostrar').textContent()).trim(), 'Mostrar video para reproducir');
+        const plegado = await page.locator('#reproductor').boundingBox();
+        assert.ok(Math.abs(plegado.height - 144) <= 2, JSON.stringify(plegado));
+        await page.locator('#musica-mostrar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
+        // Con el teclado abierto la tarjeta se va y YouTube queda en pausa. Al cerrarlo no sigue solo.
+        await page.evaluate(() => document.body.classList.add('teclado-abierto'));
+        await page.waitForFunction(() => window.__yt.pausado);
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
+        assert.equal(await page.locator('#reproductor').isVisible(), true);
+        assert.equal(await page.evaluate(() => window.__yt.pausado), true);
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Reproducir');
         await page.screenshot({path: `capturas/editor-musica-${tema}.png`});
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#reproductor').isVisible(), false);
         assert.equal(await page.evaluate(() => window.__ytCerrado), true);
+        // SoundCloud: el iframe oficial queda fuera de vista. Play, pausa y la barra lo manejan.
+        await page.route('https://w.soundcloud.com/player/api.js', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
+            window.SC = { Widget: function (el) {
+                const w = window.__sc = { el, vol: 0, paused: true, pos: 0 };
+                w.bind = (ev, fn) => { w['on' + ev] = fn; };
+                w.play = () => { w.paused = false; w.onPLAY?.(); };
+                w.pause = () => { w.paused = true; w.onPAUSE?.(); };
+                w.setVolume = v => { w.vol = v; };
+                w.getPosition = cb => cb(w.pos);
+                w.getDuration = cb => cb(180000);
+                w.seekTo = ms => { w.pos = ms; };
+                w.getCurrentSound = cb => cb({ title: 'Tema nube' });
+                setTimeout(() => w.onREADY?.());
+                return w;
+            } };
+            window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
+        await page.locator('#abrir-musica').click();
+        await page.locator('#link-musica').fill('https://soundcloud.com/artista/tema');
+        await page.locator('#escuchar-musica').click();
+        await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        assert.equal(await page.locator('#musica-plegar').isVisible(), false);
+        assert.equal(await page.locator('#musica-mostrar').isVisible(), false);
+        assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'SoundCloud');
+        const nube = await page.locator('#reproductor').boundingBox();
+        assert.ok(Math.abs(nube.height - 92) <= 2, JSON.stringify(nube));
+        assert.equal(Math.round(nube.x), 16, JSON.stringify(nube));
+        assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).width), 40);
+        const oculto = await page.locator('#reproductor-oculto iframe').boundingBox();
+        assert.ok(oculto.x + oculto.width < 0, JSON.stringify(oculto));
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        const pistaNube = await page.locator('#musica-pista').boundingBox();
+        await page.mouse.click(pistaNube.x + pistaNube.width / 2, pistaNube.y + pistaNube.height / 2);
+        assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - 90000) < 2000);
+        await page.evaluate(() => document.body.classList.add('teclado-abierto'));
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
+        await page.locator('#musica-play').click();
+        assert.equal(await page.evaluate(() => window.__sc.paused), true);
+        await page.locator('#musica-play').click();
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        await page.locator('#musica-cerrar').click();
         // Sin internet, avisa.
         await page.context().setOffline(true);
         await page.locator('#abrir-musica').click();

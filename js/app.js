@@ -10,7 +10,7 @@ import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
-import { leerLink, moverSegundos, cambiarVolumen } from './logica/musica.js';
+import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -44,6 +44,7 @@ document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListe
 function mostrarVista(id) {
     document.querySelectorAll('#pantalla-letras .vista').forEach(v => v.classList.toggle('activa', v.id === id));
     document.body.classList.toggle('editando', id === 'vista-editor');
+    ocultarMusicaSiHaceFalta();
     ubicarReproductor();
 }
 
@@ -413,10 +414,12 @@ if (window.visualViewport) {
         document.documentElement.style.setProperty('--arriba-visible', `${visualViewport.offsetTop}px`);
         // Con el teclado abierto no hace falta dejar lugar para la barrita de inicio del iPhone.
         document.body.classList.toggle('teclado-abierto', visualViewport.height < innerHeight * 0.8);
+        ocultarMusicaSiHaceFalta();
         if (document.body.classList.contains('editando')) {
             ajustarAltoTexto();
             if (document.activeElement === editorTexto) mostrarCursor();
         }
+        ubicarReproductor();
     };
     visualViewport.addEventListener('resize', ajustarAlTeclado);
     visualViewport.addEventListener('scroll', ajustarAlTeclado);
@@ -850,9 +853,12 @@ $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage);
 
 // ---------- Música para escribir encima (YouTube o SoundCloud) ----------
 // Usa los reproductores oficiales, que se bajan recién cuando se pega un link (necesitan internet).
-const PASO_SEGUNDOS = 10, PASO_VOLUMEN = 10;
-let musica = null; // { fuente, alternar(), mover(segundos), volumen(0-100), cerrar() }
-let volumen = 70, sonando = false;
+// YouTube se ve a 200×200 dentro de la tarjeta (no se puede ocultar ni tapar). SoundCloud va fuera de vista.
+const PASO_SEGUNDOS = 10;
+const VOLUMEN_INICIAL = 70;
+let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
+let sonando = false, plegado = false, plegarAlPausar = false;
+let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
 
 function cargarScript(src) {
     return new Promise((listo, error) => {
@@ -869,18 +875,78 @@ const apiYouTube = () => window.YT?.Player ? Promise.resolve() : new Promise((li
 });
 const apiSoundCloud = () => window.SC?.Widget ? Promise.resolve() : cargarScript('https://w.soundcloud.com/player/api.js');
 
+const ICONO_PAUSA = '<svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>';
+const ICONO_PLAY = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>';
+
+function pintarProgreso() {
+    const fraccion = fraccionDe(actual, duracion);
+    $('musica-tiempo').textContent = formatoTiempo(actual);
+    $('musica-duracion').textContent = formatoTiempo(duracion);
+    $('musica-llenado').style.width = `${fraccion * 100}%`;
+    $('musica-punto').style.left = `${fraccion * 100}%`;
+    $('musica-pista').setAttribute('aria-valuemax', String(Math.round(duracion)));
+    $('musica-pista').setAttribute('aria-valuenow', String(Math.round(actual)));
+    $('reproductor').classList.toggle('arrastrando', arrastrando);
+}
+
 function mostrarEstadoMusica() {
     const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud' }[musica?.fuente] ?? '';
-    $('reproductor-fuente').textContent = `${nombre} · volumen ${volumen}%`;
-    $('musica-play').setAttribute('aria-label', sonando ? 'Pausar' : 'Reproducir');
-    $('musica-play').innerHTML = sonando
-        ? '<svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>'
-        : '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M7 4l13 8-13 8z"/></svg>';
+    const enPausa = musica?.fuente === 'youtube' && plegado;
+    $('reproductor-fuente').textContent = nombre ? (enPausa ? `${nombre} · en pausa` : nombre) : '';
+    const pausado = enPausa || !sonando;
+    $('musica-play').setAttribute('aria-label', pausado ? 'Reproducir' : 'Pausar');
+    $('musica-play').setAttribute('aria-disabled', String(enPausa));
+    $('musica-play').innerHTML = pausado ? ICONO_PLAY : ICONO_PAUSA;
 }
+
+function aplicarVideo() {
+    const esYouTube = musica?.fuente === 'youtube';
+    const card = $('reproductor');
+    card.classList.toggle('youtube', Boolean(esYouTube));
+    card.classList.toggle('plegado', Boolean(esYouTube && plegado));
+    $('musica-plegar').hidden = !(esYouTube && !plegado);
+    $('musica-mostrar').hidden = !(esYouTube && plegado);
+    mostrarEstadoMusica();
+    ubicarReproductor();
+}
+
+function alCambiarEstado(activo) {
+    sonando = activo;
+    if (plegarAlPausar && !sonando) {
+        plegarAlPausar = false;
+        aplicarVideo();
+    }
+    mostrarEstadoMusica();
+}
+
+// La tarjeta se esconde con el teclado y fuera del editor. YouTube se pausa en los dos
+// casos; SoundCloud solo al salir del editor (con el teclado puede seguir).
+function ocultarMusicaSiHaceFalta() {
+    if (!musica?.pausar) return;
+    if (pausarAlOcultar({
+        fuente: musica.fuente,
+        sonando,
+        editor: document.body.classList.contains('editando'),
+        teclado: document.body.classList.contains('teclado-abierto'),
+    })) musica.pausar();
+}
+new MutationObserver(ocultarMusicaSiHaceFalta).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 function avisoMusica(texto) {
     $('musica-aviso').textContent = texto;
     $('musica-aviso').hidden = !texto;
+}
+
+function seguirProgreso(leer) {
+    clearInterval(progresoTimer);
+    progresoTimer = setInterval(leer, 250);
+}
+
+function anotarTiempo(segundos, total = duracion) {
+    if (arrastrando) return;
+    actual = Math.max(0, Number(segundos) || 0);
+    if (total > 0) duracion = total;
+    pintarProgreso();
 }
 
 async function escucharMusica() {
@@ -894,92 +960,137 @@ async function escucharMusica() {
     $('reproductor').hidden = false;
     document.body.classList.add('con-musica');
     musica = { fuente: link.fuente };
-    mostrarEstadoMusica();
-    const lugar = document.createElement('div');
-    $('reproductor-marco').replaceChildren(lugar);
+    aplicarVideo();
     try {
         if (link.fuente === 'youtube') {
+            // Visible antes de reproducir: la política no deja el autoplay con el player a medias.
             await apiYouTube();
-            const reproductor = new YT.Player(lugar, {
-                videoId: link.id, width: 64, height: 64,
-                playerVars: { autoplay: 1, playsinline: 1, start: link.inicio, controls: 0, rel: 0 },
+            const lugar = document.createElement('div');
+            $('reproductor-marco').replaceChildren(lugar);
+            let reproductor;
+            const leerYouTube = () => {
+                if (arrastrando || musica?.fuente !== 'youtube') return;
+                try {
+                    const t = Number(reproductor.getCurrentTime?.());
+                    const d = Number(reproductor.getDuration?.());
+                    if (Number.isFinite(t)) anotarTiempo(t, Number.isFinite(d) ? d : 0);
+                } catch { /* el reproductor ya se cerró */ }
+            };
+            reproductor = new YT.Player(lugar, {
+                videoId: link.id, width: LADO_YOUTUBE, height: LADO_YOUTUBE,
+                // controls: 0 es un parámetro de la API. Así 200×200 alcanza: con la barra
+                // de YouTube el player tiene que poder mostrarla entera.
+                playerVars: {
+                    autoplay: 1, playsinline: 1, start: link.inicio, controls: 0, rel: 0,
+                    ...(location.origin && location.origin !== 'null' ? { origin: location.origin } : {}),
+                },
                 events: {
-                    onReady: e => { e.target.setVolume(volumen); e.target.playVideo(); },
+                    onReady: e => {
+                        e.target.setVolume(VOLUMEN_INICIAL);
+                        leerYouTube();
+                        if (!plegado && reproductorVisible()) e.target.playVideo();
+                    },
                     onStateChange: e => {
-                        sonando = e.data === YT.PlayerState.PLAYING;
                         const titulo = reproductor.getVideoData?.().title;
                         if (titulo) $('reproductor-titulo').textContent = titulo;
-                        mostrarEstadoMusica();
+                        leerYouTube();
+                        alCambiarEstado(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
                     },
+                    onAutoplayBlocked: () => alCambiarEstado(false),
                     onError: () => { $('reproductor-titulo').textContent = 'No se pudo reproducir este video'; },
                 },
             });
+            seguirProgreso(leerYouTube);
+            const irYouTube = segundos => {
+                reproductor.seekTo(segundos, true);
+                anotarTiempo(segundos);
+            };
             Object.assign(musica, {
-                alternar: () => sonando ? reproductor.pauseVideo() : reproductor.playVideo(),
-                mover: cambio => reproductor.seekTo(moverSegundos(reproductor.getCurrentTime(), cambio, reproductor.getDuration()), true),
-                volumen: v => reproductor.setVolume(v),
+                reproducir: () => reproductor.playVideo(),
+                pausar: () => reproductor.pauseVideo(),
+                mover: cambio => irYouTube(moverSegundos(Number(reproductor.getCurrentTime?.()) || actual, cambio, Number(reproductor.getDuration?.()) || duracion)),
+                ir: irYouTube,
                 cerrar: () => reproductor.destroy(),
             });
         } else {
             await apiSoundCloud();
             const marco = document.createElement('iframe');
-            marco.allow = 'autoplay';
+            marco.allow = 'autoplay; encrypted-media';
             marco.title = 'SoundCloud';
-            marco.src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(link.url)}&auto_play=true&visual=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false`;
-            lugar.replaceWith(marco);
+            marco.src = urlWidgetSoundCloud(link.url);
+            $('reproductor-oculto').replaceChildren(marco);
             const widget = SC.Widget(marco);
             const { Events } = SC.Widget;
+            const leerPosicion = () => widget.getPosition(ms => { if (!arrastrando) anotarTiempo(ms / 1000); });
             widget.bind(Events.READY, () => {
-                widget.setVolume(volumen);
+                widget.setVolume(VOLUMEN_INICIAL);
+                widget.getDuration(ms => { duracion = (Number(ms) || 0) / 1000; pintarProgreso(); });
                 widget.play();
                 widget.getCurrentSound(cancion => { if (cancion?.title) $('reproductor-titulo').textContent = cancion.title; });
+                leerPosicion();
             });
-            widget.bind(Events.PLAY, () => { sonando = true; mostrarEstadoMusica(); });
-            widget.bind(Events.PAUSE, () => { sonando = false; mostrarEstadoMusica(); });
-            widget.bind(Events.FINISH, () => { sonando = false; mostrarEstadoMusica(); });
+            widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); });
+            widget.bind(Events.PAUSE, () => { alCambiarEstado(false); leerPosicion(); });
+            widget.bind(Events.FINISH, () => alCambiarEstado(false));
+            widget.bind(Events.PLAY_PROGRESS, data => {
+                const ms = typeof data === 'number' ? data : Number(data?.currentPosition);
+                if (Number.isFinite(ms)) anotarTiempo(ms / 1000);
+            });
             widget.bind(Events.ERROR, () => { $('reproductor-titulo').textContent = 'No se pudo reproducir esta canción'; });
+            const irNube = segundos => {
+                widget.seekTo(Math.round(segundos * 1000));
+                anotarTiempo(segundos);
+            };
             Object.assign(musica, {
-                alternar: () => widget.toggle(),
+                reproducir: () => widget.play(),
+                pausar: () => widget.pause(),
                 mover: cambio => widget.getPosition(ms => widget.getDuration(total =>
-                    widget.seekTo(moverSegundos(ms / 1000, cambio, total / 1000) * 1000))),
-                volumen: v => widget.setVolume(v),
+                    irNube(moverSegundos(ms / 1000, cambio, total / 1000)))),
+                ir: irNube,
                 cerrar: () => marco.remove(),
             });
         }
     } catch {
         $('reproductor-titulo').textContent = 'No se pudo cargar el reproductor. ¿Hay internet?';
+        $('musica-plegar').hidden = true;
+        $('musica-mostrar').hidden = true;
     }
+}
+
+function reproductorVisible() {
+    return document.body.classList.contains('editando') && !document.body.classList.contains('teclado-abierto');
 }
 
 function cerrarMusica() {
+    clearInterval(progresoTimer);
+    progresoTimer = null;
     musica?.cerrar?.();
     musica = null;
     sonando = false;
+    plegado = false;
+    plegarAlPausar = false;
+    arrastrando = false;
+    actual = 0;
+    duracion = 0;
     $('reproductor-marco').replaceChildren();
+    $('reproductor-oculto').replaceChildren();
     $('reproductor').hidden = true;
+    $('reproductor').classList.remove('youtube', 'plegado', 'arrastrando');
     document.body.classList.remove('con-musica');
+    pintarProgreso();
+    aplicarVideo();
 }
 
-// El banner va abajo: en la libreta, arriba de las sugerencias (o del teclado); en las pestañas, arriba de la barra.
+// La tarjeta va pegada abajo por CSS. Acá solo se reserva aire en la letra para que no la tape.
 function ubicarReproductor() {
     const banner = $('reproductor');
-    if (banner.hidden) return;
-    let abajo;
-    if (document.body.classList.contains('editando')) {
-        const visible = window.visualViewport;
-        const teclado = visible ? Math.max(0, innerHeight - visible.offsetTop - visible.height) : 0;
-        abajo = teclado + $('sugerencias').offsetHeight;
-    } else {
-        abajo = innerHeight - $('barra-pestanas').getBoundingClientRect().top;
-    }
-    banner.style.bottom = `${abajo + 8}px`;
-    banner.classList.toggle('sobre-borde', document.body.classList.contains('editando') && abajo === 0);
-    document.documentElement.style.setProperty('--alto-reproductor', `${banner.offsetHeight + 16}px`);
+    const visible = !banner.hidden && reproductorVisible();
+    const alto = visible ? `${banner.offsetHeight + 24}px` : '0px';
+    if (document.documentElement.style.getPropertyValue('--alto-reproductor').trim() === alto) return;
+    document.documentElement.style.setProperty('--alto-reproductor', alto);
+    if (document.body.classList.contains('editando')) ajustarAltoTexto();
 }
-new ResizeObserver(ubicarReproductor).observe($('sugerencias'));
 new ResizeObserver(ubicarReproductor).observe($('reproductor'));
-window.visualViewport?.addEventListener('resize', ubicarReproductor);
-window.visualViewport?.addEventListener('scroll', ubicarReproductor);
 addEventListener('resize', ubicarReproductor);
 
 $('abrir-musica').addEventListener('click', () => {
@@ -994,18 +1105,58 @@ $('pegar-musica').addEventListener('click', async () => {
 });
 $('escuchar-musica').addEventListener('click', escucharMusica);
 $('link-musica').addEventListener('keydown', e => { if (e.key === 'Enter') escucharMusica(); });
-$('musica-play').addEventListener('click', () => musica?.alternar?.());
+$('musica-play').addEventListener('click', () => {
+    if (!musica?.reproducir || (musica.fuente === 'youtube' && plegado)) return;
+    musica[sonando ? 'pausar' : 'reproducir']?.();
+});
+$('musica-mostrar').addEventListener('click', () => {
+    if (musica?.fuente !== 'youtube' || !plegado) return;
+    const decision = alternarReproduccion({ fuente: musica.fuente, plegado, sonando: false });
+    plegado = decision.plegado;
+    plegarAlPausar = false;
+    aplicarVideo();
+    if (decision.accion === 'reproducir') musica.reproducir();
+});
+$('musica-plegar').addEventListener('click', () => {
+    if (musica?.fuente !== 'youtube' || plegado) return;
+    const decision = plegarVideo(sonando);
+    plegado = true;
+    if (decision.pausar) {
+        plegarAlPausar = true;
+        musica.pausar();
+    } else aplicarVideo();
+});
 $('musica-atrasar').addEventListener('click', () => musica?.mover?.(-PASO_SEGUNDOS));
 $('musica-adelantar').addEventListener('click', () => musica?.mover?.(PASO_SEGUNDOS));
-for (const [id, cambio] of [['musica-bajar', -PASO_VOLUMEN], ['musica-subir', PASO_VOLUMEN]]) {
-    $(id).addEventListener('click', () => {
-        volumen = cambiarVolumen(volumen, cambio);
-        musica?.volumen?.(volumen);
-        mostrarEstadoMusica();
-    });
-}
 $('musica-cerrar').addEventListener('click', cerrarMusica);
-// Tocar los botones del banner no le saca el foco al texto (el teclado queda abierto).
+
+function segundosDesdePuntero(clientX) {
+    const r = $('musica-pista').getBoundingClientRect();
+    return segundosEn(clientX - r.left, r.width, duracion);
+}
+$('musica-pista').addEventListener('pointerdown', e => {
+    if (!duracion || !musica?.ir) return;
+    arrastrando = true;
+    e.preventDefault();
+    $('musica-pista').setPointerCapture?.(e.pointerId);
+    actual = segundosDesdePuntero(e.clientX);
+    pintarProgreso();
+});
+$('musica-pista').addEventListener('pointermove', e => {
+    if (!arrastrando) return;
+    actual = segundosDesdePuntero(e.clientX);
+    pintarProgreso();
+});
+const soltarPista = e => {
+    if (!arrastrando) return;
+    actual = segundosDesdePuntero(e.clientX);
+    arrastrando = false;
+    pintarProgreso();
+    musica?.ir?.(actual);
+};
+$('musica-pista').addEventListener('pointerup', soltarPista);
+$('musica-pista').addEventListener('pointercancel', soltarPista);
+// Tocar los botones de la tarjeta no le saca el foco al texto.
 for (const evento of ['pointerdown', 'mousedown']) $('reproductor').addEventListener(evento, e => { if (e.target.closest('button')) e.preventDefault(); });
 
 // ---------- Apariencia (claro / oscuro / sistema) ----------

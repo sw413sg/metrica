@@ -255,37 +255,54 @@
         </div>
     </div>
 
-    <!-- Reproductor: banner abajo, en la libreta arriba de las sugerencias y en las pestañas arriba de la barra. -->
-    <div class="reproductor vidrio" id="reproductor" hidden>
-        <div class="reproductor-fila">
-            <!-- Acá va el reproductor oficial (YouTube o SoundCloud), chiquito -->
-            <div class="reproductor-marco" id="reproductor-marco"></div>
-            <div class="reproductor-datos">
-                <span class="reproductor-titulo" id="reproductor-titulo">Cargando…</span>
-                <span class="reproductor-fuente" id="reproductor-fuente"></span>
+    <!-- Reproductor: tarjeta de vidrio solo en el editor, pegada abajo.
+         El vidrio es una capa de atrás: el iframe de YouTube no puede ir adentro
+         de un elemento con backdrop-filter (en Safari queda en blanco) ni tapado.
+         SoundCloud va en un iframe fuera de la tarjeta, para que siga si se esconde. -->
+    <div class="reproductor" id="reproductor" hidden>
+        <div class="reproductor-vidrio" aria-hidden="true"></div>
+        <div class="reproductor-cuerpo">
+            <div class="reproductor-principal">
+                <div class="reproductor-marco" id="reproductor-marco"></div>
+                <div class="reproductor-lado">
+                    <div class="reproductor-datos">
+                        <span class="reproductor-titulo" id="reproductor-titulo">Cargando…</span>
+                        <span class="reproductor-fuente" id="reproductor-fuente"></span>
+                    </div>
+                    <div class="reproductor-acciones">
+                        <button class="boton-musica" id="musica-atrasar" aria-label="Atrasar 10 segundos">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M11 7L5 12l6 5zM19 7l-6 5 6 5z"/></svg>
+                        </button>
+                        <button class="boton-play" id="musica-play" aria-label="Pausar">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
+                        </button>
+                        <button class="boton-musica" id="musica-adelantar" aria-label="Adelantar 10 segundos">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M13 7l6 5-6 5zM5 7l6 5-6 5z"/></svg>
+                        </button>
+                        <button class="boton-musica" id="musica-plegar" hidden aria-label="Plegar el video">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        <button class="boton-musica boton-cerrar" id="musica-cerrar" aria-label="Cerrar el reproductor">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <button class="boton-musica" id="musica-cerrar" aria-label="Cerrar el reproductor">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-        </div>
-        <div class="reproductor-controles">
-            <button class="boton-musica" id="musica-bajar" aria-label="Bajar el volumen">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 12h4"/></svg>
-            </button>
-            <button class="boton-musica" id="musica-atrasar" aria-label="Atrasar 10 segundos">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M11 7L5 12l6 5zM19 7l-6 5 6 5z"/></svg>
-            </button>
-            <button class="boton-musica boton-play" id="musica-play" aria-label="Pausar">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
-            </button>
-            <button class="boton-musica" id="musica-adelantar" aria-label="Adelantar 10 segundos">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M13 7l6 5-6 5zM5 7l6 5-6 5z"/></svg>
-            </button>
-            <button class="boton-musica" id="musica-subir" aria-label="Subir el volumen">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 12h4M19 10v4"/></svg>
+            <div class="reproductor-barra">
+                <span class="reproductor-tiempo" id="musica-tiempo">0:00</span>
+                <div class="reproductor-pista" id="musica-pista" role="slider" aria-label="Posición en el tema" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+                    <div class="reproductor-riel"><div class="reproductor-llenado" id="musica-llenado"></div></div>
+                    <div class="reproductor-punto" id="musica-punto"></div>
+                </div>
+                <span class="reproductor-tiempo" id="musica-duracion">0:00</span>
+            </div>
+            <button class="reproductor-mostrar" id="musica-mostrar" hidden type="button">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 15l6-6 6 6"/></svg>
+                Mostrar video para reproducir
             </button>
         </div>
     </div>
+    <div class="reproductor-oculto" id="reproductor-oculto" aria-hidden="true"></div>
 
     <!-- Confirmar antes de borrar una letra (en SwiftUI: .alert con un botón .destructive). -->
     <div class="alerta-fondo" id="confirmar-borrado" hidden>

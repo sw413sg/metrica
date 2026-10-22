@@ -556,26 +556,93 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .alerta-botones .texto-rojo { color: #ff3b30; }
 @keyframes aparecer-alerta { from { opacity: 0; transform: scale(1.1); } }
 
-/* Reproductor de música: banner de vidrio abajo (lo ubica js/app.js con bottom). */
+/* Reproductor: tarjeta de vidrio solo en el editor, 16 px a los costados y 8 px
+   arriba del safe area. El desenfoque va en una capa de atrás (mismo vidrio de
+   .vidrio) para que el iframe de YouTube no quede en blanco en Safari. */
 .reproductor {
-    position: fixed; left: 12px; right: 12px; z-index: 15; max-width: 406px; margin: 0 auto;
-    padding: 10px 12px; border-radius: 24px; display: flex; flex-direction: column; gap: 6px;
+    position: fixed; left: 16px; right: 16px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 15;
+    max-width: calc(430px - 32px); margin: 0 auto;
+    border-radius: 22px; border: 1px solid var(--vidrio-borde);
+    box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--sombra-vidrio);
 }
 .reproductor[hidden] { display: none; }
-.reproductor.sobre-borde { margin-bottom: env(safe-area-inset-bottom); }
-.reproductor-fila { display: flex; align-items: center; gap: 10px; }
-.reproductor-marco { width: 44px; height: 44px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: var(--relleno); }
-.reproductor-marco iframe { width: 64px; height: 64px; border: 0; margin: -10px; pointer-events: none; }
+body:not(.editando) .reproductor,
+body.teclado-abierto .reproductor { display: none; }
+.reproductor-vidrio {
+    position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
+    background: var(--vidrio);
+    -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+}
+.reproductor-cuerpo { position: relative; z-index: 1; padding: 9px 12px 11px; display: flex; flex-direction: column; }
+.reproductor-principal { display: flex; align-items: center; gap: 6px; }
+.reproductor:not(.youtube) .reproductor-principal,
+.reproductor.plegado .reproductor-principal { height: 40px; }
+.reproductor.youtube:not(.plegado) .reproductor-principal { align-items: stretch; gap: 10px; }
+/* SoundCloud y YouTube plegado: una sola fila. Los contenedores se disuelven. */
+.reproductor:not(.youtube) .reproductor-lado,
+.reproductor.plegado .reproductor-lado,
+.reproductor:not(.youtube) .reproductor-acciones,
+.reproductor.plegado .reproductor-acciones { display: contents; }
+.reproductor-lado { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
 .reproductor-datos { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.reproductor-titulo { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.reproductor-fuente { font-size: 12px; color: var(--texto-2); }
-.reproductor-controles { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
-.boton-musica { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: var(--texto); flex-shrink: 0; }
-.boton-musica .icono { width: 22px; height: 22px; }
-.boton-musica:active { background: var(--acento-suave); }
-.boton-play { width: 48px; height: 48px; background: var(--destacado); color: #fff; }
-.boton-play .icono-relleno, .boton-musica .icono-relleno { fill: currentColor; }
-/* Con música, el contenido deja lugar abajo para el banner. */
-body.con-musica .pantalla { padding-bottom: calc(92px + var(--alto-reproductor, 120px) + env(safe-area-inset-bottom)); }
-body.con-musica .editor-cuerpo { padding-bottom: var(--alto-reproductor, 120px); }
+.reproductor-titulo { font-size: 15px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reproductor-fuente { font-size: 12px; line-height: 1.2; color: var(--texto-2); }
+/* 200×200: el viewport mínimo de YouTube. Radio 14, entero, sin nada encima.
+   Queda por encima de la zona táctil de la barra, que lo pisa 4 px por el margen. */
+.reproductor-marco { display: none; width: 200px; height: 200px; flex-shrink: 0; position: relative; z-index: 2; border-radius: 14px; overflow: hidden; background: #1d1e21; }
+.reproductor.youtube:not(.plegado) .reproductor-marco { display: block; }
+.reproductor-marco iframe { width: 200px; height: 200px; border: 0; display: block; }
+.reproductor.youtube:not(.plegado) .reproductor-acciones {
+    display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 10px 0; width: 100%;
+}
+.reproductor.youtube:not(.plegado) #musica-play { grid-column: 1 / -1; grid-row: 1; justify-self: center; width: 52px; height: 52px; }
+.reproductor.youtube:not(.plegado) #musica-atrasar { grid-column: 1; grid-row: 2; justify-self: start; }
+.reproductor.youtube:not(.plegado) #musica-adelantar { grid-column: 2; grid-row: 2; justify-self: end; }
+.reproductor.youtube:not(.plegado) #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
+.reproductor.youtube:not(.plegado) #musica-cerrar { grid-column: 2; grid-row: 3; justify-self: end; }
+.reproductor.plegado #musica-atrasar,
+.reproductor.plegado #musica-adelantar,
+.reproductor:not(.youtube) #musica-plegar,
+#musica-plegar[hidden] { display: none; }
+.boton-musica, .boton-play { border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+.boton-musica { width: 36px; height: 36px; color: var(--texto); }
+.boton-cerrar { color: var(--texto-2); }
+.boton-play { width: 40px; height: 40px; background: var(--texto); color: var(--libreta); }
+.reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
+.boton-musica .icono, .boton-play .icono, .reproductor-mostrar .icono { width: 22px; height: 22px; }
+.boton-play .icono-relleno { fill: currentColor; stroke: none; }
+/* Barra: zona táctil de 44. La pista mide 4 y crece a 8 al agarrarla. */
+.reproductor-barra { display: flex; align-items: center; gap: 8px; margin: -4px 0 -10px; position: relative; z-index: 1; }
+.reproductor-tiempo {
+    font-size: 12px; line-height: 1.2; color: var(--texto-2); font-variant-numeric: tabular-nums;
+    width: 32px; text-align: center; flex-shrink: 0;
+}
+.reproductor.arrastrando #musica-tiempo { color: var(--texto); font-weight: 700; }
+.reproductor-pista { flex: 1; height: 44px; position: relative; display: flex; align-items: center; touch-action: none; }
+.reproductor-riel { width: 100%; height: 4px; border-radius: 2px; background: var(--relleno); }
+.reproductor-llenado { height: 4px; border-radius: 2px; background: var(--texto); width: 0; }
+.reproductor-punto {
+    position: absolute; top: 50%; left: 0; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--texto); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); transform: translate(-50%, -50%); pointer-events: none;
+}
+.reproductor.arrastrando .reproductor-riel,
+.reproductor.arrastrando .reproductor-llenado { height: 8px; border-radius: 4px; }
+.reproductor.arrastrando .reproductor-punto { width: 22px; height: 22px; }
+.reproductor-mostrar {
+    margin-top: 12px; height: 40px; width: 100%; border-radius: 20px;
+    background: var(--texto); color: var(--libreta);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 15px; font-weight: 600;
+}
+.reproductor-mostrar[hidden] { display: none; }
+/* SoundCloud: fuera de la pantalla, y fuera de la tarjeta para que el teclado no lo corte. */
+.reproductor-oculto {
+    position: fixed; left: 0; top: 0; width: 300px; height: 166px;
+    transform: translateX(-100vw); pointer-events: none;
+}
+.reproductor-oculto iframe { width: 300px; height: 166px; border: 0; }
+/* 16 px de aire entre el último verso y la tarjeta. */
+body.con-musica.editando:not(.teclado-abierto) .editor-cuerpo {
+    padding-bottom: calc(var(--alto-reproductor, 0px) + env(safe-area-inset-bottom));
+}
 #hoja-musica .buscador { margin-top: 8px; }
