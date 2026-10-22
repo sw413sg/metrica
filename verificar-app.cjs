@@ -714,14 +714,22 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-beats [data-genero="Boombap"]').getAttribute('aria-checked'), 'false');
         await page.screenshot({path: `capturas/freestyle-beats-${tema}.png`});
         await elegirBeatFs('trap-clasico');
-        // Sin link, el campo va abajo de todo, pegado a la barra de pestañas, con el texto entero.
-        const campoLink = await page.locator('#fs-pegar-link').boundingBox();
+        // Sin link, el cajón del link va abajo de todo, pegado a la barra de pestañas, del alto del reproductor de YouTube.
+        const cajonFs = await page.locator('#fs-cajon').boundingBox();
         const barraPestanas = await page.locator('#barra-pestanas').boundingBox();
-        const aireLink = barraPestanas.y - (campoLink.y + campoLink.height);
-        assert.ok(aireLink >= 4 && aireLink <= 14, `aire entre el link y la barra: ${aireLink}`);
-        assert.ok(campoLink.height >= 50 && campoLink.height <= 56, `alto del campo: ${campoLink.height}`);
-        const centroTexto = await page.locator("#fs-link").boundingBox();
-        assert.ok(Math.abs(centroTexto.y + centroTexto.height / 2 - (campoLink.y + campoLink.height / 2)) <= 2, "texto centrado en el campo");
+        const aireLink = barraPestanas.y - (cajonFs.y + cajonFs.height);
+        assert.ok(aireLink >= 4 && aireLink <= 14, `aire entre el cajón y la barra: ${aireLink}`);
+        assert.ok(Math.abs(cajonFs.height - 252) <= 2, `alto del cajón: ${cajonFs.height}`);
+        const campoLink = await page.locator('#fs-link').boundingBox();
+        const okLink = await page.locator('#fs-pegar').boundingBox();
+        const buscarLink = await page.locator('#fs-buscar').boundingBox();
+        assert.ok(Math.abs(campoLink.y - okLink.y) <= 1 && buscarLink.x > okLink.x, 'Buscar va al lado de OK');
+        assert.equal(await page.locator('#fs-buscar').textContent(), 'Buscar');
+        // El texto de ayuda entra entero en el campo.
+        assert.ok(await page.locator('#fs-link').evaluate(e => { e.value = e.placeholder; const entra = e.scrollWidth <= e.clientWidth; e.value = ''; return entra; }), 'el texto del campo entra');
+        assert.equal((await page.locator('#fs-recientes-caja summary').textContent()).trim(), 'Recientes');
+        assert.equal(await page.locator('#fs-recientes button').count(), 0);
+        await page.screenshot({path: `capturas/freestyle-cajon-${tema}.png`});
         assert.equal(await page.locator('#fs-pegar').textContent(), 'OK');
         assert.equal(await page.locator('#fs-link').getAttribute('placeholder'), 'SoundCloud / YouTube / Playlist');
         assert.ok(await page.locator('#fs-link').evaluate(e => e.scrollHeight <= e.clientHeight + 1), 'el texto del campo entra');
@@ -882,6 +890,7 @@ const servidor = http.createServer((req, res) => {
         const plays = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
         assert.deepEqual(plays, ['musica-play']);
         const player = await page.locator('#reproductor').boundingBox();
+        assert.ok(Math.abs(player.height - cajonFs.height) <= 2 && Math.abs(player.y - cajonFs.y) <= 2, `el cajón ocupa lo mismo que el reproductor: ${JSON.stringify({player, cajonFs})}`);
         const tab = await page.locator('#barra-pestanas').boundingBox();
         assert.equal(Math.round(player.x), 16, JSON.stringify(player));
         assert.ok(player.y + player.height <= tab.y + 1, JSON.stringify({player, tab}));
@@ -1011,6 +1020,26 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         await page.unroute('https://soundcloud.com/oembed**').catch(() => {});
+        // Recientes: los últimos 3, con el título acortado y de dónde vienen.
+        assert.deepEqual(await page.locator('#fs-recientes button').allTextContents(), [
+            'Beat nube RAGE (SCLOUD)', 'Beat de prueba sad 88bpm (YT)', 'Beat de prueba sad 88bpm (YT)',
+        ]);
+        // Buscar: un beat del teléfono suena en el mismo reproductor y queda primero en recientes.
+        await page.locator('#fs-archivo').setInputFiles(path.join(__dirname, 'beats/boom-bap-jazz.mp3'));
+        await page.locator('#reproductor-titulo', {hasText: 'boom-bap-jazz'}).waitFor();
+        assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'Del teléfono');
+        assert.equal(await page.locator('#fs-play').isVisible(), false);
+        await page.waitForFunction(() => document.querySelector('#reproductor-oculto audio')?.paused === false);
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
+        await page.waitForFunction(() => document.getElementById('fs-cuenta').textContent !== '1:00');
+        await page.screenshot({path: `capturas/freestyle-archivo-${tema}.png`});
+        await page.locator('#musica-cerrar').click();
+        assert.equal((await page.locator('#fs-recientes button').first().textContent()), 'boom-bap-jazz (ARCHIVO)');
+        assert.equal(await page.locator('#fs-recientes button').count(), 3);
+        // Tocar el reciente del teléfono lo vuelve a sacar de lo guardado.
+        await page.locator('#fs-recientes button').first().click();
+        await page.locator('#reproductor-titulo', {hasText: 'boom-bap-jazz'}).waitFor();
+        await page.locator('#musica-cerrar').click();
 
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();
