@@ -53,6 +53,33 @@ export function cambiaLaPalabra(paso, compases) {
     return paso % (PASOS_POR_COMPAS * compases) === 0;
 }
 
+// Una ronda del aro son 8 compases: el aro se carga y los puntitos se van llenando.
+export const COMPASES_POR_RONDA = 8;
+
+// Dónde va el aro. `paso` cuenta desde 0 y sigue de largo.
+// El compás 5 de la ronda 3 (paso 320) -> { compas: 5, de: 8, ronda: 3, avance: 0.5 }.
+export function estadoCompas(paso, compases = COMPASES_POR_RONDA) {
+    const indice = Math.floor(paso / PASOS_POR_COMPAS);
+    const compas = (indice % compases) + 1;
+    const fraccion = (paso % PASOS_POR_COMPAS) / PASOS_POR_COMPAS;
+    return {
+        compas,
+        de: compases,
+        ronda: Math.floor(indice / compases) + 1,
+        avance: (compas - 1 + fraccion) / compases,
+    };
+}
+
+// Cola de freestyle: la primera es la de ahora, la segunda «después» y la tercera «y luego».
+export function proximasPalabras(cola) {
+    return { ahora: cola[0] ?? null, despues: cola[1] ?? null, luego: cola[2] ?? null };
+}
+
+// Corre la cola cuando cambia la palabra y deja la nueva al final.
+export function avanzarPalabras(cola, nueva) {
+    return [...cola.slice(1), nueva];
+}
+
 // Sílabas de la palabra y cuál es la tónica: la que hay que hacer caer en el tiempo fuerte.
 // "canción" -> { silabas: ['can', 'ción'], tonica: 1 }. null si no es una palabra.
 export function silabaFuerte(palabra) {
