@@ -399,7 +399,7 @@ a { color: var(--acento); text-decoration: none; }
 .pegar-fs .icono { width: 22px; height: 22px; flex-shrink: 0; }
 .pegar-fs textarea {
     flex: 1; min-width: 0; border: 0; background: none; outline: none; resize: none; font: inherit;
-    font-size: 15px; line-height: 20px; height: 60px; color: var(--texto); padding: 0;
+    font-size: 15px; line-height: 20px; height: 40px; color: var(--texto); padding: 0;
 }
 .pegar-fs textarea::placeholder { color: var(--texto-2); }
 .boton-pegar {
@@ -408,10 +408,8 @@ a { color: var(--acento); text-decoration: none; }
 }
 #fs-elegir[hidden] { display: none; }
 #fs-link-aviso { margin: 8px 4px 0; }
-/* Con un link, el campo se va y, si es YouTube, una nota explica por qué no se achica. */
+/* Con un link, el campo se va. */
 #pantalla-freestyle.con-link .pegar-fs, #pantalla-freestyle.con-link #fs-link-aviso { display: none; }
-.nota-youtube-fs { display: none; margin: 8px 4px 0; text-align: center; }
-#pantalla-freestyle.con-youtube .nota-youtube-fs { display: block; }
 /* La tarjeta va 84 px arriba del borde y --alto-reproductor ya suma 24 de aire: quedan 12 entre bandeja y tarjeta. */
 #pantalla-freestyle.con-link .contenido {
     padding-bottom: calc(72px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
@@ -731,6 +729,9 @@ body.freestyle-link:not(.editando):not(.teclado-abierto) .reproductor:not([hidde
     font-size: 15px; font-weight: 600;
 }
 .reproductor-mostrar[hidden] { display: none; }
+/* YouTube achicado: abajo del botón, por qué no puede seguir sonando así. */
+.reproductor-nota { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--texto-2); text-align: center; }
+.reproductor-nota[hidden] { display: none; }
 /* SoundCloud: fuera de la pantalla, y fuera de la tarjeta para que el teclado no lo corte. */
 .reproductor-oculto {
     position: fixed; left: 0; top: 0; width: 300px; height: 166px;

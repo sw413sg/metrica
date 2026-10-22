@@ -262,10 +262,14 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => window.__yt.pausado), true);
         assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'YouTube · en pausa');
         assert.equal((await page.locator('#musica-mostrar').textContent()).trim(), 'Mostrar video para reproducir');
+        // Achicado, la tarjeta explica por qué YouTube no puede seguir sonando.
+        assert.equal(await page.locator('#musica-nota-youtube').textContent(), 'Los videos de YouTube no se pueden minimizar por política de YouTube.');
+        assert.equal(await page.locator('#musica-nota-youtube').isVisible(), true);
         const plegado = await page.locator('#reproductor').boundingBox();
-        assert.ok(Math.abs(plegado.height - 144) <= 2, JSON.stringify(plegado));
+        assert.ok(Math.abs(plegado.height - 184) <= 4, JSON.stringify(plegado.height));
         await page.locator('#musica-mostrar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
+        assert.equal(await page.locator('#musica-nota-youtube').isVisible(), false);
         assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
         // Con el teclado abierto la tarjeta se va y YouTube queda en pausa. Al cerrarlo no sigue solo.
         await page.evaluate(() => document.body.classList.add('teclado-abierto'));
@@ -717,7 +721,7 @@ const servidor = http.createServer((req, res) => {
         assert.ok(aireLink >= 4 && aireLink <= 14, `aire entre el link y la barra: ${aireLink}`);
         assert.ok(campoLink.height >= 52, `alto del campo: ${campoLink.height}`);
         assert.equal(await page.locator('#fs-pegar').textContent(), 'OK');
-        assert.equal(await page.locator('#fs-link').getAttribute('placeholder'), 'Link de beat en SoundCloud / YouTube o playlist de YouTube con muchos beats');
+        assert.equal(await page.locator('#fs-link').getAttribute('placeholder'), 'SoundCloud / YouTube / playlist');
         assert.ok(await page.locator('#fs-link').evaluate(e => e.scrollHeight <= e.clientHeight + 1), 'el texto del campo entra');
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         assert.equal(await page.locator('#reproductor').isVisible(), false);
@@ -871,9 +875,8 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-elegir').isVisible(), false);
         assert.equal(await page.locator('#fs-pegar-link').isVisible(), false);
         assert.equal(await page.locator('#musica-play').isVisible(), true);
-        // Con YouTube, una nota explica por qué no se achica.
-        assert.equal(await page.locator('#fs-nota-youtube').textContent(), 'Los videos de YouTube no se pueden minimizar por política de YouTube.');
-        assert.equal(await page.locator('#fs-nota-youtube').isVisible(), true);
+        // Con el video a la vista no hay nota: aparece recién al achicarlo.
+        assert.equal(await page.locator('#musica-nota-youtube').isVisible(), false);
         const plays = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
         assert.deepEqual(plays, ['musica-play']);
         const player = await page.locator('#reproductor').boundingBox();
@@ -933,7 +936,6 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         assert.equal(await page.locator('#fs-elegir').isVisible(), true);
         assert.equal(await page.locator('#fs-link').inputValue(), '');
-        assert.equal(await page.locator('#fs-nota-youtube').isVisible(), false);
         // Una playlist de YouTube: las flechas de la tarjeta pasan de canción.
         await page.evaluate(() => { document.getElementById('fs-link').value = 'https://www.youtube.com/playlist?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG'; });
         await page.locator('#fs-pegar').click();

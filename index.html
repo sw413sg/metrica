@@ -147,7 +147,6 @@
                         <span class="proxima-palabra" id="fs-luego"></span>
                     </div>
                 </div>
-                <p class="nota nota-youtube-fs" id="fs-nota-youtube">Los videos de YouTube no se pueden minimizar por política de YouTube.</p>
                 <div class="bandeja-fs vidrio">
                     <button type="button" class="play-fs" id="fs-play" aria-label="Empezar">
                         <svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>
@@ -164,7 +163,7 @@
                 <!-- El link va abajo de todo, pegado a la barra de pestañas. -->
                 <div class="pegar-fs vidrio" id="fs-pegar-link">
                     <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg>
-                    <textarea id="fs-link" rows="3" placeholder="Link de beat en SoundCloud / YouTube o playlist de YouTube con muchos beats" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go"></textarea>
+                    <textarea id="fs-link" rows="2" placeholder="SoundCloud / YouTube / playlist" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go"></textarea>
                     <button type="button" class="boton-pegar" id="fs-pegar">OK</button>
                 </div>
                 <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
@@ -319,6 +318,7 @@
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 15l6-6 6 6"/></svg>
                 Mostrar video para reproducir
             </button>
+            <p class="reproductor-nota" id="musica-nota-youtube" hidden>Los videos de YouTube no se pueden minimizar por política de YouTube.</p>
         </div>
     </div>
     <div class="reproductor-oculto" id="reproductor-oculto" aria-hidden="true"></div>

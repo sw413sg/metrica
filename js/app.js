@@ -1207,6 +1207,7 @@ function aplicarVideo() {
     card.classList.toggle('grande', grande);
     $('musica-plegar').hidden = !grande;
     $('musica-mostrar').hidden = !(esYouTube && plegado);
+    $('musica-nota-youtube').hidden = !(esYouTube && plegado);
     // SoundCloud chico en Freestyle: la flechita lo vuelve a agrandar.
     $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && freestyle && plegado);
     mostrarEstadoMusica();
@@ -1420,6 +1421,7 @@ async function escucharMusica(texto) {
         $('reproductor-titulo').textContent = 'No se pudo cargar el reproductor. ¿Hay internet?';
         $('musica-plegar').hidden = true;
         $('musica-mostrar').hidden = true;
+        $('musica-nota-youtube').hidden = true;
         $('musica-agrandar').hidden = true;
     }
 }
