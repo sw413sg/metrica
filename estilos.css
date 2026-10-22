@@ -275,7 +275,6 @@ a { color: var(--acento); text-decoration: none; }
     position: relative; z-index: 1;
     width: var(--aro); height: var(--aro); border-radius: 50%;
     background:
-        radial-gradient(90% 60% at 30% 8%, rgba(255, 255, 255, 0.14), transparent 55%),
         radial-gradient(70% 40% at 70% 100%, rgba(255, 255, 255, 0.08), transparent 60%),
         radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.06) 70%, rgba(255, 255, 255, 0.12));
     -webkit-backdrop-filter: blur(4px) saturate(180%); backdrop-filter: blur(4px) saturate(180%);
