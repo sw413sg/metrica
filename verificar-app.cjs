@@ -7,7 +7,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 
 const tipos = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml',
-    '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.md': 'text/plain'};
+    '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.md': 'text/plain', '.mp3': 'audio/mpeg'};
 // Para simular que se publicó una versión nueva, se le agrega esto al final de sw.js.
 let versionNueva = '';
 const servidor = http.createServer((req, res) => {
@@ -671,9 +671,9 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#fs-duraciones [data-duracion="60"]').getAttribute('aria-checked'), 'true');
         assert.deepEqual(await page.locator('#fs-beats .chip-fs').allTextContents(), [
-            'Boom bap · Clásico', 'Boom bap · Sucio', 'Boom bap · Jazz', 'Trap · Clásico', 'Trap · Sucio', 'Trap · Jazz',
+            'Boom bap · Clásico', 'Boom bap · Batería', 'Boom bap · Jazz', 'Trap · Clásico', 'Trap · Grave', 'Trap · Seco',
         ]);
-        assert.equal(await page.locator('#fs-beats [data-placeholder="true"]').count(), 6);
+        assert.equal(await page.locator('#fs-beats [data-placeholder="true"]').count(), 0);
         assert.equal(await page.locator('#fs-beats [data-beat="boom-bap-clasico"]').getAttribute('aria-checked'), 'true');
         await page.locator('#fs-beats [data-beat="trap-clasico"]').click();
         assert.equal(await page.locator('#fs-beats [data-beat="trap-clasico"]').getAttribute('aria-checked'), 'true');
@@ -695,6 +695,31 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
         await page.locator('#fs-play').click();
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
+        // Cada mp3 dura un número entero de compases: al loopear no se desfasa del reloj.
+        for (const [archivo, segundos] of [
+            ['beats/boom-bap-bateria.mp3', 8 * 4 * 60 / 90],
+            ['beats/boom-bap-jazz.mp3', 2 * 4 * 60 / 93],
+            ['beats/trap-grave.mp3', 8 * 4 * 60 / 140],
+            ['beats/trap-seco.mp3', 4 * 4 * 60 / 140],
+        ]) {
+            const duracion = await page.evaluate(async a => {
+                const ctx = new AudioContext();
+                const datos = await (await fetch(a)).arrayBuffer();
+                const audio = await ctx.decodeAudioData(datos);
+                await ctx.close();
+                return audio.duration;
+            }, archivo);
+            assert.ok(Math.abs(duracion - segundos) < 0.03, `${archivo} dura ${duracion}, se esperaba ${segundos}`);
+        }
+        // Un mp3 del catálogo se carga, suena en loop y la palabra cambia con su BPM.
+        await page.locator('#fs-beats [data-beat="boom-bap-jazz"]').click();
+        await page.waitForFunction(() => performance.getEntriesByType('resource').some(e => e.name.endsWith('beats/boom-bap-jazz.mp3')));
+        const palabraJazz = await page.locator('#fs-palabra').textContent();
+        await page.locator('#fs-play').click();
+        await page.waitForFunction(() => document.documentElement.dataset.beatSonando === 'archivo');
+        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabraJazz, {timeout: 8000});
+        await page.locator('#fs-play').click();
         assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
         // Un link que no sirve avisa y no abre el reproductor.
         await page.locator('#fs-link').fill('https://spotify.com/track/1');

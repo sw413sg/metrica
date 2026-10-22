@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BEATS, CATALOGO_BEATS, DURACIONES, PASOS_POR_COMPAS, COMPASES_POR_RONDA, msPorTiempo, msPorPaso, sonidosDelPaso, tiempoDelPaso, cambiaLaPalabra,
     estadoCompas, proximasPalabras, avanzarPalabras, silabaFuerte, segundosRestantes, formatoReloj, estadoRonda,
-    elegirDuracion, etiquetaBeat, patronDeBeat, fuenteFreestyle, playEnBandeja } from '../js/logica/freestyle.js';
+    elegirDuracion, etiquetaBeat, patronDeBeat, archivoDeBeat, segundosDeLoop, fuenteFreestyle, playEnBandeja } from '../js/logica/freestyle.js';
 
 test('msPorTiempo y msPorPaso', () => {
     assert.equal(msPorTiempo(90), 60000 / 90);
@@ -111,17 +111,32 @@ test('un link reemplaza al beat; sin link se elige un beat', () => {
     assert.equal(fuenteFreestyle({ beatId: 'no-esta' }).beat.id, CATALOGO_BEATS[0].id);
 });
 
-test('el catálogo son 2 géneros de 3, y sin patrón no hay audio', () => {
+test('el catálogo son 2 géneros de 3: Clásico sintetizado y cuatro mp3', () => {
     assert.equal(CATALOGO_BEATS.length, 6);
-    assert.ok(CATALOGO_BEATS.every(b => b.placeholder));
+    assert.ok(CATALOGO_BEATS.every(b => !b.placeholder));
     const porGenero = {};
     for (const b of CATALOGO_BEATS) porGenero[b.genero] = (porGenero[b.genero] ?? 0) + 1;
     assert.deepEqual(porGenero, { 'Boom bap': 3, Trap: 3 });
     assert.equal(etiquetaBeat(CATALOGO_BEATS[0]), 'Boom bap · Clásico');
     assert.equal(patronDeBeat('boom-bap-clasico'), BEATS['boom-bap']);
     assert.equal(patronDeBeat('trap-clasico'), BEATS.trap);
-    assert.equal(patronDeBeat('boom-bap-sucio'), null);
     assert.equal(patronDeBeat('boom-bap-jazz'), null);
-    assert.equal(patronDeBeat('trap-jazz'), null);
+    assert.equal(patronDeBeat('trap-grave'), null);
     assert.equal(patronDeBeat('no-esta'), null);
+    assert.equal(archivoDeBeat('boom-bap-clasico'), null);
+    assert.equal(archivoDeBeat('no-esta'), null);
+    const grabados = CATALOGO_BEATS.filter(b => b.archivo);
+    assert.deepEqual(grabados.map(b => b.nombre), ['Batería', 'Jazz', 'Grave', 'Seco']);
+    for (const b of grabados) {
+        const enRango = b.genero === 'Boom bap' ? b.bpm >= 85 && b.bpm <= 95 : b.bpm >= 130 && b.bpm <= 145;
+        assert.ok(enRango, `${b.id} a ${b.bpm} bpm`);
+        assert.equal(b.compases, Math.round(b.compases));
+        assert.ok(b.compases >= 2);
+        // El loop cierra justo en un compás, así no se desfasa al repetir.
+        assert.ok(Math.abs(segundosDeLoop(b.bpm, b.compases) - b.compases * 4 * 60 / b.bpm) < 1e-9);
+    }
+    assert.equal(archivoDeBeat('boom-bap-jazz').archivo, 'beats/boom-bap-jazz.mp3');
+    assert.equal(archivoDeBeat('boom-bap-jazz').bpm, 93);
+    assert.equal(segundosDeLoop(90, 8), 32 / 1.5);
+    assert.equal(segundosDeLoop(140, 4), 48 / 7);
 });

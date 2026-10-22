@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando 0.1: así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-2.5';
+const VERSION = 'metrica-2.6';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -31,6 +31,10 @@ const ARCHIVOS = [
     'iconos/icono-180.png',
     'iconos/icono-192.png',
     'iconos/icono-512.png',
+    'beats/boom-bap-bateria.mp3',
+    'beats/boom-bap-jazz.mp3',
+    'beats/trap-grave.mp3',
+    'beats/trap-seco.mp3',
 ];
 
 self.addEventListener('install', evento => {

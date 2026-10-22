@@ -3,8 +3,8 @@ import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
-import { CATALOGO_BEATS, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorTiempo } from './logica/freestyle.js';
-import { iniciarBeat, detenerBeat } from './beats.js';
+import { CATALOGO_BEATS, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorTiempo } from './logica/freestyle.js';
+import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
@@ -784,21 +784,39 @@ function empezarBeat() {
     iniciarBeat(() => ({ beat: patronDeBeat(beatId) ?? SILENCIO, bpm: BPM_FS }), alPasoBeat);
 }
 
+// Sintetizador, mp3 o el reloj de respaldo. El mp3 usa su propio BPM.
+function arrancarSonido() {
+    const fuente = fuenteFreestyle({ beatId, link: linkFreestyle });
+    if (fuente.tipo !== 'beat') return 'reloj';
+    const archivo = archivoDeBeat(fuente.beat.id);
+    if (archivo) {
+        delete document.documentElement.dataset.beatSonando;
+        iniciarArchivo(archivo.archivo, archivo.bpm, paso => {
+            document.documentElement.dataset.beatSonando = 'archivo';
+            alPasoBeat(paso);
+        }, () => { if (ronda?.modo === 'archivo') ronda.modo = 'reloj'; });
+        return 'archivo';
+    }
+    if (patronDeBeat(fuente.beat.id)) {
+        empezarBeat();
+        return 'beat';
+    }
+    return 'reloj';
+}
+
 function empezarRonda() {
     if (ronda) return;
     asegurarCola();
-    const fuente = fuenteFreestyle({ beatId, link: linkFreestyle });
-    const conPatron = fuente.tipo === 'beat' && Boolean(patronDeBeat(fuente.beat.id));
     ronda = {
         inicio: performance.now(),
         duracion: duracionElegida().segundos,
         pausa: null,
-        modo: conPatron ? 'beat' : 'reloj',
+        modo: 'reloj',
     };
     indicePalabra = 0;
     marcarSonando(true);
     if (!relojTimer) relojTimer = setInterval(tickReloj, 200);
-    if (conPatron) empezarBeat();
+    ronda.modo = arrancarSonido();
 }
 
 function pausarRonda() {
@@ -811,7 +829,7 @@ function reanudarRonda() {
     if (!ronda?.pausa) return;
     ronda.inicio += performance.now() - ronda.pausa;
     ronda.pausa = null;
-    if (ronda.modo === 'beat') empezarBeat();
+    if (ronda.modo === 'beat' || ronda.modo === 'archivo') ronda.modo = arrancarSonido();
 }
 
 function terminarRonda(porTiempo = false) {
@@ -888,12 +906,14 @@ function renderizarBeats() {
         boton.className = 'chip-fs';
         boton.role = 'radio';
         boton.dataset.beat = b.id;
-        if (b.placeholder) boton.dataset.placeholder = 'true';
         boton.setAttribute('aria-checked', String(b.id === beatId));
         boton.textContent = etiquetaBeat(b);
+        if (b.archivo) precargarArchivo(b.archivo);
         boton.addEventListener('click', () => {
+            const cambio = beatId !== b.id;
             beatId = b.id;
             renderizarBeats();
+            if (cambio && ronda && !ronda.pausa) ronda.modo = arrancarSonido();
         });
         return boton;
     }));
