@@ -322,6 +322,7 @@ a { color: var(--acento); text-decoration: none; }
     line-height: 1.1; text-align: center; white-space: nowrap;
 }
 .cuenta-fs { margin: 4px 0 0; font-size: var(--fs-cuenta); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto-2); line-height: 1; }
+.cuenta-fs:empty { display: none; }
 .palabra-fs .tonica, .proxima-palabra .tonica { color: var(--destacado); text-decoration: none; }
 .proximas { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin: 10px 0 0; }
 .proxima-item { text-align: center; }
@@ -364,22 +365,45 @@ a { color: var(--acento); text-decoration: none; }
 #pantalla-freestyle .titulo-grande { transition: opacity .3s; }
 #pantalla-freestyle.jugando .titulo-grande { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
 #pantalla-freestyle .encabezado-grupo { margin: 0; padding: 14px 20px 6px; letter-spacing: 0.3px; }
-.beats-fs { margin: 0; padding: 0; }
+/* Beats: dos botones, Boombap y Trap, uno al lado del otro. Se deslizan para cambiar
+   de beat dentro del género y los puntitos de abajo dicen cuál es. */
+.beats-fs { margin: 0; padding: 0; overflow: visible; }
+.beat-fs {
+    flex: 1 1 0; min-width: 0; height: 58px; border-radius: 20px; touch-action: pan-y; user-select: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    background: var(--celda); color: var(--texto);
+}
+.beat-fs[aria-checked="true"] { background: var(--texto); color: var(--fondo); }
+.nombre-beat { font-size: 16px; font-weight: 600; line-height: 1; }
+.puntos-beat { display: flex; gap: 5px; }
+.puntos-beat span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.3; }
+.puntos-beat span.activo { opacity: 1; }
+/* Sin link, el campo baja hasta quedar pegado a la barra de pestañas. */
+#pantalla-freestyle .contenido {
+    flex: 1; display: flex; flex-direction: column;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+}
 .pegar-fs {
-    height: 44px; margin-top: 10px; border-radius: 22px; display: flex; align-items: center; gap: 8px;
-    padding: 0 6px 0 14px; color: var(--texto-2);
+    margin-top: auto; border-radius: 24px; display: flex; align-items: center; gap: 8px;
+    padding: 8px 8px 8px 14px; color: var(--texto-2);
 }
+#fs-elegir { margin-bottom: 16px; }
 .pegar-fs .icono { width: 22px; height: 22px; flex-shrink: 0; }
-.pegar-fs input {
-    flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 15px; color: var(--texto); padding: 0;
+.pegar-fs textarea {
+    flex: 1; min-width: 0; border: 0; background: none; outline: none; resize: none; font: inherit;
+    font-size: 15px; line-height: 20px; height: 60px; color: var(--texto); padding: 0;
 }
-.pegar-fs input::placeholder { color: var(--texto-2); }
+.pegar-fs textarea::placeholder { color: var(--texto-2); }
 .boton-pegar {
-    height: 32px; padding: 0 14px; border-radius: 16px; flex-shrink: 0;
-    background: var(--texto); color: var(--fondo); font-weight: 600; font-size: 14px;
+    height: 36px; padding: 0 16px; border-radius: 18px; flex-shrink: 0;
+    background: var(--texto); color: var(--fondo); font-weight: 600; font-size: 15px;
 }
 #fs-elegir[hidden] { display: none; }
 #fs-link-aviso { margin: 8px 4px 0; }
+/* Con un link, el campo se va y, si es YouTube, una nota explica por qué no se achica. */
+#pantalla-freestyle.con-link .pegar-fs, #pantalla-freestyle.con-link #fs-link-aviso { display: none; }
+.nota-youtube-fs { display: none; margin: 8px 4px 0; text-align: center; }
+#pantalla-freestyle.con-youtube .nota-youtube-fs { display: block; }
 /* La tarjeta va 84 px arriba del borde y --alto-reproductor ya suma 24 de aire: quedan 12 entre bandeja y tarjeta. */
 #pantalla-freestyle.con-link .contenido {
     padding-bottom: calc(72px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
@@ -658,12 +682,12 @@ body.freestyle-link:not(.editando):not(.teclado-abierto) .reproductor:not([hidde
     display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 10px 0; width: 100%;
 }
 .reproductor.grande #musica-play { grid-column: 1 / -1; grid-row: 1; justify-self: center; width: 52px; height: 52px; }
-.reproductor.grande #musica-atrasar { grid-column: 1; grid-row: 2; justify-self: start; }
-.reproductor.grande #musica-adelantar { grid-column: 2; grid-row: 2; justify-self: end; }
+.reproductor.grande #musica-anterior { grid-column: 1; grid-row: 2; justify-self: start; }
+.reproductor.grande #musica-siguiente { grid-column: 2; grid-row: 2; justify-self: end; }
 .reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
 .reproductor.grande #musica-cerrar { grid-column: 2; grid-row: 3; justify-self: end; }
-.reproductor.plegado #musica-atrasar,
-.reproductor.plegado #musica-adelantar,
+.reproductor.plegado #musica-anterior,
+.reproductor.plegado #musica-siguiente,
 #musica-plegar[hidden], #musica-agrandar[hidden] { display: none; }
 .boton-musica, .boton-play { border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
 .boton-musica { width: 36px; height: 36px; color: var(--texto); }
@@ -671,6 +695,8 @@ body.freestyle-link:not(.editando):not(.teclado-abierto) .reproductor:not([hidde
 .boton-play { width: 40px; height: 40px; background: var(--texto); color: var(--libreta); }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
+/* Sin playlist las flechas de canción se ven apagadas. */
+#musica-anterior[aria-disabled="true"], #musica-siguiente[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
 .boton-musica .icono, .boton-play .icono, .reproductor-mostrar .icono { width: 22px; height: 22px; }
 .boton-play .icono-relleno { fill: currentColor; stroke: none; }
 /* Barra: zona táctil de 44. La pista mide 4 y crece a 8 al agarrarla. */

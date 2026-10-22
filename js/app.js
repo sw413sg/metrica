@@ -3,7 +3,7 @@ import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
-import { CATALOGO_BEATS, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorTiempo } from './logica/freestyle.js';
+import { CATALOGO_BEATS, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorTiempo } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
@@ -12,7 +12,7 @@ import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearEfecto } from './efectos.js';
 import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
-import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
+import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -961,23 +961,58 @@ function renderizarDuraciones() {
     }));
 }
 
+// Un botón por género (Boombap y Trap), uno al lado del otro. Deslizarlo pasa al beat de
+// al lado de ese género; los puntitos de abajo dicen cuál es. Tocarlo elige ese género.
+// En SwiftUI: TabView(.page) chico adentro de cada botón.
+const beatPorGenero = Object.fromEntries(GENEROS_BEAT.map(g => [g, beatsDeGenero(g)[0].id]));
+beatPorGenero[CATALOGO_BEATS.find(b => b.id === beatId).genero] = beatId;
+
+function elegirBeat(id) {
+    const beat = CATALOGO_BEATS.find(b => b.id === id);
+    const cambio = beatId !== id;
+    beatId = id;
+    beatPorGenero[beat.genero] = id;
+    renderizarBeats();
+    if (cambio && ronda && !ronda.pausa) ronda.modo = arrancarSonido();
+    if (cambio) actualizarEfecto();
+}
+
 function renderizarBeats() {
-    $('fs-beats').replaceChildren(...CATALOGO_BEATS.map(b => {
+    $('fs-beats').replaceChildren(...GENEROS_BEAT.map(genero => {
+        const lista = beatsDeGenero(genero);
+        const elegido = CATALOGO_BEATS.find(b => b.id === beatPorGenero[genero]);
         const boton = document.createElement('button');
         boton.type = 'button';
-        boton.className = 'chip-fs';
+        boton.className = 'beat-fs';
         boton.role = 'radio';
-        boton.dataset.beat = b.id;
-        boton.setAttribute('aria-checked', String(b.id === beatId));
-        boton.textContent = etiquetaBeat(b);
-        if (b.archivo) precargarArchivo(b.archivo);
-        boton.addEventListener('click', () => {
-            const cambio = beatId !== b.id;
-            beatId = b.id;
-            renderizarBeats();
-            if (cambio && ronda && !ronda.pausa) ronda.modo = arrancarSonido();
-            if (cambio) actualizarEfecto();
+        boton.dataset.genero = genero;
+        boton.dataset.beat = elegido.id;
+        boton.setAttribute('aria-checked', String(elegido.id === beatId));
+        boton.setAttribute('aria-label', `${etiquetaBeat(elegido)}. Deslizá para cambiar.`);
+        const nombre = document.createElement('span');
+        nombre.className = 'nombre-beat';
+        nombre.textContent = etiquetaBeat(elegido);
+        const puntos = document.createElement('span');
+        puntos.className = 'puntos-beat';
+        puntos.setAttribute('aria-hidden', 'true');
+        puntos.append(...lista.map(b => {
+            const punto = document.createElement('span');
+            if (b.id === elegido.id) punto.className = 'activo';
+            return punto;
+        }));
+        boton.append(nombre, puntos);
+        for (const b of lista) if (b.archivo) precargarArchivo(b.archivo);
+        // Deslizar: más de 24 px de costado cambia de beat (y no cuenta como toque).
+        let desde = null, deslizo = false;
+        boton.addEventListener('pointerdown', e => { desde = e.clientX; deslizo = false; });
+        boton.addEventListener('pointermove', e => {
+            if (desde === null || deslizo || Math.abs(e.clientX - desde) < 24) return;
+            deslizo = true;
+            elegirBeat(beatVecino(elegido.id, e.clientX < desde ? 1 : -1));
         });
+        boton.addEventListener('pointerup', () => { desde = null; });
+        boton.addEventListener('pointercancel', () => { desde = null; });
+        boton.addEventListener('click', () => { if (!deslizo) elegirBeat(elegido.id); });
         return boton;
     }));
 }
@@ -1015,14 +1050,21 @@ $('fs-reiniciar').addEventListener('click', () => {
     indicePalabra = 0;
     pintarCuenta(estadoRonda(ronda.inicio, ahora, ronda.duracion));
 });
+// OK usa el link del campo; si está vacío, prueba con lo copiado.
 $('fs-pegar').addEventListener('click', async () => {
-    try {
-        const texto = (await navigator.clipboard.readText())?.trim();
-        if (texto) $('fs-link').value = texto;
-    } catch { /* se usa lo que ya está escrito */ }
+    if (!$('fs-link').value.trim()) {
+        try {
+            const texto = (await navigator.clipboard.readText())?.trim();
+            if (texto) $('fs-link').value = texto;
+        } catch { /* sin permiso para leer lo copiado */ }
+    }
     await usarLinkFreestyle($('fs-link').value);
 });
-$('fs-link').addEventListener('keydown', e => { if (e.key === 'Enter') usarLinkFreestyle($('fs-link').value); });
+$('fs-link').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    usarLinkFreestyle($('fs-link').value);
+});
 renderizarDuraciones();
 renderizarBeats();
 asegurarCola();
@@ -1088,7 +1130,6 @@ $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage);
 // ---------- Música para escribir encima (YouTube o SoundCloud) ----------
 // Usa los reproductores oficiales, que se bajan recién cuando se pega un link (necesitan internet).
 // YouTube se ve a 200×200 dentro de la tarjeta (no se puede ocultar ni tapar). SoundCloud va fuera de vista.
-const PASO_SEGUNDOS = 10;
 const VOLUMEN_INICIAL = 70;
 
 function cargarScript(src) {
@@ -1124,6 +1165,8 @@ function mostrarEstadoMusica() {
     const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud' }[musica?.fuente] ?? '';
     const enPausa = musica?.fuente === 'youtube' && plegado;
     $('reproductor-fuente').textContent = nombre ? (enPausa ? `${nombre} · en pausa` : nombre) : '';
+    // Sin playlist no hay a qué canción pasar: las flechas quedan apagadas.
+    for (const id of ['musica-anterior', 'musica-siguiente']) $(id).setAttribute('aria-disabled', String(!musica?.lista));
     if (falloMusica) {
         $('musica-play').setAttribute('aria-label', 'No se puede reproducir');
         $('musica-play').setAttribute('aria-disabled', 'true');
@@ -1209,7 +1252,7 @@ async function escucharMusica(texto) {
     $('reproductor-titulo').textContent = 'Cargando…';
     $('reproductor').hidden = false;
     document.body.classList.add('con-musica');
-    musica = { fuente: link.fuente };
+    musica = { fuente: link.fuente, lista: esLista(link) };
     aplicarVideo();
     try {
         if (link.fuente === 'youtube') {
@@ -1229,12 +1272,14 @@ async function escucharMusica(texto) {
                 } catch { /* el reproductor ya se cerró */ }
             };
             reproductor = new YT.Player(lugar, {
-                videoId: link.id, width: LADO_YOUTUBE, height: LADO_YOUTUBE,
+                ...(link.id ? { videoId: link.id } : {}), width: LADO_YOUTUBE, height: LADO_YOUTUBE,
                 // controls: 0 es un parámetro de la API. Así 200×200 alcanza: con la barra
                 // de YouTube el player tiene que poder mostrarla entera.
                 playerVars: {
                     // Sin autoplay del iframe: playVideo() corre en onReady, y solo si la tarjeta se ve.
                     autoplay: 0, playsinline: 1, start: link.inicio, controls: 0, rel: 0,
+                    // Una playlist: las flechas de la tarjeta pasan de video.
+                    ...(link.lista ? { listType: 'playlist', list: link.lista } : {}),
                     ...(location.origin && location.origin !== 'null' ? { origin: location.origin } : {}),
                 },
                 events: {
@@ -1269,7 +1314,8 @@ async function escucharMusica(texto) {
             Object.assign(musica, {
                 reproducir: () => reproductor.playVideo(),
                 pausar: () => reproductor.pauseVideo(),
-                mover: cambio => irYouTube(moverSegundos(Number(reproductor.getCurrentTime?.()) || actual, cambio, Number(reproductor.getDuration?.()) || duracion)),
+                anterior: () => reproductor.previousVideo(),
+                siguiente: () => reproductor.nextVideo(),
                 ir: irYouTube,
                 cerrar: () => reproductor.destroy(),
             });
@@ -1299,30 +1345,38 @@ async function escucharMusica(texto) {
             const widget = SC.Widget(marco);
             const { Events } = SC.Widget;
             const leerPosicion = () => widget.getPosition(ms => { if (!arrastrando) anotarTiempo(ms / 1000); });
-            widget.bind(Events.READY, () => {
+            // Título y portada de la canción que suena: cambian al pasar de canción en un set.
+            const mostrarCancion = () => widget.getCurrentSound(cancion => {
                 if (generacion !== generacionMusica) return;
-                widget.setVolume(VOLUMEN_INICIAL);
+                if (cancion?.title) $('reproductor-titulo').textContent = cancion.title;
                 widget.getDuration(ms => {
                     if (generacion !== generacionMusica) return;
                     duracion = (Number(ms) || 0) / 1000;
                     pintarProgreso();
                 });
-                widget.getCurrentSound(cancion => {
-                    if (generacion !== generacionMusica) return;
-                    if (cancion?.title) $('reproductor-titulo').textContent = cancion.title;
-                    const portada = portadaSoundCloud(cancion);
-                    if (!portada) return;
-                    const imagen = document.createElement('img');
-                    imagen.src = portada;
-                    imagen.alt = '';
-                    $('reproductor-marco').replaceChildren(imagen);
+                const portada = portadaSoundCloud(cancion);
+                if (!portada || $('reproductor-marco').querySelector('img')?.src === portada) return;
+                const imagen = document.createElement('img');
+                imagen.src = portada;
+                imagen.alt = '';
+                $('reproductor-marco').replaceChildren(imagen);
+            });
+            widget.bind(Events.READY, () => {
+                if (generacion !== generacionMusica) return;
+                widget.setVolume(VOLUMEN_INICIAL);
+                mostrarCancion();
+                // Un link corto puede ser un set: se sabe recién acá.
+                widget.getSounds(canciones => {
+                    if (generacion !== generacionMusica || !Array.isArray(canciones)) return;
+                    musica.lista = canciones.length > 1;
+                    mostrarEstadoMusica();
                 });
                 // Si saliste del editor (o cerraste) mientras cargaba, no arranca oculto.
                 if (reproductorVisible()) widget.play();
                 else widget.pause();
                 leerPosicion();
             });
-            widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); });
+            widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); mostrarCancion(); });
             widget.bind(Events.PAUSE, () => { alCambiarEstado(false); leerPosicion(); });
             widget.bind(Events.FINISH, () => alCambiarEstado(false));
             widget.bind(Events.PLAY_PROGRESS, data => {
@@ -1337,8 +1391,8 @@ async function escucharMusica(texto) {
             Object.assign(musica, {
                 reproducir: () => widget.play(),
                 pausar: () => widget.pause(),
-                mover: cambio => widget.getPosition(ms => widget.getDuration(total =>
-                    irNube(moverSegundos(ms / 1000, cambio, total / 1000)))),
+                anterior: () => widget.prev(),
+                siguiente: () => widget.next(),
                 ir: irNube,
                 cerrar: () => marco.remove(),
             });
@@ -1434,8 +1488,9 @@ $('musica-agrandar').addEventListener('click', () => {
     plegado = false;
     aplicarVideo();
 });
-$('musica-atrasar').addEventListener('click', () => musica?.mover?.(-PASO_SEGUNDOS));
-$('musica-adelantar').addEventListener('click', () => musica?.mover?.(PASO_SEGUNDOS));
+// Las flechas cambian de canción en una playlist. Para moverse en el tema está la barra.
+$('musica-anterior').addEventListener('click', () => { if (musica?.lista) musica.anterior?.(); });
+$('musica-siguiente').addEventListener('click', () => { if (musica?.lista) musica.siguiente?.(); });
 $('musica-cerrar').addEventListener('click', () => {
     const eraFreestyle = Boolean(linkFreestyle);
     cerrarMusica();

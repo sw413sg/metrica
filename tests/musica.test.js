@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud, urlWidgetSoundCloud, resolverLinkSoundCloud } from '../js/logica/musica.js';
+import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud, urlWidgetSoundCloud, resolverLinkSoundCloud, esLista } from '../js/logica/musica.js';
 
 test('links de YouTube en todas sus formas', () => {
-    const esperado = { fuente: 'youtube', id: 'dQw4w9WgXcQ', inicio: 0 };
+    const esperado = { fuente: 'youtube', id: 'dQw4w9WgXcQ', lista: null, inicio: 0 };
     for (const link of [
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         'https://youtu.be/dQw4w9WgXcQ',
@@ -12,6 +12,17 @@ test('links de YouTube en todas sus formas', () => {
         'https://youtube.com/shorts/dQw4w9WgXcQ',
         '  https://www.youtube.com/embed/dQw4w9WgXcQ  ',
     ]) assert.deepEqual(leerLink(link), esperado, link);
+});
+
+test('playlists de YouTube y sets de SoundCloud: las flechas cambian de canción', () => {
+    const lista = 'PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG';
+    assert.deepEqual(leerLink(`https://www.youtube.com/playlist?list=${lista}`), { fuente: 'youtube', id: null, lista, inicio: 0 });
+    assert.deepEqual(leerLink(`https://youtube.com/watch?v=dQw4w9WgXcQ&list=${lista}&index=3`), { fuente: 'youtube', id: 'dQw4w9WgXcQ', lista, inicio: 0 });
+    assert.equal(leerLink('https://www.youtube.com/playlist?list=corta'), null);
+    assert.equal(esLista(leerLink(`https://www.youtube.com/playlist?list=${lista}`)), true);
+    assert.equal(esLista(leerLink('https://youtu.be/dQw4w9WgXcQ')), false);
+    assert.equal(esLista(leerLink('https://soundcloud.com/artista/sets/beats-2024')), true);
+    assert.equal(esLista(leerLink('https://soundcloud.com/artista/tema')), false);
 });
 
 test('YouTube con minuto de inicio', () => {

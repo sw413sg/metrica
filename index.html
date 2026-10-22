@@ -146,6 +146,7 @@
                         <span class="proxima-palabra" id="fs-luego"></span>
                     </div>
                 </div>
+                <p class="nota nota-youtube-fs" id="fs-nota-youtube">Los videos de YouTube no se pueden minimizar por política de YouTube.</p>
                 <div class="bandeja-fs vidrio">
                     <button type="button" class="play-fs" id="fs-play" aria-label="Empezar">
                         <svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>
@@ -158,13 +159,14 @@
                 <div id="fs-elegir">
                     <h2 class="encabezado-grupo">Beat</h2>
                     <div class="beats-fs" id="fs-beats" role="radiogroup" aria-label="Beat"></div>
-                    <div class="pegar-fs vidrio">
-                        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg>
-                        <input id="fs-link" type="url" placeholder="Pegá el link de un beat" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go">
-                        <button type="button" class="boton-pegar" id="fs-pegar">Pegar</button>
-                    </div>
-                    <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
                 </div>
+                <!-- El link va abajo de todo, pegado a la barra de pestañas. -->
+                <div class="pegar-fs vidrio" id="fs-pegar-link">
+                    <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg>
+                    <textarea id="fs-link" rows="3" placeholder="Link de beat en SoundCloud / YouTube o playlist de YouTube con muchos beats" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go"></textarea>
+                    <button type="button" class="boton-pegar" id="fs-pegar">OK</button>
+                </div>
+                <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
             </div>
         </section>
 
@@ -283,14 +285,14 @@
                         <span class="reproductor-fuente" id="reproductor-fuente"></span>
                     </div>
                     <div class="reproductor-acciones">
-                        <button class="boton-musica" id="musica-atrasar" aria-label="Atrasar 10 segundos">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M11 7L5 12l6 5zM19 7l-6 5 6 5z"/></svg>
+                        <button class="boton-musica" id="musica-anterior" aria-label="Canción anterior">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
                         </button>
                         <button class="boton-play" id="musica-play" aria-label="Pausar">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
                         </button>
-                        <button class="boton-musica" id="musica-adelantar" aria-label="Adelantar 10 segundos">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M13 7l6 5-6 5zM5 7l6 5-6 5z"/></svg>
+                        <button class="boton-musica" id="musica-siguiente" aria-label="Canción siguiente">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M18 6v12M6 6l9 6-9 6z"/></svg>
                         </button>
                         <button class="boton-musica" id="musica-plegar" hidden aria-label="Achicar el reproductor">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M6 9l6 6 6-6"/></svg>

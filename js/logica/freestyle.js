@@ -116,30 +116,48 @@ export function elegirDuracion(id, tieneExtras) {
 }
 
 // Lo que muestra el aro: los segundos que quedan y cuánto se llenó (0 al empezar, 1 al terminar).
-// Ilimitado no se acaba: el aro no se llena y el reloj queda en ∞.
+// Ilimitado no se acaba: el aro no se llena y no se muestra tiempo.
 export function estadoRonda(inicioMs, ahoraMs, duracionSegundos) {
-    if (duracionSegundos == null) return { restantes: null, avance: 0, texto: '∞' };
+    if (duracionSegundos == null) return { restantes: null, avance: 0, texto: '' };
     const transcurrido = Math.max(0, (ahoraMs - inicioMs) / 1000);
     const restantes = Math.max(0, Math.ceil(duracionSegundos - transcurrido));
     const avance = duracionSegundos > 0 ? Math.min(1, transcurrido / duracionSegundos) : 0;
     return { restantes, avance, texto: formatoReloj(restantes) };
 }
 
-// Beats para elegir cuando no hay link: 2 géneros × 3.
-// Clásico es el sintetizador de BEATS. Los otros cuatro son mp3 en beats/,
+// Beats para elegir cuando no hay link: 2 géneros × 3, en el orden en que se ofrecen
+// (pedido de Swa): Boombap 1 (Batería), Trap 1 (Seco), Boombap 2 (Jazz) y después el resto.
+// Los «Clásico» son el sintetizador de BEATS. Los otros cuatro son mp3 en beats/,
 // con licencia CC0 (ver beats/CREDITS.md). `compases` es el largo del loop:
 // un número entero, para que al repetir siga cayendo en el tiempo 1.
 export const CATALOGO_BEATS = [
-    { id: 'boom-bap-clasico', genero: 'Boom bap', nombre: 'Clásico', patron: 'boom-bap' },
-    { id: 'boom-bap-bateria', genero: 'Boom bap', nombre: 'Batería', archivo: 'beats/boom-bap-bateria.mp3', bpm: 90, compases: 8 },
-    { id: 'boom-bap-jazz', genero: 'Boom bap', nombre: 'Jazz', archivo: 'beats/boom-bap-jazz.mp3', bpm: 93, compases: 2 },
-    { id: 'trap-clasico', genero: 'Trap', nombre: 'Clásico', patron: 'trap' },
-    { id: 'trap-grave', genero: 'Trap', nombre: 'Grave', archivo: 'beats/trap-grave.mp3', bpm: 140, compases: 8 },
-    { id: 'trap-seco', genero: 'Trap', nombre: 'Seco', archivo: 'beats/trap-seco.mp3', bpm: 140, compases: 4 },
+    { id: 'boom-bap-bateria', genero: 'Boombap', nombre: 'Boombap 1', archivo: 'beats/boom-bap-bateria.mp3', bpm: 90, compases: 8 },
+    { id: 'trap-seco', genero: 'Trap', nombre: 'Trap 1', archivo: 'beats/trap-seco.mp3', bpm: 140, compases: 4 },
+    { id: 'boom-bap-jazz', genero: 'Boombap', nombre: 'Boombap 2', archivo: 'beats/boom-bap-jazz.mp3', bpm: 93, compases: 2 },
+    { id: 'boom-bap-clasico', genero: 'Boombap', nombre: 'Boombap 3', patron: 'boom-bap' },
+    { id: 'trap-grave', genero: 'Trap', nombre: 'Trap 2', archivo: 'beats/trap-grave.mp3', bpm: 140, compases: 8 },
+    { id: 'trap-clasico', genero: 'Trap', nombre: 'Trap 3', patron: 'trap' },
 ];
 
+// Un botón por género, en el orden del catálogo.
+export const GENEROS_BEAT = [...new Set(CATALOGO_BEATS.map(b => b.genero))];
+
+export function beatsDeGenero(genero) {
+    return CATALOGO_BEATS.filter(b => b.genero === genero);
+}
+
+// Deslizar el botón de un género: el beat de al lado en ese género (-1 o +1),
+// sin dar la vuelta. Si no hay más, queda el mismo.
+export function beatVecino(id, paso) {
+    const beat = CATALOGO_BEATS.find(b => b.id === id);
+    if (!beat) return CATALOGO_BEATS[0].id;
+    const lista = beatsDeGenero(beat.genero);
+    const i = Math.min(lista.length - 1, Math.max(0, lista.indexOf(beat) + Math.sign(paso)));
+    return lista[i].id;
+}
+
 export function etiquetaBeat(beat) {
-    return `${beat.genero} · ${beat.nombre}`;
+    return beat.nombre;
 }
 
 // El patrón sintetizado, o null si ese beat es un mp3 (o no existe).
