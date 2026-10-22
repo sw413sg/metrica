@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { MOODS, moodDeTitulo, moodDeBeat, bpmDeTitulo, tiemposEn, brilloDeGolpe } from '../js/logica/ambiente.js';
+import { MOODS, moodDeTitulo, moodDeBeat, tiemposEn, brilloDeGolpe } from '../js/logica/ambiente.js';
 import { CATALOGO_BEATS } from '../js/logica/freestyle.js';
 
 test('el mood sale del título del beat', () => {
@@ -30,23 +30,21 @@ test('una pista adentro de otra palabra no cuenta', () => {
 
 test('los beats propios usan su género', () => {
     for (const beat of CATALOGO_BEATS) assert.ok(MOODS[moodDeBeat(beat)], beat.id);
-    assert.equal(moodDeBeat(CATALOGO_BEATS.find(b => b.id === 'boom-bap-jazz')), 'boombap');
-    assert.equal(moodDeBeat(CATALOGO_BEATS.find(b => b.id === 'trap-grave')), 'trap');
+    const moods = Object.fromEntries(CATALOGO_BEATS.map(b => [b.id, moodDeBeat(b)]));
+    assert.deepEqual(moods, {
+        'boom-bap-clasico': 'boombap', 'boom-bap-bateria': 'boombap', 'boom-bap-jazz': 'lofi',
+        'trap-clasico': 'trap', 'trap-grave': 'drill', 'trap-seco': 'trap',
+    });
+    // Cada género de la app se ve con otra forma, no solo con otro color.
+    assert.equal(new Set(Object.values(moods).map(m => MOODS[m].particulas)).size, 4);
     assert.equal(moodDeBeat(null), 'neutro');
 });
 
 test('todos los moods tienen colores y partículas', () => {
     for (const [id, mood] of Object.entries(MOODS)) {
         assert.ok(mood.colores.length >= 2, id);
-        assert.ok(['luciernagas', 'rayos', 'brillos', 'polvo', 'anillos'].includes(mood.particulas), id);
+        assert.ok(['luciernagas', 'rayos', 'brillos', 'polvo', 'rombos'].includes(mood.particulas), id);
     }
-});
-
-test('los BPM se leen del título', () => {
-    assert.equal(bpmDeTitulo('TenchnoSad_88bpm'), 88);
-    assert.equal(bpmDeTitulo('Dark Trap Beat 140 BPM'), 140);
-    assert.equal(bpmDeTitulo('Beat 2024'), null);
-    assert.equal(bpmDeTitulo('999 bpm'), null);
 });
 
 test('el brillo late con el tiempo', () => {

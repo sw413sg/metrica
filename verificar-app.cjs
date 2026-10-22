@@ -725,6 +725,15 @@ const servidor = http.createServer((req, res) => {
         assert.ok(efectoCaja.x >= -1 && efectoCaja.x + efectoCaja.width <= 391, JSON.stringify(efectoCaja));
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
         await page.locator('#fs-play').click();
+        // Una captura por beat, para ver la forma de cada mood.
+        if (tema === 'dark') for (const id of ['boom-bap-clasico', 'boom-bap-jazz', 'trap-grave']) {
+            await page.locator(`#fs-beats [data-beat="${id}"]`).click();
+            await page.locator('#fs-play').click();
+            await page.waitForTimeout(1500);
+            await page.screenshot({path: `capturas/efecto-${id}.png`});
+            await page.locator('#fs-play').click();
+        }
+        if (tema === 'dark') await page.locator('#fs-beats [data-beat="trap-clasico"]').click();
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
         await page.waitForTimeout(800);
         assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'sin ronda, las luces se apagan');
@@ -838,6 +847,20 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-efecto').getAttribute('data-mood'), 'sad');
         await page.waitForTimeout(400);
         assert.ok(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 1000, 'con link también hay luces');
+        // Con un link el resplandor no late, y nunca se ve adentro del círculo.
+        const golpesLink = await page.locator('#fs-efecto').getAttribute('data-golpes');
+        await page.waitForTimeout(1500);
+        assert.equal(await page.locator('#fs-efecto').getAttribute('data-golpes'), golpesLink, 'con link no late');
+        const anillos = await page.evaluate(() => {
+            const c = document.getElementById('fs-efecto'), caja = c.getBoundingClientRect(), aro = document.getElementById('fs-reloj').getBoundingClientRect();
+            const escala = c.width / caja.width, d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+            const cx = aro.left + aro.width / 2 - caja.left, cy = aro.top + aro.height / 2 - caja.top, r = aro.width / 2;
+            const suma = (desde, hasta) => { let total = 0; for (let a = 0; a < 360; a += 3) for (let k = desde; k <= hasta; k += 0.05) {
+                const x = Math.round((cx + Math.cos(a * Math.PI / 180) * r * k) * escala), y = Math.round((cy + Math.sin(a * Math.PI / 180) * r * k) * escala);
+                total += d[(y * c.width + x) * 4 + 3] || 0; } return total; };
+            return { adentro: suma(0.75, 0.95), afuera: suma(1.05, 1.25) };
+        });
+        assert.ok(anillos.adentro * 4 < anillos.afuera, JSON.stringify(anillos));
         await page.screenshot({path: `capturas/freestyle-link-${tema}.png`});
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#reproductor').isVisible(), false);
