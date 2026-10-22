@@ -109,11 +109,12 @@ export function plegarVideo(sonando) {
     return { plegado: true, pausar: Boolean(sonando) };
 }
 
-// YouTube no puede seguir si la tarjeta no está en pantalla (teclado o fuera del editor).
-// SoundCloud sí puede sonar con el teclado abierto: el iframe ya vive fuera de vista.
-export function pausarAlOcultar({ fuente, sonando, editor, teclado }) {
+// YouTube no puede seguir si la tarjeta no está en pantalla (teclado, o fuera del editor
+// y de Freestyle). SoundCloud sí puede sonar con el teclado abierto: el iframe ya vive fuera de vista.
+// En Freestyle la tarjeta es la misma, arriba de la barra de pestañas.
+export function pausarAlOcultar({ fuente, sonando, editor, teclado, freestyle }) {
     if (!sonando) return false;
-    if (!editor) return true;
+    if (!editor && !freestyle) return true;
     return fuente === 'youtube' && Boolean(teclado);
 }
 

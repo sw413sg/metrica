@@ -120,17 +120,20 @@
             </div>
         </section>
 
-        <!-- Freestyle: aro de la ronda, la palabra adentro y las dos que siguen. -->
+        <!-- Freestyle: aro con la palabra y los segundos que quedan. Bandeja de play y duración. -->
         <section class="pantalla" id="pantalla-freestyle" data-pestana="freestyle">
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Freestyle</h1>
             <div class="contenido">
                 <div class="escenario-fs">
-                    <!-- El aro se carga de violeta (en SwiftUI: Circle().trim). El tiempo queda para la cuenta. -->
-                    <p class="reloj" id="fs-reloj">1:00</p>
-                    <p class="palabra-fs" id="fs-palabra">¿Listo?</p>
+                    <!-- El aro se llena de violeta (en SwiftUI: Circle().trim) y adentro va lo que queda. -->
+                    <div class="reloj" id="fs-reloj">
+                        <div class="aro-centro">
+                            <p class="palabra-fs" id="fs-palabra"></p>
+                            <p class="cuenta-fs" id="fs-cuenta">1:00</p>
+                        </div>
+                    </div>
                 </div>
-                <p class="proxima" id="fs-proxima">Tocá Empezar y hacé caer la sílaba marcada en el 1.</p>
                 <div class="proximas">
                     <div class="proxima-item despues">
                         <span class="etiqueta-proxima">Después</span>
@@ -141,29 +144,21 @@
                         <span class="proxima-palabra" id="fs-luego"></span>
                     </div>
                 </div>
-                <p class="linea-compas">Compás <b id="fs-compas-n">1</b> de <span id="fs-compas-de">8</span> · ronda <span id="fs-ronda">1</span></p>
-                <div class="tiempos" id="fs-tiempos"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-                <div class="barra-bpm">
-                    <span id="fs-bpm-valor"><b>90</b> BPM</span>
-                    <input type="range" id="fs-bpm" min="60" max="140" step="1" value="90" aria-label="Tempo">
-                    <button type="button" class="boton-bpm" id="fs-bpm-reiniciar" aria-label="Volver a 90 BPM">↺ 90</button>
+                <div class="bandeja-fs vidrio">
+                    <button type="button" class="play-fs" id="fs-play" aria-label="Empezar">
+                        <svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>
+                    </button>
+                    <div class="duraciones-fs" id="fs-duraciones" role="radiogroup" aria-label="Duración de la ronda"></div>
                 </div>
-                <button type="button" class="boton-pausa" id="fs-empezar">Empezar</button>
-                <div id="fs-opciones">
-                    <ul class="lista-agrupada">
-                        <li class="celda">
-                            <label for="fs-beat">Beat</label>
-                            <select class="campo-celda" id="fs-beat"></select>
-                        </li>
-                        <li class="celda">
-                            <label for="fs-duracion">Ronda</label>
-                            <select class="campo-celda" id="fs-duracion">
-                                <option value="30">30 segundos</option>
-                                <option value="60" selected>1 minuto</option>
-                                <option value="90">1 minuto y medio</option>
-                            </select>
-                        </li>
-                    </ul>
+                <div id="fs-elegir">
+                    <h2 class="encabezado-grupo">Beat</h2>
+                    <div class="beats-fs" id="fs-beats" role="radiogroup" aria-label="Beat"></div>
+                    <div class="pegar-fs vidrio">
+                        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg>
+                        <input id="fs-link" type="url" placeholder="Pegá el link de un beat" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go">
+                        <button type="button" class="boton-pegar" id="fs-pegar">Pegar</button>
+                    </div>
+                    <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
                 </div>
             </div>
         </section>

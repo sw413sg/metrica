@@ -3,7 +3,7 @@ import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
-import { BEATS, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj, estadoCompas, proximasPalabras, avanzarPalabras } from './logica/freestyle.js';
+import { CATALOGO_BEATS, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorTiempo } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
@@ -37,6 +37,7 @@ function mostrarPestana(nombre) {
     document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
     if (nombre !== 'freestyle') terminarRonda();
+    sincronizarLinkFreestyle();
 }
 document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListener('click', () => mostrarPestana(b.dataset.pestana)));
 
@@ -695,13 +696,19 @@ $('refrescar-palabras').addEventListener('click', () => {
 $('palabras-simples').addEventListener('change', refrescarPalabras);
 
 // ---------- Freestyle ----------
-let ronda = null; // { inicio } mientras se está jugando
+let ronda = null; // { inicio, duracion, pausa, modo } mientras se está jugando
 let cola = []; // [ahora, después, luego]
+let beatId = CATALOGO_BEATS[0].id;
+let duracionId = DURACION_INICIAL;
+let linkFreestyle = null; // el link ya leído, o null si suena un beat
+let relojTimer = null;
+let indicePalabra = 0;
 const COMPASES_POR_PALABRA = 2;
-const BPM_POR_DEFECTO = 90;
-
-$('fs-beat').replaceChildren(...Object.entries(BEATS).map(([clave, beat]) => new Option(beat.nombre, clave)));
-const ajustesFreestyle = () => ({ beat: BEATS[$('fs-beat').value], bpm: Number($('fs-bpm').value) });
+const BPM_FS = 90;
+const MS_POR_PALABRA = msPorTiempo(BPM_FS) * 4 * COMPASES_POR_PALABRA;
+const SILENCIO = { bombo: Array(16).fill(0), caja: Array(16).fill(0), hihat: Array(16).fill(0) };
+const ICONO_PLAY_FS = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>';
+const ICONO_PAUSA_FS = '<svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>';
 const palabraAlAzar = () => palabrasAlAzar(palabrasSimples, 1)[0];
 
 // La palabra junta, con la sílaba tónica en violeta (sin separar con puntos).
@@ -723,83 +730,204 @@ function mostrarCola() {
     pintarPalabra($('fs-palabra'), ahora);
     pintarPalabra($('fs-despues'), despues);
     pintarPalabra($('fs-luego'), luego);
-    $('fs-proxima').textContent = despues ? `Después: ${despues}` : '';
 }
 
-function mostrarCompas(paso) {
-    const estado = estadoCompas(paso);
-    $('fs-compas-n').textContent = estado.compas;
-    $('fs-compas-de').textContent = estado.de;
-    $('fs-ronda').textContent = estado.ronda;
-    $('fs-reloj').style.setProperty('--avance', estado.avance);
-    document.querySelectorAll('#fs-tiempos span').forEach((punto, i) => {
-        const n = i + 1;
-        punto.classList.toggle('lleno', n <= estado.compas);
-        punto.classList.toggle('activo', n === estado.compas);
-    });
-}
-
-function alPasoFreestyle(paso) {
-    if (!ronda) return;
-    const duracion = Number($('fs-duracion').value);
-    const restantes = segundosRestantes(ronda.inicio, performance.now(), duracion);
-    $('fs-reloj').textContent = formatoReloj(restantes);
-    if (restantes === 0) return terminarRonda(true);
-    mostrarCompas(paso);
-    if (!cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) return;
-    cola = cola.length ? avanzarPalabras(cola, palabraAlAzar()) : [palabraAlAzar(), palabraAlAzar(), palabraAlAzar()];
+function asegurarCola() {
+    if (cola.length >= 3 && cola[0]) return;
+    cola = [palabraAlAzar(), palabraAlAzar(), palabraAlAzar()];
     mostrarCola();
+}
+
+function duracionElegida() {
+    return elegirDuracion(duracionId, tieneExtras(localStorage)) ?? DURACIONES[0];
+}
+
+function pintarCuenta(estado) {
+    $('fs-cuenta').textContent = estado.texto;
+    $('fs-reloj').style.setProperty('--avance', String(estado.avance));
+}
+
+function mostrarCuentaIdle() {
+    if (ronda) return;
+    pintarCuenta(estadoRonda(0, 0, duracionElegida().segundos));
+}
+
+function alPasoBeat(paso) {
+    if (!ronda || ronda.pausa || paso === 0) return;
+    if (!cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) return;
+    cola = avanzarPalabras(cola, palabraAlAzar());
+    mostrarCola();
+}
+
+function tickReloj() {
+    if (!ronda || ronda.pausa) return;
+    const ahora = performance.now();
+    const estado = estadoRonda(ronda.inicio, ahora, ronda.duracion);
+    pintarCuenta(estado);
+    if (estado.restantes === 0) return terminarRonda(true);
+    if (ronda.modo !== 'reloj') return;
+    const indice = Math.floor((ahora - ronda.inicio) / MS_POR_PALABRA);
+    while (indicePalabra < indice) {
+        indicePalabra++;
+        cola = avanzarPalabras(cola, palabraAlAzar());
+        mostrarCola();
+    }
 }
 
 function marcarSonando(activo) {
     $('pantalla-freestyle').classList.toggle('sonando', activo);
-    $('fs-opciones').hidden = activo;
-    $('fs-empezar').textContent = activo ? 'Parar' : 'Empezar';
+    $('fs-play').setAttribute('aria-label', activo ? 'Parar' : 'Empezar');
+    $('fs-play').innerHTML = activo ? ICONO_PAUSA_FS : ICONO_PLAY_FS;
+}
+
+function empezarBeat() {
+    iniciarBeat(() => ({ beat: patronDeBeat(beatId) ?? SILENCIO, bpm: BPM_FS }), alPasoBeat);
 }
 
 function empezarRonda() {
-    cola = [];
-    ronda = { inicio: performance.now() };
-    $('fs-reloj').classList.remove('terminado');
-    $('fs-reloj').style.setProperty('--avance', 0);
+    if (ronda) return;
+    asegurarCola();
+    const fuente = fuenteFreestyle({ beatId, link: linkFreestyle });
+    const conPatron = fuente.tipo === 'beat' && Boolean(patronDeBeat(fuente.beat.id));
+    ronda = {
+        inicio: performance.now(),
+        duracion: duracionElegida().segundos,
+        pausa: null,
+        modo: conPatron ? 'beat' : 'reloj',
+    };
+    indicePalabra = 0;
     marcarSonando(true);
-    iniciarBeat(ajustesFreestyle, alPasoFreestyle);
+    if (!relojTimer) relojTimer = setInterval(tickReloj, 200);
+    if (conPatron) empezarBeat();
+}
+
+function pausarRonda() {
+    if (!ronda || ronda.pausa) return;
+    ronda.pausa = performance.now();
+    detenerBeat();
+}
+
+function reanudarRonda() {
+    if (!ronda?.pausa) return;
+    ronda.inicio += performance.now() - ronda.pausa;
+    ronda.pausa = null;
+    if (ronda.modo === 'beat') empezarBeat();
 }
 
 function terminarRonda(porTiempo = false) {
     if (!ronda) return;
     ronda = null;
-    cola = [];
     detenerBeat();
+    clearInterval(relojTimer);
+    relojTimer = null;
     marcarSonando(false);
-    document.querySelectorAll('#fs-tiempos span').forEach(s => s.classList.remove('activo', 'lleno'));
-    $('fs-compas-n').textContent = '1';
-    $('fs-ronda').textContent = '1';
-    if (!porTiempo) $('fs-reloj').style.setProperty('--avance', 0);
+    if (porTiempo && linkFreestyle && sonando) musica?.pausar?.();
     if (porTiempo) {
-        $('fs-reloj').textContent = '¡Tiempo!';
-        $('fs-reloj').classList.add('terminado');
+        $('fs-cuenta').textContent = '0:00';
+        $('fs-reloj').style.setProperty('--avance', '1');
         $('fs-palabra').textContent = '¡Tiempo!';
+        $('fs-despues').replaceChildren();
+        $('fs-luego').replaceChildren();
+        cola = [];
+        return;
     }
-    $('fs-proxima').textContent = 'Tocá Empezar y hacé caer la sílaba marcada en el 1.';
+    cola = [];
+    asegurarCola();
+    mostrarCuentaIdle();
 }
 
-function mostrarBpm() {
-    const bpm = $('fs-bpm').value;
-    const numero = document.createElement('b');
-    numero.textContent = bpm;
-    $('fs-bpm-valor').replaceChildren(numero, ' BPM');
-    $('fs-bpm').style.setProperty('--pct', `${((bpm - 60) / 80) * 100}%`);
+// La ronda sigue al play del reproductor solo con un link y en esta pestaña.
+function rondaSigueAlReproductor() {
+    return Boolean(linkFreestyle) && $('pantalla-freestyle').classList.contains('activa');
 }
 
-$('fs-empezar').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
-$('fs-bpm').addEventListener('input', mostrarBpm);
-$('fs-bpm-reiniciar').addEventListener('click', () => {
-    $('fs-bpm').value = BPM_POR_DEFECTO;
-    $('fs-bpm').dispatchEvent(new Event('input'));
+function sincronizarLinkFreestyle() {
+    const hay = Boolean(linkFreestyle);
+    const enFs = $('pantalla-freestyle').classList.contains('activa');
+    document.body.classList.toggle('freestyle-link', hay && enFs);
+    $('pantalla-freestyle').classList.toggle('con-link', hay);
+    $('pantalla-freestyle').classList.toggle('con-youtube', linkFreestyle?.fuente === 'youtube');
+    $('fs-elegir').hidden = hay;
+    $('fs-play').hidden = hay;
+    ocultarMusicaSiHaceFalta();
+    ubicarReproductor();
+}
+
+function renderizarDuraciones() {
+    const extras = tieneExtras(localStorage);
+    if (!elegirDuracion(duracionId, extras)) duracionId = DURACION_INICIAL;
+    $('fs-duraciones').replaceChildren(...DURACIONES.map(d => {
+        const bloqueada = Boolean(d.premium && !extras);
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'chip-fs' + (d.premium ? ' premium' : '');
+        boton.role = 'radio';
+        boton.dataset.duracion = d.id;
+        boton.setAttribute('aria-checked', String(!bloqueada && d.id === duracionId));
+        boton.textContent = d.premium ? `★ ${d.etiqueta}` : d.etiqueta;
+        if (bloqueada) {
+            boton.setAttribute('aria-disabled', 'true');
+            boton.dataset.paywall = '';
+            boton.setAttribute('aria-label', `${d.etiqueta}, con Métrica Extras`);
+        }
+        boton.addEventListener('click', () => {
+            if (bloqueada) return;
+            duracionId = d.id;
+            renderizarDuraciones();
+            if (ronda) ronda.duracion = d.segundos;
+            else mostrarCuentaIdle();
+        });
+        return boton;
+    }));
+}
+
+function renderizarBeats() {
+    $('fs-beats').replaceChildren(...CATALOGO_BEATS.map(b => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'chip-fs';
+        boton.role = 'radio';
+        boton.dataset.beat = b.id;
+        if (b.placeholder) boton.dataset.placeholder = 'true';
+        boton.setAttribute('aria-checked', String(b.id === beatId));
+        boton.textContent = etiquetaBeat(b);
+        boton.addEventListener('click', () => {
+            beatId = b.id;
+            renderizarBeats();
+        });
+        return boton;
+    }));
+}
+
+function avisoFs(texto) {
+    $('fs-link-aviso').textContent = texto;
+    $('fs-link-aviso').hidden = !texto;
+}
+
+async function usarLinkFreestyle(texto) {
+    const link = leerLink(texto);
+    if (!link) return avisoFs('Ese link no es de YouTube ni de SoundCloud.');
+    if (!navigator.onLine) return avisoFs('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
+    avisoFs('');
+    if (ronda) terminarRonda();
+    linkFreestyle = link;
+    sincronizarLinkFreestyle();
+    await escucharMusica(texto);
+}
+
+$('fs-play').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
+$('fs-pegar').addEventListener('click', async () => {
+    try {
+        const texto = (await navigator.clipboard.readText())?.trim();
+        if (texto) $('fs-link').value = texto;
+    } catch { /* se usa lo que ya está escrito */ }
+    await usarLinkFreestyle($('fs-link').value);
 });
-$('fs-duracion').addEventListener('change', () => { if (!ronda) $('fs-reloj').textContent = formatoReloj(Number($('fs-duracion').value)); });
-mostrarBpm();
+$('fs-link').addEventListener('keydown', e => { if (e.key === 'Enter') usarLinkFreestyle($('fs-link').value); });
+renderizarDuraciones();
+renderizarBeats();
+asegurarCola();
+mostrarCuentaIdle();
 
 // ---------- Métrica Extras (paywall) ----------
 const CANDADO = '<svg viewBox="0 0 24 24" class="icono"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
@@ -807,6 +935,7 @@ const TILDE = '<svg viewBox="0 0 24 24" class="icono"><path d="M5 12l5 5 9-10"/>
 
 function renderizarExtras() {
     const extras = tieneExtras(localStorage);
+    renderizarDuraciones();
     document.querySelectorAll('.publicidad').forEach(p => { p.hidden = !mostrarPublicidad(localStorage); });
     $('estado-extras').textContent = extras ? 'Comprado. ¡Gracias!' : `Sin publicidad, temas y widgets · ${PRODUCTO.precio}`;
     $('comprar-extras').textContent = extras ? 'Ya tenés Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
@@ -926,6 +1055,12 @@ function alCambiarEstado(activo) {
         aplicarVideo();
     }
     mostrarEstadoMusica();
+    // Con un link, el play de la tarjeta es el de la ronda: no hay otro.
+    if (!rondaSigueAlReproductor()) return;
+    if (activo) {
+        if (!ronda) empezarRonda();
+        else if (ronda.pausa) reanudarRonda();
+    } else pausarRonda();
 }
 
 // La tarjeta se esconde con el teclado y fuera del editor. YouTube se pausa en los dos
@@ -937,6 +1072,7 @@ function ocultarMusicaSiHaceFalta() {
         sonando,
         editor: document.body.classList.contains('editando'),
         teclado: document.body.classList.contains('teclado-abierto'),
+        freestyle: document.body.classList.contains('freestyle-link'),
     })) musica.pausar();
 }
 new MutationObserver(ocultarMusicaSiHaceFalta).observe(document.body, { attributes: true, attributeFilter: ['class'] });
@@ -958,8 +1094,8 @@ function anotarTiempo(segundos, total = duracion) {
     pintarProgreso();
 }
 
-async function escucharMusica() {
-    const link = leerLink($('link-musica').value);
+async function escucharMusica(texto) {
+    const link = leerLink(typeof texto === 'string' ? texto : $('link-musica').value);
     if (!link) return avisoMusica('Ese link no es de YouTube ni de SoundCloud.');
     if (!navigator.onLine) return avisoMusica('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
     avisoMusica('');
@@ -1105,9 +1241,8 @@ async function escucharMusica() {
 }
 
 function reproductorVisible() {
-    return !$('reproductor').hidden
-        && document.body.classList.contains('editando')
-        && !document.body.classList.contains('teclado-abierto');
+    if ($('reproductor').hidden || document.body.classList.contains('teclado-abierto')) return false;
+    return document.body.classList.contains('editando') || document.body.classList.contains('freestyle-link');
 }
 
 function cerrarMusica() {
@@ -1179,7 +1314,15 @@ $('musica-plegar').addEventListener('click', () => {
 });
 $('musica-atrasar').addEventListener('click', () => musica?.mover?.(-PASO_SEGUNDOS));
 $('musica-adelantar').addEventListener('click', () => musica?.mover?.(PASO_SEGUNDOS));
-$('musica-cerrar').addEventListener('click', cerrarMusica);
+$('musica-cerrar').addEventListener('click', () => {
+    const eraFreestyle = Boolean(linkFreestyle);
+    cerrarMusica();
+    if (!eraFreestyle) return;
+    linkFreestyle = null;
+    $('fs-link').value = '';
+    if (ronda) terminarRonda();
+    sincronizarLinkFreestyle();
+});
 
 function segundosDesdePuntero(clientX) {
     const r = $('musica-pista').getBoundingClientRect();

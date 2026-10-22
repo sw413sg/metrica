@@ -115,6 +115,10 @@ test('YouTube se pausa si la tarjeta no se ve; SoundCloud sigue con el teclado',
     assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: true, teclado: false }), false);
     assert.equal(pausarAlOcultar({ fuente: 'soundcloud', sonando: true, editor: true, teclado: true }), false);
     assert.equal(pausarAlOcultar({ fuente: 'soundcloud', sonando: true, editor: false, teclado: false }), true);
+    // Freestyle con link muestra la misma tarjeta: no se pausa por no estar en el editor.
+    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: false, teclado: false, freestyle: true }), false);
+    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: false, teclado: true, freestyle: true }), true);
+    assert.equal(pausarAlOcultar({ fuente: 'soundcloud', sonando: true, editor: false, teclado: false, freestyle: true }), false);
 });
 
 test('mostrar el video de YouTube plegado primero lo muestra', () => {
