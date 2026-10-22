@@ -7,7 +7,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 
 const tipos = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml',
-    '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.md': 'text/plain'};
+    '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.md': 'text/plain', '.mp3': 'audio/mpeg'};
 // Para simular que se publicó una versión nueva, se le agrega esto al final de sw.js.
 let versionNueva = '';
 const servidor = http.createServer((req, res) => {
@@ -645,29 +645,170 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#palabras-simples').check();
         assert.match(await page.locator('#palabras-total').textContent(), /20\.000 palabras disponibles/);
 
-        // Freestyle: el beat avanza, la palabra cambia y tiene la tónica marcada; el aro se carga.
+        // Freestyle: bandeja de duración, beats, el reloj cuenta para atrás y el aro se llena.
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
-        assert.deepEqual(await page.locator('#fs-beat option').allTextContents(), ['Boom bap', 'Trap', 'Metrónomo']);
-        assert.equal(await page.locator('#fs-compases').count(), 0);
-        await page.locator('#fs-bpm').fill('140');
-        assert.equal(await page.locator('#fs-bpm-valor').textContent(), '140 BPM');
-        await page.locator('#fs-empezar').click();
-        assert.equal(await page.locator('#fs-empezar').textContent(), 'Parar');
+        const pantallaFs = page.locator('#pantalla-freestyle');
+        for (const sel of ['.linea-compas', '#fs-proxima', '#fs-bpm', '#fs-tiempos', '#fs-empezar']) {
+            assert.equal(await pantallaFs.locator(sel).count(), 0, sel);
+        }
+        assert.equal(await pantallaFs.getByText('Tocá').count(), 0);
+        assert.equal(await pantallaFs.getByText(/Compás/).count(), 0);
+        assert.deepEqual(await page.locator('#fs-duraciones .chip-fs').allTextContents(), ['1 min', '1:30', '2 min', '★ Ilimitado']);
+        assert.equal(await page.locator('#fs-duraciones [data-duracion="60"]').getAttribute('aria-checked'), 'true');
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
+        await page.locator('#fs-duraciones [data-duracion="90"]').click();
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '1:30');
+        await page.locator('#fs-duraciones [data-duracion="120"]').click();
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '2:00');
+        await page.locator('#fs-duraciones [data-duracion="60"]').click();
+        const ilimitado = page.locator('#fs-duraciones [data-duracion="ilimitado"]');
+        assert.equal(await ilimitado.getAttribute('aria-disabled'), 'true');
+        assert.equal(await ilimitado.getAttribute('aria-checked'), 'false');
+        // aria-disabled no frena el toque en el navegador: abre el paywall. Playwright sí lo trata como deshabilitado.
+        await ilimitado.click({ force: true });
+        assert.equal(await page.locator('#paywall').isVisible(), true);
+        await page.locator('#cerrar-paywall').click();
+        assert.equal(await page.locator('#paywall').isVisible(), false);
+        assert.equal(await page.locator('#fs-duraciones [data-duracion="60"]').getAttribute('aria-checked'), 'true');
+        assert.deepEqual(await page.locator('#fs-beats .chip-fs').allTextContents(), [
+            'Boom bap · Clásico', 'Boom bap · Batería', 'Boom bap · Jazz', 'Trap · Clásico', 'Trap · Grave', 'Trap · Seco',
+        ]);
+        assert.equal(await page.locator('#fs-beats [data-placeholder="true"]').count(), 0);
+        assert.equal(await page.locator('#fs-beats [data-beat="boom-bap-clasico"]').getAttribute('aria-checked'), 'true');
+        await page.locator('#fs-beats [data-beat="trap-clasico"]').click();
+        assert.equal(await page.locator('#fs-beats [data-beat="trap-clasico"]').getAttribute('aria-checked'), 'true');
+        assert.equal(await page.locator('#fs-play').isVisible(), true);
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
         await page.locator('#fs-palabra .tonica').waitFor();
         const palabra1 = await page.locator('#fs-palabra').textContent();
-        assert.equal(await page.locator('#fs-tiempos .activo').count(), 1);
-        assert.match(await page.locator('#fs-proxima').textContent(), /^Después: /);
-        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabra1, {timeout: 6000});
-        assert.match(await page.locator('#fs-reloj').textContent(), /^0:5\d$/);
+        await page.locator('#fs-play').click();
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Parar');
+        await page.waitForFunction(() => {
+            const [m, s] = document.getElementById('fs-cuenta').textContent.split(':').map(Number);
+            return m * 60 + s <= 58;
+        }, null, {timeout: 4000});
         assert.ok(Number(await page.locator('#fs-reloj').evaluate(r => r.style.getPropertyValue('--avance'))) > 0);
+        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabra1, {timeout: 8000});
+        const cuenta = await page.locator('#fs-cuenta').textContent();
+        const segundosCuenta = cuenta.split(':').reduce((m, s) => m * 60 + Number(s), 0);
+        assert.ok(segundosCuenta < 58 && segundosCuenta > 40, cuenta);
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
-        await page.locator('#fs-empezar').click();
-        assert.equal(await page.locator('#fs-empezar').textContent(), 'Empezar');
-        assert.equal(await page.locator('#fs-tiempos .activo').count(), 0);
-        // El botón de al lado del tempo lo vuelve a 90.
-        await page.locator('#fs-bpm-reiniciar').click();
-        assert.equal(await page.locator('#fs-bpm').inputValue(), '90');
-        assert.equal(await page.locator('#fs-bpm-valor').textContent(), '90 BPM');
+        await page.locator('#fs-play').click();
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
+        // Cada mp3 dura un número entero de compases: al loopear no se desfasa del reloj.
+        for (const [archivo, segundos] of [
+            ['beats/boom-bap-bateria.mp3', 8 * 4 * 60 / 90],
+            ['beats/boom-bap-jazz.mp3', 2 * 4 * 60 / 93],
+            ['beats/trap-grave.mp3', 8 * 4 * 60 / 140],
+            ['beats/trap-seco.mp3', 4 * 4 * 60 / 140],
+        ]) {
+            const duracion = await page.evaluate(async a => {
+                const ctx = new AudioContext();
+                const datos = await (await fetch(a)).arrayBuffer();
+                const audio = await ctx.decodeAudioData(datos);
+                await ctx.close();
+                return audio.duration;
+            }, archivo);
+            assert.ok(Math.abs(duracion - segundos) < 0.03, `${archivo} dura ${duracion}, se esperaba ${segundos}`);
+        }
+        // Un mp3 del catálogo se carga, suena en loop y la palabra cambia con su BPM.
+        await page.locator('#fs-beats [data-beat="boom-bap-jazz"]').click();
+        await page.waitForFunction(() => performance.getEntriesByType('resource').some(e => e.name.endsWith('beats/boom-bap-jazz.mp3')));
+        const palabraJazz = await page.locator('#fs-palabra').textContent();
+        await page.locator('#fs-play').click();
+        await page.waitForFunction(() => document.documentElement.dataset.beatSonando === 'archivo');
+        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabraJazz, {timeout: 8000});
+        await page.locator('#fs-play').click();
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
+        // Un link que no sirve avisa y no abre el reproductor.
+        await page.locator('#fs-link').fill('https://spotify.com/track/1');
+        await page.locator('#fs-link').press('Enter');
+        assert.match(await page.locator('#fs-link-aviso').textContent(), /no es de YouTube ni de SoundCloud/);
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        assert.equal(await page.locator('#fs-play').isVisible(), true);
+        // Con un link hay un solo play (el de la tarjeta de abajo) y el reloj sigue.
+        await page.evaluate(() => { delete window.YT; });
+        await page.unroute('https://www.youtube.com/iframe_api').catch(() => {});
+        await page.route('https://www.youtube.com/iframe_api', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
+            window.YT = { PlayerState: { PLAYING: 1, BUFFERING: 3 }, Player: function (lugar, o) {
+                const p = window.__ytFs = this; p.t = 0; p.pausado = true;
+                p.setVolume = () => {};
+                p.playVideo = () => { p.pausado = false; o.events.onStateChange({ data: 1 }); };
+                p.pauseVideo = () => { p.pausado = true; o.events.onStateChange({ data: 2 }); };
+                p.getVideoData = () => ({ title: 'Beat de prueba' });
+                p.getCurrentTime = () => p.t; p.getDuration = () => 200; p.seekTo = s => { p.t = s; };
+                p.destroy = () => {};
+                setTimeout(() => o.events.onReady({ target: p }));
+            } };
+            setTimeout(() => onYouTubeIframeAPIReady());`}));
+        await page.locator('#fs-link').fill('https://youtu.be/dQw4w9WgXcQ');
+        await page.locator('#fs-link').press('Enter');
+        await page.locator('#reproductor-titulo', {hasText: 'Beat de prueba'}).waitFor();
+        assert.equal(await page.locator('#fs-play').isVisible(), false);
+        assert.equal(await page.locator('#fs-elegir').isVisible(), false);
+        assert.equal(await page.locator('#musica-play').isVisible(), true);
+        const plays = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
+        assert.deepEqual(plays, ['musica-play']);
+        const player = await page.locator('#reproductor').boundingBox();
+        const tab = await page.locator('#barra-pestanas').boundingBox();
+        assert.equal(Math.round(player.x), 16, JSON.stringify(player));
+        assert.ok(player.y + player.height <= tab.y + 1, JSON.stringify({player, tab}));
+        assert.ok(Math.abs(player.y + player.height - (844 - 84)) <= 2, JSON.stringify(player));
+        await page.waitForFunction(() => {
+            const [m, s] = document.getElementById('fs-cuenta').textContent.split(':').map(Number);
+            return m * 60 + s <= 58;
+        }, null, {timeout: 4000});
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
+        await page.locator('#musica-play').click();
+        assert.equal(await page.evaluate(() => window.__ytFs.pausado), true);
+        const congelada = await page.locator('#fs-cuenta').textContent();
+        await page.waitForTimeout(700);
+        assert.equal(await page.locator('#fs-cuenta').textContent(), congelada, 'en pausa el reloj no sigue');
+        await page.locator('#musica-play').click();
+        await page.waitForFunction(c => document.getElementById('fs-cuenta').textContent !== c, congelada);
+        await page.screenshot({path: `capturas/freestyle-link-${tema}.png`});
+        await page.locator('#musica-cerrar').click();
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        assert.equal(await page.locator('#fs-play').isVisible(), true);
+        assert.equal(await page.locator('#fs-elegir').isVisible(), true);
+        assert.equal(await page.locator('#fs-link').inputValue(), '');
+        // El link corto de SoundCloud se resuelve igual que en Letras, y sigue habiendo un solo play.
+        await page.evaluate(() => { delete window.SC; });
+        await page.unroute('https://w.soundcloud.com/player/api.js').catch(() => {});
+        await page.route('https://w.soundcloud.com/player/api.js', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
+            window.SC = { Widget: function (el) {
+                const w = window.__scFs = { el, paused: true };
+                w.bind = (ev, fn) => { w['on' + ev] = fn; };
+                w.play = () => { w.paused = false; w.onPLAY?.(); };
+                w.pause = () => { w.paused = true; w.onPAUSE?.(); };
+                w.setVolume = () => {};
+                w.getPosition = cb => cb(0);
+                w.getDuration = cb => cb(180000);
+                w.seekTo = () => {};
+                w.getCurrentSound = cb => cb({ title: 'Beat nube' });
+                setTimeout(() => w.onREADY?.());
+                return w;
+            } };
+            window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
+        await page.route('https://soundcloud.com/oembed**', ruta => ruta.fulfill({contentType: 'application/json', body: JSON.stringify({
+            html: '<iframe src="https://w.soundcloud.com/player/?visual=true&url=https%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F2416843668&amp;show_artwork=true"></iframe>',
+        })}));
+        await page.locator('#fs-link').fill('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ');
+        await page.locator('#fs-link').press('Enter');
+        await page.locator('#reproductor-titulo', {hasText: 'Beat nube'}).waitFor();
+        const srcBeat = new URL(await page.locator('#reproductor-oculto iframe').getAttribute('src'));
+        assert.equal(srcBeat.searchParams.get('url'), 'https://api.soundcloud.com/tracks/2416843668');
+        assert.equal(await page.locator('#fs-play').isVisible(), false);
+        assert.equal(await page.locator('#musica-play').isVisible(), true);
+        const playsNube = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
+        assert.deepEqual(playsNube, ['musica-play']);
+        const beatNube = await page.locator('#reproductor').boundingBox();
+        const tabNube = await page.locator('#barra-pestanas').boundingBox();
+        assert.ok(beatNube.y + beatNube.height <= tabNube.y + 1, JSON.stringify({beatNube, tabNube}));
+        await page.locator('#musica-cerrar').click();
+        assert.equal(await page.locator('#fs-play').isVisible(), true);
+        await page.unroute('https://soundcloud.com/oembed**').catch(() => {});
 
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();
@@ -725,6 +866,14 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#comprar-extras').click();
         assert.equal(await page.locator('#comprar-extras').isDisabled(), true);
         await page.locator('#cerrar-paywall').click();
+        // Con Extras, Ilimitado se puede elegir (sigue siendo la compra simulada).
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
+        assert.equal(await page.locator('#fs-duraciones [data-duracion="ilimitado"]').getAttribute('aria-disabled'), null);
+        await page.locator('#fs-duraciones [data-duracion="ilimitado"]').click();
+        assert.equal(await page.locator('#paywall').isVisible(), false);
+        assert.equal(await page.locator('#fs-duraciones [data-duracion="ilimitado"]').getAttribute('aria-checked'), 'true');
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '∞');
+        await page.locator('#fs-duraciones [data-duracion="60"]').click();
         await abrirTemas();
         await page.locator('[data-tema="pizarra"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
@@ -761,9 +910,9 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#buscar-rima').fill('luna');
         assert.ok((await page.locator('#resultados-rimas .celda').allTextContents()).includes('fortuna'));
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
-        await page.locator('#fs-empezar').click();
+        await page.locator('#fs-play').click();
         await page.locator('#fs-palabra .tonica').waitFor();
-        await page.locator('#fs-empezar').click();
+        await page.locator('#fs-play').click();
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#nueva-letra').click();
         await page.locator('#editor-titulo').fill('Sin internet');

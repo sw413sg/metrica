@@ -110,7 +110,7 @@ a { color: var(--acento); text-decoration: none; }
 
 /* Vidrio de iOS 26: lo que se toca y flota (barra de pestañas, botones, buscador, controles).
    Translúcido, con brillo en el borde de arriba. En SwiftUI: .glassEffect(). */
-.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .buscador, .segmentado, .boton-gris, .boton-relleno, .boton-redondo, .busqueda-rima, .barra-bpm, .boton-bpm {
+.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .buscador, .segmentado, .boton-gris, .boton-relleno, .boton-redondo, .busqueda-rima {
     background: var(--vidrio); border: 1px solid var(--vidrio-borde);
     box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--sombra-vidrio);
     -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
@@ -251,86 +251,78 @@ a { color: var(--acento); text-decoration: none; }
 .lista-simples { margin-top: 28px; }
 #pantalla-rimas .vacio { margin: 28px 8px; }
 
-/* Freestyle: aro de 270 con trazo de 12 que se carga de violeta. El resto del aro
-   es el gris del diseño (--relleno) y el centro, un disco del fondo, como en el HTML.
+/* Freestyle (freestyle_v2_A): el aro se llena de violeta y adentro van la palabra
+   y los segundos que quedan. Con un link el aro se achica para dejar la tarjeta.
    En SwiftUI: Circle().trim. */
 @property --avance { syntax: '<number>'; inherits: false; initial-value: 0; }
-.escenario-fs { position: relative; width: 270px; height: 270px; margin: 8px auto 0; }
+#pantalla-freestyle { --aro: 250px; --fs-palabra: 44px; --fs-cuenta: 20px; --fs-proxima: 20px; }
+#pantalla-freestyle.con-link { --aro: 200px; --fs-palabra: 38px; }
+#pantalla-freestyle.con-youtube { --aro: 150px; --fs-palabra: 30px; --fs-cuenta: 15px; --fs-proxima: 17px; }
+.escenario-fs { width: var(--aro); height: var(--aro); margin: 4px auto 0; }
 .reloj {
     --avance: 0;
-    position: relative;
-    width: 270px; height: 270px; margin: 0; border-radius: 50%; border: 0;
+    width: var(--aro); height: var(--aro); border-radius: 50%;
     background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0);
-    font-size: 0; color: transparent;
+    display: flex; align-items: center; justify-content: center;
     transition: --avance .2s linear;
 }
-.reloj::before {
-    content: "";
-    position: absolute; left: 12px; top: 12px; width: 246px; height: 246px;
-    border-radius: 50%; background: var(--fondo);
+.aro-centro {
+    width: calc(var(--aro) - 24px); height: calc(var(--aro) - 24px); border-radius: 50%;
+    background: var(--fondo); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px; overflow: hidden;
 }
 .palabra-fs {
-    position: absolute; inset: 12px; margin: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 48px; font-weight: 700; letter-spacing: -1px; line-height: 1; text-align: center; overflow-wrap: anywhere;
+    margin: 0; max-width: 100%; font-size: var(--fs-palabra); font-weight: 700; letter-spacing: -1px;
+    line-height: 1; text-align: center; overflow-wrap: anywhere;
 }
+.cuenta-fs { margin: 4px 0 0; font-size: var(--fs-cuenta); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto-2); line-height: 1; }
 .palabra-fs .tonica, .proxima-palabra .tonica { color: var(--destacado); text-decoration: none; }
-.proxima { margin: 14px 8px 0; color: var(--texto-2); font-size: 15px; text-align: center; min-height: 20px; }
-#pantalla-freestyle.sonando #fs-proxima {
-    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
-    clip: rect(0, 0, 0, 0); white-space: nowrap;
-}
-#pantalla-freestyle:not(.sonando) .proximas { display: none; }
-.proximas { display: flex; justify-content: center; align-items: flex-start; gap: 34px; margin: 14px 0 16px; }
+.proximas { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin: 10px 0 0; }
 .proxima-item { text-align: center; }
 .proxima-item.despues { opacity: 0.85; }
 .proxima-item.luego { opacity: 0.5; }
 .etiqueta-proxima { display: block; font-size: 11px; color: var(--texto-3); letter-spacing: 0.5px; text-transform: uppercase; }
-.proxima-item.despues .proxima-palabra { font-size: 24px; font-weight: 600; color: var(--texto-2); }
-.proxima-item.luego .proxima-palabra { font-size: 20px; font-weight: 600; color: var(--texto-2); }
-.linea-compas { text-align: center; font-size: 15px; color: var(--texto-2); margin: 0 0 8px; }
-.linea-compas b { color: var(--texto); }
-.tiempos { display: flex; justify-content: center; gap: 8px; }
-.tiempos span { width: 14px; height: 14px; border-radius: 50%; background: var(--relleno); font-size: 0; box-shadow: none; }
-.tiempos span.lleno, .tiempos span.activo { background: var(--texto); color: transparent; box-shadow: none; }
-.barra-bpm { margin: 16px 0 0; border-radius: 24px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
-#fs-bpm-valor { display: flex; align-items: baseline; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--texto-2); }
-#fs-bpm-valor b { font-size: 28px; font-weight: 700; color: var(--texto); letter-spacing: -0.5px; margin-right: 10px; }
-#fs-bpm {
-    -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 28px; margin: 0;
-    background: transparent; accent-color: auto;
+.proxima-palabra { font-size: var(--fs-proxima); font-weight: 600; color: var(--texto-2); }
+.bandeja-fs { margin: 12px 0 0; border-radius: 30px; padding: 6px; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+.play-fs {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+    background: var(--texto); color: var(--fondo);
 }
-#fs-bpm::-webkit-slider-runnable-track {
-    height: 6px; border-radius: 3px;
-    background: linear-gradient(to right, var(--texto) var(--pct, 37.5%), var(--relleno) var(--pct, 37.5%));
+.play-fs[hidden] { display: none; }
+.play-fs .icono { width: 22px; height: 22px; }
+.play-fs .icono-relleno { fill: currentColor; stroke: none; }
+.duraciones-fs, .beats-fs {
+    display: flex; gap: 8px; overflow-x: auto; min-width: 0; scrollbar-width: none;
 }
-#fs-bpm::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -11px;
-    border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+.duraciones-fs::-webkit-scrollbar, .beats-fs::-webkit-scrollbar { display: none; }
+.duraciones-fs { flex: 1; }
+.chip-fs {
+    flex-shrink: 0; height: 36px; padding: 0 8px; border-radius: 16px;
+    font-size: 15px; font-weight: 600; background: var(--celda); color: var(--texto);
+    display: inline-flex; align-items: center;
 }
-#fs-bpm::-moz-range-track { height: 6px; border: 0; border-radius: 3px; background: var(--relleno); }
-#fs-bpm::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--texto); }
-#fs-bpm::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
-.boton-bpm { flex-shrink: 0; padding: 8px 12px; border-radius: 16px; font-size: 14px; font-weight: 600; }
-.boton-pausa {
-    position: relative; display: block;
-    width: 84px; height: 84px; margin: 18px auto 0; border-radius: 50%;
-    background: var(--texto); color: transparent; font-size: 0;
+.chip-fs[aria-checked="true"] { background: var(--texto); color: var(--fondo); }
+.chip-fs.premium:not([aria-checked="true"]) { background: var(--destacado-suave); color: var(--destacado); }
+#pantalla-freestyle .encabezado-grupo { margin: 0; padding: 14px 20px 6px; letter-spacing: 0.3px; }
+.beats-fs { margin: 0; padding: 0; }
+.pegar-fs {
+    height: 44px; margin-top: 10px; border-radius: 22px; display: flex; align-items: center; gap: 8px;
+    padding: 0 6px 0 14px; color: var(--texto-2);
 }
-.boton-pausa::after {
-    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    width: 26px; height: 30px; background: var(--fondo);
-    clip-path: polygon(0 0, 100% 50%, 0 100%);
+.pegar-fs .icono { width: 22px; height: 22px; flex-shrink: 0; }
+.pegar-fs input {
+    flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 15px; color: var(--texto); padding: 0;
 }
-/* Pausa: dos barras de 11×31 separadas 14 px, sin radio. Es el tamaño del glifo ❚❚
-   a 30 px del diseño (freestyle_AC1.html), en claro y en oscuro. */
-#pantalla-freestyle.sonando .boton-pausa::after {
-    width: 36px; height: 31px; clip-path: none; border-radius: 0;
-    background:
-        linear-gradient(var(--fondo), var(--fondo)) left center / 11px 31px no-repeat,
-        linear-gradient(var(--fondo), var(--fondo)) right center / 11px 31px no-repeat;
+.pegar-fs input::placeholder { color: var(--texto-2); }
+.boton-pegar {
+    height: 32px; padding: 0 14px; border-radius: 16px; flex-shrink: 0;
+    background: var(--texto); color: var(--fondo); font-weight: 600; font-size: 14px;
 }
-#fs-opciones { margin-top: 20px; }
-#fs-opciones .lista-agrupada { margin-top: 0; }
+#fs-elegir[hidden] { display: none; }
+#fs-link-aviso { margin: 8px 4px 0; }
+#pantalla-freestyle.con-link .contenido {
+    padding-bottom: calc(24px + 92px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
+}
 .deslizador { flex: 1; min-width: 0; accent-color: var(--destacado); }
 /* Barra de la libreta con 10 puntos marcados abajo: al soltar, se imanta al más cercano. */
 .fila-deslizador { margin-top: 12px; padding: 0 4px; }
@@ -569,6 +561,11 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .reproductor[hidden] { display: none; }
 body:not(.editando) .reproductor,
 body.teclado-abierto .reproductor { display: none; }
+/* Freestyle con link: la misma tarjeta, arriba de la barra de pestañas. */
+body.freestyle-link:not(.editando):not(.teclado-abierto) .reproductor:not([hidden]) {
+    display: block;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+}
 .reproductor-vidrio {
     position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
     background: var(--vidrio);

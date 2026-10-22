@@ -27,6 +27,14 @@ test('todo lo que está en la caché existe', () => {
     }
 });
 
+test('los beats grabados están en la caché y pesan menos de 1.5 MB', () => {
+    for (const archivo of ['beats/boom-bap-bateria.mp3', 'beats/boom-bap-jazz.mp3', 'beats/trap-grave.mp3', 'beats/trap-seco.mp3']) {
+        assert.ok(enCache.has(archivo), `falta ${archivo} en sw.js`);
+        const peso = fs.statSync(archivo).size;
+        assert.ok(peso > 1000 && peso < 1.5 * 1024 * 1024, `${archivo} pesa ${peso}`);
+    }
+});
+
 test('la versión es un número con un decimal, como se ve en Ajustes', () => {
     assert.match(sw.match(/const VERSION = '([^']+)'/)[1], /^metrica-\d+\.\d+$/);
 });

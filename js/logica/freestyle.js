@@ -96,3 +96,79 @@ export function segundosRestantes(inicioMs, ahoraMs, duracionSegundos) {
 export function formatoReloj(segundos) {
     return `${Math.floor(segundos / 60)}:${String(segundos % 60).padStart(2, '0')}`;
 }
+
+// Duración de la ronda. Ilimitado es de Métrica Extras: sin el pago no se elige.
+// En la web el pago es el simulado de compra.js; no hay StoreKit.
+export const DURACIONES = [
+    { id: '60', etiqueta: '1 min', segundos: 60 },
+    { id: '90', etiqueta: '1:30', segundos: 90 },
+    { id: '120', etiqueta: '2 min', segundos: 120 },
+    { id: 'ilimitado', etiqueta: 'Ilimitado', segundos: null, premium: true },
+];
+
+export const DURACION_INICIAL = '60';
+
+// null si no existe o si es ilimitado y no hay Extras.
+export function elegirDuracion(id, tieneExtras) {
+    const duracion = DURACIONES.find(d => d.id === id);
+    if (!duracion || (duracion.premium && !tieneExtras)) return null;
+    return duracion;
+}
+
+// Lo que muestra el aro: los segundos que quedan y cuánto se llenó (0 al empezar, 1 al terminar).
+// Ilimitado no se acaba: el aro no se llena y el reloj queda en ∞.
+export function estadoRonda(inicioMs, ahoraMs, duracionSegundos) {
+    if (duracionSegundos == null) return { restantes: null, avance: 0, texto: '∞' };
+    const transcurrido = Math.max(0, (ahoraMs - inicioMs) / 1000);
+    const restantes = Math.max(0, Math.ceil(duracionSegundos - transcurrido));
+    const avance = duracionSegundos > 0 ? Math.min(1, transcurrido / duracionSegundos) : 0;
+    return { restantes, avance, texto: formatoReloj(restantes) };
+}
+
+// Beats para elegir cuando no hay link: 2 géneros × 3.
+// Clásico es el sintetizador de BEATS. Los otros cuatro son mp3 en beats/,
+// con licencia CC0 (ver beats/CREDITS.md). `compases` es el largo del loop:
+// un número entero, para que al repetir siga cayendo en el tiempo 1.
+export const CATALOGO_BEATS = [
+    { id: 'boom-bap-clasico', genero: 'Boom bap', nombre: 'Clásico', patron: 'boom-bap' },
+    { id: 'boom-bap-bateria', genero: 'Boom bap', nombre: 'Batería', archivo: 'beats/boom-bap-bateria.mp3', bpm: 90, compases: 8 },
+    { id: 'boom-bap-jazz', genero: 'Boom bap', nombre: 'Jazz', archivo: 'beats/boom-bap-jazz.mp3', bpm: 93, compases: 2 },
+    { id: 'trap-clasico', genero: 'Trap', nombre: 'Clásico', patron: 'trap' },
+    { id: 'trap-grave', genero: 'Trap', nombre: 'Grave', archivo: 'beats/trap-grave.mp3', bpm: 140, compases: 8 },
+    { id: 'trap-seco', genero: 'Trap', nombre: 'Seco', archivo: 'beats/trap-seco.mp3', bpm: 140, compases: 4 },
+];
+
+export function etiquetaBeat(beat) {
+    return `${beat.genero} · ${beat.nombre}`;
+}
+
+// El patrón sintetizado, o null si ese beat es un mp3 (o no existe).
+export function patronDeBeat(id) {
+    const beat = CATALOGO_BEATS.find(b => b.id === id);
+    return beat?.patron ? BEATS[beat.patron] ?? null : null;
+}
+
+// El mp3 que hay que loopear, o null si ese beat es sintetizado (o no existe).
+export function archivoDeBeat(id) {
+    const beat = CATALOGO_BEATS.find(b => b.id === id);
+    if (!beat?.archivo) return null;
+    return { archivo: beat.archivo, bpm: beat.bpm, compases: beat.compases };
+}
+
+// Segundos de un loop de `compases` compases de 4/4. El mp3 dura exactamente esto,
+// así el cierre coincide con el reloj de las palabras.
+export function segundosDeLoop(bpm, compases) {
+    return compases * 4 * (60 / bpm);
+}
+
+// Un link pega y reemplaza al beat. Sin link, el beat elegido (o el primero).
+export function fuenteFreestyle({ beatId, link } = {}) {
+    if (link) return { tipo: 'link', link, beat: null };
+    const beat = CATALOGO_BEATS.find(b => b.id === beatId) ?? CATALOGO_BEATS[0];
+    return { tipo: 'beat', link: null, beat };
+}
+
+// Con un link hay un solo play: el del reproductor. La bandeja no muestra el suyo.
+export function playEnBandeja(fuente) {
+    return fuente.tipo === 'beat';
+}
