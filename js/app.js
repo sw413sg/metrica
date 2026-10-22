@@ -823,7 +823,10 @@ function ambienteActual() {
 new MutationObserver(() => { if (linkFreestyle) actualizarEfecto(); }).observe($('reproductor-titulo'), { childList: true, characterData: true, subtree: true });
 function actualizarEfecto() {
     efecto.configurar(ambienteActual());
-    if (ronda && !ronda.pausa) efecto.prender();
+    const jugando = Boolean(ronda && !ronda.pausa);
+    // Mientras se juega, el título «Freestyle» se va (y vuelve al pausar o parar).
+    $('pantalla-freestyle').classList.toggle('jugando', jugando);
+    if (jugando) efecto.prender();
     else efecto.apagar();
 }
 

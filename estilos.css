@@ -266,24 +266,39 @@ a { color: var(--acento); text-decoration: none; }
 #pantalla-freestyle.con-link {
     --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075);
 }
-/* El círculo es de vidrio: deja ver borrosas las luces de atrás. El aro (la ronda)
-   va en ::before, recortado a un anillo de 12 px. En SwiftUI: .glassEffect(in: .circle). */
+/* El círculo es un lente de vidrio (Liquid Glass): transparente, con brillo en el
+   borde y aberración cromática (rojo y celeste corridos en los bordes). El aro de la
+   ronda va en ::before, recortado a un anillo de 12 px, y los reflejos en ::after.
+   En SwiftUI: .glassEffect(in: .circle). */
 .reloj {
     --avance: 0;
     position: relative; z-index: 1;
     width: var(--aro); height: var(--aro); border-radius: 50%;
-    background: var(--vidrio);
-    box-shadow: inset 0 1px 0 var(--vidrio-brillo);
-    -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+    background:
+        radial-gradient(90% 60% at 30% 8%, rgba(255, 255, 255, 0.14), transparent 55%),
+        radial-gradient(70% 40% at 70% 100%, rgba(255, 255, 255, 0.08), transparent 60%),
+        radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.06) 70%, rgba(255, 255, 255, 0.12));
+    -webkit-backdrop-filter: blur(4px) saturate(180%); backdrop-filter: blur(4px) saturate(180%);
     display: flex; align-items: center; justify-content: center;
     transition: --avance .2s linear;
 }
 .reloj::before {
     /* El borde también es vidrio: lo que falta de la ronda deja ver las luces borrosas. */
     content: ''; position: absolute; inset: 0; border-radius: 50%;
-    background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--vidrio-borde) 0);
+    background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), color-mix(in srgb, var(--relleno) 45%, transparent) 0);
     -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 12.5px), #000 calc(100% - 12px));
     mask: radial-gradient(farthest-side, transparent calc(100% - 12.5px), #000 calc(100% - 12px));
+}
+.reloj::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+        inset 3px 4px 2px -2px rgba(255, 255, 255, 0.7),
+        inset -3px -4px 2px -2px rgba(255, 255, 255, 0.35),
+        inset 5px 0 7px -4px rgba(255, 60, 120, 0.55),
+        inset -5px 0 7px -4px rgba(60, 200, 255, 0.55),
+        inset 0 5px 7px -4px rgba(255, 220, 90, 0.35),
+        inset 0 -5px 7px -4px rgba(120, 90, 255, 0.45);
 }
 .aro-centro {
     position: relative;
@@ -346,6 +361,9 @@ a { color: var(--acento); text-decoration: none; }
 }
 .chip-fs[aria-checked="true"] { background: var(--texto); color: var(--fondo); }
 .chip-fs.premium:not([aria-checked="true"]) { background: var(--destacado-suave); color: var(--destacado); }
+/* Jugando, el título se desvanece pero deja su lugar: no se mueve nada. */
+#pantalla-freestyle .titulo-grande { transition: opacity .3s; }
+#pantalla-freestyle.jugando .titulo-grande { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
 #pantalla-freestyle .encabezado-grupo { margin: 0; padding: 14px 20px 6px; letter-spacing: 0.3px; }
 .beats-fs { margin: 0; padding: 0; }
 .pegar-fs {

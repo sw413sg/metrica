@@ -123,7 +123,8 @@ export function crearEfecto(canvas, aro) {
         ctx.save();
         ctx.beginPath();
         ctx.rect(0, 0, ancho, alto);
-        ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+        // Un poco por debajo del borde: si no, queda una línea oscura entre el vidrio y la luz.
+        ctx.arc(cx, cy, Math.max(0, r - 3), 0, Math.PI * 2);
         ctx.clip('evenodd');
         ctx.fillStyle = halo;
         ctx.fillRect(0, 0, ancho, alto);
