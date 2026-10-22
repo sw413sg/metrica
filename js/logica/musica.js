@@ -93,11 +93,12 @@ export function alternarReproduccion({ fuente, plegado, sonando }) {
 }
 
 // Widget oficial de SoundCloud, sin la ficha visual: el iframe va fuera de vista
-// y los controles del banner lo manejan.
+// y los controles de la tarjeta lo manejan. Sin autoplay: la app llama a play()
+// solo cuando la tarjeta está a la vista.
 export function urlWidgetSoundCloud(urlCancion) {
     const parametros = new URLSearchParams({
         url: urlCancion,
-        auto_play: 'true',
+        auto_play: 'false',
         visual: 'false',
         hide_related: 'true',
         show_comments: 'false',

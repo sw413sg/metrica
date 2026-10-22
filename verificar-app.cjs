@@ -324,6 +324,93 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-play').click();
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         await page.locator('#musica-cerrar').click();
+        // Si salís del editor mientras SoundCloud carga, el READY no tiene que dar play.
+        await page.unroute('https://w.soundcloud.com/player/api.js');
+        await page.evaluate(() => { delete window.SC; });
+        await page.route('https://w.soundcloud.com/player/api.js', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
+            window.SC = { Widget: function (el) {
+                const w = window.__sc = { el, plays: 0, paused: true };
+                w.bind = (ev, fn) => { w['on' + ev] = fn; };
+                w.play = () => { w.plays++; w.paused = false; w.onPLAY?.(); };
+                w.pause = () => { w.paused = true; w.onPAUSE?.(); };
+                w.setVolume = () => {};
+                w.getPosition = cb => cb(0);
+                w.getDuration = cb => cb(180000);
+                w.seekTo = () => {};
+                w.getCurrentSound = cb => cb({ title: 'Tardío' });
+                window.__scListo = () => w.onREADY?.();
+                return w;
+            } };
+            window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
+        await page.locator('#abrir-musica').click();
+        await page.locator('#link-musica').fill('https://soundcloud.com/artista/tarda');
+        await page.locator('#escuchar-musica').click();
+        await page.waitForFunction(() => window.__scListo);
+        await page.locator('#editor-atras').click();
+        await page.evaluate(() => window.__scListo());
+        assert.equal(await page.evaluate(() => window.__sc.plays), 0);
+        assert.equal(await page.evaluate(() => window.__sc.paused), true);
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        await page.locator('#lista-letras .tarjeta-letra button').click();
+        assert.equal(await page.locator('#vista-editor').isVisible(), true);
+        await page.locator('#musica-cerrar').click();
+        // Si cerrás YouTube en «Cargando…», la API que llega después no crea el reproductor.
+        await page.unroute('https://www.youtube.com/iframe_api');
+        await page.evaluate(() => { delete window.YT; delete window.__ytNacio; delete window.__ytSono; });
+        await page.route('https://www.youtube.com/iframe_api', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
+            window.__ytArmar = () => {
+                window.YT = { PlayerState: { PLAYING: 1 }, Player: function (lugar, o) {
+                    window.__ytNacio = true;
+                    const p = this;
+                    p.playVideo = () => { window.__ytSono = true; };
+                    p.pauseVideo = () => {};
+                    p.setVolume = () => {};
+                    p.getVideoData = () => ({ title: 'No debería existir' });
+                    p.getCurrentTime = () => 0; p.getDuration = () => 10; p.seekTo = () => {};
+                    p.destroy = () => {};
+                    setTimeout(() => o.events.onReady({ target: p }));
+                } };
+                onYouTubeIframeAPIReady();
+            };`}));
+        await page.locator('#abrir-musica').click();
+        await page.locator('#link-musica').fill('https://youtu.be/dQw4w9WgXcQ');
+        await page.locator('#escuchar-musica').click();
+        await page.locator('#reproductor-titulo', {hasText: 'Cargando…'}).waitFor();
+        await page.waitForFunction(() => window.__ytArmar);
+        await page.locator('#musica-cerrar').click();
+        await page.evaluate(() => window.__ytArmar());
+        assert.equal(await page.evaluate(() => window.__ytNacio ?? null), null);
+        assert.equal(await page.evaluate(() => window.__ytSono ?? null), null);
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        // Un error de YouTube no lo pisa el cambio de estado, y Reproducir queda deshabilitado.
+        await page.evaluate(() => { delete window.YT; delete window.__ytPlay; });
+        await page.unroute('https://www.youtube.com/iframe_api');
+        await page.route('https://www.youtube.com/iframe_api', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
+            window.YT = { PlayerState: { PLAYING: 1, BUFFERING: 3 }, Player: function (lugar, o) {
+                const p = window.__yt = this;
+                p.playVideo = () => { window.__ytPlay = (window.__ytPlay || 0) + 1; o.events.onStateChange({ data: 1 }); };
+                p.pauseVideo = () => {};
+                p.setVolume = () => {};
+                p.getVideoData = () => ({ title: 'Tema que no va' });
+                p.getCurrentTime = () => 0; p.getDuration = () => 10; p.seekTo = () => {};
+                p.destroy = () => {};
+                setTimeout(() => {
+                    o.events.onError({ data: 150 });
+                    o.events.onStateChange({ data: 1 });
+                });
+            } };
+            setTimeout(() => onYouTubeIframeAPIReady());`}));
+        await page.locator('#abrir-musica').click();
+        await page.locator('#link-musica').fill('https://youtu.be/dQw4w9WgXcQ');
+        await page.locator('#escuchar-musica').click();
+        await page.locator('#reproductor-titulo', {hasText: 'No se pudo reproducir este video'}).waitFor();
+        assert.equal((await page.locator('#reproductor-titulo').textContent()).trim(), 'No se pudo reproducir este video');
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-disabled'), 'true');
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'No se puede reproducir');
+        assert.equal(await page.locator('#musica-play').evaluate(e => getComputedStyle(e).pointerEvents), 'none');
+        await page.locator('#musica-play').evaluate(b => b.click());
+        assert.equal(await page.evaluate(() => window.__ytPlay || 0), 0);
+        await page.locator('#musica-cerrar').click();
         // Sin internet, avisa.
         await page.context().setOffline(true);
         await page.locator('#abrir-musica').click();

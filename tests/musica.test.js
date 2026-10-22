@@ -90,7 +90,7 @@ test('el widget de SoundCloud no pide la ficha visual', () => {
     assert.equal(`${url.origin}${url.pathname}`, 'https://w.soundcloud.com/player/');
     assert.equal(url.searchParams.get('url'), 'https://soundcloud.com/artista/tema');
     assert.equal(url.searchParams.get('visual'), 'false');
-    assert.equal(url.searchParams.get('auto_play'), 'true');
+    assert.equal(url.searchParams.get('auto_play'), 'false');
     assert.equal(url.searchParams.get('show_artwork'), 'false');
 });
 

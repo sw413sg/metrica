@@ -409,7 +409,8 @@ $('sugerencias').addEventListener('click', e => {
 
 // Estado del reproductor. Vive arriba porque el teclado, al abrirse, pregunta si hay que pausar.
 let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
-let sonando = false, plegado = false, plegarAlPausar = false;
+let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = false;
+let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
 
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
@@ -895,6 +896,12 @@ function mostrarEstadoMusica() {
     const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud' }[musica?.fuente] ?? '';
     const enPausa = musica?.fuente === 'youtube' && plegado;
     $('reproductor-fuente').textContent = nombre ? (enPausa ? `${nombre} · en pausa` : nombre) : '';
+    if (falloMusica) {
+        $('musica-play').setAttribute('aria-label', 'No se puede reproducir');
+        $('musica-play').setAttribute('aria-disabled', 'true');
+        $('musica-play').innerHTML = ICONO_PLAY;
+        return;
+    }
     const pausado = enPausa || !sonando;
     $('musica-play').setAttribute('aria-label', pausado ? 'Reproducir' : 'Pausar');
     $('musica-play').setAttribute('aria-disabled', String(enPausa));
@@ -957,6 +964,7 @@ async function escucharMusica() {
     if (!navigator.onLine) return avisoMusica('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
     avisoMusica('');
     cerrarMusica();
+    const generacion = generacionMusica;
     $('hoja-musica').hidden = true;
     $('reproductor-titulo').textContent = 'Cargando…';
     $('reproductor').hidden = false;
@@ -967,6 +975,8 @@ async function escucharMusica() {
         if (link.fuente === 'youtube') {
             // Visible antes de reproducir: la política no deja el autoplay con el player a medias.
             await apiYouTube();
+            // Si se cerró durante la descarga de la API, no se crea el reproductor.
+            if (generacion !== generacionMusica) return;
             const lugar = document.createElement('div');
             $('reproductor-marco').replaceChildren(lugar);
             let reproductor;
@@ -983,23 +993,32 @@ async function escucharMusica() {
                 // controls: 0 es un parámetro de la API. Así 200×200 alcanza: con la barra
                 // de YouTube el player tiene que poder mostrarla entera.
                 playerVars: {
-                    autoplay: 1, playsinline: 1, start: link.inicio, controls: 0, rel: 0,
+                    // Sin autoplay del iframe: playVideo() corre en onReady, y solo si la tarjeta se ve.
+                    autoplay: 0, playsinline: 1, start: link.inicio, controls: 0, rel: 0,
                     ...(location.origin && location.origin !== 'null' ? { origin: location.origin } : {}),
                 },
                 events: {
                     onReady: e => {
+                        if (generacion !== generacionMusica) return;
                         e.target.setVolume(VOLUMEN_INICIAL);
                         leerYouTube();
                         if (!plegado && reproductorVisible()) e.target.playVideo();
                     },
                     onStateChange: e => {
+                        if (generacion !== generacionMusica || falloMusica) return;
                         const titulo = reproductor.getVideoData?.().title;
                         if (titulo) $('reproductor-titulo').textContent = titulo;
                         leerYouTube();
                         alCambiarEstado(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
                     },
-                    onAutoplayBlocked: () => alCambiarEstado(false),
-                    onError: () => { $('reproductor-titulo').textContent = 'No se pudo reproducir este video'; },
+                    onAutoplayBlocked: () => { if (!falloMusica) alCambiarEstado(false); },
+                    onError: () => {
+                        if (generacion !== generacionMusica) return;
+                        falloMusica = true;
+                        sonando = false;
+                        $('reproductor-titulo').textContent = 'No se pudo reproducir este video';
+                        mostrarEstadoMusica();
+                    },
                 },
             });
             seguirProgreso(leerYouTube);
@@ -1016,6 +1035,7 @@ async function escucharMusica() {
             });
         } else {
             await apiSoundCloud();
+            if (generacion !== generacionMusica) return;
             const marco = document.createElement('iframe');
             marco.allow = 'autoplay; encrypted-media';
             marco.title = 'SoundCloud';
@@ -1025,10 +1045,19 @@ async function escucharMusica() {
             const { Events } = SC.Widget;
             const leerPosicion = () => widget.getPosition(ms => { if (!arrastrando) anotarTiempo(ms / 1000); });
             widget.bind(Events.READY, () => {
+                if (generacion !== generacionMusica) return;
                 widget.setVolume(VOLUMEN_INICIAL);
-                widget.getDuration(ms => { duracion = (Number(ms) || 0) / 1000; pintarProgreso(); });
-                widget.play();
-                widget.getCurrentSound(cancion => { if (cancion?.title) $('reproductor-titulo').textContent = cancion.title; });
+                widget.getDuration(ms => {
+                    if (generacion !== generacionMusica) return;
+                    duracion = (Number(ms) || 0) / 1000;
+                    pintarProgreso();
+                });
+                widget.getCurrentSound(cancion => {
+                    if (generacion === generacionMusica && cancion?.title) $('reproductor-titulo').textContent = cancion.title;
+                });
+                // Si saliste del editor (o cerraste) mientras cargaba, no arranca oculto.
+                if (reproductorVisible()) widget.play();
+                else widget.pause();
                 leerPosicion();
             });
             widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); });
@@ -1053,6 +1082,7 @@ async function escucharMusica() {
             });
         }
     } catch {
+        if (generacion !== generacionMusica) return;
         $('reproductor-titulo').textContent = 'No se pudo cargar el reproductor. ¿Hay internet?';
         $('musica-plegar').hidden = true;
         $('musica-mostrar').hidden = true;
@@ -1060,10 +1090,13 @@ async function escucharMusica() {
 }
 
 function reproductorVisible() {
-    return document.body.classList.contains('editando') && !document.body.classList.contains('teclado-abierto');
+    return !$('reproductor').hidden
+        && document.body.classList.contains('editando')
+        && !document.body.classList.contains('teclado-abierto');
 }
 
 function cerrarMusica() {
+    generacionMusica++;
     clearInterval(progresoTimer);
     progresoTimer = null;
     musica?.cerrar?.();
@@ -1071,6 +1104,7 @@ function cerrarMusica() {
     sonando = false;
     plegado = false;
     plegarAlPausar = false;
+    falloMusica = false;
     arrastrando = false;
     actual = 0;
     duracion = 0;
@@ -1108,7 +1142,7 @@ $('pegar-musica').addEventListener('click', async () => {
 $('escuchar-musica').addEventListener('click', escucharMusica);
 $('link-musica').addEventListener('keydown', e => { if (e.key === 'Enter') escucharMusica(); });
 $('musica-play').addEventListener('click', () => {
-    if (!musica?.reproducir || (musica.fuente === 'youtube' && plegado)) return;
+    if (falloMusica || !musica?.reproducir || (musica.fuente === 'youtube' && plegado)) return;
     musica[sonando ? 'pausar' : 'reproducir']?.();
 });
 $('musica-mostrar').addEventListener('click', () => {

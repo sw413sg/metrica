@@ -609,6 +609,7 @@ body.teclado-abierto .reproductor { display: none; }
 .boton-cerrar { color: var(--texto-2); }
 .boton-play { width: 40px; height: 40px; background: var(--texto); color: var(--libreta); }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
+#musica-play[aria-disabled="true"] { pointer-events: none; }
 .boton-musica .icono, .boton-play .icono, .reproductor-mostrar .icono { width: 22px; height: 22px; }
 .boton-play .icono-relleno { fill: currentColor; stroke: none; }
 /* Barra: zona táctil de 44. La pista mide 4 y crece a 8 al agarrarla. */
