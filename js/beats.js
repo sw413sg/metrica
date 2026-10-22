@@ -2,6 +2,7 @@
 // acá mismo. Batería, Jazz, Seco y Grave son mp3 en beats/ (ver beats/CREDITS.md).
 // Qué suena en cada paso del sintetizador lo decide js/logica/freestyle.js.
 import { msPorPaso, sonidosDelPaso } from './logica/freestyle.js';
+import { pasosDeBombo } from './logica/ambiente.js';
 
 let contexto = null;
 let ruido = null;
@@ -9,6 +10,7 @@ let temporizador = null;
 let corrida = 0; // para ignorar avisos que quedaron de un beat anterior
 let fuenteLoop = null;
 const buffers = new Map();
+const bombos = new Map(); // url -> Set de pasos del loop donde suena el kick
 
 function tocar(sonido, cuando) {
     const volumen = contexto.createGain();
@@ -59,16 +61,17 @@ export function precargarArchivo(url) {
     return cargarBuffer(url).catch(() => buffers.delete(url));
 }
 
-// Agenda los pasos un poco por adelantado. sonar(paso, cuando) toca y devuelve el bpm.
+// Agenda los pasos un poco por adelantado. sonar(paso, cuando) toca y devuelve
+// { bpm, bombo }: bombo dice si en ese paso suena el kick (para las luces).
 function agendarPasos(esta, inicio, sonar, alPaso) {
     let paso = 0;
     let proximo = inicio;
     const agendar = () => {
         if (esta !== corrida) return;
         while (proximo < contexto.currentTime + 0.1) {
-            const bpm = sonar(paso, proximo);
+            const { bpm, bombo } = sonar(paso, proximo);
             const estePaso = paso;
-            setTimeout(() => esta === corrida && alPaso(estePaso), Math.max(0, (proximo - contexto.currentTime) * 1000));
+            setTimeout(() => esta === corrida && alPaso(estePaso, bombo), Math.max(0, (proximo - contexto.currentTime) * 1000));
             proximo += msPorPaso(bpm) / 1000;
             paso++;
         }
@@ -78,7 +81,7 @@ function agendarPasos(esta, inicio, sonar, alPaso) {
 }
 
 // Arranca el beat sintetizado. obtener() devuelve { beat, bpm } en cada paso.
-// alPaso(paso) se llama cuando suena cada paso (para la pantalla).
+// alPaso(paso, bombo) se llama cuando suena cada paso (para la pantalla).
 export function iniciarBeat(obtener, alPaso) {
     detenerBeat();
     const ctx = asegurarContexto();
@@ -91,8 +94,9 @@ export function iniciarBeat(obtener, alPaso) {
     const esta = corrida;
     agendarPasos(esta, ctx.currentTime + 0.05, (paso, cuando) => {
         const { beat, bpm } = obtener();
-        for (const sonido of sonidosDelPaso(beat, paso)) tocar(sonido, cuando);
-        return bpm;
+        const sonidos = sonidosDelPaso(beat, paso);
+        for (const sonido of sonidos) tocar(sonido, cuando);
+        return { bpm, bombo: sonidos.includes('bombo') };
     }, alPaso);
 }
 
@@ -112,7 +116,11 @@ export function iniciarArchivo(url, bpm, alPaso, alFallar) {
         fuenteLoop = source;
         const cuando = ctx.currentTime + 0.05;
         source.start(cuando);
-        agendarPasos(esta, cuando, () => bpm, alPaso);
+        // Dónde caen los kicks del mp3: se calcula una vez por archivo.
+        if (!bombos.has(url)) bombos.set(url, new Set(pasosDeBombo(buffer.getChannelData(0), buffer.sampleRate, bpm)));
+        const kicks = bombos.get(url);
+        const pasosLoop = Math.round(buffer.duration / (msPorPaso(bpm) / 1000));
+        agendarPasos(esta, cuando, paso => ({ bpm, bombo: kicks.has(paso % pasosLoop) }), alPaso);
     }).catch(() => {
         buffers.delete(url);
         if (esta === corrida) alFallar?.();

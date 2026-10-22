@@ -57,3 +57,35 @@ test('el brillo late con el tiempo', () => {
     assert.ok(brilloDeGolpe(667, 90) < 0.05);
     assert.equal(brilloDeGolpe(-5, 90), 0);
 });
+
+test('la cantidad de efectos va de 0 a 10 y arranca en 10', async () => {
+    const { leerCantidadEfectos, guardarCantidadEfectos } = await import('../js/logica/ambiente.js');
+    const datos = new Map();
+    const almacen = { getItem: k => datos.has(k) ? datos.get(k) : null, setItem: (k, v) => datos.set(k, v) };
+    assert.equal(leerCantidadEfectos(almacen), 10);
+    assert.equal(guardarCantidadEfectos(almacen, 0), 0);
+    assert.equal(leerCantidadEfectos(almacen), 0);
+    assert.equal(guardarCantidadEfectos(almacen, '4'), 4);
+    assert.equal(guardarCantidadEfectos(almacen, 15), 10);
+    assert.equal(guardarCantidadEfectos(almacen, -3), 0);
+    almacen.setItem('metrica.efectos', 'cualquiera');
+    assert.equal(leerCantidadEfectos(almacen), 10);
+});
+
+test('los kicks se encuentran en el audio y caen en su paso', async () => {
+    const { pasosDeBombo } = await import('../js/logica/ambiente.js');
+    // Un compás a 120 BPM (2 s): kicks de 55 Hz en los pasos 0, 6 y 10, y un hi-hat agudo en el 4.
+    const frecuencia = 8000, bpm = 120, segundosPorPaso = 60 / bpm / 4;
+    const muestras = new Float32Array(frecuencia * 2);
+    const sonar = (paso, hz, volumen, dura) => {
+        const inicio = Math.round(paso * segundosPorPaso * frecuencia);
+        for (let i = 0; i < dura * frecuencia; i++) {
+            muestras[inicio + i] += volumen * Math.sin(2 * Math.PI * hz * i / frecuencia) * Math.exp(-i / (dura * frecuencia / 4));
+        }
+    };
+    for (const paso of [0, 6, 10]) sonar(paso, 55, 0.9, 0.2);
+    sonar(4, 3000, 0.9, 0.05);
+    assert.deepEqual(pasosDeBombo(muestras, frecuencia, bpm), [0, 6, 10]);
+    assert.deepEqual(pasosDeBombo(new Float32Array(100), frecuencia, bpm), []);
+    assert.deepEqual(pasosDeBombo(null, frecuencia, bpm), []);
+});
