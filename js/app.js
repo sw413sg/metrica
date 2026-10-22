@@ -2,8 +2,8 @@
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
-import { contarSilabasVerso, inicioTonica, rimasMultisilabicas } from './logica/silabas.js';
-import { BEATS, tiempoDelPaso, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj } from './logica/freestyle.js';
+import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
+import { BEATS, cambiaLaPalabra, silabaFuerte, segundosRestantes, formatoReloj, estadoCompas, proximasPalabras, avanzarPalabras } from './logica/freestyle.js';
 import { iniciarBeat, detenerBeat } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
@@ -544,32 +544,58 @@ function botonFavorito(palabra, alCambiar = () => {}) {
     return boton;
 }
 
+// La sílaba que rima, desde la tónica, sin espacio adentro del resaltado ("can" + "ción").
+function fragmentoRima(palabra, clase) {
+    const frag = document.createDocumentFragment();
+    const desde = inicioTonica(palabra);
+    if (desde < 0) {
+        frag.append(document.createTextNode(palabra));
+        return frag;
+    }
+    if (desde > 0) frag.append(document.createTextNode(palabra.slice(0, desde)));
+    const mark = document.createElement('mark');
+    mark.className = clase;
+    mark.textContent = palabra.slice(desde);
+    frag.append(mark);
+    return frag;
+}
+
 // Celda con la palabra (tocarla busca sus rimas) y la estrella.
-function celdaPalabra(palabra, alCambiar) {
+function celdaPalabra(palabra, clase, alCambiar) {
     const celda = document.createElement('li');
     celda.className = 'celda';
     const boton = document.createElement('button');
+    boton.type = 'button';
     boton.className = 'celda-boton';
-    boton.textContent = palabra;
+    boton.append(fragmentoRima(palabra, clase));
     boton.addEventListener('click', () => { $('buscar-rima').value = palabra; buscarRima(); });
     celda.append(boton, botonFavorito(palabra, alCambiar));
     return celda;
 }
 
 const palabraBuscada = () => $('buscar-rima').value.trim().toLowerCase();
-const rimasBuscadas = () => buscarRimas(palabraBuscada(), indiceRimas(), { tipo: tipoRima }).slice(0, 100);
+const rimasDeLaBusqueda = () => buscarRimas(palabraBuscada(), indiceRimas(), { tipo: tipoRima });
+const rimasBuscadas = () => rimasDeLaBusqueda().slice(0, 100);
+const claseRima = () => `rima-0${tipoRima === 'asonante' ? ' suave' : ''}`;
+
+function actualizarLimpiar() {
+    $('limpiar-rima').hidden = !palabraBuscada();
+}
 
 // Abajo de las tarjetas, la lista completa de rimas (o las favoritas si no se buscó nada).
 function renderizarRimas() {
     const palabra = palabraBuscada();
-    const lista = palabra ? rimasBuscadas() : listarFavoritos(localStorage);
-    $('resultados-rimas').replaceChildren(...lista.map(p => celdaPalabra(p, palabra ? undefined : renderizarRimas)));
+    const todas = palabra ? rimasDeLaBusqueda() : null;
+    const lista = palabra ? todas.slice(0, 100) : listarFavoritos(localStorage);
+    const clase = claseRima();
+    $('resultados-rimas').replaceChildren(...lista.map((p, i) => celdaPalabra(p, palabra ? clase : `rima-${i % 12}`, palabra ? undefined : renderizarRimas)));
     $('encabezado-resultados').hidden = !lista.length;
-    $('encabezado-resultados').textContent = palabra ? `Todas las rimas ${tipoRima}s` : 'Favoritas';
+    $('encabezado-resultados').textContent = palabra ? `Todas · ${todas.length.toLocaleString('es-AR')}` : 'Favoritas';
     $('rimas-vacio').textContent = !palabra
         ? 'Escribí una palabra para ver con qué rima. Tocá la estrella para guardarla en favoritas.'
         : `No encontré rimas ${tipoRima}s para «${palabra}».`;
     $('rimas-vacio').hidden = lista.length > 0;
+    actualizarLimpiar();
 }
 
 function buscarRima() {
@@ -580,15 +606,16 @@ function buscarRima() {
 }
 
 $('buscar-rima').addEventListener('input', buscarRima);
+$('limpiar-rima').addEventListener('click', () => { $('buscar-rima').value = ''; buscarRima(); });
 document.querySelectorAll('#tipo-rima button').forEach(b => b.addEventListener('click', () => {
     tipoRima = b.dataset.tipo;
     document.querySelectorAll('#tipo-rima button').forEach(o => o.setAttribute('aria-selected', o === b));
     buscarRima();
 }));
 
-// Las 6 tarjetas cambian cada 5 segundos.
+// Las 6 tarjetas cambian cada 6 segundos.
 const CANTIDAD = 6;
-const SEGUNDOS = 5;
+const SEGUNDOS = 6;
 let temporizador = null;
 let pausadoPorUsuario = false;
 
@@ -602,34 +629,37 @@ function poolActual() {
     return rimas.filter(p => conjunto.has(p));
 }
 
+// Tarjeta de la grilla: la palabra (con la rima pintada) y, abajo, cuántas sílabas tiene.
+function cajaPalabra(palabra, clase) {
+    const caja = document.createElement('div');
+    caja.className = 'palabra-caja';
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'palabra';
+    boton.append(fragmentoRima(palabra, clase));
+    boton.setAttribute('aria-pressed', listarFavoritos(localStorage).includes(palabra));
+    boton.addEventListener('click', () => {
+        boton.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra));
+        if (!palabraBuscada()) renderizarRimas();
+    });
+    const silabas = document.createElement('span');
+    silabas.className = 'silabas-tarjeta';
+    const n = separarSilabas(palabra).length;
+    silabas.textContent = n ? `${n} ${n === 1 ? 'sílaba' : 'sílabas'}` : '';
+    caja.append(boton, silabas);
+    return caja;
+}
+
 function refrescarPalabras() {
     const pool = poolActual();
-    $('grilla-palabras').replaceChildren(...palabrasAlAzar(pool, CANTIDAD).map(palabra => {
-        // Tocar la tarjeta la marca como favorita.
-        const tarjeta = document.createElement('button');
-        tarjeta.className = 'palabra';
-        tarjeta.textContent = palabra;
-        tarjeta.setAttribute('aria-pressed', listarFavoritos(localStorage).includes(palabra));
-        tarjeta.addEventListener('click', () => {
-            tarjeta.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra));
-            if (!palabraBuscada()) renderizarRimas();
-        });
-        return tarjeta;
-    }));
+    const clase = claseRima();
+    $('grilla-palabras').replaceChildren(...palabrasAlAzar(pool, CANTIDAD).map((palabra, i) =>
+        cajaPalabra(palabra, palabraBuscada() ? clase : `rima-${i % 12}`)));
+    $('fila-usadas').hidden = pool.length === 0;
+    $('encabezado-usadas').textContent = palabraBuscada() ? 'Más usadas' : 'Al azar';
     $('palabras-total').textContent = palabraBuscada()
         ? `Tocá una palabra para guardarla en favoritas. Las tarjetas muestran ${pool.length} rimas que se usan mucho.`
         : `Tocá una palabra para guardarla en favoritas. ${pool.length.toLocaleString('es-AR')} palabras disponibles.`;
-    animarProgreso();
-}
-
-function animarProgreso() {
-    const barra = $('progreso');
-    barra.style.transition = 'none';
-    barra.style.transform = 'scaleX(1)';
-    if (temporizador === null) return;
-    barra.getBoundingClientRect();
-    barra.style.transition = `transform ${SEGUNDOS}s linear`;
-    barra.style.transform = 'scaleX(0)';
 }
 
 function reanudarPalabras() {
@@ -641,12 +671,11 @@ function reanudarPalabras() {
 function pausarPalabras() {
     clearInterval(temporizador);
     temporizador = null;
-    animarProgreso();
 }
 
 $('pausar-palabras').addEventListener('click', () => {
     pausadoPorUsuario = !pausadoPorUsuario;
-    $('pausar-palabras').textContent = pausadoPorUsuario ? 'Reanudar' : 'Pausar';
+    $('pausar-palabras').textContent = pausadoPorUsuario ? 'en pausa' : 'cambian cada 6 s';
     pausadoPorUsuario ? pausarPalabras() : reanudarPalabras();
 });
 $('refrescar-palabras').addEventListener('click', () => {
@@ -657,7 +686,8 @@ $('refrescar-palabras').addEventListener('click', () => {
 $('palabras-simples').addEventListener('change', refrescarPalabras);
 
 // ---------- Freestyle ----------
-let ronda = null; // { inicio, palabra, proxima } mientras se está jugando
+let ronda = null; // { inicio } mientras se está jugando
+let cola = []; // [ahora, después, luego]
 const COMPASES_POR_PALABRA = 2;
 const BPM_POR_DEFECTO = 90;
 
@@ -665,62 +695,102 @@ $('fs-beat').replaceChildren(...Object.entries(BEATS).map(([clave, beat]) => new
 const ajustesFreestyle = () => ({ beat: BEATS[$('fs-beat').value], bpm: Number($('fs-bpm').value) });
 const palabraAlAzar = () => palabrasAlAzar(palabrasSimples, 1)[0];
 
-// La palabra separada en sílabas, con la tónica marcada.
-function mostrarPalabra(palabra) {
-    const { silabas, tonica } = silabaFuerte(palabra) ?? { silabas: [palabra], tonica: 0 };
-    $('fs-palabra').replaceChildren(...silabas.flatMap((silaba, i) => {
+// La palabra junta, con la sílaba tónica en violeta (sin separar con puntos).
+function pintarPalabra(elemento, palabra) {
+    if (!palabra) return elemento.replaceChildren();
+    const fuerte = silabaFuerte(palabra);
+    const silabas = fuerte?.silabas ?? [palabra];
+    const tonica = fuerte ? fuerte.tonica : -1;
+    elemento.replaceChildren(...silabas.map((silaba, i) => {
         const span = document.createElement('span');
         span.textContent = silaba;
         if (i === tonica) span.className = 'tonica';
-        const separador = document.createElement('span');
-        separador.className = 'separador';
-        separador.textContent = '·';
-        return i ? [separador, span] : [span];
+        return span;
     }));
 }
 
+function mostrarCola() {
+    const { ahora, despues, luego } = proximasPalabras(cola);
+    pintarPalabra($('fs-palabra'), ahora);
+    pintarPalabra($('fs-despues'), despues);
+    pintarPalabra($('fs-luego'), luego);
+    $('fs-proxima').textContent = despues ? `Después: ${despues}` : '';
+}
+
+function mostrarCompas(paso) {
+    const estado = estadoCompas(paso);
+    $('fs-compas-n').textContent = estado.compas;
+    $('fs-compas-de').textContent = estado.de;
+    $('fs-ronda').textContent = estado.ronda;
+    $('fs-reloj').style.setProperty('--avance', estado.avance);
+    document.querySelectorAll('#fs-tiempos span').forEach((punto, i) => {
+        const n = i + 1;
+        punto.classList.toggle('lleno', n <= estado.compas);
+        punto.classList.toggle('activo', n === estado.compas);
+    });
+}
+
 function alPasoFreestyle(paso) {
-    const restantes = segundosRestantes(ronda.inicio, performance.now(), Number($('fs-duracion').value));
+    if (!ronda) return;
+    const duracion = Number($('fs-duracion').value);
+    const restantes = segundosRestantes(ronda.inicio, performance.now(), duracion);
     $('fs-reloj').textContent = formatoReloj(restantes);
     if (restantes === 0) return terminarRonda(true);
-    document.querySelectorAll('#fs-tiempos span').forEach((s, i) => s.classList.toggle('activo', i + 1 === tiempoDelPaso(paso)));
-    $('fs-reloj').style.setProperty('--avance', 1 - restantes / Number($('fs-duracion').value));
-    if (cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) {
-        ronda.palabra = ronda.proxima ?? palabraAlAzar();
-        ronda.proxima = palabraAlAzar();
-        mostrarPalabra(ronda.palabra);
-        $('fs-proxima').textContent = `Después: ${ronda.proxima}`;
-    }
+    mostrarCompas(paso);
+    if (!cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) return;
+    cola = cola.length ? avanzarPalabras(cola, palabraAlAzar()) : [palabraAlAzar(), palabraAlAzar(), palabraAlAzar()];
+    mostrarCola();
+}
+
+function marcarSonando(activo) {
+    $('pantalla-freestyle').classList.toggle('sonando', activo);
+    $('fs-opciones').hidden = activo;
+    $('fs-empezar').textContent = activo ? 'Parar' : 'Empezar';
 }
 
 function empezarRonda() {
+    cola = [];
     ronda = { inicio: performance.now() };
     $('fs-reloj').classList.remove('terminado');
     $('fs-reloj').style.setProperty('--avance', 0);
-    $('fs-empezar').textContent = 'Parar';
+    marcarSonando(true);
     iniciarBeat(ajustesFreestyle, alPasoFreestyle);
 }
 
 function terminarRonda(porTiempo = false) {
     if (!ronda) return;
     ronda = null;
+    cola = [];
     detenerBeat();
-    $('fs-empezar').textContent = 'Empezar';
-    document.querySelectorAll('#fs-tiempos span').forEach(s => s.classList.remove('activo'));
+    marcarSonando(false);
+    document.querySelectorAll('#fs-tiempos span').forEach(s => s.classList.remove('activo', 'lleno'));
+    $('fs-compas-n').textContent = '1';
+    $('fs-ronda').textContent = '1';
     if (!porTiempo) $('fs-reloj').style.setProperty('--avance', 0);
     if (porTiempo) {
         $('fs-reloj').textContent = '¡Tiempo!';
         $('fs-reloj').classList.add('terminado');
+        $('fs-palabra').textContent = '¡Tiempo!';
     }
+    $('fs-proxima').textContent = 'Tocá Empezar y hacé caer la sílaba marcada en el 1.';
+}
+
+function mostrarBpm() {
+    const bpm = $('fs-bpm').value;
+    const numero = document.createElement('b');
+    numero.textContent = bpm;
+    $('fs-bpm-valor').replaceChildren(numero, ' BPM');
+    $('fs-bpm').style.setProperty('--pct', `${((bpm - 60) / 80) * 100}%`);
 }
 
 $('fs-empezar').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
-$('fs-bpm').addEventListener('input', () => { $('fs-bpm-valor').textContent = `${$('fs-bpm').value} BPM`; });
+$('fs-bpm').addEventListener('input', mostrarBpm);
 $('fs-bpm-reiniciar').addEventListener('click', () => {
     $('fs-bpm').value = BPM_POR_DEFECTO;
     $('fs-bpm').dispatchEvent(new Event('input'));
 });
 $('fs-duracion').addEventListener('change', () => { if (!ronda) $('fs-reloj').textContent = formatoReloj(Number($('fs-duracion').value)); });
+mostrarBpm();
 
 // ---------- Métrica Extras (paywall) ----------
 const CANDADO = '<svg viewBox="0 0 24 24" class="icono"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';

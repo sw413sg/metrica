@@ -110,13 +110,13 @@ a { color: var(--acento); text-decoration: none; }
 
 /* Vidrio de iOS 26: lo que se toca y flota (barra de pestañas, botones, buscador, controles).
    Translúcido, con brillo en el borde de arriba. En SwiftUI: .glassEffect(). */
-.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .buscador, .segmentado, .boton-gris, .boton-relleno, .boton-redondo {
+.vidrio, .barra-pestanas, .boton-barra, .boton-atras, .buscador, .segmentado, .boton-gris, .boton-relleno, .boton-redondo, .busqueda-rima, .barra-bpm, .boton-bpm {
     background: var(--vidrio); border: 1px solid var(--vidrio-borde);
     box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--sombra-vidrio);
     -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
 }
 /* Tarjetas: lo que contiene contenido (listas, palabras, letras), lisas y sin borde. */
-.lista-agrupada, .palabra, .tarjeta-freestyle, .tarjeta-letra { background: var(--tarjeta); }
+.lista-agrupada, .palabra-caja, .tarjeta-letra { background: var(--tarjeta); }
 
 .icono { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -136,7 +136,7 @@ a { color: var(--acento); text-decoration: none; }
 }
 /* Sin botones arriba, el título grande arranca apenas termina la barra de estado. */
 .barra-nav:empty { min-height: 0; padding-top: calc(env(safe-area-inset-top) + 10px); }
-.titulo-grande { font-size: 34px; font-weight: 700; letter-spacing: 0.01em; margin: 0 16px 8px; }
+.titulo-grande { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; margin: 4px 20px 10px; }
 .boton-barra { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: var(--acento); }
 .boton-barra .icono { width: 21px; height: 21px; }
 .boton-barra[aria-pressed="false"] { color: var(--texto-3); }
@@ -214,48 +214,128 @@ a { color: var(--acento); text-decoration: none; }
 .boton-comprar { background: linear-gradient(135deg, var(--destacado), var(--destacado-2)); color: #fff; box-shadow: 0 8px 24px var(--destacado-suave); }
 .boton-gris { background: var(--vidrio); border: 1px solid var(--vidrio-borde); color: var(--acento); }
 
-/* Palabras al azar */
-.grilla-palabras { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-.palabra[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--acento); color: var(--acento); }
-.palabra { border-radius: 22px; padding: 22px 8px; text-align: center; font-size: 20px; font-weight: 600; overflow-wrap: anywhere; }
-.barra-progreso { height: 4px; border-radius: 2px; background: var(--relleno); margin-top: 16px; overflow: hidden; }
-.barra-progreso div { height: 100%; width: 100%; background: var(--acento); transform-origin: left; }
+/* Rimas: buscador, grilla fija de 2x3 y lista */
+.busqueda-rima {
+    height: 44px; border-radius: 22px; display: flex; align-items: center; gap: 8px; padding: 0 16px; color: var(--texto-2);
+}
+.busqueda-rima .icono { width: 20px; height: 20px; flex-shrink: 0; }
+.busqueda-rima input {
+    flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 17px; color: var(--texto); padding: 0;
+}
+.busqueda-rima input::-webkit-search-cancel-button, .busqueda-rima input::-webkit-search-decoration { display: none; }
+#limpiar-rima { color: var(--texto-2); font-size: 16px; padding: 4px; }
+#pantalla-rimas .encabezado-grupo { margin: 0; padding: 14px 20px 6px; letter-spacing: 0.3px; }
+.fila-usadas { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.fila-usadas .encabezado-grupo { padding-right: 0; }
+.aviso-cambio { display: flex; align-items: center; gap: 4px; color: var(--texto-3); font-size: 13px; text-transform: none; white-space: nowrap; padding-right: 4px; }
+.aviso-cambio button { color: var(--texto-3); font-size: 13px; font-weight: 400; }
+#tipo-rima { margin-top: 10px; height: 38px; padding: 3px; border-radius: 20px; }
+#tipo-rima button { border-radius: 17px; font-size: 14px; font-weight: 500; padding: 0; }
+#tipo-rima button[aria-selected="true"] { font-weight: 600; background: var(--tarjeta); color: var(--texto); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
+.grilla-palabras { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.palabra-caja { position: relative; height: 78px; border-radius: 16px; }
+.palabra-caja .palabra {
+    position: absolute; inset: 0; padding: 14px; border-radius: 16px; background: none; box-shadow: none;
+    text-align: left; font-size: 20px; font-weight: 600; line-height: 1.15; color: var(--texto); overflow-wrap: anywhere;
+}
+.silabas-tarjeta { position: absolute; left: 14px; bottom: 14px; font-size: 12px; line-height: 1; color: var(--texto-3); pointer-events: none; }
+#pantalla-rimas mark[class*="rima-"] { color: inherit; border-radius: 4px; padding: 0 1px; margin: 0 -1px; }
+#resultados-rimas { border-radius: 14px; margin-top: 0; }
+#resultados-rimas .celda { min-height: 44px; height: 44px; padding: 0 16px; gap: 8px; }
+#resultados-rimas .celda + .celda::before { left: 0; }
+#resultados-rimas .celda-boton { flex-direction: row; align-items: center; font-size: 17px; }
+#resultados-rimas .estrella .icono { width: 20px; height: 20px; }
+#resultados-rimas .estrella[aria-pressed="true"] { color: var(--destacado); }
+#resultados-rimas .estrella[aria-pressed="false"] { color: var(--texto-3); }
+.lista-simples { margin-top: 28px; }
+#pantalla-rimas .vacio { margin: 28px 8px; }
 
-/* Freestyle */
-.tarjeta-freestyle { border-radius: 24px; padding: 24px 16px 20px; text-align: center; margin-top: 8px; }
-/* El reloj de la ronda en un aro que se va cargando de violeta (--avance de 0 a 1, lo pone js/app.js).
-   En SwiftUI: Circle().trim(from: 0, to: avance).stroke(...). */
+/* Freestyle: aro de 270 con trazo de 12 que se carga de violeta. El resto del aro
+   es el gris del diseño (--relleno) y el centro, un disco del fondo, como en el HTML.
+   En SwiftUI: Circle().trim. */
 @property --avance { syntax: '<number>'; inherits: false; initial-value: 0; }
+.escenario-fs { position: relative; width: 270px; height: 270px; margin: 8px auto 0; }
 .reloj {
     --avance: 0;
-    width: 148px; height: 148px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
-    font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--texto);
-    border: 8px solid transparent;
-    background: linear-gradient(var(--tarjeta), var(--tarjeta)) padding-box,
-                conic-gradient(var(--destacado-2), var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0) border-box;
-    box-shadow: 0 0 calc(var(--avance) * 24px) var(--destacado-suave);
-    transition: --avance .3s linear;
+    position: relative;
+    width: 270px; height: 270px; margin: 0; border-radius: 50%; border: 0;
+    background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0);
+    font-size: 0; color: transparent;
+    transition: --avance .2s linear;
 }
-.reloj.terminado { color: var(--acento); font-size: 24px; }
-.palabra-fs { margin: 16px 0 4px; font-size: 44px; font-weight: 700; overflow-wrap: anywhere; }
-.palabra-fs .tonica { color: var(--destacado); text-decoration: underline; text-underline-offset: 6px; }
-.palabra-fs .separador { color: var(--texto-3); font-weight: 400; }
-.proxima { margin: 0 0 16px; color: var(--texto-2); font-size: 15px; min-height: 20px; }
-.tiempos { display: flex; justify-content: center; gap: 14px; }
-.tiempos span { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--relleno); color: var(--texto-2); font-size: 15px; font-variant-numeric: tabular-nums; }
-.tiempos span:first-child { font-weight: 700; }
-.tiempos span.activo { background: linear-gradient(135deg, var(--destacado), var(--destacado-2)); color: #fff; box-shadow: 0 0 16px var(--destacado-suave); }
+.reloj::before {
+    content: "";
+    position: absolute; left: 12px; top: 12px; width: 246px; height: 246px;
+    border-radius: 50%; background: var(--fondo);
+}
+.palabra-fs {
+    position: absolute; inset: 12px; margin: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 48px; font-weight: 700; letter-spacing: -1px; line-height: 1; text-align: center; overflow-wrap: anywhere;
+}
+.palabra-fs .tonica, .proxima-palabra .tonica { color: var(--destacado); text-decoration: none; }
+.proxima { margin: 14px 8px 0; color: var(--texto-2); font-size: 15px; text-align: center; min-height: 20px; }
+#pantalla-freestyle.sonando #fs-proxima {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0, 0, 0, 0); white-space: nowrap;
+}
+#pantalla-freestyle:not(.sonando) .proximas { display: none; }
+.proximas { display: flex; justify-content: center; align-items: flex-start; gap: 34px; margin: 14px 0 16px; }
+.proxima-item { text-align: center; }
+.proxima-item.despues { opacity: 0.85; }
+.proxima-item.luego { opacity: 0.5; }
+.etiqueta-proxima { display: block; font-size: 11px; color: var(--texto-3); letter-spacing: 0.5px; text-transform: uppercase; }
+.proxima-item.despues .proxima-palabra { font-size: 24px; font-weight: 600; color: var(--texto-2); }
+.proxima-item.luego .proxima-palabra { font-size: 20px; font-weight: 600; color: var(--texto-2); }
+.linea-compas { text-align: center; font-size: 15px; color: var(--texto-2); margin: 0 0 8px; }
+.linea-compas b { color: var(--texto); }
+.tiempos { display: flex; justify-content: center; gap: 8px; }
+.tiempos span { width: 14px; height: 14px; border-radius: 50%; background: var(--relleno); font-size: 0; box-shadow: none; }
+.tiempos span.lleno, .tiempos span.activo { background: var(--texto); color: transparent; box-shadow: none; }
+.barra-bpm { margin: 16px 0 0; border-radius: 24px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
+#fs-bpm-valor { display: flex; align-items: baseline; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--texto-2); }
+#fs-bpm-valor b { font-size: 28px; font-weight: 700; color: var(--texto); letter-spacing: -0.5px; margin-right: 10px; }
+#fs-bpm {
+    -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 28px; margin: 0;
+    background: transparent; accent-color: auto;
+}
+#fs-bpm::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(to right, var(--texto) var(--pct, 37.5%), var(--relleno) var(--pct, 37.5%));
+}
+#fs-bpm::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -11px;
+    border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+#fs-bpm::-moz-range-track { height: 6px; border: 0; border-radius: 3px; background: var(--relleno); }
+#fs-bpm::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--texto); }
+#fs-bpm::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+.boton-bpm { flex-shrink: 0; padding: 8px 12px; border-radius: 16px; font-size: 14px; font-weight: 600; }
+.boton-pausa {
+    position: relative; display: block;
+    width: 84px; height: 84px; margin: 18px auto 0; border-radius: 50%;
+    background: var(--texto); color: transparent; font-size: 0;
+}
+.boton-pausa::after {
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 26px; height: 30px; background: var(--fondo);
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+/* Pausa: dos barras de 11×31 separadas 14 px, sin radio. Es el tamaño del glifo ❚❚
+   a 30 px del diseño (freestyle_AC1.html), en claro y en oscuro. */
+#pantalla-freestyle.sonando .boton-pausa::after {
+    width: 36px; height: 31px; clip-path: none; border-radius: 0;
+    background:
+        linear-gradient(var(--fondo), var(--fondo)) left center / 11px 31px no-repeat,
+        linear-gradient(var(--fondo), var(--fondo)) right center / 11px 31px no-repeat;
+}
+#fs-opciones { margin-top: 20px; }
+#fs-opciones .lista-agrupada { margin-top: 0; }
 .deslizador { flex: 1; min-width: 0; accent-color: var(--destacado); }
 /* Barra de la libreta con 10 puntos marcados abajo: al soltar, se imanta al más cercano. */
 .fila-deslizador { margin-top: 12px; padding: 0 4px; }
 .fila-deslizador .deslizador { display: block; width: 100%; margin: 0; }
 .puntos-deslizador { display: flex; justify-content: space-between; padding: 4px 10px 0; }
 .puntos-deslizador span { width: 4px; height: 4px; border-radius: 50%; background: var(--texto-3); }
-/* Tempo: el número abajo del nombre, la barra y el botón para volver a 90 BPM. */
-.celda-tempo .etiqueta-tempo { flex: 0 0 auto !important; display: flex; flex-direction: column; line-height: 1.2; }
-.celda-tempo .valor { font-size: 13px; }
-.boton-reiniciar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: var(--texto-2); background: var(--relleno); flex-shrink: 0; }
-.boton-reiniciar .icono { width: 18px; height: 18px; }
 select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--texto-2); text-align-last: right; }
 
 /* Editor de letra */
@@ -366,14 +446,13 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .celda-tema:has(.marca-tema rect) { color: var(--texto-2); }
 .texto-rojo { color: #ff3b30; }
 
-/* Espacio de publicidad simulado: un banner de vidrio. Con Extras no se muestra. */
+/* Espacio de publicidad simulado, entre las tarjetas y la lista. Con Extras no se muestra. */
 .publicidad {
-    width: 100%; margin-top: 20px; padding: 14px 16px; border-radius: 18px; text-align: left;
-    display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--texto-2);
-    background: var(--vidrio); border: 1px dashed var(--texto-3);
+    width: 100%; margin: 12px 0; height: 56px; padding: 0 16px; border-radius: 14px; text-align: center;
+    display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--texto-3);
+    background: transparent; border: 1px dashed var(--texto-3);
 }
 .publicidad strong { color: var(--destacado); font-weight: 600; }
-.publicidad-etiqueta { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-3); }
 .publicidad[hidden] { display: none; }
 
 /* Paywall: hoja de vidrio que sube desde abajo (.sheet en SwiftUI). */
