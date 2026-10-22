@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, urlWidgetSoundCloud, resolverLinkSoundCloud } from '../js/logica/musica.js';
+import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud, urlWidgetSoundCloud, resolverLinkSoundCloud } from '../js/logica/musica.js';
 
 test('links de YouTube en todas sus formas', () => {
     const esperado = { fuente: 'youtube', id: 'dQw4w9WgXcQ', inicio: 0 };
@@ -86,6 +86,21 @@ test('YouTube se muestra y SoundCloud no', () => {
 test('plegar un video que suena pide pausar', () => {
     assert.deepEqual(plegarVideo(true), { plegado: true, pausar: true });
     assert.deepEqual(plegarVideo(false), { plegado: true, pausar: false });
+});
+
+test('SoundCloud va en grande solo en Freestyle, y plegado va chico', () => {
+    assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: false, freestyle: false }), true);
+    assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: true, freestyle: true }), false);
+    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, freestyle: true }), true);
+    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, freestyle: false }), false);
+    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: true, freestyle: true }), false);
+});
+
+test('la portada de SoundCloud se pide en 500×500, o la foto del artista', () => {
+    assert.equal(portadaSoundCloud({ artwork_url: 'https://i1.sndcdn.com/artworks-abc-large.jpg' }), 'https://i1.sndcdn.com/artworks-abc-t500x500.jpg');
+    assert.equal(portadaSoundCloud({ artwork_url: null, user: { avatar_url: 'https://i1.sndcdn.com/avatars-x-large.jpg' } }), 'https://i1.sndcdn.com/avatars-x-t500x500.jpg');
+    assert.equal(portadaSoundCloud({}), null);
+    assert.equal(portadaSoundCloud(null), null);
 });
 
 test('el tiempo de la barra se lee en minutos', () => {

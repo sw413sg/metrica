@@ -755,6 +755,22 @@ const servidor = http.createServer((req, res) => {
         assert.equal(Math.round(player.x), 16, JSON.stringify(player));
         assert.ok(player.y + player.height <= tab.y + 1, JSON.stringify({player, tab}));
         assert.ok(Math.abs(player.y + player.height - (844 - 84)) <= 2, JSON.stringify(player));
+        // La bandeja de duración queda pegada arriba de la tarjeta: el aro crece para llenar el alto.
+        const bandeja = await page.locator('.bandeja-fs').boundingBox();
+        const aireFs = player.y - (bandeja.y + bandeja.height);
+        assert.ok(aireFs >= 6 && aireFs <= 16, `aire entre bandeja y tarjeta: ${aireFs}`);
+        assert.ok((await page.locator('#fs-reloj').boundingBox()).width > 180, 'el aro aprovecha el alto');
+        // Las duraciones llenan la bandeja y el texto va al medio de cada una.
+        const chips = await page.locator('#fs-duraciones .chip-fs').evaluateAll(els => els.map(e => getComputedStyle(e).justifyContent));
+        assert.ok(chips.every(j => j === 'center'), chips.join());
+        // Una palabra larga entra en una línea dentro del aro.
+        await page.evaluate(() => { document.getElementById('fs-palabra').textContent = 'contrabandista'; });
+        await page.setViewportSize({width: 390, height: 640});
+        await page.waitForTimeout(100);
+        await page.setViewportSize({width: 390, height: 844});
+        await page.waitForTimeout(100);
+        const larga = await page.locator('#fs-palabra').evaluate(e => ({ancho: e.scrollWidth, libre: e.clientWidth, alto: e.offsetHeight, letra: parseFloat(getComputedStyle(e).fontSize)}));
+        assert.ok(larga.ancho <= larga.libre && larga.alto < larga.letra * 1.5, JSON.stringify(larga));
         await page.waitForFunction(() => {
             const [m, s] = document.getElementById('fs-cuenta').textContent.split(':').map(Number);
             return m * 60 + s <= 58;
@@ -786,11 +802,12 @@ const servidor = http.createServer((req, res) => {
                 w.getPosition = cb => cb(0);
                 w.getDuration = cb => cb(180000);
                 w.seekTo = () => {};
-                w.getCurrentSound = cb => cb({ title: 'Beat nube' });
+                w.getCurrentSound = cb => cb({ title: 'Beat nube', artwork_url: 'https://i1.sndcdn.com/artworks-prueba-large.jpg' });
                 setTimeout(() => w.onREADY?.());
                 return w;
             } };
             window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
+        await page.route('https://i1.sndcdn.com/**', ruta => ruta.fulfill({path: path.join(__dirname, 'iconos/icono-192.png')}));
         await page.route('https://soundcloud.com/oembed**', ruta => ruta.fulfill({contentType: 'application/json', body: JSON.stringify({
             html: '<iframe src="https://w.soundcloud.com/player/?visual=true&url=https%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F2416843668&amp;show_artwork=true"></iframe>',
         })}));
@@ -806,6 +823,26 @@ const servidor = http.createServer((req, res) => {
         const beatNube = await page.locator('#reproductor').boundingBox();
         const tabNube = await page.locator('#barra-pestanas').boundingBox();
         assert.ok(beatNube.y + beatNube.height <= tabNube.y + 1, JSON.stringify({beatNube, tabNube}));
+        // En Freestyle, SoundCloud va en grande con la portada en el cuadro del video.
+        assert.equal(await page.locator('#reproductor-marco img').getAttribute('src'), 'https://i1.sndcdn.com/artworks-prueba-t500x500.jpg');
+        const portada = await page.locator('#reproductor-marco').boundingBox();
+        assert.equal(Math.round(portada.width), 200);
+        const bandejaNube = await page.locator('.bandeja-fs').boundingBox();
+        const aireNube = beatNube.y - (bandejaNube.y + bandejaNube.height);
+        assert.ok(aireNube >= 6 && aireNube <= 16, `aire entre bandeja y tarjeta: ${aireNube}`);
+        await page.screenshot({path: `capturas/freestyle-nube-${tema}.png`});
+        // Achicarlo no lo pausa: vuelve al formato chico y sigue sonando.
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        assert.equal(await page.evaluate(() => window.__scFs.paused), false);
+        assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).width), 40);
+        const bandejaChica = await page.locator('.bandeja-fs').boundingBox();
+        const chica = await page.locator('#reproductor').boundingBox();
+        assert.ok(chica.y - (bandejaChica.y + bandejaChica.height) <= 16, 'la bandeja baja con la tarjeta chica');
+        await page.screenshot({path: `capturas/freestyle-nube-chico-${tema}.png`});
+        await page.locator('#musica-agrandar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
+        assert.equal(await page.evaluate(() => window.__scFs.paused), false);
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         await page.unroute('https://soundcloud.com/oembed**').catch(() => {});
