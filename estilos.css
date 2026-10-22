@@ -250,17 +250,23 @@ a { color: var(--acento); text-decoration: none; }
 .lista-simples { margin-top: 28px; }
 #pantalla-rimas .vacio { margin: 28px 8px; }
 
-/* Freestyle: aro de 270 (trazo de 12) que se carga de violeta. En SwiftUI: Circle().trim. */
+/* Freestyle: aro de 270 con trazo de 12 que se carga de violeta. El resto del aro
+   es el gris del diseño (--relleno) y el centro, un disco del fondo, como en el HTML.
+   En SwiftUI: Circle().trim. */
 @property --avance { syntax: '<number>'; inherits: false; initial-value: 0; }
 .escenario-fs { position: relative; width: 270px; height: 270px; margin: 8px auto 0; }
 .reloj {
     --avance: 0;
+    position: relative;
     width: 270px; height: 270px; margin: 0; border-radius: 50%; border: 0;
     background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0);
-    -webkit-mask: radial-gradient(circle, transparent 122px, #000 124px);
-    mask: radial-gradient(circle, transparent 122px, #000 124px);
     font-size: 0; color: transparent;
     transition: --avance .2s linear;
+}
+.reloj::before {
+    content: "";
+    position: absolute; left: 12px; top: 12px; width: 246px; height: 246px;
+    border-radius: 50%; background: var(--fondo);
 }
 .palabra-fs {
     position: absolute; inset: 12px; margin: 0; display: flex; align-items: center; justify-content: center;
@@ -305,18 +311,22 @@ a { color: var(--acento); text-decoration: none; }
 #fs-bpm::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
 .boton-bpm { flex-shrink: 0; padding: 8px 12px; border-radius: 16px; font-size: 14px; font-weight: 600; }
 .boton-pausa {
-    width: 84px; height: 84px; margin: 18px auto 0; border-radius: 50%; display: grid; place-items: center;
+    position: relative; display: block;
+    width: 84px; height: 84px; margin: 18px auto 0; border-radius: 50%;
     background: var(--texto); color: transparent; font-size: 0;
 }
 .boton-pausa::after {
-    content: ""; width: 26px; height: 30px; background: var(--fondo);
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 26px; height: 30px; background: var(--fondo);
     clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
+/* Pausa: dos barras de 11×31 separadas 14 px, sin radio. Es el tamaño del glifo ❚❚
+   a 30 px del diseño (freestyle_AC1.html), en claro y en oscuro. */
 #pantalla-freestyle.sonando .boton-pausa::after {
-    clip-path: none;
+    width: 36px; height: 31px; clip-path: none; border-radius: 0;
     background:
-        linear-gradient(var(--fondo), var(--fondo)) 0 0 / 8px 100% no-repeat,
-        linear-gradient(var(--fondo), var(--fondo)) 100% 0 / 8px 100% no-repeat;
+        linear-gradient(var(--fondo), var(--fondo)) left center / 11px 31px no-repeat,
+        linear-gradient(var(--fondo), var(--fondo)) right center / 11px 31px no-repeat;
 }
 #fs-opciones { margin-top: 20px; }
 #fs-opciones .lista-agrupada { margin-top: 0; }
