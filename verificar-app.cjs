@@ -692,6 +692,11 @@ const servidor = http.createServer((req, res) => {
         const cuenta = await page.locator('#fs-cuenta').textContent();
         const segundosCuenta = cuenta.split(':').reduce((m, s) => m * 60 + Number(s), 0);
         assert.ok(segundosCuenta < 58 && segundosCuenta > 40, cuenta);
+        // Jugando, el título se va sin mover nada; al parar vuelve.
+        const tituloFs = page.locator('#pantalla-freestyle .titulo-grande');
+        await page.waitForTimeout(400);
+        assert.equal(await tituloFs.evaluate(e => getComputedStyle(e).visibility), 'hidden');
+        const aroJugando = (await page.locator('#fs-reloj').boundingBox()).y;
         // La flecha reinicia el cronómetro sin cortar la ronda.
         await page.locator('#fs-reiniciar').click();
         assert.match(await page.locator('#fs-cuenta').textContent(), /^(1:00|0:59)$/);
@@ -736,6 +741,8 @@ const servidor = http.createServer((req, res) => {
         if (tema === 'dark') await page.locator('#fs-beats [data-beat="trap-clasico"]').click();
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
         await page.waitForTimeout(800);
+        assert.equal(await tituloFs.evaluate(e => getComputedStyle(e).visibility), 'visible');
+        assert.equal((await page.locator('#fs-reloj').boundingBox()).y, aroJugando, 'el aro no se mueve');
         assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'sin ronda, las luces se apagan');
         // Las luces van detrás del círculo, que es de vidrio.
         assert.ok(await page.locator('#fs-reloj').evaluate(e => getComputedStyle(e).backdropFilter.includes('blur')), 'el círculo es de vidrio');

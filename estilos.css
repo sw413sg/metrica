@@ -346,6 +346,9 @@ a { color: var(--acento); text-decoration: none; }
 }
 .chip-fs[aria-checked="true"] { background: var(--texto); color: var(--fondo); }
 .chip-fs.premium:not([aria-checked="true"]) { background: var(--destacado-suave); color: var(--destacado); }
+/* Jugando, el título se desvanece pero deja su lugar: no se mueve nada. */
+#pantalla-freestyle .titulo-grande { transition: opacity .3s; }
+#pantalla-freestyle.jugando .titulo-grande { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
 #pantalla-freestyle .encabezado-grupo { margin: 0; padding: 14px 20px 6px; letter-spacing: 0.3px; }
 .beats-fs { margin: 0; padding: 0; }
 .pegar-fs {
