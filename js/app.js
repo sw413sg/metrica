@@ -407,6 +407,11 @@ $('sugerencias').addEventListener('click', e => {
     guardarActual();
 });
 
+// Estado del reproductor. Vive arriba porque el teclado, al abrirse, pregunta si hay que pausar.
+let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
+let sonando = false, plegado = false, plegarAlPausar = false;
+let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
+
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
 if (window.visualViewport) {
     const ajustarAlTeclado = () => {
@@ -856,9 +861,6 @@ $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage);
 // YouTube se ve a 200×200 dentro de la tarjeta (no se puede ocultar ni tapar). SoundCloud va fuera de vista.
 const PASO_SEGUNDOS = 10;
 const VOLUMEN_INICIAL = 70;
-let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
-let sonando = false, plegado = false, plegarAlPausar = false;
-let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
 
 function cargarScript(src) {
     return new Promise((listo, error) => {
