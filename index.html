@@ -157,16 +157,23 @@
                     <div class="duraciones-fs" id="fs-duraciones" role="radiogroup" aria-label="Duración de la ronda"></div>
                 </div>
                 <div id="fs-elegir">
-                    <h2 class="encabezado-grupo">Beat</h2>
                     <div class="beats-fs" id="fs-beats" role="radiogroup" aria-label="Beat"></div>
                 </div>
-                <!-- El link va abajo de todo, pegado a la barra de pestañas. -->
-                <div class="pegar-fs vidrio" id="fs-pegar-link">
-                    <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></svg>
-                    <textarea id="fs-link" rows="1" placeholder="SoundCloud / YouTube / Playlist" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go"></textarea>
-                    <button type="button" class="boton-pegar" id="fs-pegar">OK</button>
+                <!-- Cajón del link, abajo de todo y del alto del reproductor de YouTube: link, un
+                     beat del teléfono y los recientes. En SwiftUI: TextField + .fileImporter + DisclosureGroup. -->
+                <div class="cajon-fs vidrio" id="fs-cajon">
+                    <div class="pegar-fs" id="fs-pegar-link">
+                        <textarea id="fs-link" rows="1" placeholder="SoundCloud / YouTube / Playlist" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go"></textarea>
+                        <button type="button" class="boton-pegar" id="fs-pegar">OK</button>
+                        <button type="button" class="boton-pegar boton-buscar" id="fs-buscar">Buscar</button>
+                    </div>
+                    <input type="file" id="fs-archivo" accept="audio/*" hidden>
+                    <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
+                    <details class="recientes-fs" id="fs-recientes-caja" open>
+                        <summary>Recientes</summary>
+                        <ul class="lista-recientes" id="fs-recientes"></ul>
+                    </details>
                 </div>
-                <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
             </div>
         </section>
 

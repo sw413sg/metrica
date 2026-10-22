@@ -13,6 +13,7 @@ import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearEfecto } from './efectos.js';
 import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
+import { leerRecientes, agregarReciente, titularReciente, etiquetaReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
 
@@ -702,7 +703,8 @@ let ronda = null; // { inicio, duracion, pausa, modo } mientras se está jugando
 let cola = []; // [ahora, después, luego]
 let beatId = CATALOGO_BEATS[0].id;
 let duracionId = DURACION_INICIAL;
-let linkFreestyle = null; // el link ya leído, o null si suena un beat
+let linkFreestyle = null; // el link ya leído (o { fuente: 'archivo' }), o null si suena un beat
+let recienteActual = null; // el reciente que está sonando, para ponerle el título cuando llega
 let relojTimer = null;
 let indicePalabra = 0;
 const COMPASES_POR_PALABRA = 2;
@@ -1046,9 +1048,100 @@ async function usarLinkFreestyle(texto) {
     avisoFs('');
     if (ronda) terminarRonda();
     linkFreestyle = link;
+    recienteActual = { fuente: link.fuente, link: String(texto).trim(), titulo: '' };
+    sumarReciente(recienteActual);
     sincronizarLinkFreestyle();
     await escucharMusica(texto);
 }
+
+// Un beat del teléfono: suena en el mismo reproductor de abajo, como un link.
+async function usarArchivoFreestyle(archivo, reciente) {
+    avisoFs('');
+    if (ronda) terminarRonda();
+    linkFreestyle = { fuente: 'archivo' };
+    recienteActual = reciente;
+    sumarReciente(reciente);
+    sincronizarLinkFreestyle();
+    escucharArchivo(archivo, reciente.titulo);
+}
+
+// ---------- Recientes (Freestyle) ----------
+// Los archivos del teléfono se guardan en IndexedDB para poder volver a usarlos
+// (en SwiftUI, copiados a Documents). Si el navegador no deja, quedan solo en la lista.
+function baseRecientes() {
+    return new Promise((listo, error) => {
+        const pedido = indexedDB.open('metrica', 1);
+        pedido.onupgradeneeded = () => pedido.result.createObjectStore('beats');
+        pedido.onsuccess = () => listo(pedido.result);
+        pedido.onerror = () => error(pedido.error);
+    });
+}
+async function usarBaseRecientes(modo, hacer) {
+    const base = await baseRecientes();
+    return new Promise((listo, error) => {
+        const tienda = base.transaction('beats', modo).objectStore('beats');
+        const pedido = hacer(tienda);
+        pedido.onsuccess = () => listo(pedido.result);
+        pedido.onerror = () => error(pedido.error);
+    });
+}
+const guardarArchivo = (id, archivo) => usarBaseRecientes('readwrite', t => t.put(archivo, id)).catch(() => {});
+const leerArchivo = id => usarBaseRecientes('readonly', t => t.get(id)).catch(() => null);
+const borrarArchivo = id => usarBaseRecientes('readwrite', t => t.delete(id)).catch(() => {});
+
+function sumarReciente(reciente) {
+    for (const caido of agregarReciente(localStorage, reciente)) if (caido.fuente === 'archivo') borrarArchivo(caido.id);
+    renderizarRecientes();
+}
+
+function renderizarRecientes() {
+    const lista = leerRecientes(localStorage);
+    if (!lista.length) {
+        const vacio = document.createElement('li');
+        vacio.className = 'vacio-recientes';
+        vacio.textContent = 'Todavía no hay';
+        return $('fs-recientes').replaceChildren(vacio);
+    }
+    $('fs-recientes').replaceChildren(...lista.map(reciente => {
+        const fila = document.createElement('li');
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.textContent = etiquetaReciente(reciente);
+        boton.addEventListener('click', async () => {
+            if (reciente.fuente !== 'archivo') {
+                $('fs-link').value = reciente.link;
+                return usarLinkFreestyle(reciente.link);
+            }
+            const archivo = await leerArchivo(reciente.id);
+            if (!archivo) return avisoFs('Ese archivo ya no está guardado: buscalo de nuevo.');
+            usarArchivoFreestyle(archivo, reciente);
+        });
+        fila.append(boton);
+        return fila;
+    }));
+}
+
+// El título del tema llega cuando carga el reproductor: ahí se anota en el reciente.
+new MutationObserver(() => {
+    const titulo = $('reproductor-titulo').textContent.trim();
+    // Se queda con el primero: en una playlist, el título de la que arrancó.
+    if (!recienteActual || recienteActual.titulo || !linkFreestyle || !titulo || titulo === 'Cargando…' || titulo.startsWith('No se pudo')) return;
+    recienteActual.titulo = titulo;
+    titularReciente(localStorage, recienteActual, titulo);
+    renderizarRecientes();
+}).observe($('reproductor-titulo'), { childList: true, characterData: true, subtree: true });
+
+$('fs-buscar').addEventListener('click', () => $('fs-archivo').click());
+$('fs-archivo').addEventListener('change', async () => {
+    const archivo = $('fs-archivo').files?.[0];
+    $('fs-archivo').value = '';
+    if (!archivo) return;
+    const reciente = { fuente: 'archivo', id: `${archivo.name}-${archivo.size}`, titulo: tituloDeArchivo(archivo.name) };
+    // Primero suena (todavía dentro del toque, para que iOS deje), después se guarda.
+    usarArchivoFreestyle(archivo, reciente);
+    await guardarArchivo(reciente.id, archivo);
+});
+renderizarRecientes();
 
 $('fs-play').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
 // Vuelve el cronómetro al principio. La ronda y la música siguen como estaban.
@@ -1180,7 +1273,7 @@ function pintarProgreso() {
 }
 
 function mostrarEstadoMusica() {
-    const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud' }[musica?.fuente] ?? '';
+    const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud', archivo: 'Del teléfono' }[musica?.fuente] ?? '';
     const enPausa = musica?.fuente === 'youtube' && plegado;
     $('reproductor-fuente').textContent = nombre ? (enPausa ? `${nombre} · en pausa` : nombre) : '';
     // Sin playlist no hay a qué canción pasar: las flechas quedan apagadas.
@@ -1426,6 +1519,38 @@ async function escucharMusica(texto) {
     }
 }
 
+// Un archivo del teléfono, con un <audio> fuera de vista y en loop (es un beat).
+// En SwiftUI: AVAudioPlayer con numberOfLoops = -1.
+function escucharArchivo(archivo, titulo) {
+    cerrarMusica();
+    $('reproductor-titulo').textContent = titulo;
+    $('reproductor').hidden = false;
+    document.body.classList.add('con-musica');
+    musica = { fuente: 'archivo', lista: false };
+    aplicarVideo();
+    const audio = new Audio(URL.createObjectURL(archivo));
+    audio.loop = true;
+    audio.volume = VOLUMEN_INICIAL / 100;
+    $('reproductor-oculto').replaceChildren(audio);
+    audio.addEventListener('loadedmetadata', () => anotarTiempo(audio.currentTime, audio.duration));
+    audio.addEventListener('timeupdate', () => anotarTiempo(audio.currentTime, audio.duration));
+    audio.addEventListener('play', () => alCambiarEstado(true));
+    audio.addEventListener('pause', () => alCambiarEstado(false));
+    audio.addEventListener('error', () => {
+        falloMusica = true;
+        sonando = false;
+        $('reproductor-titulo').textContent = 'No se pudo reproducir este archivo';
+        mostrarEstadoMusica();
+    });
+    Object.assign(musica, {
+        reproducir: () => audio.play().catch(() => alCambiarEstado(false)),
+        pausar: () => audio.pause(),
+        ir: segundos => { audio.currentTime = segundos; anotarTiempo(segundos); },
+        cerrar: () => { audio.pause(); URL.revokeObjectURL(audio.src); audio.remove(); },
+    });
+    if (reproductorVisible()) musica.reproducir();
+}
+
 function reproductorVisible() {
     if ($('reproductor').hidden || document.body.classList.contains('teclado-abierto')) return false;
     return document.body.classList.contains('editando') || document.body.classList.contains('freestyle-link');
@@ -1516,6 +1641,7 @@ $('musica-cerrar').addEventListener('click', () => {
     cerrarMusica();
     if (!eraFreestyle) return;
     linkFreestyle = null;
+    recienteActual = null;
     $('fs-link').value = '';
     if (ronda) terminarRonda();
     sincronizarLinkFreestyle();

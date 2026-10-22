@@ -253,19 +253,10 @@ a { color: var(--acento); text-decoration: none; }
 
 /* Freestyle (freestyle_v2_A): el aro se llena de violeta y adentro van la palabra
    y los segundos que quedan. La palabra va siempre en una línea: si no entra, app.js
-   le achica la letra. Con un link, el aro ocupa todo el alto que sobra y la bandeja
-   queda pegada a la tarjeta del reproductor. En SwiftUI: Circle().trim. */
+   le achica la letra. El aro ocupa todo el alto que sobra y la bandeja queda pegada
+   a lo de abajo (el cajón del link o la tarjeta del reproductor). En SwiftUI: Circle().trim. */
 @property --avance { syntax: '<number>'; inherits: true; initial-value: 0; }
-#pantalla-freestyle { --aro: 270px; --fs-palabra: 46px; --fs-cuenta: 20px; --fs-proxima: 20px; }
-.escenario-fs { width: var(--aro); height: var(--aro); margin: 4px auto 0; }
-#pantalla-freestyle.con-link .contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-#pantalla-freestyle.con-link .escenario-fs {
-    flex: 1 1 0; min-height: 140px; width: 100%; height: auto; margin: 0; container-type: size;
-    display: flex; align-items: center; justify-content: center;
-}
-#pantalla-freestyle.con-link {
-    --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075);
-}
+#pantalla-freestyle { --fs-proxima: 20px; }
 /* El círculo es un lente de vidrio (Liquid Glass): transparente, con brillo en el
    borde y aberración cromática (rojo y celeste corridos en los bordes). El aro de la
    ronda va en ::before, recortado a un anillo de 12 px, y los reflejos en ::after.
@@ -386,30 +377,55 @@ a { color: var(--acento); text-decoration: none; }
 .puntos-beat { display: flex; gap: 5px; }
 .puntos-beat span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.3; }
 .puntos-beat span.activo { opacity: 1; }
-/* Sin link, el campo baja hasta quedar pegado a la barra de pestañas. */
+/* Sin link, abajo va el cajón del link, pegado a la barra de pestañas y del mismo alto que
+   el reproductor de YouTube (252): así el aro y la bandeja quedan igual con y sin link. */
 #pantalla-freestyle .contenido {
-    flex: 1; display: flex; flex-direction: column;
+    flex: 1; min-height: 0; display: flex; flex-direction: column;
     padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }
-.pegar-fs {
-    margin-top: auto; border-radius: 24px; display: flex; align-items: center; gap: 8px;
-    padding: 8px 8px 8px 14px; color: var(--texto-2);
+#pantalla-freestyle .escenario-fs {
+    flex: 1 1 0; min-height: 140px; width: 100%; height: auto; margin: 0; container-type: size;
+    display: flex; align-items: center; justify-content: center;
 }
-#fs-elegir { margin-bottom: 16px; }
-.pegar-fs .icono { width: 22px; height: 22px; flex-shrink: 0; }
+#pantalla-freestyle { --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075); }
+#fs-elegir { margin-top: 12px; }
+.cajon-fs {
+    flex-shrink: 0; height: 252px; margin-top: 12px; border-radius: 22px; padding: 8px;
+    display: flex; flex-direction: column; overflow: hidden;
+}
+#pantalla-freestyle.con-link .cajon-fs { display: none; }
+.pegar-fs { display: flex; align-items: center; gap: 3px; }
 .pegar-fs textarea {
-    flex: 1; min-width: 0; border: 0; background: none; outline: none; resize: none; font: inherit;
-    font-size: 15px; line-height: 20px; height: 20px; white-space: nowrap; overflow: hidden; color: var(--texto); padding: 0;
+    flex: 1; min-width: 0; height: 44px; border: 0; outline: none; resize: none; font: inherit;
+    font-size: 13px; line-height: 20px; padding: 12px 4px 12px 10px; border-radius: 22px; white-space: nowrap; overflow: hidden;
+    background: var(--celda); color: var(--texto);
 }
 .pegar-fs textarea::placeholder { color: var(--texto-2); }
 .boton-pegar {
-    height: 36px; padding: 0 16px; border-radius: 18px; flex-shrink: 0;
+    height: 44px; padding: 0 10px; border-radius: 22px; flex-shrink: 0;
     background: var(--texto); color: var(--fondo); font-weight: 600; font-size: 15px;
 }
+.boton-buscar { background: var(--celda); color: var(--texto); }
 #fs-elegir[hidden] { display: none; }
 #fs-link-aviso { margin: 8px 4px 0; }
-/* Con un link, el campo se va. */
-#pantalla-freestyle.con-link .pegar-fs, #pantalla-freestyle.con-link #fs-link-aviso { display: none; }
+/* Recientes: desplegable con hasta 3, el título acortado y (YT), (SCLOUD) o (ARCHIVO). */
+.recientes-fs { margin-top: 10px; min-height: 0; }
+.recientes-fs summary {
+    list-style: none; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; color: var(--texto-2); cursor: pointer;
+}
+.recientes-fs summary::-webkit-details-marker { display: none; }
+.recientes-fs summary::after {
+    content: ''; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0;
+    transform: translateY(-2px) rotate(45deg); transition: transform .2s;
+}
+.recientes-fs:not([open]) summary::after { transform: rotate(-45deg); }
+.lista-recientes { list-style: none; margin: 0; padding: 0; }
+.lista-recientes button {
+    width: 100%; height: 44px; padding: 0 4px; text-align: left; font-size: 15px; color: var(--texto);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid var(--separador, rgba(127, 127, 127, 0.2));
+}
+.lista-recientes .vacio-recientes { height: 44px; padding: 0 4px; display: flex; align-items: center; font-size: 15px; color: var(--texto-3); }
 /* La tarjeta va 84 px arriba del borde y --alto-reproductor ya suma 24 de aire: quedan 12 entre bandeja y tarjeta. */
 #pantalla-freestyle.con-link .contenido {
     padding-bottom: calc(72px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
