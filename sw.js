@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando 0.1: así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-2.7';
+const VERSION = 'metrica-2.8';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -14,6 +14,7 @@ const ARCHIVOS = [
     'sinonimos.js',
     'js/app.js',
     'js/beats.js',
+    'js/efectos.js',
     'js/logica/diccionario.js',
     'js/logica/generador.js',
     'js/logica/rimas.js',
@@ -27,6 +28,7 @@ const ARCHIVOS = [
     'js/logica/sinonimos.js',
     'js/logica/apariencia.js',
     'js/logica/musica.js',
+    'js/logica/ambiente.js',
     'iconos/icono.svg',
     'iconos/icono-180.png',
     'iconos/icono-192.png',

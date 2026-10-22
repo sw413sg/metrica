@@ -10,6 +10,8 @@ import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
+import { crearEfecto } from './efectos.js';
+import { moodDeTitulo, moodDeBeat, bpmDeTitulo, tiemposEn } from './logica/ambiente.js';
 import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
@@ -413,6 +415,7 @@ let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segu
 let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = false;
 let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
+let actualEn = 0; // cuándo se leyó `actual` (performance.now), para seguir contando entre lecturas
 
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
 if (window.visualViewport) {
@@ -765,7 +768,9 @@ function mostrarCuentaIdle() {
 }
 
 function alPasoBeat(paso) {
-    if (!ronda || ronda.pausa || paso === 0) return;
+    if (!ronda || ronda.pausa) return;
+    if (paso % 4 === 0) efecto.golpe(paso % 16 === 0 ? 1 : 0.6);
+    if (paso === 0) return;
     if (!cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) return;
     cola = avanzarPalabras(cola, palabraAlAzar());
     mostrarCola();
@@ -784,6 +789,29 @@ function tickReloj() {
         cola = avanzarPalabras(cola, palabraAlAzar());
         mostrarCola();
     }
+}
+
+// Luces del aro: el mood sale del título del link o del género del beat. Con un link
+// los tiempos salen de la posición del tema (y de los BPM del título, si los dice);
+// con un beat propio, de cada paso del beat.
+const efecto = crearEfecto($('fs-efecto'), $('fs-reloj'));
+function ambienteActual() {
+    if (linkFreestyle) {
+        const titulo = musica ? $('reproductor-titulo').textContent : '';
+        const bpm = bpmDeTitulo(titulo) ?? BPM_FS;
+        return { mood: moodDeTitulo(titulo), bpm, reloj: () => sonando ? tiemposEn(posicionMusica(), bpm) : null };
+    }
+    const { beat } = fuenteFreestyle({ beatId });
+    const bpm = archivoDeBeat(beat.id)?.bpm ?? BPM_FS;
+    // Si el beat no suena (falló el mp3), late con el reloj de la ronda.
+    return { mood: moodDeBeat(beat), bpm, reloj: () => ronda?.modo === 'reloj' && !ronda.pausa ? tiemposEn((performance.now() - ronda.inicio) / 1000, bpm) : null };
+}
+// El título llega después de cargar el tema: ahí se sabe el mood.
+new MutationObserver(() => { if (linkFreestyle) actualizarEfecto(); }).observe($('reproductor-titulo'), { childList: true, characterData: true, subtree: true });
+function actualizarEfecto() {
+    efecto.configurar(ambienteActual());
+    if (ronda && !ronda.pausa) efecto.prender();
+    else efecto.apagar();
 }
 
 function marcarSonando(activo) {
@@ -829,12 +857,14 @@ function empezarRonda() {
     marcarSonando(true);
     if (!relojTimer) relojTimer = setInterval(tickReloj, 200);
     ronda.modo = arrancarSonido();
+    actualizarEfecto();
 }
 
 function pausarRonda() {
     if (!ronda || ronda.pausa) return;
     ronda.pausa = performance.now();
     detenerBeat();
+    actualizarEfecto();
 }
 
 function reanudarRonda() {
@@ -842,12 +872,14 @@ function reanudarRonda() {
     ronda.inicio += performance.now() - ronda.pausa;
     ronda.pausa = null;
     if (ronda.modo === 'beat' || ronda.modo === 'archivo') ronda.modo = arrancarSonido();
+    actualizarEfecto();
 }
 
 function terminarRonda(porTiempo = false) {
     if (!ronda) return;
     ronda = null;
     detenerBeat();
+    actualizarEfecto();
     clearInterval(relojTimer);
     relojTimer = null;
     marcarSonando(false);
@@ -928,6 +960,7 @@ function renderizarBeats() {
             beatId = b.id;
             renderizarBeats();
             if (cambio && ronda && !ronda.pausa) ronda.modo = arrancarSonido();
+            if (cambio) actualizarEfecto();
         });
         return boton;
     }));
@@ -950,6 +983,22 @@ async function usarLinkFreestyle(texto) {
 }
 
 $('fs-play').addEventListener('click', () => ronda ? terminarRonda() : empezarRonda());
+// Vuelve el cronómetro al principio. La ronda y la música siguen como estaban.
+$('fs-reiniciar').addEventListener('click', () => {
+    const boton = $('fs-reiniciar');
+    boton.classList.remove('girando');
+    void boton.offsetWidth;
+    boton.classList.add('girando');
+    if (!ronda) {
+        if (!cola.length) asegurarCola();
+        return mostrarCuentaIdle();
+    }
+    const ahora = performance.now();
+    ronda.inicio = ahora;
+    if (ronda.pausa) ronda.pausa = ahora;
+    indicePalabra = 0;
+    pintarCuenta(estadoRonda(ronda.inicio, ahora, ronda.duracion));
+});
 $('fs-pegar').addEventListener('click', async () => {
     try {
         const texto = (await navigator.clipboard.readText())?.trim();
@@ -1121,6 +1170,11 @@ function avisoMusica(texto) {
     $('musica-aviso').hidden = !texto;
 }
 
+// Dónde va el tema ahora: la última lectura más lo que pasó desde entonces (como mucho 1 s).
+function posicionMusica() {
+    return actual + Math.min(1, (performance.now() - actualEn) / 1000);
+}
+
 function seguirProgreso(leer) {
     clearInterval(progresoTimer);
     progresoTimer = setInterval(leer, 250);
@@ -1129,6 +1183,7 @@ function seguirProgreso(leer) {
 function anotarTiempo(segundos, total = duracion) {
     if (arrastrando) return;
     actual = Math.max(0, Number(segundos) || 0);
+    actualEn = performance.now();
     if (total > 0) duracion = total;
     pintarProgreso();
 }

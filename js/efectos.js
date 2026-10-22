@@ -1,0 +1,225 @@
+// Luces del aro de Freestyle: resplandor que late con cada tiempo y partículas según el
+// mood (luciérnagas, rayos, brillos, polvo o anillos). El canvas es más grande que el aro:
+// las luces también llenan los costados y el aire de arriba. Canvas 2D, sin librerías.
+// Qué mood y cuándo late lo decide js/logica/ambiente.js. En SwiftUI: Canvas + TimelineView.
+import { MOODS, brilloDeGolpe } from './logica/ambiente.js';
+
+const CANTIDAD = { luciernagas: 26, polvo: 40, brillos: 34, rayos: 16, anillos: 18 };
+
+const azar = (min, max) => min + Math.random() * (max - min);
+
+// `aro` es el elemento del círculo: de ahí salen el centro y el radio.
+export function crearEfecto(canvas, aro) {
+    const ctx = canvas.getContext('2d');
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)');
+    let mood = MOODS.neutro;
+    let bpm = 90;
+    let particulas = [];
+    let golpes = []; // anillos y rayos que salen con cada tiempo
+    let ultimoGolpe = -Infinity, fuerzaGolpe = 1;
+    let reloj = null; // () => tiempos con decimales, o null si los golpes llegan de afuera
+    let ultimoTiempo = null;
+    let animando = false, encendido = 0, prendido = false, antes = 0;
+    let ancho = 0, alto = 0, cx = 0, cy = 0, r = 0;
+
+    function medir() {
+        const escala = devicePixelRatio || 1;
+        ancho = canvas.clientWidth;
+        alto = canvas.clientHeight;
+        canvas.width = Math.round(ancho * escala);
+        canvas.height = Math.round(alto * escala);
+        ctx.setTransform(escala, 0, 0, escala, 0, 0);
+        const caja = canvas.getBoundingClientRect(), circulo = aro.getBoundingClientRect();
+        cx = circulo.left + circulo.width / 2 - caja.left;
+        cy = circulo.top + circulo.height / 2 - caja.top;
+        r = circulo.width / 2;
+        sembrar();
+    }
+    const observador = new ResizeObserver(medir);
+    observador.observe(canvas);
+    observador.observe(aro);
+
+    // Las partículas andan por todo el canvas, adentro y afuera del aro.
+    function nueva(desdeAbajo = false) {
+        return {
+            x: azar(0, ancho),
+            y: desdeAbajo ? alto + 4 : azar(0, alto),
+            vx: azar(-1, 1), vy: azar(-1, 1),
+            tam: azar(1.2, 3.4), fase: azar(0, Math.PI * 2),
+            color: mood.colores[Math.floor(Math.random() * mood.colores.length)],
+        };
+    }
+    function sembrar() {
+        if (!ancho) return;
+        particulas = Array.from({ length: CANTIDAD[mood.particulas] ?? 20 }, () => nueva());
+    }
+
+    function golpe(fuerza = 1) {
+        ultimoGolpe = performance.now();
+        fuerzaGolpe = fuerza;
+        if (quieto.matches || !ancho) return;
+        const color = mood.colores[Math.floor(Math.random() * mood.colores.length)];
+        if (mood.particulas === 'rayos') {
+            for (let i = 0; i < (fuerza >= 1 ? 3 : 1); i++) golpes.push({ tipo: 'rayo', inicio: ultimoGolpe, color, puntos: rayo() });
+        } else if (mood.particulas === 'anillos' || mood.particulas === 'polvo') {
+            golpes.push({ tipo: 'anillo', inicio: ultimoGolpe, color, fuerza });
+        } else if (mood.particulas === 'brillos') {
+            for (const p of particulas) { p.vx *= 3; p.vy *= 3; }
+        }
+    }
+
+    // Rayo quebrado que sale del borde del aro hacia afuera.
+    function rayo() {
+        const angulo = azar(0, Math.PI * 2);
+        const puntos = [];
+        for (let i = 0, d = r * 0.9; i < 7; i++, d += r * 0.12) {
+            const desvio = azar(-0.12, 0.12);
+            puntos.push([cx + Math.cos(angulo + desvio) * d, cy + Math.sin(angulo + desvio) * d]);
+        }
+        return puntos;
+    }
+
+    function esOscuro() {
+        const apariencia = document.documentElement.dataset.apariencia;
+        if (apariencia === 'oscuro') return true;
+        return apariencia !== 'claro' && matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    function dibujar(ahora) {
+        const dt = Math.min(64, ahora - antes) / 16.7;
+        antes = ahora;
+        // Con un link, los tiempos salen del reloj del tema.
+        if (reloj && prendido) {
+            const t = reloj();
+            if (t != null) {
+                const entero = Math.floor(t);
+                if (ultimoTiempo !== null && entero > ultimoTiempo) golpe(entero % 4 === 0 ? 1 : 0.6);
+                ultimoTiempo = entero;
+            }
+        }
+        encendido = Math.max(0, Math.min(1, encendido + (prendido ? 0.05 : -0.04) * dt));
+        ctx.clearRect(0, 0, ancho, alto);
+        if (!encendido && !prendido) { animando = false; return; }
+        const oscuro = esOscuro();
+        ctx.globalCompositeOperation = oscuro ? 'lighter' : 'source-over';
+        const brillo = brilloDeGolpe(ahora - ultimoGolpe, bpm) * fuerzaGolpe;
+        // En claro, el color pesa más sobre el fondo: va más suave.
+        const fuerza = encendido * (oscuro ? 1 : 0.6);
+
+        // Resplandor alrededor del aro: sale hacia afuera y se desvanece, como un blur.
+        const halo = ctx.createRadialGradient(cx, cy, r * 0.8, cx, cy, r * (1.7 + 0.25 * brillo));
+        halo.addColorStop(0, conAlfa(mood.colores[0], (0.2 + 0.35 * brillo) * fuerza));
+        halo.addColorStop(0.45, conAlfa(mood.colores[1], (0.06 + 0.15 * brillo) * fuerza));
+        halo.addColorStop(1, conAlfa(mood.colores[1], 0));
+        ctx.fillStyle = halo;
+        ctx.fillRect(0, 0, ancho, alto);
+        // Y adentro, solo contra el borde, para no tapar la palabra.
+        const adentro = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r * 0.9);
+        adentro.addColorStop(0, conAlfa(mood.colores[0], 0));
+        adentro.addColorStop(1, conAlfa(mood.colores[0], (0.05 + 0.15 * brillo) * fuerza));
+        ctx.fillStyle = adentro;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (!quieto.matches) {
+            for (const p of particulas) moverYDibujar(p, dt, brillo);
+            golpes = golpes.filter(g => dibujarGolpe(g, ahora));
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        requestAnimationFrame(dibujar);
+    }
+
+    function moverYDibujar(p, dt, brillo) {
+        const v = mood.velocidad * dt;
+        if (mood.particulas === 'polvo') {
+            p.y -= 0.4 * v;
+            p.x += Math.sin(p.fase + p.y / 30) * 0.2 * v;
+        } else if (mood.particulas === 'brillos') {
+            p.x += p.vx * 1.2 * v; p.y += p.vy * 1.2 * v;
+            p.vx *= 0.96; p.vy *= 0.96;
+            if (Math.abs(p.vx) < 0.4) { p.vx = azar(-1, 1); p.vy = azar(-1, 1); }
+        } else {
+            p.x += p.vx * 0.4 * v; p.y += p.vy * 0.4 * v;
+            p.vx = Math.max(-1, Math.min(1, p.vx + azar(-0.05, 0.05)));
+            p.vy = Math.max(-1, Math.min(1, p.vy + azar(-0.05, 0.05)));
+        }
+        p.fase += 0.04 * v;
+        // Si se va del canvas, aparece en otro lado (el polvo, desde abajo).
+        if (p.x < -10 || p.x > ancho + 10 || p.y < -10 || p.y > alto + 10) Object.assign(p, nueva(mood.particulas === 'polvo'));
+        const titila = 0.45 + 0.35 * Math.sin(p.fase * 3);
+        // Cerca de la palabra se apagan, para que se lea.
+        const cerca = Math.hypot(p.x - cx, p.y - cy) < r * 0.6 ? 0.25 : 1;
+        const alfa = Math.min(1, (titila + brillo * 0.6) * encendido * cerca);
+        const tam = p.tam * (1 + brillo * 0.8);
+        if (mood.particulas === 'brillos') {
+            ctx.fillStyle = conAlfa(p.color, alfa);
+            estrella(p.x, p.y, tam * 1.6);
+        } else {
+            // Luciérnaga: punto con halo.
+            const luz = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, tam * 4);
+            luz.addColorStop(0, conAlfa(p.color, alfa));
+            luz.addColorStop(1, conAlfa(p.color, 0));
+            ctx.fillStyle = luz;
+            ctx.fillRect(p.x - tam * 4, p.y - tam * 4, tam * 8, tam * 8);
+        }
+    }
+
+    function estrella(x, y, t) {
+        ctx.beginPath();
+        ctx.moveTo(x, y - t * 2); ctx.lineTo(x + t * 0.4, y - t * 0.4); ctx.lineTo(x + t * 2, y);
+        ctx.lineTo(x + t * 0.4, y + t * 0.4); ctx.lineTo(x, y + t * 2); ctx.lineTo(x - t * 0.4, y + t * 0.4);
+        ctx.lineTo(x - t * 2, y); ctx.lineTo(x - t * 0.4, y - t * 0.4); ctx.closePath(); ctx.fill();
+    }
+
+    // false cuando ya se apagó.
+    function dibujarGolpe(g, ahora) {
+        const pasado = (ahora - g.inicio) / (60000 / bpm);
+        if (pasado > 1) return false;
+        const alfa = (1 - pasado) * encendido;
+        ctx.strokeStyle = conAlfa(g.color, alfa);
+        if (g.tipo === 'rayo') {
+            ctx.lineWidth = 2;
+            ctx.shadowColor = g.color; ctx.shadowBlur = 12;
+            ctx.beginPath();
+            g.puntos.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        } else {
+            // Onda que sale del aro hacia afuera.
+            ctx.lineWidth = 3 * (1 - pasado) * g.fuerza + 0.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r * (1 + 0.6 * pasado), 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        return true;
+    }
+
+    function animar() {
+        if (animando) return;
+        animando = true;
+        antes = performance.now();
+        requestAnimationFrame(dibujar);
+    }
+
+    return {
+        // { mood, bpm, reloj }: reloj es opcional (link); sin él, los golpes llegan con golpe().
+        configurar(opciones) {
+            const nuevo = MOODS[opciones.mood] ?? MOODS.neutro;
+            const cambia = nuevo !== mood;
+            mood = nuevo;
+            if (opciones.bpm) bpm = opciones.bpm;
+            if (opciones.reloj !== reloj) { reloj = opciones.reloj ?? null; ultimoTiempo = null; }
+            canvas.dataset.mood = Object.keys(MOODS).find(k => MOODS[k] === mood);
+            if (cambia) { golpes = []; sembrar(); }
+        },
+        golpe,
+        prender() { prendido = true; if (!particulas.length) sembrar(); animar(); },
+        apagar() { prendido = false; },
+    };
+}
+
+function conAlfa(hex, alfa) {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${Math.max(0, Math.min(1, alfa)).toFixed(3)})`;
+}
