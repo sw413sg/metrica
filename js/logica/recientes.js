@@ -40,7 +40,21 @@ export function titularReciente(almacen, reciente, titulo) {
     almacen.setItem(CLAVE, JSON.stringify(lista));
 }
 
+// Sacar uno de la lista (la cruz de cada fila). Devuelve true si estaba.
+export function quitarReciente(almacen, reciente) {
+    const lista = leerRecientes(almacen);
+    const quedan = lista.filter(r => claveDe(r) !== claveDe(reciente));
+    almacen.setItem(CLAVE, JSON.stringify(quedan));
+    return quedan.length < lista.length;
+}
+
+// De dónde viene, entre paréntesis: «YT», «SCLOUD» o «ARCHIVO».
+export function sufijoReciente(reciente) {
+    return SUFIJOS[reciente.fuente];
+}
+
 // «Lofi chill beat para escr… (YT)»: el título acortado y de dónde viene, en un renglón.
+// En la pantalla el título se corta con «…» donde se acaba el lugar (CSS), y el sufijo queda.
 export function etiquetaReciente(reciente, largo = 30) {
     const titulo = String(reciente.titulo || 'Sin título').trim();
     const corto = titulo.length > largo ? `${titulo.slice(0, largo - 1).trimEnd()}…` : titulo;

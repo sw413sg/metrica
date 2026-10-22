@@ -296,17 +296,19 @@ a { color: var(--acento); text-decoration: none; }
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 8px; overflow: hidden;
 }
-/* Luces al ritmo del beat (js/efectos.js): ocupan todo el ancho y el aire de arriba,
-   detrás del círculo de vidrio. */
+/* Luces al ritmo del beat (js/efectos.js): las partículas vuelan por toda la pantalla,
+   detrás de todo, y se desvanecen antes del 20% de abajo (pedido de Swa). El resplandor
+   queda alrededor del aro. */
 #pantalla-freestyle { overflow-x: hidden; }
 .escenario-fs { position: relative; }
 .efecto-fs {
-    position: absolute; z-index: 0; top: -90px; height: calc(100% + 100px); left: 50%;
+    position: fixed; z-index: 0; top: 0; height: 100%; left: 50%;
     width: min(100vw, 430px); transform: translateX(-50%); pointer-events: none;
-    /* Sin bordes duros: arriba y abajo se desvanece. */
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 60%, transparent 80%);
+    mask-image: linear-gradient(to bottom, transparent, #000 6%, #000 60%, transparent 80%);
 }
+/* Todo lo de la pantalla va por encima de las luces. */
+#pantalla-freestyle > .barra-nav, #pantalla-freestyle > .titulo-grande, #pantalla-freestyle > .contenido { position: relative; z-index: 1; }
 .palabra-fs, .cuenta-fs { position: relative; z-index: 2; }
 .palabra-fs {
     margin: 0; max-width: 100%; font-size: var(--fs-palabra); font-weight: 700; letter-spacing: -1px;
@@ -330,6 +332,22 @@ a { color: var(--acento); text-decoration: none; }
 .etiqueta-proxima { display: block; font-size: 11px; color: var(--texto-3); letter-spacing: 0.5px; text-transform: uppercase; }
 .proxima-palabra { font-size: var(--fs-proxima); font-weight: 600; color: var(--texto-2); }
 .bandeja-fs { margin: 12px 0 0; border-radius: 30px; padding: 6px; display: flex; align-items: center; gap: 6px; overflow: hidden; }
+/* Jugando, la bandeja se hunde en el cajón de abajo (sin mover nada) y queda un
+   resplandor chico hacia arriba; tocarlo pausa y la bandeja vuelve (pedido de Swa). */
+.bandeja-fs {
+    clip-path: inset(0 round 30px);
+    transition: clip-path .35s ease, opacity .35s ease, visibility 0s;
+}
+#pantalla-freestyle.jugando .bandeja-fs {
+    clip-path: inset(100% 0 0 0 round 30px); opacity: 0; visibility: hidden; pointer-events: none;
+    transition: clip-path .35s ease, opacity .35s ease, visibility 0s .35s;
+}
+.pausar-fs {
+    position: relative; z-index: 2; height: 36px; margin-top: -36px; width: 100%;
+    background: radial-gradient(ellipse 34% 100% at 50% 100%, color-mix(in srgb, var(--destacado) 55%, transparent), transparent 75%);
+    opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s .35s;
+}
+#pantalla-freestyle.jugando .pausar-fs { opacity: 1; visibility: visible; transition: opacity .35s ease .2s; }
 .play-fs {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
     background: var(--texto); color: var(--fondo);
@@ -377,8 +395,8 @@ a { color: var(--acento); text-decoration: none; }
 .puntos-beat { display: flex; gap: 5px; }
 .puntos-beat span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.3; }
 .puntos-beat span.activo { opacity: 1; }
-/* Sin link, abajo va el cajón del link, pegado a la barra de pestañas y del mismo alto que
-   el reproductor de YouTube (252): así el aro y la bandeja quedan igual con y sin link. */
+/* Sin link, abajo va el cajón del link, pegado a la barra de pestañas. Crece con los
+   recientes hasta el alto del reproductor de YouTube (252); sin recientes es solo el campo. */
 #pantalla-freestyle .contenido {
     flex: 1; min-height: 0; display: flex; flex-direction: column;
     padding-bottom: calc(84px + env(safe-area-inset-bottom));
@@ -390,7 +408,7 @@ a { color: var(--acento); text-decoration: none; }
 #pantalla-freestyle { --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075); }
 #fs-elegir { margin-top: 12px; }
 .cajon-fs {
-    flex-shrink: 0; height: 252px; margin-top: 12px; border-radius: 22px; padding: 8px;
+    flex-shrink: 0; max-height: 252px; margin-top: 12px; border-radius: 22px; padding: 8px;
     display: flex; flex-direction: column; overflow: hidden;
 }
 #pantalla-freestyle.con-link .cajon-fs { display: none; }
@@ -410,22 +428,28 @@ a { color: var(--acento); text-decoration: none; }
 #fs-link-aviso { margin: 8px 4px 0; }
 /* Recientes: desplegable con hasta 3, el título acortado y (YT), (SCLOUD) o (ARCHIVO). */
 .recientes-fs { margin-top: 10px; min-height: 0; }
+.recientes-fs[hidden] { display: none; }
 .recientes-fs summary {
-    list-style: none; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 4px;
+    list-style: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 4px;
     font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; color: var(--texto-2); cursor: pointer;
 }
 .recientes-fs summary::-webkit-details-marker { display: none; }
-.recientes-fs summary::after {
+/* «Recientes» al medio, con una flecha a cada lado: abajo si está abierto, al costado si no. */
+.recientes-fs summary::before, .recientes-fs summary::after {
     content: ''; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0;
     transform: translateY(-2px) rotate(45deg); transition: transform .2s;
 }
-.recientes-fs:not([open]) summary::after { transform: rotate(-45deg); }
+.recientes-fs:not([open]) summary::before, .recientes-fs:not([open]) summary::after { transform: rotate(-45deg); }
 .lista-recientes { list-style: none; margin: 0; padding: 0; }
-.lista-recientes button {
-    width: 100%; height: 44px; padding: 0 4px; text-align: left; font-size: 15px; color: var(--texto);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid var(--separador, rgba(127, 127, 127, 0.2));
+.lista-recientes li { display: flex; align-items: center; border-top: 1px solid var(--separador); }
+.usar-reciente {
+    flex: 1; min-width: 0; height: 44px; padding: 0 4px; display: flex; align-items: center;
+    text-align: left; font-size: 15px; color: var(--texto);
 }
-.lista-recientes .vacio-recientes { height: 44px; padding: 0 4px; display: flex; align-items: center; font-size: 15px; color: var(--texto-3); }
+.titulo-reciente { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sufijo-reciente { flex-shrink: 0; white-space: pre; color: var(--texto-2); }
+.borrar-reciente { width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center; color: var(--texto-3); }
+.borrar-reciente .icono { width: 18px; height: 18px; }
 /* La tarjeta va 84 px arriba del borde y --alto-reproductor ya suma 24 de aire: quedan 12 entre bandeja y tarjeta. */
 #pantalla-freestyle.con-link .contenido {
     padding-bottom: calc(72px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
