@@ -692,9 +692,27 @@ const servidor = http.createServer((req, res) => {
         const cuenta = await page.locator('#fs-cuenta').textContent();
         const segundosCuenta = cuenta.split(':').reduce((m, s) => m * 60 + Number(s), 0);
         assert.ok(segundosCuenta < 58 && segundosCuenta > 40, cuenta);
+        // La flecha reinicia el cronómetro sin cortar la ronda.
+        await page.locator('#fs-reiniciar').click();
+        assert.match(await page.locator('#fs-cuenta').textContent(), /^(1:00|0:59)$/);
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Parar');
+        // Todo entra en la bandeja: play, reiniciar y las 4 duraciones, sin scroll.
+        assert.ok(await page.locator('#fs-duraciones').evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'las duraciones entran');
+        const reiniciarCaja = await page.locator('#fs-reiniciar').boundingBox();
+        const unMin = await page.locator('#fs-duraciones [data-duracion="60"]').boundingBox();
+        assert.ok(reiniciarCaja.x + reiniciarCaja.width <= unMin.x, 'reiniciar va a la izquierda de 1 min');
+        // Las luces del aro prenden con la ronda, con el mood del género del beat.
+        assert.equal(await page.locator('#fs-efecto').getAttribute('data-mood'), 'trap');
+        assert.ok(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 1000, 'el canvas de luces dibuja algo');
+        const efectoCaja = await page.locator('#fs-efecto').boundingBox();
+        const aroCaja = await page.locator('#fs-reloj').boundingBox();
+        assert.ok(efectoCaja.width > aroCaja.width + 60 && efectoCaja.y < aroCaja.y - 40, 'las luces salen del aro');
+        assert.ok(efectoCaja.x >= -1 && efectoCaja.x + efectoCaja.width <= 391, JSON.stringify(efectoCaja));
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
         await page.locator('#fs-play').click();
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
+        await page.waitForTimeout(800);
+        assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'sin ronda, las luces se apagan');
         assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
         // Cada mp3 dura un número entero de compases: al loopear no se desfasa del reloj.
         for (const [archivo, segundos] of [
@@ -736,7 +754,7 @@ const servidor = http.createServer((req, res) => {
                 p.setVolume = () => {};
                 p.playVideo = () => { p.pausado = false; o.events.onStateChange({ data: 1 }); };
                 p.pauseVideo = () => { p.pausado = true; o.events.onStateChange({ data: 2 }); };
-                p.getVideoData = () => ({ title: 'Beat de prueba' });
+                p.getVideoData = () => ({ title: 'Beat de prueba sad 88bpm' });
                 p.getCurrentTime = () => p.t; p.getDuration = () => 200; p.seekTo = s => { p.t = s; };
                 p.destroy = () => {};
                 setTimeout(() => o.events.onReady({ target: p }));
@@ -783,6 +801,10 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-cuenta').textContent(), congelada, 'en pausa el reloj no sigue');
         await page.locator('#musica-play').click();
         await page.waitForFunction(c => document.getElementById('fs-cuenta').textContent !== c, congelada);
+        // Con un link, el mood sale del título del tema.
+        assert.equal(await page.locator('#fs-efecto').getAttribute('data-mood'), 'sad');
+        await page.waitForTimeout(400);
+        assert.ok(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 1000, 'con link también hay luces');
         await page.screenshot({path: `capturas/freestyle-link-${tema}.png`});
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#reproductor').isVisible(), false);
@@ -802,7 +824,7 @@ const servidor = http.createServer((req, res) => {
                 w.getPosition = cb => cb(0);
                 w.getDuration = cb => cb(180000);
                 w.seekTo = () => {};
-                w.getCurrentSound = cb => cb({ title: 'Beat nube', artwork_url: 'https://i1.sndcdn.com/artworks-prueba-large.jpg' });
+                w.getCurrentSound = cb => cb({ title: 'Beat nube RAGE', artwork_url: 'https://i1.sndcdn.com/artworks-prueba-large.jpg' });
                 setTimeout(() => w.onREADY?.());
                 return w;
             } };
@@ -830,6 +852,7 @@ const servidor = http.createServer((req, res) => {
         const bandejaNube = await page.locator('.bandeja-fs').boundingBox();
         const aireNube = beatNube.y - (bandejaNube.y + bandejaNube.height);
         assert.ok(aireNube >= 6 && aireNube <= 16, `aire entre bandeja y tarjeta: ${aireNube}`);
+        assert.equal(await page.locator('#fs-efecto').getAttribute('data-mood'), 'rage');
         await page.screenshot({path: `capturas/freestyle-nube-${tema}.png`});
         // Achicarlo no lo pausa: vuelve al formato chico y sigue sonando.
         await page.locator('#musica-plegar').click();
