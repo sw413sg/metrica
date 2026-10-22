@@ -255,7 +255,7 @@ a { color: var(--acento); text-decoration: none; }
    y los segundos que quedan. La palabra va siempre en una línea: si no entra, app.js
    le achica la letra. Con un link, el aro ocupa todo el alto que sobra y la bandeja
    queda pegada a la tarjeta del reproductor. En SwiftUI: Circle().trim. */
-@property --avance { syntax: '<number>'; inherits: false; initial-value: 0; }
+@property --avance { syntax: '<number>'; inherits: true; initial-value: 0; }
 #pantalla-freestyle { --aro: 270px; --fs-palabra: 46px; --fs-cuenta: 20px; --fs-proxima: 20px; }
 .escenario-fs { width: var(--aro); height: var(--aro); margin: 4px auto 0; }
 #pantalla-freestyle.con-link .contenido { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -266,24 +266,36 @@ a { color: var(--acento); text-decoration: none; }
 #pantalla-freestyle.con-link {
     --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075);
 }
+/* El círculo es de vidrio: deja ver borrosas las luces de atrás. El aro (la ronda)
+   va en ::before, recortado a un anillo de 12 px. En SwiftUI: .glassEffect(in: .circle). */
 .reloj {
     --avance: 0;
+    position: relative; z-index: 1;
     width: var(--aro); height: var(--aro); border-radius: 50%;
-    background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0);
+    background: var(--vidrio); border: 1px solid var(--vidrio-borde);
+    box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--sombra-vidrio);
+    -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
     display: flex; align-items: center; justify-content: center;
     transition: --avance .2s linear;
 }
+.reloj::before {
+    content: ''; position: absolute; inset: -1px; border-radius: 50%;
+    background: conic-gradient(var(--destacado) calc(var(--avance) * 360deg), var(--relleno) 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 12.5px), #000 calc(100% - 12px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 12.5px), #000 calc(100% - 12px));
+}
 .aro-centro {
+    position: relative;
     width: calc(var(--aro) - 24px); height: calc(var(--aro) - 24px); border-radius: 50%;
-    background: var(--fondo); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 8px; overflow: hidden;
 }
 /* Luces al ritmo del beat (js/efectos.js): ocupan todo el ancho y el aire de arriba,
-   por encima del aro y detrás de la palabra. */
+   detrás del círculo de vidrio. */
 #pantalla-freestyle { overflow-x: hidden; }
 .escenario-fs { position: relative; }
 .efecto-fs {
-    position: absolute; z-index: 1; top: -90px; height: calc(100% + 100px); left: 50%;
+    position: absolute; z-index: 0; top: -90px; height: calc(100% + 100px); left: 50%;
     width: min(100vw, 430px); transform: translateX(-50%); pointer-events: none;
     /* Sin bordes duros: arriba y abajo se desvanece. */
     -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
@@ -359,6 +371,9 @@ a { color: var(--acento); text-decoration: none; }
 .fila-deslizador { margin-top: 12px; padding: 0 4px; }
 .fila-deslizador .deslizador { display: block; width: 100%; margin: 0; }
 .puntos-deslizador { display: flex; justify-content: space-between; padding: 4px 10px 0; }
+.celda-deslizador { flex-wrap: wrap; row-gap: 0; }
+.celda-deslizador > label { flex: 1; }
+.celda-deslizador .fila-deslizador { flex-basis: 100%; margin-top: 4px; }
 .puntos-deslizador span { width: 4px; height: 4px; border-radius: 50%; background: var(--texto-3); }
 select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--texto-2); text-align-last: right; }
 

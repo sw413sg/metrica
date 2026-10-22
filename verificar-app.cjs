@@ -488,8 +488,8 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), true);
         await page.locator('#mostrar-silabas').click();
         // Tamaño y separaciones: barras de 10 puntos imantados.
-        assert.equal(await page.locator('.fila-deslizador').count(), 3);
-        assert.equal(await page.locator('.fila-deslizador').first().locator('.puntos-deslizador span').count(), 10);
+        assert.equal(await page.locator('#ajustes-libreta .fila-deslizador').count(), 3);
+        assert.equal(await page.locator('#ajustes-libreta .fila-deslizador').first().locator('.puntos-deslizador span').count(), 10);
         assert.equal(await page.locator('input[data-ajuste="tamano"]').inputValue(), '4');
         await page.locator('input[data-ajuste="tamano"]').fill('7');
         await page.locator('input[data-ajuste="separacion"]').fill('7');
@@ -701,6 +701,21 @@ const servidor = http.createServer((req, res) => {
         const reiniciarCaja = await page.locator('#fs-reiniciar').boundingBox();
         const unMin = await page.locator('#fs-duraciones [data-duracion="60"]').boundingBox();
         assert.ok(reiniciarCaja.x + reiniciarCaja.width <= unMin.x, 'reiniciar va a la izquierda de 1 min');
+        // El resplandor late en los kicks del beat.
+        assert.ok(Number(await page.locator('#fs-efecto').getAttribute('data-golpes')) > 2, 'late con el bombo');
+        // En los mp3 los kicks se leen del audio.
+        const kicksMp3 = await page.evaluate(async () => {
+            const { pasosDeBombo } = await import('./js/logica/ambiente.js');
+            const { CATALOGO_BEATS } = await import('./js/logica/freestyle.js');
+            const ctx = new OfflineAudioContext(1, 1, 44100);
+            const salida = {};
+            for (const beat of CATALOGO_BEATS.filter(b => b.archivo)) {
+                const buffer = await ctx.decodeAudioData(await (await fetch(beat.archivo)).arrayBuffer());
+                salida[beat.id] = pasosDeBombo(buffer.getChannelData(0), buffer.sampleRate, beat.bpm);
+            }
+            return salida;
+        });
+        for (const [id, pasos] of Object.entries(kicksMp3)) assert.ok(pasos.length >= 2, `${id}: ${pasos}`);
         // Las luces del aro prenden con la ronda, con el mood del género del beat.
         assert.equal(await page.locator('#fs-efecto').getAttribute('data-mood'), 'trap');
         assert.ok(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 1000, 'el canvas de luces dibuja algo');
@@ -713,6 +728,24 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
         await page.waitForTimeout(800);
         assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'sin ronda, las luces se apagan');
+        // Las luces van detrás del círculo, que es de vidrio.
+        assert.ok(await page.locator('#fs-reloj').evaluate(e => getComputedStyle(e).backdropFilter.includes('blur')), 'el círculo es de vidrio');
+        assert.ok(await page.locator('#fs-reloj').evaluate(e => Number(getComputedStyle(e).zIndex)) > await page.locator('#fs-efecto').evaluate(e => Number(getComputedStyle(e).zIndex)), 'luces detrás del círculo');
+        // Ajustes > Freestyle > Efectos en 0: no se dibuja nada aunque haya ronda.
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        assert.equal(await page.locator('#cantidad-efectos').inputValue(), '10');
+        await page.locator('#cantidad-efectos').fill('0');
+        assert.equal(await page.locator('#valor-efectos').textContent(), '0');
+        assert.equal(await page.locator('#puntos-efectos span').count(), 11);
+        await page.screenshot({path: `capturas/ajustes-efectos-${tema}.png`});
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
+        await page.locator('#fs-play').click();
+        await page.waitForTimeout(500);
+        assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'con efectos en 0 no hay luces');
+        await page.locator('#fs-play').click();
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        await page.locator('#cantidad-efectos').fill('10');
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
         // Cada mp3 dura un número entero de compases: al loopear no se desfasa del reloj.
         for (const [archivo, segundos] of [

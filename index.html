@@ -187,6 +187,19 @@
                 <h2 class="encabezado-grupo">Apariencia</h2>
                 <ul class="lista-agrupada" id="apariencia"></ul>
                 <p class="nota">Los temas de la libreta se eligen con la ruedita, adentro de cada letra.</p>
+                <!-- Freestyle: cuántas luces hay alrededor del aro (Slider con step en SwiftUI). -->
+                <h2 class="encabezado-grupo">Freestyle</h2>
+                <ul class="lista-agrupada">
+                    <li class="celda celda-deslizador">
+                        <label for="cantidad-efectos">Efectos</label>
+                        <span class="valor" id="valor-efectos">10</span>
+                        <div class="fila-deslizador">
+                            <input type="range" class="deslizador" id="cantidad-efectos" min="0" max="10" step="1" value="10">
+                            <div class="puntos-deslizador" id="puntos-efectos"></div>
+                        </div>
+                    </li>
+                </ul>
+                <p class="nota">Las luces que laten con el beat alrededor del aro. En 0 no hay efectos.</p>
                 <h2 class="encabezado-grupo">Acerca de</h2>
                 <ul class="lista-agrupada">
                     <li class="celda">

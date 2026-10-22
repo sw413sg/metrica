@@ -11,7 +11,7 @@ import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibret
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearEfecto } from './efectos.js';
-import { moodDeTitulo, moodDeBeat, bpmDeTitulo, tiemposEn } from './logica/ambiente.js';
+import { moodDeTitulo, moodDeBeat, bpmDeTitulo, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
 import { leerLink, moverSegundos, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
@@ -767,9 +767,10 @@ function mostrarCuentaIdle() {
     pintarCuenta(estadoRonda(0, 0, duracionElegida().segundos));
 }
 
-function alPasoBeat(paso) {
+function alPasoBeat(paso, bombo) {
     if (!ronda || ronda.pausa) return;
-    if (paso % 4 === 0) efecto.golpe(paso % 16 === 0 ? 1 : 0.6);
+    // El resplandor late en cada kick del beat.
+    if (bombo) efecto.golpe(paso % 16 === 0 ? 1 : 0.8);
     if (paso === 0) return;
     if (!cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) return;
     cola = avanzarPalabras(cola, palabraAlAzar());
@@ -795,6 +796,19 @@ function tickReloj() {
 // los tiempos salen de la posición del tema (y de los BPM del título, si los dice);
 // con un beat propio, de cada paso del beat.
 const efecto = crearEfecto($('fs-efecto'), $('fs-reloj'));
+// Ajustes > Freestyle: barra de 0 (sin efectos) a 10, imantada a cada punto.
+function aplicarCantidadEfectos() {
+    const cantidad = leerCantidadEfectos(localStorage);
+    $('cantidad-efectos').value = cantidad;
+    $('valor-efectos').textContent = String(cantidad);
+    efecto.cantidad(cantidad / EFECTOS_MAXIMO);
+}
+$('puntos-efectos').append(...Array.from({ length: EFECTOS_MAXIMO + 1 }, () => document.createElement('span')));
+$('cantidad-efectos').addEventListener('input', () => {
+    guardarCantidadEfectos(localStorage, $('cantidad-efectos').value);
+    aplicarCantidadEfectos();
+});
+aplicarCantidadEfectos();
 function ambienteActual() {
     if (linkFreestyle) {
         const titulo = musica ? $('reproductor-titulo').textContent : '';
@@ -831,9 +845,9 @@ function arrancarSonido() {
     const archivo = archivoDeBeat(fuente.beat.id);
     if (archivo) {
         delete document.documentElement.dataset.beatSonando;
-        iniciarArchivo(archivo.archivo, archivo.bpm, paso => {
+        iniciarArchivo(archivo.archivo, archivo.bpm, (paso, bombo) => {
             document.documentElement.dataset.beatSonando = 'archivo';
-            alPasoBeat(paso);
+            alPasoBeat(paso, bombo);
         }, () => { if (ronda?.modo === 'archivo') ronda.modo = 'reloj'; });
         return 'archivo';
     }
