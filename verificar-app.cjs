@@ -220,12 +220,10 @@ const servidor = http.createServer((req, res) => {
             await page.locator('#musica-play').evaluate(e => getComputedStyle(e).backgroundColor),
             await page.locator('#reproductor-titulo').evaluate(e => getComputedStyle(e).color),
         );
-        // ±10 s y la barra: soltar en la mitad del tema deja el tiempo en 100 s.
-        await page.locator('#musica-adelantar').click();
-        assert.equal(await page.evaluate(() => window.__yt.t), 40);
-        await page.locator('#musica-atrasar').click();
-        await page.locator('#musica-atrasar').click();
-        assert.equal(await page.evaluate(() => window.__yt.t), 20);
+        // Un video suelto no tiene a qué canción pasar: las flechas quedan apagadas.
+        assert.equal(await page.locator('#musica-siguiente').getAttribute('aria-disabled'), 'true');
+        assert.equal(await page.locator('#musica-anterior').getAttribute('aria-disabled'), 'true');
+        // La barra: soltar en la mitad del tema deja el tiempo en 100 s.
         const pista = await page.locator('#musica-pista').boundingBox();
         await page.mouse.move(pista.x + pista.width / 2, pista.y + pista.height / 2);
         await page.mouse.down();
@@ -292,6 +290,7 @@ const servidor = http.createServer((req, res) => {
                 w.getPosition = cb => cb(w.pos);
                 w.getDuration = cb => cb(180000);
                 w.seekTo = ms => { w.pos = ms; };
+                w.getSounds = cb => cb([{}]);
                 w.getCurrentSound = cb => cb({ title: 'Tema nube' });
                 setTimeout(() => w.onREADY?.());
                 return w;
@@ -371,6 +370,7 @@ const servidor = http.createServer((req, res) => {
                 w.getPosition = cb => cb(0);
                 w.getDuration = cb => cb(180000);
                 w.seekTo = () => {};
+                w.getSounds = cb => cb([{}]);
                 w.getCurrentSound = cb => cb({ title: 'Tardío' });
                 window.__scListo = () => w.onREADY?.();
                 return w;
@@ -670,13 +670,55 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#cerrar-paywall').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#fs-duraciones [data-duracion="60"]').getAttribute('aria-checked'), 'true');
-        assert.deepEqual(await page.locator('#fs-beats .chip-fs').allTextContents(), [
-            'Boom bap · Clásico', 'Boom bap · Batería', 'Boom bap · Jazz', 'Trap · Clásico', 'Trap · Grave', 'Trap · Seco',
-        ]);
-        assert.equal(await page.locator('#fs-beats [data-placeholder="true"]').count(), 0);
-        assert.equal(await page.locator('#fs-beats [data-beat="boom-bap-clasico"]').getAttribute('aria-checked'), 'true');
-        await page.locator('#fs-beats [data-beat="trap-clasico"]').click();
-        assert.equal(await page.locator('#fs-beats [data-beat="trap-clasico"]').getAttribute('aria-checked'), 'true');
+        // Beats: dos botones, Boombap y Trap, uno al lado del otro, con puntitos. Deslizar cambia de beat.
+        const ORDEN_BEATS = { Boombap: ['boom-bap-bateria', 'boom-bap-jazz', 'boom-bap-clasico'], Trap: ['trap-seco', 'trap-grave', 'trap-clasico'] };
+        const deslizarBeat = async (genero, paso) => {
+            const caja = await page.locator(`#fs-beats [data-genero="${genero}"]`).boundingBox();
+            await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2);
+            await page.mouse.down();
+            await page.mouse.move(caja.x + caja.width / 2 - paso * 50, caja.y + caja.height / 2, {steps: 5});
+            await page.mouse.up();
+        };
+        const elegirBeatFs = async id => {
+            const genero = id.startsWith('trap') ? 'Trap' : 'Boombap';
+            for (let i = 0; i < 4; i++) {
+                const actual = await page.locator(`#fs-beats [data-genero="${genero}"]`).getAttribute('data-beat');
+                if (actual === id) break;
+                await deslizarBeat(genero, Math.sign(ORDEN_BEATS[genero].indexOf(id) - ORDEN_BEATS[genero].indexOf(actual)));
+            }
+            const boton = page.locator(`#fs-beats [data-genero="${genero}"]`);
+            if (await boton.getAttribute('aria-checked') !== 'true') await boton.click();
+            assert.equal(await boton.getAttribute('data-beat'), id);
+            assert.equal(await boton.getAttribute('aria-checked'), 'true');
+        };
+        assert.deepEqual(await page.locator('#fs-beats .nombre-beat').allTextContents(), ['Boombap 1', 'Trap 1']);
+        assert.equal(await page.locator('#fs-beats [data-genero="Boombap"]').getAttribute('aria-checked'), 'true');
+        assert.equal(await page.locator('#fs-beats [data-genero="Boombap"]').getAttribute('data-beat'), 'boom-bap-bateria');
+        assert.equal(await page.locator('#fs-beats [data-genero="Boombap"] .puntos-beat span').count(), 3);
+        const botonesBeat = await page.locator('#fs-beats .beat-fs').evaluateAll(els => els.map(e => e.getBoundingClientRect()).map(r => ({y: r.y, h: r.height, x: r.x, w: r.width})));
+        assert.equal(botonesBeat[0].y, botonesBeat[1].y, 'uno al lado del otro');
+        assert.ok(botonesBeat[0].h >= 54 && botonesBeat[1].x > botonesBeat[0].x + botonesBeat[0].w, JSON.stringify(botonesBeat));
+        // Deslizar Boombap a la izquierda pasa a Boombap 2 y lo elige; el punto activo es el segundo.
+        await deslizarBeat('Boombap', 1);
+        assert.equal(await page.locator('#fs-beats [data-genero="Boombap"] .nombre-beat').textContent(), 'Boombap 2');
+        assert.equal(await page.locator('#fs-beats [data-genero="Boombap"] .puntos-beat span:nth-child(2)').getAttribute('class'), 'activo');
+        await deslizarBeat('Boombap', -1);
+        assert.equal(await page.locator('#fs-beats [data-genero="Boombap"] .nombre-beat').textContent(), 'Boombap 1');
+        // Tocar Trap lo elige (Trap 1) y Boombap queda sin elegir.
+        await page.locator('#fs-beats [data-genero="Trap"]').click();
+        assert.equal(await page.locator('#fs-beats [data-genero="Trap"]').getAttribute('aria-checked'), 'true');
+        assert.equal(await page.locator('#fs-beats [data-genero="Boombap"]').getAttribute('aria-checked'), 'false');
+        await page.screenshot({path: `capturas/freestyle-beats-${tema}.png`});
+        await elegirBeatFs('trap-clasico');
+        // Sin link, el campo va abajo de todo, pegado a la barra de pestañas, con el texto entero.
+        const campoLink = await page.locator('#fs-pegar-link').boundingBox();
+        const barraPestanas = await page.locator('#barra-pestanas').boundingBox();
+        const aireLink = barraPestanas.y - (campoLink.y + campoLink.height);
+        assert.ok(aireLink >= 4 && aireLink <= 14, `aire entre el link y la barra: ${aireLink}`);
+        assert.ok(campoLink.height >= 52, `alto del campo: ${campoLink.height}`);
+        assert.equal(await page.locator('#fs-pegar').textContent(), 'OK');
+        assert.equal(await page.locator('#fs-link').getAttribute('placeholder'), 'Link de beat en SoundCloud / YouTube o playlist de YouTube con muchos beats');
+        assert.ok(await page.locator('#fs-link').evaluate(e => e.scrollHeight <= e.clientHeight + 1), 'el texto del campo entra');
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         assert.equal(await page.locator('#reproductor').isVisible(), false);
         await page.locator('#fs-palabra .tonica').waitFor();
@@ -732,13 +774,13 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-play').click();
         // Una captura por beat, para ver la forma de cada mood.
         if (tema === 'dark') for (const id of ['boom-bap-clasico', 'boom-bap-jazz', 'trap-grave']) {
-            await page.locator(`#fs-beats [data-beat="${id}"]`).click();
+            await elegirBeatFs(id);
             await page.locator('#fs-play').click();
             await page.waitForTimeout(1500);
             await page.screenshot({path: `capturas/efecto-${id}.png`});
             await page.locator('#fs-play').click();
         }
-        if (tema === 'dark') await page.locator('#fs-beats [data-beat="trap-clasico"]').click();
+        if (tema === 'dark') await elegirBeatFs('trap-clasico');
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
         await page.waitForTimeout(800);
         assert.equal(await tituloFs.evaluate(e => getComputedStyle(e).visibility), 'visible');
@@ -780,7 +822,7 @@ const servidor = http.createServer((req, res) => {
             assert.ok(Math.abs(duracion - segundos) < 0.03, `${archivo} dura ${duracion}, se esperaba ${segundos}`);
         }
         // Un mp3 del catálogo se carga, suena en loop y la palabra cambia con su BPM.
-        await page.locator('#fs-beats [data-beat="boom-bap-jazz"]').click();
+        await elegirBeatFs('boom-bap-jazz');
         await page.waitForFunction(() => performance.getEntriesByType('resource').some(e => e.name.endsWith('beats/boom-bap-jazz.mp3')));
         const palabraJazz = await page.locator('#fs-palabra').textContent();
         await page.locator('#fs-play').click();
@@ -803,7 +845,10 @@ const servidor = http.createServer((req, res) => {
                 p.setVolume = () => {};
                 p.playVideo = () => { p.pausado = false; o.events.onStateChange({ data: 1 }); };
                 p.pauseVideo = () => { p.pausado = true; o.events.onStateChange({ data: 2 }); };
-                p.getVideoData = () => ({ title: 'Beat de prueba sad 88bpm' });
+                window.__ytFsOpciones = o.playerVars; p.indice = 0;
+                p.getVideoData = () => ({ title: p.indice ? 'Beat ' + (p.indice + 1) + ' de la playlist' : 'Beat de prueba sad 88bpm' });
+                p.nextVideo = () => { p.indice++; o.events.onStateChange({ data: 1 }); };
+                p.previousVideo = () => { p.indice = Math.max(0, p.indice - 1); o.events.onStateChange({ data: 1 }); };
                 p.getCurrentTime = () => p.t; p.getDuration = () => 200; p.seekTo = s => { p.t = s; };
                 p.destroy = () => {};
                 setTimeout(() => o.events.onReady({ target: p }));
@@ -814,7 +859,11 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#reproductor-titulo', {hasText: 'Beat de prueba'}).waitFor();
         assert.equal(await page.locator('#fs-play').isVisible(), false);
         assert.equal(await page.locator('#fs-elegir').isVisible(), false);
+        assert.equal(await page.locator('#fs-pegar-link').isVisible(), false);
         assert.equal(await page.locator('#musica-play').isVisible(), true);
+        // Con YouTube, una nota explica por qué no se achica.
+        assert.equal(await page.locator('#fs-nota-youtube').textContent(), 'Los videos de YouTube no se pueden minimizar por política de YouTube.');
+        assert.equal(await page.locator('#fs-nota-youtube').isVisible(), true);
         const plays = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
         assert.deepEqual(plays, ['musica-play']);
         const player = await page.locator('#reproductor').boundingBox();
@@ -874,6 +923,21 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         assert.equal(await page.locator('#fs-elegir').isVisible(), true);
         assert.equal(await page.locator('#fs-link').inputValue(), '');
+        assert.equal(await page.locator('#fs-nota-youtube').isVisible(), false);
+        // Una playlist de YouTube: las flechas de la tarjeta pasan de canción.
+        await page.evaluate(() => { document.getElementById('fs-link').value = 'https://www.youtube.com/playlist?list=PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG'; });
+        await page.locator('#fs-pegar').click();
+        await page.locator('#reproductor-titulo', {hasText: 'Beat de prueba'}).waitFor();
+        assert.deepEqual(await page.evaluate(() => [window.__ytFsOpciones.listType, window.__ytFsOpciones.list]), ['playlist', 'PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG']);
+        assert.equal(await page.locator('#musica-siguiente').getAttribute('aria-disabled'), 'false');
+        await page.locator('#musica-siguiente').click();
+        await page.locator('#reproductor-titulo', {hasText: 'Beat 2 de la playlist'}).waitFor();
+        await page.locator('#musica-siguiente').click();
+        await page.locator('#reproductor-titulo', {hasText: 'Beat 3 de la playlist'}).waitFor();
+        await page.locator('#musica-anterior').click();
+        await page.locator('#reproductor-titulo', {hasText: 'Beat 2 de la playlist'}).waitFor();
+        await page.screenshot({path: `capturas/freestyle-playlist-${tema}.png`});
+        await page.locator('#musica-cerrar').click();
         // El link corto de SoundCloud se resuelve igual que en Letras, y sigue habiendo un solo play.
         await page.evaluate(() => { delete window.SC; });
         await page.unroute('https://w.soundcloud.com/player/api.js').catch(() => {});
@@ -887,6 +951,7 @@ const servidor = http.createServer((req, res) => {
                 w.getPosition = cb => cb(0);
                 w.getDuration = cb => cb(180000);
                 w.seekTo = () => {};
+                w.getSounds = cb => cb([{}]);
                 w.getCurrentSound = cb => cb({ title: 'Beat nube RAGE', artwork_url: 'https://i1.sndcdn.com/artworks-prueba-large.jpg' });
                 setTimeout(() => w.onREADY?.());
                 return w;
@@ -995,7 +1060,8 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-duraciones [data-duracion="ilimitado"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#fs-duraciones [data-duracion="ilimitado"]').getAttribute('aria-checked'), 'true');
-        assert.equal(await page.locator('#fs-cuenta').textContent(), '∞');
+        assert.equal(await page.locator('#fs-cuenta').textContent(), '', 'Ilimitado sin el infinito');
+        assert.equal(await page.locator('#fs-cuenta').isVisible(), false);
         await page.locator('#fs-duraciones [data-duracion="60"]').click();
         await abrirTemas();
         await page.locator('[data-tema="pizarra"]').click();

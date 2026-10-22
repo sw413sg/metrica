@@ -3,6 +3,7 @@
 // Widget API), que necesitan internet. En SwiftUI: WKWebView con los mismos reproductores.
 
 const ID_YOUTUBE = /^[\w-]{11}$/;
+const ID_LISTA = /^[\w-]{10,}$/;
 
 // "90", "1m30s", "1h2m3s" -> segundos.
 function segundosDe(texto) {
@@ -12,7 +13,8 @@ function segundosDe(texto) {
     return partes ? (Number(partes[1] ?? 0) * 3600) + (Number(partes[2] ?? 0) * 60) + Number(partes[3] ?? 0) : 0;
 }
 
-// { fuente: 'youtube', id, inicio } o { fuente: 'soundcloud', url }, o null si no es un link que sirva.
+// { fuente: 'youtube', id, lista, inicio } o { fuente: 'soundcloud', url }, o null si no es un link que sirva.
+// Una playlist de YouTube trae `lista` (el ?list=) y puede no traer video: arranca por el primero.
 export function leerLink(texto) {
     let url;
     try { url = new URL(String(texto).trim()); } catch { return null; }
@@ -22,8 +24,10 @@ export function leerLink(texto) {
         const id = host === 'youtu.be'
             ? url.pathname.split('/')[1]
             : url.searchParams.get('v') ?? url.pathname.match(/^\/(?:shorts|embed|live)\/([^/]+)/)?.[1];
-        if (!ID_YOUTUBE.test(id ?? '')) return null;
-        return { fuente: 'youtube', id, inicio: segundosDe(url.searchParams.get('t') ?? url.searchParams.get('start')) };
+        const lista = ID_LISTA.test(url.searchParams.get('list') ?? '') ? url.searchParams.get('list') : null;
+        const valido = ID_YOUTUBE.test(id ?? '');
+        if (!valido && !lista) return null;
+        return { fuente: 'youtube', id: valido ? id : null, lista, inicio: segundosDe(url.searchParams.get('t') ?? url.searchParams.get('start')) };
     }
     if (host === 'soundcloud.com' || host === 'on.soundcloud.com') {
         if (url.pathname.split('/').filter(Boolean).length === 0) return null;
@@ -61,6 +65,14 @@ export async function resolverLinkSoundCloud(url, pedir = globalThis.fetch) {
     const canonica = directa && urlDeSoundCloud(directa);
     if (!canonica) throw new Error('soundcloud');
     return canonica;
+}
+
+// Las flechas de la tarjeta cambian de canción: solo sirven con una playlist de YouTube
+// o un set de SoundCloud (soundcloud.com/artista/sets/…).
+export function esLista(link) {
+    if (link?.fuente === 'youtube') return Boolean(link.lista);
+    if (link?.fuente === 'soundcloud') return /\/sets\//.test(link.url ?? '');
+    return false;
 }
 
 // Adelantar o atrasar sin pasarse del principio ni del final (en segundos).

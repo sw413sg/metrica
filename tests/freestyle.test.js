@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BEATS, CATALOGO_BEATS, DURACIONES, PASOS_POR_COMPAS, COMPASES_POR_RONDA, msPorTiempo, msPorPaso, sonidosDelPaso, tiempoDelPaso, cambiaLaPalabra,
     estadoCompas, proximasPalabras, avanzarPalabras, silabaFuerte, segundosRestantes, formatoReloj, estadoRonda,
-    elegirDuracion, etiquetaBeat, patronDeBeat, archivoDeBeat, segundosDeLoop, fuenteFreestyle, playEnBandeja } from '../js/logica/freestyle.js';
+    elegirDuracion, etiquetaBeat, patronDeBeat, archivoDeBeat, segundosDeLoop, fuenteFreestyle, playEnBandeja, GENEROS_BEAT, beatsDeGenero, beatVecino } from '../js/logica/freestyle.js';
 
 test('msPorTiempo y msPorPaso', () => {
     assert.equal(msPorTiempo(90), 60000 / 90);
@@ -82,7 +82,7 @@ test('estadoRonda: el aro se llena y el reloj muestra lo que queda', () => {
     assert.equal(estadoRonda(0, 60000, 90).restantes, 30);
     assert.equal(estadoRonda(0, 120000, 120).restantes, 0);
     assert.equal(estadoRonda(0, 130000, 120).avance, 1);
-    assert.deepEqual(estadoRonda(0, 5000, null), { restantes: null, avance: 0, texto: '∞' });
+    assert.deepEqual(estadoRonda(0, 5000, null), { restantes: null, avance: 0, texto: '' });
 });
 
 test('elegir duración: ilimitado está bloqueado sin Extras', () => {
@@ -111,13 +111,16 @@ test('un link reemplaza al beat; sin link se elige un beat', () => {
     assert.equal(fuenteFreestyle({ beatId: 'no-esta' }).beat.id, CATALOGO_BEATS[0].id);
 });
 
-test('el catálogo son 2 géneros de 3: Clásico sintetizado y cuatro mp3', () => {
+test('el catálogo son 2 géneros de 3, en el orden de Swa: Clásico sintetizado y cuatro mp3', () => {
     assert.equal(CATALOGO_BEATS.length, 6);
     assert.ok(CATALOGO_BEATS.every(b => !b.placeholder));
     const porGenero = {};
     for (const b of CATALOGO_BEATS) porGenero[b.genero] = (porGenero[b.genero] ?? 0) + 1;
-    assert.deepEqual(porGenero, { 'Boom bap': 3, Trap: 3 });
-    assert.equal(etiquetaBeat(CATALOGO_BEATS[0]), 'Boom bap · Clásico');
+    assert.deepEqual(porGenero, { Boombap: 3, Trap: 3 });
+    assert.deepEqual(CATALOGO_BEATS.map(etiquetaBeat), ['Boombap 1', 'Trap 1', 'Boombap 2', 'Boombap 3', 'Trap 2', 'Trap 3']);
+    assert.deepEqual(CATALOGO_BEATS.slice(0, 3).map(b => b.id), ['boom-bap-bateria', 'trap-seco', 'boom-bap-jazz']);
+    assert.deepEqual(GENEROS_BEAT, ['Boombap', 'Trap']);
+    assert.deepEqual(beatsDeGenero('Trap').map(b => b.id), ['trap-seco', 'trap-grave', 'trap-clasico']);
     assert.equal(patronDeBeat('boom-bap-clasico'), BEATS['boom-bap']);
     assert.equal(patronDeBeat('trap-clasico'), BEATS.trap);
     assert.equal(patronDeBeat('boom-bap-jazz'), null);
@@ -126,9 +129,9 @@ test('el catálogo son 2 géneros de 3: Clásico sintetizado y cuatro mp3', () =
     assert.equal(archivoDeBeat('boom-bap-clasico'), null);
     assert.equal(archivoDeBeat('no-esta'), null);
     const grabados = CATALOGO_BEATS.filter(b => b.archivo);
-    assert.deepEqual(grabados.map(b => b.nombre), ['Batería', 'Jazz', 'Grave', 'Seco']);
+    assert.deepEqual(grabados.map(b => b.nombre), ['Boombap 1', 'Trap 1', 'Boombap 2', 'Trap 2']);
     for (const b of grabados) {
-        const enRango = b.genero === 'Boom bap' ? b.bpm >= 85 && b.bpm <= 95 : b.bpm >= 130 && b.bpm <= 145;
+        const enRango = b.genero === 'Boombap' ? b.bpm >= 85 && b.bpm <= 95 : b.bpm >= 130 && b.bpm <= 145;
         assert.ok(enRango, `${b.id} a ${b.bpm} bpm`);
         assert.equal(b.compases, Math.round(b.compases));
         assert.ok(b.compases >= 2);
@@ -139,4 +142,13 @@ test('el catálogo son 2 géneros de 3: Clásico sintetizado y cuatro mp3', () =
     assert.equal(archivoDeBeat('boom-bap-jazz').bpm, 93);
     assert.equal(segundosDeLoop(90, 8), 32 / 1.5);
     assert.equal(segundosDeLoop(140, 4), 48 / 7);
+});
+
+test('deslizar el botón de un género pasa al beat de al lado, sin dar la vuelta', () => {
+    assert.equal(beatVecino('boom-bap-bateria', 1), 'boom-bap-jazz');
+    assert.equal(beatVecino('boom-bap-jazz', 1), 'boom-bap-clasico');
+    assert.equal(beatVecino('boom-bap-clasico', 1), 'boom-bap-clasico');
+    assert.equal(beatVecino('boom-bap-bateria', -1), 'boom-bap-bateria');
+    assert.equal(beatVecino('trap-grave', -1), 'trap-seco');
+    assert.equal(beatVecino('no-esta', 1), CATALOGO_BEATS[0].id);
 });
