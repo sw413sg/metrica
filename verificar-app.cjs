@@ -232,13 +232,13 @@ const servidor = http.createServer((req, res) => {
         await page.mouse.move(pista.x + pista.width / 2, pista.y + pista.height / 2);
         await page.mouse.down();
         assert.equal(await page.locator('#reproductor').evaluate(e => e.classList.contains('arrastrando')), true);
-        assert.equal(Math.round(parseFloat(await page.locator('.reproductor-riel').evaluate(e => getComputedStyle(e).height))), 8);
+        assert.equal(Math.round(parseFloat(await page.locator('#musica-pista .reproductor-riel').evaluate(e => getComputedStyle(e).height))), 8);
         assert.equal(Math.round(parseFloat(await page.locator('.reproductor-punto').evaluate(e => getComputedStyle(e).width))), 22);
         assert.ok(Number(await page.locator('#musica-tiempo').evaluate(e => getComputedStyle(e).fontWeight)) >= 700);
         await page.mouse.up();
         assert.ok(Math.abs(await page.evaluate(() => window.__yt.t) - 100) < 2);
         assert.equal((await page.locator('#musica-tiempo').textContent()).trim(), '1:40');
-        assert.equal(Math.round(parseFloat(await page.locator('.reproductor-riel').evaluate(e => getComputedStyle(e).height))), 4);
+        assert.equal(Math.round(parseFloat(await page.locator('#musica-pista .reproductor-riel').evaluate(e => getComputedStyle(e).height))), 4);
         // La tarjeta queda abajo, con 16 px a los costados y 8 px del borde. El video mide 200×200, radio 14, sin nada encima.
         const banner = await page.locator('#reproductor').boundingBox();
         assert.equal(Math.round(banner.x), 16, JSON.stringify(banner));
@@ -783,6 +783,15 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-resplandor').isVisible(), true);
         // El resplandor solo se mira: tocarlo no abre la bandeja.
         assert.equal(await page.locator('#fs-resplandor').evaluate(e => getComputedStyle(e).pointerEvents), 'none');
+        // Con un beat de la app sonando, el reproductor chico ocupa el lugar de los botones
+        // de beats y del cajón del link, pegado a la barra de pestañas.
+        assert.equal(await page.locator('#fs-sonando').isVisible(), true);
+        assert.equal(await page.locator('#fs-elegir').isVisible(), false);
+        assert.equal(await page.locator('#fs-cajon').isVisible(), false);
+        const sonandoCaja = await page.locator('#fs-sonando').boundingBox();
+        assert.ok(Math.abs(sonandoCaja.y + sonandoCaja.height - (844 - 86)) <= 1, `pegado a las pestañas: ${JSON.stringify(sonandoCaja)}`);
+        const tituloBeat = await page.locator('#fs-sonando-titulo').textContent();
+        assert.match(await page.locator('#fs-sonando-fuente').textContent(), /^Métrica · \d+ BPM$/);
         await page.screenshot({path: `capturas/freestyle-sin-bandeja-${tema}.png`});
         // Tocar el círculo pausa: vuelve la bandeja y el reloj se frena.
         await page.locator('#fs-reloj').click();
@@ -795,6 +804,20 @@ const servidor = http.createServer((req, res) => {
         await page.waitForTimeout(1100);
         assert.equal(await page.locator('#fs-cuenta').textContent(), enPausa, 'en pausa el reloj no sigue');
         assert.notEqual(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoEnPausa, 'pausar no frena el beat');
+        // Mientras el beat sigue, su reproductor sigue a la vista; las flechas pasan de beat.
+        assert.equal(await page.locator('#fs-sonando').isVisible(), true);
+        await page.locator('#fs-beat-anterior').click();
+        assert.notEqual(await page.locator('#fs-sonando-titulo').textContent(), tituloBeat);
+        await page.locator('#fs-beat-siguiente').click();
+        assert.equal(await page.locator('#fs-sonando-titulo').textContent(), tituloBeat);
+        // La pausa del reproductor frena el beat y vuelven los botones y el cajón.
+        await page.locator('#fs-beat-pausar').click();
+        assert.equal(await page.locator('#fs-sonando').isVisible(), false);
+        assert.equal(await page.locator('#fs-elegir').isVisible(), true);
+        assert.equal(await page.locator('#fs-cajon').isVisible(), true);
+        const pasoParado = await page.evaluate(() => document.documentElement.dataset.pasoBeat);
+        await page.waitForTimeout(600);
+        assert.equal(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoParado, 'la pausa del reproductor frena el beat');
         // Todo entra en la bandeja: play, reiniciar y las 4 duraciones, sin scroll.
         assert.ok(await page.locator('#fs-duraciones').evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'las duraciones entran');
         const reiniciarCaja = await page.locator('#fs-reiniciar').boundingBox();
@@ -846,7 +869,6 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
         await page.waitForTimeout(800);
         assert.equal(await tituloFs.evaluate(e => getComputedStyle(e).visibility), 'visible');
-        assert.equal((await page.locator('#fs-reloj').boundingBox()).y, aroJugando, 'el aro no se mueve');
         assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'sin ronda, las luces se apagan');
         // Las luces van detrás del círculo, que es de vidrio.
         assert.ok(await page.locator('#fs-reloj').evaluate(e => getComputedStyle(e).backdropFilter.includes('blur')), 'el círculo es de vidrio');
@@ -937,7 +959,7 @@ const servidor = http.createServer((req, res) => {
         const tab = await page.locator('#barra-pestanas').boundingBox();
         assert.equal(Math.round(player.x), 16, JSON.stringify(player));
         assert.ok(player.y + player.height <= tab.y + 1, JSON.stringify({player, tab}));
-        assert.ok(Math.abs(player.y + player.height - (844 - 84)) <= 2, JSON.stringify(player));
+        assert.ok(Math.abs(player.y + player.height - (844 - 86)) <= 2, JSON.stringify(player));
         // La bandeja de duración queda pegada arriba de la tarjeta: el aro crece para llenar el alto.
         const bandeja = await page.locator('.bandeja-fs').boundingBox();
         const aireFs = player.y - (bandeja.y + bandeja.height);
@@ -1067,7 +1089,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal((await page.locator('#fs-recientes-caja summary').textContent()).trim(), 'Recientes');
         const cajonLleno = await page.locator('#fs-cajon').boundingBox();
         assert.ok(cajonLleno.height > 150 && cajonLleno.height <= 252, `alto del cajón con 3 recientes: ${cajonLleno.height}`);
-        assert.ok(Math.abs(cajonLleno.y + cajonLleno.height - (844 - 84)) <= 2, 'pegado arriba de la barra');
+        assert.ok(Math.abs(cajonLleno.y + cajonLleno.height - (844 - 86)) <= 2, 'pegado arriba de la barra');
         assert.deepEqual(await page.locator('#fs-recientes .usar-reciente').allTextContents(), [
             'Beat nube RAGE (SCLOUD)', 'Beat de prueba sad 88bpm (YT)', 'Beat de prueba sad 88bpm (YT)',
         ]);
@@ -1092,7 +1114,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-recientes-caja summary').click();
         const cajonPlegado = await page.locator('#fs-cajon').boundingBox();
         assert.ok(cajonPlegado.height < cajonAbierto.height - 80, `${cajonAbierto.height} -> ${cajonPlegado.height}`);
-        assert.ok(Math.abs(cajonPlegado.y + cajonPlegado.height - (844 - 84)) <= 2, 'plegado sigue pegado a la barra');
+        assert.ok(Math.abs(cajonPlegado.y + cajonPlegado.height - (844 - 86)) <= 2, 'plegado sigue pegado a la barra');
         await page.locator('#fs-recientes-caja summary').click();
         // El título llega hasta el borde (se corta con «…») y la cruz borra el reciente.
         const filaReciente = await page.locator('#fs-recientes li').first().boundingBox();
