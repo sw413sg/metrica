@@ -33,10 +33,10 @@ test('los beats propios usan su género', () => {
     const moods = Object.fromEntries(CATALOGO_BEATS.map(b => [b.id, moodDeBeat(b)]));
     assert.deepEqual(moods, {
         'boom-bap-clasico': 'boombap', 'boom-bap-bateria': 'boombap', 'boom-bap-jazz': 'lofi',
-        'trap-clasico': 'trap', 'trap-grave': 'drill', 'trap-seco': 'trap',
+        'trap-clasico': 'trap', 'trap-grave': 'drill', 'trap-seco': 'trap', acapella: 'neutro',
     });
     // Cada género de la app se ve con otra forma, no solo con otro color.
-    assert.equal(new Set(Object.values(moods).map(m => MOODS[m].particulas)).size, 4);
+    assert.equal(new Set(Object.values(moods).filter(m => m !== 'neutro').map(m => MOODS[m].particulas)).size, 4);
     assert.equal(moodDeBeat(null), 'neutro');
 });
 

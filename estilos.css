@@ -406,6 +406,8 @@ body:not(.editando) .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
 .puntos-beat { display: flex; gap: 5px; }
 .puntos-beat span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.3; }
 .puntos-beat span.activo { opacity: 1; }
+/* Acapella no tiene otros: sin puntitos, pero con su lugar, para que el nombre quede a la altura de los otros. */
+.puntos-beat[hidden] { display: flex; visibility: hidden; }
 /* Sin link, abajo va el cajón del link, pegado a la barra de pestañas. Crece con los
    recientes hasta el alto del reproductor de YouTube (252); sin recientes es solo el campo. */
 #pantalla-freestyle .contenido {
@@ -438,6 +440,9 @@ body.beat-sonando #fs-elegir,
 body.beat-sonando #pantalla-freestyle .cajon-fs { display: none; }
 /* Lo mismo si viene sonando (o en pausa) una canción de la libreta: los beats y el cajón
    vuelven solo al cerrarla con la cruz (pedido de Swa). */
+/* En Acapella no hay reproductor: abajo de la bandeja no va nada (pedido de Swa). */
+body.acapella-sonando #fs-elegir,
+body.acapella-sonando #pantalla-freestyle .cajon-fs { display: none; }
 body.con-musica #fs-elegir,
 body.con-musica #pantalla-freestyle .cajon-fs { display: none; }
 .sonando-fs .reproductor-principal { height: 40px; }
