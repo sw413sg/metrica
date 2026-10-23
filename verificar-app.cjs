@@ -692,9 +692,9 @@ const servidor = http.createServer((req, res) => {
             await page.mouse.move(caja.x + caja.width / 2 - paso * 50, caja.y + caja.height / 2, {steps: 5});
             await page.mouse.up();
         };
-        // Parar una ronda: el resplandor de abajo pausa y la flecha vuelve todo al principio.
+        // Parar una ronda: el círculo pausa y la flecha vuelve todo al principio.
         const pararFs = async () => {
-            await page.locator('#fs-pausar').click();
+            await page.locator('#fs-reloj').click();
             await page.locator('#fs-reiniciar').click();
         };
         const elegirBeatFs = async id => {
@@ -780,19 +780,21 @@ const servidor = http.createServer((req, res) => {
         const bandejaFs = page.locator('.bandeja-fs');
         assert.equal(await bandejaFs.evaluate(e => getComputedStyle(e).opacity), '0');
         assert.equal(await page.locator('#fs-play').isVisible(), false);
-        assert.equal(await page.locator('#fs-pausar').isVisible(), true);
+        assert.equal(await page.locator('#fs-resplandor').isVisible(), true);
+        // El resplandor solo se mira: tocarlo no abre la bandeja.
+        assert.equal(await page.locator('#fs-resplandor').evaluate(e => getComputedStyle(e).pointerEvents), 'none');
         await page.screenshot({path: `capturas/freestyle-sin-bandeja-${tema}.png`});
-        // Tocar el resplandor pausa: vuelve la bandeja y el reloj se frena.
-        await page.locator('#fs-pausar').click();
+        // Tocar el círculo pausa: vuelve la bandeja y el reloj se frena.
+        await page.locator('#fs-reloj').click();
         await page.waitForTimeout(450);
         assert.equal(await bandejaFs.evaluate(e => getComputedStyle(e).opacity), '1');
-        assert.equal(await page.locator('#fs-pausar').isVisible(), false);
+        assert.equal(await page.locator('#fs-resplandor').isVisible(), false);
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
         const enPausa = await page.locator('#fs-cuenta').textContent();
         const pasoEnPausa = await page.evaluate(() => document.documentElement.dataset.pasoBeat);
         await page.waitForTimeout(1100);
         assert.equal(await page.locator('#fs-cuenta').textContent(), enPausa, 'en pausa el reloj no sigue');
-        assert.notEqual(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoEnPausa, 'tocar el resplandor no frena el beat');
+        assert.notEqual(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoEnPausa, 'pausar no frena el beat');
         // Todo entra en la bandeja: play, reiniciar y las 4 duraciones, sin scroll.
         assert.ok(await page.locator('#fs-duraciones').evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'las duraciones entran');
         const reiniciarCaja = await page.locator('#fs-reiniciar').boundingBox();
