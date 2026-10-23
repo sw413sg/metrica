@@ -111,15 +111,19 @@ test('un link reemplaza al beat; sin link se elige un beat', () => {
     assert.equal(fuenteFreestyle({ beatId: 'no-esta' }).beat.id, CATALOGO_BEATS[0].id);
 });
 
-test('el catálogo son 2 géneros de 3, en el orden de Swa: Clásico sintetizado y cuatro mp3', () => {
-    assert.equal(CATALOGO_BEATS.length, 6);
+test('el catálogo son 2 géneros de 3, en el orden de Swa: Clásico sintetizado y cuatro mp3, y Acapella', () => {
+    assert.equal(CATALOGO_BEATS.length, 7);
     assert.ok(CATALOGO_BEATS.every(b => !b.placeholder));
     const porGenero = {};
     for (const b of CATALOGO_BEATS) porGenero[b.genero] = (porGenero[b.genero] ?? 0) + 1;
-    assert.deepEqual(porGenero, { Boombap: 3, Trap: 3 });
-    assert.deepEqual(CATALOGO_BEATS.map(etiquetaBeat), ['Boombap 1', 'Trap 1', 'Boombap 2', 'Boombap 3', 'Trap 2', 'Trap 3']);
+    assert.deepEqual(porGenero, { Boombap: 3, Trap: 3, Acapella: 1 });
+    assert.deepEqual(CATALOGO_BEATS.map(etiquetaBeat), ['Boombap 1', 'Trap 1', 'Boombap 2', 'Boombap 3', 'Trap 2', 'Trap 3', 'Acapella']);
     assert.deepEqual(CATALOGO_BEATS.slice(0, 3).map(b => b.id), ['boom-bap-bateria', 'trap-seco', 'boom-bap-jazz']);
-    assert.deepEqual(GENEROS_BEAT, ['Boombap', 'Trap']);
+    assert.deepEqual(GENEROS_BEAT, ['Boombap', 'Trap', 'Acapella']);
+    // Acapella no suena: ni patrón ni mp3, y las flechas del reproductor no pasan por él.
+    assert.equal(patronDeBeat('acapella'), null);
+    assert.equal(archivoDeBeat('acapella'), null);
+    assert.equal(beatVecino('acapella', 1), 'acapella');
     assert.deepEqual(beatsDeGenero('Trap').map(b => b.id), ['trap-seco', 'trap-grave', 'trap-clasico']);
     assert.equal(patronDeBeat('boom-bap-clasico'), BEATS['boom-bap']);
     assert.equal(patronDeBeat('trap-clasico'), BEATS.trap);

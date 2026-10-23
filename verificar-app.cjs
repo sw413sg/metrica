@@ -826,7 +826,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#cerrar-paywall').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#fs-duraciones [data-duracion="60"]').getAttribute('aria-checked'), 'true');
-        // Beats: dos botones, Boombap y Trap, uno al lado del otro, con puntitos. Deslizar cambia de beat.
+        // Beats: tres botones, Boombap, Trap y Acapella, uno al lado del otro, con puntitos. Deslizar cambia de beat.
         const ORDEN_BEATS = { Boombap: ['boom-bap-bateria', 'boom-bap-jazz', 'boom-bap-clasico'], Trap: ['trap-seco', 'trap-grave', 'trap-clasico'] };
         const deslizarBeat = async (genero, paso) => {
             const caja = await page.locator(`#fs-beats [data-genero="${genero}"]`).boundingBox();
@@ -852,7 +852,7 @@ const servidor = http.createServer((req, res) => {
             assert.equal(await boton.getAttribute('data-beat'), id);
             assert.equal(await boton.getAttribute('aria-checked'), 'true');
         };
-        assert.deepEqual(await page.locator('#fs-beats .nombre-beat').allTextContents(), ['Boombap 1', 'Trap 1']);
+        assert.deepEqual(await page.locator('#fs-beats .nombre-beat').allTextContents(), ['Boombap 1', 'Trap 1', 'Acapella']);
         assert.equal(await page.locator('#fs-beats [data-genero="Boombap"]').getAttribute('aria-checked'), 'true');
         assert.equal(await page.locator('#fs-beats [data-genero="Boombap"]').getAttribute('data-beat'), 'boom-bap-bateria');
         assert.equal(await page.locator('#fs-beats [data-genero="Boombap"] .puntos-beat span').count(), 3);
@@ -1084,6 +1084,32 @@ const servidor = http.createServer((req, res) => {
         await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, palabraJazz, {timeout: 8000});
         await pararFs();
         assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
+        // Acapella: un beat en silencio, sin reproductor. Abajo de la bandeja no va nada, y
+        // tocar cualquier lugar (menos la barra de pestañas) pausa y vuelve la bandeja.
+        const acapella = page.locator('#fs-beats [data-genero="Acapella"]');
+        await acapella.click();
+        assert.equal(await acapella.getAttribute('aria-checked'), 'true');
+        assert.equal(await acapella.locator('.puntos-beat').isVisible(), false);
+        await page.locator('#fs-play').click();
+        await page.waitForFunction(() => document.getElementById('pantalla-freestyle').classList.contains('jugando'));
+        assert.equal(await page.locator('.sonando-fs').isVisible(), false);
+        assert.equal(await page.locator('#fs-elegir').isVisible(), false);
+        assert.equal(await page.locator('#fs-cajon').isVisible(), false);
+        await page.waitForTimeout(500);
+        await page.screenshot({path: `capturas/freestyle-acapella-${tema}.png`});
+        const proximas = await page.locator('.proximas').boundingBox();
+        await page.mouse.click(proximas.x + 10, proximas.y + proximas.height / 2);
+        assert.equal(await page.locator('#pantalla-freestyle').evaluate(e => e.classList.contains('jugando')), false);
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
+        await page.waitForTimeout(400);
+        assert.equal(await page.locator('.bandeja-fs').isVisible(), true);
+        await page.screenshot({path: `capturas/freestyle-acapella-pausa-${tema}.png`});
+        // El play de la bandeja sigue (y no vuelve a pausar).
+        await page.locator('#fs-play').click();
+        assert.equal(await page.locator('#pantalla-freestyle').evaluate(e => e.classList.contains('jugando')), true);
+        await pararFs();
+        assert.equal(await page.locator('#fs-elegir').isVisible(), true);
+        await elegirBeatFs('boom-bap-jazz');
         // Un link que no sirve avisa y no abre el reproductor.
         await page.locator('#fs-link').fill('https://spotify.com/track/1');
         await page.locator('#fs-link').press('Enter');

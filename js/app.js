@@ -3,7 +3,7 @@ import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
-import { CATALOGO_BEATS, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
+import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
@@ -968,7 +968,10 @@ function actualizarEfecto() {
 // lugar de los botones de beats y del cajón del link. Pausado queda a la vista: solo
 // la cruz lo cierra (pedido de Swa).
 function pintarBeatSonando() {
-    const hay = Boolean(ronda && !linkFreestyle);
+    // Acapella no tiene reproductor: queda solo la bandeja, y abajo nada (pedido de Swa).
+    const acapella = Boolean(ronda && esAcapella());
+    document.body.classList.toggle('acapella-sonando', acapella);
+    const hay = Boolean(ronda && !linkFreestyle && !acapella);
     if (document.body.classList.contains('beat-sonando') !== hay) {
         document.body.classList.toggle('beat-sonando', hay);
         ubicarReproductor();
@@ -978,15 +981,19 @@ function pintarBeatSonando() {
     $('fs-beat-pausar').setAttribute('aria-label', suena ? 'Pausar' : 'Reproducir');
     $('fs-beat-pausar').innerHTML = suena ? ICONO_PAUSA_FS : ICONO_PLAY_FS;
     const beat = CATALOGO_BEATS.find(b => b.id === beatId);
-    const i = CATALOGO_BEATS.indexOf(beat);
+    const i = BEATS_CON_SONIDO.indexOf(beat);
     $('fs-sonando-titulo').textContent = etiquetaBeat(beat);
     $('fs-sonando-fuente').textContent = `Métrica · ${beat.bpm ?? BPM_FS} BPM`;
     $('fs-beat-anterior').setAttribute('aria-disabled', String(i === 0));
-    $('fs-beat-siguiente').setAttribute('aria-disabled', String(i === CATALOGO_BEATS.length - 1));
+    $('fs-beat-siguiente').setAttribute('aria-disabled', String(i === BEATS_CON_SONIDO.length - 1));
     const segundos = ((ronda.pausa ?? performance.now()) - ronda.inicio) / 1000;
     $('fs-sonando-tiempo').textContent = formatoTiempo(segundos);
     $('fs-sonando-total').textContent = ronda.duracion == null ? '' : formatoTiempo(ronda.duracion);
     $('fs-sonando-llenado').style.width = ronda.duracion ? `${Math.min(1, segundos / ronda.duracion) * 100}%` : '0%';
+}
+
+function esAcapella() {
+    return !linkFreestyle && Boolean(CATALOGO_BEATS.find(b => b.id === beatId)?.silencio);
 }
 
 // El play de la bandeja: Empezar, Pausar (jugando) o Seguir (en pausa).
@@ -1167,13 +1174,14 @@ function renderizarBeats() {
         boton.dataset.genero = genero;
         boton.dataset.beat = elegido.id;
         boton.setAttribute('aria-checked', String(elegido.id === beatId));
-        boton.setAttribute('aria-label', `${etiquetaBeat(elegido)}. Deslizá para cambiar.`);
+        boton.setAttribute('aria-label', lista.length > 1 ? `${etiquetaBeat(elegido)}. Deslizá para cambiar.` : etiquetaBeat(elegido));
         const nombre = document.createElement('span');
         nombre.className = 'nombre-beat';
         nombre.textContent = etiquetaBeat(elegido);
         const puntos = document.createElement('span');
         puntos.className = 'puntos-beat';
         puntos.setAttribute('aria-hidden', 'true');
+        puntos.hidden = lista.length < 2;
         puntos.append(...lista.map(b => {
             const punto = document.createElement('span');
             if (b.id === elegido.id) punto.className = 'activo';
@@ -1376,7 +1384,7 @@ $('fs-beat-pausar').addEventListener('click', () => {
 });
 for (const [id, paso] of [['fs-beat-anterior', -1], ['fs-beat-siguiente', 1]]) {
     $(id).addEventListener('click', () => {
-        const beat = CATALOGO_BEATS[CATALOGO_BEATS.findIndex(b => b.id === beatId) + paso];
+        const beat = BEATS_CON_SONIDO[BEATS_CON_SONIDO.findIndex(b => b.id === beatId) + paso];
         if (beat) elegirBeat(beat.id);
     });
 }
@@ -1384,6 +1392,13 @@ $('fs-beat-cerrar').addEventListener('click', () => terminarRonda());
 $('fs-reloj').addEventListener('click', () => {
     if (ronda?.pausa) reanudarRonda();
     else pausarJugando();
+});
+// En Acapella, tocar cualquier lugar de Freestyle (menos la barra de pestañas) pausa y
+// vuelve la bandeja (pedido de Swa). El círculo ya tiene lo suyo.
+$('pantalla-freestyle').addEventListener('click', e => {
+    // composedPath: el ícono tocado puede haberse cambiado ya (el play de la bandeja).
+    if (!esAcapella() || e.composedPath().some(el => el.matches?.('#fs-reloj, .bandeja-fs'))) return;
+    pausarJugando();
 });
 // La bandeja solo se ve en pausa: ahí la flecha vuelve todo al principio (cronómetro y
 // palabras). Con un link, la música queda donde estaba.

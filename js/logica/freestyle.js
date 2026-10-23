@@ -160,6 +160,7 @@ export function estadoRonda(inicioMs, ahoraMs, duracionSegundos) {
 // Los «Clásico» son el sintetizador de BEATS. Los otros cuatro son mp3 en beats/,
 // con licencia CC0 (ver beats/CREDITS.md). `compases` es el largo del loop:
 // un número entero, para que al repetir siga cayendo en el tiempo 1.
+// «Acapella» es un beat en silencio, con su propio botón (pedido de Swa).
 export const CATALOGO_BEATS = [
     { id: 'boom-bap-bateria', genero: 'Boombap', nombre: 'Boombap 1', archivo: 'beats/boom-bap-bateria.mp3', bpm: 90, compases: 8 },
     { id: 'trap-seco', genero: 'Trap', nombre: 'Trap 1', archivo: 'beats/trap-seco.mp3', bpm: 140, compases: 4 },
@@ -167,7 +168,11 @@ export const CATALOGO_BEATS = [
     { id: 'boom-bap-clasico', genero: 'Boombap', nombre: 'Boombap 3', patron: 'boom-bap' },
     { id: 'trap-grave', genero: 'Trap', nombre: 'Trap 2', archivo: 'beats/trap-grave.mp3', bpm: 140, compases: 8 },
     { id: 'trap-clasico', genero: 'Trap', nombre: 'Trap 3', patron: 'trap' },
+    { id: 'acapella', genero: 'Acapella', nombre: 'Acapella', silencio: true },
 ];
+
+// Los que suenan: las flechas del reproductor chico pasan entre estos.
+export const BEATS_CON_SONIDO = CATALOGO_BEATS.filter(b => !b.silencio);
 
 // Un botón por género, en el orden del catálogo.
 export const GENEROS_BEAT = [...new Set(CATALOGO_BEATS.map(b => b.genero))];
