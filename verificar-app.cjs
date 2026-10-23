@@ -803,7 +803,8 @@ const servidor = http.createServer((req, res) => {
         const tituloBeat = await page.locator('#fs-sonando-titulo').textContent();
         assert.match(await page.locator('#fs-sonando-fuente').textContent(), /^Métrica · \d+ BPM$/);
         // Al cambiar de sección el beat sigue y su reproductor queda igual, arriba de la barra;
-        // en Ajustes no se ve. Al volver, la ronda está en pausa y el círculo la sigue.
+        // en Ajustes no se ve. La ronda sigue andando: el reloj corre en las otras secciones.
+        const cuentaAntes = await page.locator('#fs-cuenta').textContent();
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         assert.deepEqual(await page.locator('#fs-sonando').boundingBox(), sonandoCaja);
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
@@ -811,10 +812,10 @@ const servidor = http.createServer((req, res) => {
         const pasoEnAjustes = await page.evaluate(() => document.documentElement.dataset.pasoBeat);
         await page.waitForTimeout(600);
         assert.notEqual(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoEnAjustes, 'en Ajustes el beat sigue');
+        await page.waitForTimeout(500);
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
-        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
-        await page.locator('#fs-reloj').click();
-        await page.waitForTimeout(450);
+        assert.notEqual(await page.locator('#fs-cuenta').textContent(), cuentaAntes, 'la ronda siguió en las otras secciones');
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Pausar');
         await page.screenshot({path: `capturas/freestyle-sin-bandeja-${tema}.png`});
         // Tocar el círculo pausa: vuelve la bandeja y el reloj se frena.
         await page.locator('#fs-reloj').click();

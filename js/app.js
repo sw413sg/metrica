@@ -41,7 +41,6 @@ function mostrarPestana(nombre) {
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
     // En Ajustes el reproductor no se ve, pero lo que suena sigue (salvo YouTube).
     document.body.classList.toggle('en-ajustes', nombre === 'ajustes');
-    if (nombre !== 'freestyle') dejarFreestyle();
     sincronizarLinkFreestyle();
     ubicarReproductor();
 }
@@ -991,16 +990,10 @@ function terminarRonda(porTiempo = false) {
     mostrarCuentaIdle();
 }
 
-// Al irse de Freestyle la ronda se frena, pero un beat de la app que está sonando sigue,
-// con su reproductor arriba de la barra (pedido de Swa).
-function dejarFreestyle() {
-    if (ronda && !linkFreestyle && (!ronda.pausa || ronda.sigueSonando)) return pausarRonda(false);
-    terminarRonda();
-}
-
-// La ronda sigue al play del reproductor solo con un link y en esta pestaña.
+// La ronda sigue andando aunque se cambie de sección, con su reproductor arriba de la
+// barra: solo se pausa al pausar el beat (pedido de Swa). Con un link, sigue a su play.
 function rondaSigueAlReproductor() {
-    return Boolean(linkFreestyle) && $('pantalla-freestyle').classList.contains('activa');
+    return Boolean(linkFreestyle);
 }
 
 function sincronizarLinkFreestyle() {
