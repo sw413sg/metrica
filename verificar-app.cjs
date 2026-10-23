@@ -330,6 +330,18 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => window.__sc.paused), true);
         await page.locator('#musica-play').click();
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        // Con la canción de la libreta en pausa, el play de la bandeja de Freestyle la toma
+        // para la ronda: no suma un beat encima (se duplicaba el audio).
+        await page.locator('#musica-play').click();
+        await page.evaluate(() => document.querySelector('#barra-pestanas [data-pestana="freestyle"]').click());
+        assert.equal(await page.locator('#fs-play').isVisible(), true);
+        await page.locator('#fs-play').click();
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        assert.equal(await page.evaluate(() => document.body.classList.contains('beat-sonando')), false);
+        assert.equal(await page.locator('#fs-play').isVisible(), false);
+        assert.equal(await page.locator('#pantalla-freestyle').evaluate(e => e.classList.contains('con-link')), true);
+        await page.waitForFunction(() => document.getElementById('fs-cuenta').textContent !== '1:00');
+        await page.evaluate(() => document.querySelector('#barra-pestanas [data-pestana="letras"]').click());
         await page.locator('#musica-cerrar').click();
         // El link corto de la app (on.soundcloud.com) se resuelve por oEmbed antes del widget.
         // ?si=, utm y m.soundcloud.com no: el widget recibe el path en soundcloud.com.

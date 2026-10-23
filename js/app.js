@@ -1244,7 +1244,17 @@ $('fs-archivo').addEventListener('change', async () => {
 });
 renderizarRecientes();
 
+// Si viene sonando (o en pausa) una canción de la libreta, el play de la bandeja la toma
+// para la ronda en vez de sumar un beat encima (pedido de Swa: se duplicaba el audio).
+function tomarMusicaDeLaLibreta() {
+    linkFreestyle = { fuente: musica.fuente };
+    sincronizarLinkFreestyle();
+    if (sonando) empezarRonda();
+    else musica.reproducir?.();
+}
+
 $('fs-play').addEventListener('click', () => {
+    if (!ronda && musica && !linkFreestyle) return tomarMusicaDeLaLibreta();
     if (!ronda) return empezarRonda();
     if (ronda.pausa) return reanudarRonda();
     pausarRonda();
