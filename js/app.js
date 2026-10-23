@@ -968,9 +968,10 @@ function actualizarEfecto() {
 // lugar de los botones de beats y del cajón del link. Pausado queda a la vista: solo
 // la cruz lo cierra (pedido de Swa).
 function pintarBeatSonando() {
-    // Acapella no tiene reproductor: queda solo la bandeja, y abajo nada (pedido de Swa).
+    // Acapella no tiene reproductor: jugando queda solo la bandeja, y abajo nada. En pausa
+    // vuelven los beats y el cajón, con Acapella elegido (pedidos de Swa).
     const acapella = Boolean(ronda && esAcapella());
-    document.body.classList.toggle('acapella-sonando', acapella);
+    document.body.classList.toggle('acapella-sonando', acapella && !ronda.pausa);
     const hay = Boolean(ronda && !linkFreestyle && !acapella);
     if (document.body.classList.contains('beat-sonando') !== hay) {
         document.body.classList.toggle('beat-sonando', hay);

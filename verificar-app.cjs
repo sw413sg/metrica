@@ -1103,6 +1103,11 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
         await page.waitForTimeout(400);
         assert.equal(await page.locator('.bandeja-fs').isVisible(), true);
+        // En pausa vuelven los beats y el cajón del link, con Acapella elegido.
+        assert.equal(await page.locator('#fs-elegir').isVisible(), true);
+        assert.equal(await page.locator('#fs-cajon').isVisible(), true);
+        assert.equal(await acapella.getAttribute('aria-checked'), 'true');
+        assert.equal(await page.locator('.sonando-fs').isVisible(), false);
         await page.screenshot({path: `capturas/freestyle-acapella-pausa-${tema}.png`});
         // El play de la bandeja sigue (y no vuelve a pausar).
         await page.locator('#fs-play').click();
