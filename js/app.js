@@ -477,7 +477,7 @@ let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = fals
 let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
 // La marca imantada del tema que suena (en segundos) y si al terminar vuelve a ella.
-let marca = null, volverAMarca = false;
+let marca = null, volverAMarca = false, cancionActual = null;
 
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
 if (window.visualViewport) {
@@ -1482,6 +1482,17 @@ function pintarMarca() {
     if (audio) audio.loop = !(volverAMarca && marca != null);
 }
 
+// La marca es del tema: si la playlist pasa a otro, se borra (cambiar de sección no la toca).
+function anotarCancion(id) {
+    if (!id || id === cancionActual) return;
+    const habia = cancionActual != null;
+    cancionActual = id;
+    if (!habia || marca == null) return;
+    marca = null;
+    volverAMarca = false;
+    pintarMarca();
+}
+
 // Cuando el tema termina: con el bucle prendido, sigue desde la marca.
 function volverALaMarca() {
     if (!volverAMarca || marca == null || !musica?.ir) return false;
@@ -1623,6 +1634,8 @@ async function escucharMusica(texto) {
                     },
                     onStateChange: e => {
                         if (generacion !== generacionMusica || falloMusica) return;
+                        const datos = reproductor.getVideoData?.();
+                        anotarCancion(datos?.video_id || datos?.title);
                         const titulo = reproductor.getVideoData?.().title;
                         if (titulo) $('reproductor-titulo').textContent = titulo;
                         leerYouTube();
@@ -1681,6 +1694,7 @@ async function escucharMusica(texto) {
             // Título y portada de la canción que suena: cambian al pasar de canción en un set.
             const mostrarCancion = () => widget.getCurrentSound(cancion => {
                 if (generacion !== generacionMusica) return;
+                anotarCancion(cancion?.id ?? cancion?.title);
                 if (cancion?.title) $('reproductor-titulo').textContent = cancion.title;
                 widget.getDuration(ms => {
                     if (generacion !== generacionMusica) return;
@@ -1717,9 +1731,13 @@ async function escucharMusica(texto) {
                 if (Number.isFinite(ms)) anotarTiempo(ms / 1000);
             });
             widget.bind(Events.ERROR, () => { $('reproductor-titulo').textContent = 'No se pudo reproducir esta canción'; });
+            // En el iPhone, saltar a una parte que no bajó corta el tema: si venía sonando,
+            // se le vuelve a dar play (pedido de Swa).
             const irNube = segundos => {
+                const seguia = sonando;
                 widget.seekTo(Math.round(segundos * 1000));
                 anotarTiempo(segundos);
+                if (seguia) widget.play();
             };
             Object.assign(musica, {
                 reproducir: () => widget.play(),
@@ -1788,6 +1806,7 @@ function cerrarMusica() {
     musica = null;
     marca = null;
     volverAMarca = false;
+    cancionActual = null;
     sonando = false;
     plegado = false;
     plegarAlPausar = false;
