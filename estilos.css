@@ -436,6 +436,10 @@ body.editando .sonando-fs { bottom: calc(8px + env(safe-area-inset-bottom)); }
 body.en-ajustes .sonando-fs, body.teclado-abierto .sonando-fs { display: none; }
 body.beat-sonando #fs-elegir,
 body.beat-sonando #pantalla-freestyle .cajon-fs { display: none; }
+/* Lo mismo si viene sonando (o en pausa) una canción de la libreta: los beats y el cajón
+   vuelven solo al cerrarla con la cruz (pedido de Swa). */
+body.con-musica #fs-elegir,
+body.con-musica #pantalla-freestyle .cajon-fs { display: none; }
 .sonando-fs .reproductor-principal { height: 40px; }
 .sonando-fs .reproductor-pista { pointer-events: none; }
 #fs-beat-anterior[aria-disabled="true"], #fs-beat-siguiente[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
@@ -818,3 +822,5 @@ body.con-musica.editando:not(.teclado-abierto) .editor-cuerpo {
     background: none; border: 0; box-shadow: none; overflow: visible;
 }
 #hoja-musica .cajon-fs { margin-top: 0; }
+/* Sobre la letra, el gris más claro no se lee: «Recientes» va con el de los subtítulos. */
+#hoja-musica .recientes-fs summary { color: var(--texto-2); }

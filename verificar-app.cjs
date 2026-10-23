@@ -207,6 +207,11 @@ const servidor = http.createServer((req, res) => {
         assert.equal(Math.round(cajonHoja.x), 16, JSON.stringify(cajonHoja));
         assert.ok(Math.abs(cajonHoja.y + cajonHoja.height - 836) <= 2, JSON.stringify(cajonHoja));
         await page.screenshot({path: `capturas/libreta-cajon-musica-${tema}.png`});
+        // Sobre la letra, «Recientes» va con el gris de los subtítulos, no con el más claro.
+        assert.equal(
+            await page.locator('#fs-recientes-caja summary').evaluate(e => getComputedStyle(e).color),
+            await page.evaluate(() => { const p = document.createElement('p'); p.style.color = 'var(--texto-2)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; }),
+        );
         await page.locator('#fs-link').fill('https://spotify.com/track/1');
         await page.locator('#fs-pegar').click();
         assert.match(await page.locator('#fs-link-aviso').textContent(), /no es de YouTube ni de SoundCloud/);
@@ -345,6 +350,9 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-play').click();
         await page.evaluate(() => document.querySelector('#barra-pestanas [data-pestana="freestyle"]').click());
         assert.equal(await page.locator('#fs-play').isVisible(), true);
+        // Mientras haya una canción, no están los beats ni el cajón del link: vuelven al cerrarla.
+        assert.equal(await page.locator('#fs-elegir').isVisible(), false);
+        assert.equal(await page.locator('#fs-cajon').isVisible(), false);
         await page.locator('#fs-play').click();
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         assert.equal(await page.evaluate(() => document.body.classList.contains('beat-sonando')), false);
@@ -499,6 +507,16 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#hoja-musica').isVisible(), false);
         await page.waitForFunction(() => document.querySelector('#reproductor-oculto audio')?.paused === false);
         await page.locator('#musica-cerrar').click();
+        // La cruz de un reciente borra solo esa línea: la hoja sigue abierta y «Recientes» desplegado.
+        await page.locator('#abrir-musica').click();
+        await page.locator('#fs-recientes-caja summary').click();
+        const antes = await page.locator('#fs-recientes .usar-reciente').count();
+        await page.locator('#fs-recientes .borrar-reciente').first().click();
+        assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), antes - 1);
+        assert.equal(await page.locator('#hoja-musica').isVisible(), true);
+        if (antes > 1) assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), true);
+        await page.mouse.click(195, 100);
+        assert.equal(await page.locator('#hoja-musica').isVisible(), false);
         // Los renglones arrancan prendidos y se apagan.
         assert.match(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), /repeating-linear-gradient/);
         // De borde a borde, como un cuaderno, y el texto a 16px del borde, como en Keep.
