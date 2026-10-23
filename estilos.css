@@ -127,7 +127,7 @@ a { color: var(--acento); text-decoration: none; }
 /* Sin padding en la pantalla: el scroll llega hasta el borde y pasa por detrás
    de la barra. El relleno va en el contenido, para poder subir lo último. */
 .pantalla#pantalla-letras { overflow: hidden; }
-.contenido { padding: 0 16px calc(24px + 92px + env(safe-area-inset-bottom)); }
+.contenido { padding: 0 16px calc(24px + 92px + var(--alto-sobre-barra, 0px) + env(safe-area-inset-bottom)); }
 
 /* Barra de navegación y título grande */
 .barra-nav {
@@ -357,7 +357,7 @@ a { color: var(--acento); text-decoration: none; }
 #fs-elegir { position: relative; z-index: 1; }
 /* El reproductor en Freestyle: el mismo vidrio que la bandeja y la barra de pestañas,
    sin sombra oscura hacia arriba que tape el resplandor. */
-body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 12px 24px -10px rgba(0, 0, 0, 0.35); }
+body:not(.editando) .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 12px 24px -10px rgba(0, 0, 0, 0.35); }
 .play-fs {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
     background: var(--texto); color: var(--fondo);
@@ -409,7 +409,7 @@ body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
    recientes hasta el alto del reproductor de YouTube (252); sin recientes es solo el campo. */
 #pantalla-freestyle .contenido {
     flex: 1; min-height: 0; display: flex; flex-direction: column;
-    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+    padding-bottom: calc(86px + var(--alto-sobre-barra, 0px) + env(safe-area-inset-bottom));
 }
 #pantalla-freestyle .escenario-fs {
     flex: 1 1 0; min-height: 140px; width: 100%; height: auto; margin: 0; container-type: size;
@@ -423,14 +423,18 @@ body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
 }
 #pantalla-freestyle.con-link .cajon-fs { display: none; }
 /* Mientras suena un beat de la app, el reproductor chico ocupa el lugar de los botones de
-   beats y del cajón (pedido de Swa); al pausar vuelven. Mismo vidrio que la barra de pestañas. */
+   beats y del cajón (pedido de Swa); al pausar vuelven. Va donde va la tarjeta de los links:
+   arriba de la barra en todas las secciones, abajo de todo en el editor y escondido en Ajustes. */
 .sonando-fs {
-    display: none; flex-shrink: 0; margin-top: 10px; border-radius: 30px;
+    display: none; position: fixed; left: 16px; right: 16px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 15;
+    max-width: calc(430px - 32px); margin: 0 auto; border-radius: 30px;
     box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 12px 24px -10px rgba(0, 0, 0, 0.35);
 }
-#pantalla-freestyle.beat-sonando .sonando-fs { display: block; }
-#pantalla-freestyle.beat-sonando #fs-elegir,
-#pantalla-freestyle.beat-sonando .cajon-fs { display: none; }
+body.beat-sonando .sonando-fs { display: block; }
+body.editando .sonando-fs { bottom: calc(8px + env(safe-area-inset-bottom)); }
+body.en-ajustes .sonando-fs, body.teclado-abierto .sonando-fs { display: none; }
+body.beat-sonando #fs-elegir,
+body.beat-sonando .cajon-fs { display: none; }
 .sonando-fs .reproductor-principal { height: 40px; }
 .sonando-fs .reproductor-pista { pointer-events: none; }
 #fs-beat-anterior[aria-disabled="true"], #fs-beat-siguiente[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
@@ -476,10 +480,7 @@ body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
 .borrar-reciente .icono { width: 18px; height: 18px; }
 /* Las cajas de abajo de Freestyle (bandeja, botones, cajón, reproductor) y la barra de pestañas
    van separadas por 10 px, con bordes de 30 (pedido de Swa). La tarjeta va 86 px arriba del
-   borde (10 sobre la barra) y --alto-reproductor ya suma 24 de aire: quedan 10 entre bandeja y tarjeta. */
-#pantalla-freestyle.con-link .contenido {
-    padding-bottom: calc(72px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
-}
+   borde (10 sobre la barra) y --alto-sobre-barra es su alto más 10 de aire (js/app.js). */
 .deslizador { flex: 1; min-width: 0; accent-color: var(--destacado); }
 /* Barra de la libreta con 10 puntos marcados abajo: al soltar, se imanta al más cercano. */
 .fila-deslizador { margin-top: 12px; padding: 0 4px; }
@@ -715,18 +716,15 @@ body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libre
 .reproductor {
     position: fixed; left: 16px; right: 16px; bottom: calc(8px + env(safe-area-inset-bottom)); z-index: 15;
     max-width: calc(430px - 32px); margin: 0 auto;
-    border-radius: 22px; border: 1px solid var(--vidrio-borde);
+    border-radius: 30px; border: 1px solid var(--vidrio-borde);
     box-shadow: inset 0 1px 0 var(--vidrio-brillo), var(--sombra-vidrio);
 }
 .reproductor[hidden] { display: none; }
-body:not(.editando) .reproductor,
+/* Fuera del editor, la misma tarjeta va arriba de la barra de pestañas en todas las
+   secciones (pedido de Swa). En Ajustes y con el teclado no se ve. */
+body:not(.editando) .reproductor { bottom: calc(86px + env(safe-area-inset-bottom)); }
+body.en-ajustes .reproductor,
 body.teclado-abierto .reproductor { display: none; }
-/* Freestyle con link: la misma tarjeta, arriba de la barra de pestañas. */
-body.freestyle-link:not(.editando):not(.teclado-abierto) .reproductor:not([hidden]) {
-    display: block;
-    bottom: calc(86px + env(safe-area-inset-bottom));
-    border-radius: 30px;
-}
 .reproductor-vidrio {
     position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
     background: var(--vidrio);

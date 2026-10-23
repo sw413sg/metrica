@@ -100,10 +100,10 @@ test('plegar un video que suena pide pausar', () => {
 });
 
 test('SoundCloud va en grande solo en Freestyle, y plegado va chico', () => {
-    assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: false, freestyle: false }), true);
-    assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: true, freestyle: true }), false);
-    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, freestyle: true }), true);
-    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, freestyle: false }), false);
+    assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: false, fueraDelEditor: false }), true);
+    assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: true, fueraDelEditor: true }), false);
+    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, fueraDelEditor: true }), true);
+    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, fueraDelEditor: false }), false);
     assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: true, freestyle: true }), false);
 });
 
@@ -134,17 +134,12 @@ test('un toque en la pista cae en los segundos del tema', () => {
     assert.equal(segundosEn(10, 0, 200), 0);
 });
 
-test('YouTube se pausa si la tarjeta no se ve; SoundCloud sigue con el teclado', () => {
-    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: true, teclado: true }), true);
-    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: false, teclado: false }), true);
-    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: false, editor: true, teclado: true }), false);
-    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: true, teclado: false }), false);
-    assert.equal(pausarAlOcultar({ fuente: 'soundcloud', sonando: true, editor: true, teclado: true }), false);
-    assert.equal(pausarAlOcultar({ fuente: 'soundcloud', sonando: true, editor: false, teclado: false }), true);
-    // Freestyle con link muestra la misma tarjeta: no se pausa por no estar en el editor.
-    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: false, teclado: false, freestyle: true }), false);
-    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, editor: false, teclado: true, freestyle: true }), true);
-    assert.equal(pausarAlOcultar({ fuente: 'soundcloud', sonando: true, editor: false, teclado: false, freestyle: true }), false);
+test('escondida (Ajustes o teclado), YouTube se pausa y lo demás sigue sonando', () => {
+    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, visible: false }), true);
+    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: true, visible: true }), false);
+    assert.equal(pausarAlOcultar({ fuente: 'youtube', sonando: false, visible: false }), false);
+    assert.equal(pausarAlOcultar({ fuente: 'soundcloud', sonando: true, visible: false }), false);
+    assert.equal(pausarAlOcultar({ fuente: 'archivo', sonando: true, visible: false }), false);
 });
 
 test('mostrar el video de YouTube plegado primero lo muestra', () => {

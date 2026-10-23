@@ -39,8 +39,11 @@ function mostrarPestana(nombre) {
     document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
     document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
-    if (nombre !== 'freestyle') terminarRonda();
+    // En Ajustes el reproductor no se ve, pero lo que suena sigue (salvo YouTube).
+    document.body.classList.toggle('en-ajustes', nombre === 'ajustes');
+    if (nombre !== 'freestyle') dejarFreestyle();
     sincronizarLinkFreestyle();
+    ubicarReproductor();
 }
 document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListener('click', () => mostrarPestana(b.dataset.pestana)));
 
@@ -49,6 +52,7 @@ function mostrarVista(id) {
     document.querySelectorAll('#pantalla-letras .vista').forEach(v => v.classList.toggle('activa', v.id === id));
     document.body.classList.toggle('editando', id === 'vista-editor');
     ocultarMusicaSiHaceFalta();
+    if (musica) aplicarVideo();
     ubicarReproductor();
 }
 
@@ -868,7 +872,10 @@ function actualizarEfecto() {
 // lugar de los botones de beats y del cajón del link. Al pausarlo vuelven.
 function pintarBeatSonando() {
     const suena = Boolean(ronda && !linkFreestyle && (!ronda.pausa || ronda.sigueSonando));
-    $('pantalla-freestyle').classList.toggle('beat-sonando', suena);
+    if (document.body.classList.contains('beat-sonando') !== suena) {
+        document.body.classList.toggle('beat-sonando', suena);
+        ubicarReproductor();
+    }
     if (!suena) return;
     const beat = CATALOGO_BEATS.find(b => b.id === beatId);
     const i = CATALOGO_BEATS.indexOf(beat);
@@ -982,6 +989,13 @@ function terminarRonda(porTiempo = false) {
     cola = [];
     asegurarCola();
     mostrarCuentaIdle();
+}
+
+// Al irse de Freestyle la ronda se frena, pero un beat de la app que está sonando sigue,
+// con su reproductor arriba de la barra (pedido de Swa).
+function dejarFreestyle() {
+    if (ronda && !linkFreestyle && (!ronda.pausa || ronda.sigueSonando)) return pausarRonda(false);
+    terminarRonda();
 }
 
 // La ronda sigue al play del reproductor solo con un link y en esta pestaña.
@@ -1374,8 +1388,8 @@ function mostrarEstadoMusica() {
 
 function aplicarVideo() {
     const esYouTube = musica?.fuente === 'youtube';
-    const freestyle = document.body.classList.contains('freestyle-link');
-    const grande = tarjetaGrande({ fuente: musica?.fuente, plegado, freestyle });
+    const fueraDelEditor = !document.body.classList.contains('editando');
+    const grande = tarjetaGrande({ fuente: musica?.fuente, plegado, fueraDelEditor });
     const card = $('reproductor');
     card.classList.toggle('youtube', Boolean(esYouTube));
     card.classList.toggle('plegado', Boolean(esYouTube && plegado));
@@ -1383,8 +1397,8 @@ function aplicarVideo() {
     $('musica-plegar').hidden = !grande;
     $('musica-mostrar').hidden = !(esYouTube && plegado);
     $('musica-nota-youtube').hidden = !(esYouTube && plegado);
-    // SoundCloud chico en Freestyle: la flechita lo vuelve a agrandar.
-    $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && freestyle && plegado);
+    // SoundCloud chico arriba de la barra: la flechita lo vuelve a agrandar.
+    $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && fueraDelEditor && plegado);
     mostrarEstadoMusica();
     ubicarReproductor();
 }
@@ -1408,13 +1422,7 @@ function alCambiarEstado(activo) {
 // casos; SoundCloud solo al salir del editor (con el teclado puede seguir).
 function ocultarMusicaSiHaceFalta() {
     if (!musica?.pausar) return;
-    if (pausarAlOcultar({
-        fuente: musica.fuente,
-        sonando,
-        editor: document.body.classList.contains('editando'),
-        teclado: document.body.classList.contains('teclado-abierto'),
-        freestyle: document.body.classList.contains('freestyle-link'),
-    })) musica.pausar();
+    if (pausarAlOcultar({ fuente: musica.fuente, sonando, visible: reproductorVisible() })) musica.pausar();
 }
 new MutationObserver(ocultarMusicaSiHaceFalta).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
@@ -1435,11 +1443,23 @@ function anotarTiempo(segundos, total = duracion) {
     pintarProgreso();
 }
 
+// Suena una cosa a la vez: un link o archivo nuevo para el beat de la app, y uno pegado
+// en la libreta deja de ser el de Freestyle.
+function soltarLoQueSuena(desdeLaLibreta) {
+    if (ronda && !linkFreestyle) terminarRonda();
+    if (!desdeLaLibreta || !linkFreestyle) return;
+    linkFreestyle = null;
+    recienteActual = null;
+    $('fs-link').value = '';
+    sincronizarLinkFreestyle();
+}
+
 async function escucharMusica(texto) {
     const link = leerLink(typeof texto === 'string' ? texto : $('link-musica').value);
     if (!link) return avisoMusica('Ese link no es de YouTube ni de SoundCloud.');
     if (!navigator.onLine) return avisoMusica('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
     avisoMusica('');
+    soltarLoQueSuena(typeof texto !== 'string');
     cerrarMusica();
     const generacion = generacionMusica;
     $('hoja-musica').hidden = true;
@@ -1604,6 +1624,7 @@ async function escucharMusica(texto) {
 // Un archivo del teléfono, con un <audio> fuera de vista y en loop (es un beat).
 // En SwiftUI: AVAudioPlayer con numberOfLoops = -1.
 function escucharArchivo(archivo, titulo) {
+    soltarLoQueSuena(false);
     cerrarMusica();
     $('reproductor-titulo').textContent = titulo;
     $('reproductor').hidden = false;
@@ -1633,9 +1654,10 @@ function escucharArchivo(archivo, titulo) {
     if (reproductorVisible()) musica.reproducir();
 }
 
+// La tarjeta se ve en todas las secciones menos Ajustes, y se esconde con el teclado.
 function reproductorVisible() {
-    if ($('reproductor').hidden || document.body.classList.contains('teclado-abierto')) return false;
-    return document.body.classList.contains('editando') || document.body.classList.contains('freestyle-link');
+    const clases = document.body.classList;
+    return !$('reproductor').hidden && !clases.contains('teclado-abierto') && !clases.contains('en-ajustes');
 }
 
 function cerrarMusica() {
@@ -1660,16 +1682,22 @@ function cerrarMusica() {
     aplicarVideo();
 }
 
-// La tarjeta va pegada abajo por CSS. Acá solo se reserva aire en la letra para que no la tape.
+// La tarjeta (la de los links o la de los beats de la app) va pegada abajo por CSS. Acá
+// solo se reserva aire para que no tape nada: en la letra (--alto-reproductor) y, arriba
+// de la barra de pestañas, en las otras secciones (--alto-sobre-barra, con 10 de aire).
 function ubicarReproductor() {
-    const banner = $('reproductor');
-    const visible = !banner.hidden && reproductorVisible();
-    const alto = visible ? `${banner.offsetHeight + 24}px` : '0px';
-    if (document.documentElement.style.getPropertyValue('--alto-reproductor').trim() === alto) return;
-    document.documentElement.style.setProperty('--alto-reproductor', alto);
-    if (document.body.classList.contains('editando')) ajustarAltoTexto();
+    const tarjeta = [$('reproductor'), $('fs-sonando')].find(t => t.offsetHeight > 0);
+    const alto = tarjeta?.offsetHeight ?? 0;
+    const editando = document.body.classList.contains('editando');
+    const raiz = document.documentElement.style;
+    raiz.setProperty('--alto-sobre-barra', tarjeta && !editando ? `${alto + 10}px` : '0px');
+    const enLetra = tarjeta ? `${alto + 24}px` : '0px';
+    if (raiz.getPropertyValue('--alto-reproductor').trim() === enLetra) return;
+    raiz.setProperty('--alto-reproductor', enLetra);
+    if (editando) ajustarAltoTexto();
 }
 new ResizeObserver(ubicarReproductor).observe($('reproductor'));
+new ResizeObserver(ubicarReproductor).observe($('fs-sonando'));
 addEventListener('resize', ubicarReproductor);
 
 $('abrir-musica').addEventListener('click', () => {

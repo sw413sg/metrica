@@ -34,11 +34,16 @@ export function crearEfecto(canvas, aro) {
         canvas.width = Math.round(ancho * escala);
         canvas.height = Math.round(alto * escala);
         ctx.setTransform(escala, 0, 0, escala, 0, 0);
+        ubicarAro();
+        sembrar();
+    }
+    // El aro puede moverse sin cambiar de tamaño (cuando aparece o se va el reproductor de
+    // abajo): se vuelve a ubicar en cada cuadro, así el resplandor no queda en el lugar viejo.
+    function ubicarAro() {
         const caja = canvas.getBoundingClientRect(), circulo = aro.getBoundingClientRect();
         cx = circulo.left + circulo.width / 2 - caja.left;
         cy = circulo.top + circulo.height / 2 - caja.top;
         r = circulo.width / 2;
-        sembrar();
     }
     const observador = new ResizeObserver(medir);
     observador.observe(canvas);
@@ -97,6 +102,7 @@ export function crearEfecto(canvas, aro) {
     }
 
     function dibujar(ahora) {
+        ubicarAro();
         const dt = Math.min(64, ahora - antes) / 16.7;
         antes = ahora;
         // Con un link, los tiempos salen del reloj del tema.
