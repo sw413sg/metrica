@@ -101,6 +101,13 @@ export function segundosEn(puntero, ancho, duracion) {
     return Math.min(1, Math.max(0, puntero / ancho)) * duracion;
 }
 
+// La marca de la barra es imantada: un toque o un arrastre a menos de `radio` px de ella
+// cae justo en la marca.
+export function imantar(segundos, marca, duracion, ancho, radio = 16) {
+    if (marca == null || !duracion || !ancho) return segundos;
+    return Math.abs(segundos - marca) / duracion * ancho <= radio ? marca : segundos;
+}
+
 // Volumen de 0 a 100, de a pasos.
 export function cambiarVolumen(actual, cambio) {
     return Math.min(100, Math.max(0, actual + cambio));

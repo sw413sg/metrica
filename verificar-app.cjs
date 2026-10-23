@@ -337,6 +337,27 @@ const servidor = http.createServer((req, res) => {
         const pistaNube = await page.locator('#musica-pista').boundingBox();
         await page.mouse.click(pistaNube.x + pistaNube.width / 2, pistaNube.y + pistaNube.height / 2);
         assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - 90000) < 2000);
+        // La marca: a la izquierda de «anterior», del tamaño de las flechas. Marca este momento,
+        // y un toque cerca cae justo en ella.
+        const marcaBoton = await page.locator('#musica-marca').boundingBox();
+        const anteriorBoton = await page.locator('#musica-anterior').boundingBox();
+        assert.ok(marcaBoton.x < anteriorBoton.x && Math.round(marcaBoton.width) === Math.round(anteriorBoton.width));
+        assert.ok((await page.locator('#musica-bucle').boundingBox()).x < anteriorBoton.x);
+        assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
+        await page.locator('#musica-marca').click();
+        const enLaMarca = await page.evaluate(() => window.__sc.pos);
+        assert.equal(await page.locator('#musica-marca-punto').isVisible(), true);
+        await page.mouse.click(pistaNube.x + pistaNube.width / 2 + 8, pistaNube.y + pistaNube.height / 2);
+        assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
+        await page.mouse.click(pistaNube.x + pistaNube.width * 0.8, pistaNube.y + pistaNube.height / 2);
+        assert.ok(await page.evaluate(() => window.__sc.pos) > enLaMarca + 30000);
+        // El bucle: al terminar el tema vuelve a la marca y sigue sonando.
+        await page.locator('#musica-bucle').click();
+        assert.equal(await page.locator('#musica-bucle').getAttribute('aria-pressed'), 'true');
+        await page.evaluate(() => { window.__sc.pos = 179000; window.__sc.paused = true; window.__sc.onFINISH(); });
+        assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        await page.screenshot({path: `capturas/reproductor-marca-${tema}.png`});
         await page.evaluate(() => document.body.classList.add('teclado-abierto'));
         assert.equal(await page.locator('#reproductor').isVisible(), false);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);

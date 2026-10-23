@@ -756,13 +756,20 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor-marco iframe { width: 200px; height: 200px; border: 0; display: block; }
 .reproductor-marco img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .reproductor.grande .reproductor-acciones {
-    display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 10px 0; width: 100%;
+    display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 10px 0; width: 100%;
 }
-.reproductor.grande #musica-play { grid-column: 1 / -1; grid-row: 1; justify-self: center; width: 52px; height: 52px; }
-.reproductor.grande #musica-anterior { grid-column: 1; grid-row: 2; justify-self: start; }
-.reproductor.grande #musica-siguiente { grid-column: 2; grid-row: 2; justify-self: end; }
+.reproductor.grande #musica-play { grid-column: 2; grid-row: 1; justify-self: center; width: 52px; height: 52px; }
+/* Al lado del video no entran cuatro en una fila: las flechas van a los lados del play y la
+   marca con el bucle, abajo, en la fila del medio (así el alto sigue siendo el del video). */
+.reproductor.grande #musica-anterior { grid-column: 1; grid-row: 1; justify-self: start; }
+.reproductor.grande #musica-siguiente { grid-column: 3; grid-row: 1; justify-self: end; }
+.reproductor.grande #musica-marca { grid-column: 1; grid-row: 2; justify-self: start; }
+.reproductor.grande #musica-bucle { grid-column: 2; grid-row: 2; justify-self: center; }
 .reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
-.reproductor.grande #musica-cerrar { grid-column: 2; grid-row: 3; justify-self: end; }
+.reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 3; justify-self: end; }
+#musica-marca[aria-pressed="false"], #musica-bucle[aria-pressed="false"] { color: var(--texto-2); }
+#musica-bucle[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
+#musica-bucle .icono-relleno { fill: currentColor; stroke: none; }
 .reproductor.plegado #musica-anterior,
 .reproductor.plegado #musica-siguiente,
 #musica-plegar[hidden], #musica-agrandar[hidden] { display: none; }
@@ -793,6 +800,12 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor.arrastrando .reproductor-riel,
 .reproductor.arrastrando .reproductor-llenado { height: 8px; border-radius: 4px; }
 .reproductor.arrastrando .reproductor-punto { width: 22px; height: 22px; }
+/* La marca: una rayita sobre la pista, donde imanta el arrastre. */
+.reproductor-marca {
+    position: absolute; top: 50%; width: 4px; height: 14px; border-radius: 2px; background: var(--texto-2);
+    transform: translate(-50%, -50%); pointer-events: none;
+}
+.reproductor-marca[hidden] { display: none; }
 .reproductor-mostrar {
     margin-top: 12px; height: 40px; width: 100%; border-radius: 20px;
     background: var(--texto); color: var(--libreta);
