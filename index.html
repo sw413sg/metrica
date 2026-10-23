@@ -273,14 +273,8 @@
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
             <h2 class="hoja-titulo" id="hoja-musica-titulo">Música</h2>
-            <p class="nota">Pegá el link de una canción de YouTube o SoundCloud para escribir mientras suena.</p>
-            <input class="buscador" id="link-musica" type="url" placeholder="https://youtu.be/… o https://soundcloud.com/…" autocomplete="off" autocapitalize="none" spellcheck="false">
-            <p class="nota texto-rojo" id="musica-aviso" hidden></p>
-            <div class="botones">
-                <button class="boton-gris" id="pegar-musica">Pegar</button>
-                <button class="boton-relleno" id="escuchar-musica">Escuchar</button>
-            </div>
-            <p class="nota">Es lo único de Métrica que necesita internet.</p>
+            <!-- Acá se muda el cajón del link de Freestyle (#fs-cajon) mientras la hoja está abierta. -->
+            <div id="hoja-musica-cajon"></div>
         </div>
     </div>
 

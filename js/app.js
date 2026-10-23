@@ -867,15 +867,19 @@ function actualizarEfecto() {
     pintarBeatSonando();
 }
 
-// Mientras suena un beat de la app se ve el reproductor chico, como con SoundCloud, en
-// lugar de los botones de beats y del cajón del link. Al pausarlo vuelven.
+// Con una ronda con beat de la app se ve el reproductor chico, como con SoundCloud, en
+// lugar de los botones de beats y del cajón del link. Pausado queda a la vista: solo
+// la cruz lo cierra (pedido de Swa).
 function pintarBeatSonando() {
-    const suena = Boolean(ronda && !linkFreestyle && (!ronda.pausa || ronda.sigueSonando));
-    if (document.body.classList.contains('beat-sonando') !== suena) {
-        document.body.classList.toggle('beat-sonando', suena);
+    const hay = Boolean(ronda && !linkFreestyle);
+    if (document.body.classList.contains('beat-sonando') !== hay) {
+        document.body.classList.toggle('beat-sonando', hay);
         ubicarReproductor();
     }
-    if (!suena) return;
+    if (!hay) return;
+    const suena = !ronda.pausa || ronda.sigueSonando;
+    $('fs-beat-pausar').setAttribute('aria-label', suena ? 'Pausar' : 'Reproducir');
+    $('fs-beat-pausar').innerHTML = suena ? ICONO_PAUSA_FS : ICONO_PLAY_FS;
     const beat = CATALOGO_BEATS.find(b => b.id === beatId);
     const i = CATALOGO_BEATS.indexOf(beat);
     $('fs-sonando-titulo').textContent = etiquetaBeat(beat);
@@ -1111,6 +1115,32 @@ async function usarLinkFreestyle(texto) {
     await escucharMusica(texto);
 }
 
+// El cajón del link es uno solo (pedido de Swa): en Freestyle va abajo de todo y en la
+// libreta se abre en la hoja de la nota musical. Desde la libreta, lo que suena no es de
+// Freestyle (la ronda no lo sigue) y la hoja se cierra.
+const cajonEnLibreta = () => !$('hoja-musica').hidden;
+
+async function usarLink(texto) {
+    if (!cajonEnLibreta()) return usarLinkFreestyle(texto);
+    const link = leerLink(texto);
+    if (!link) return avisoFs('Ese link no es de YouTube ni de SoundCloud.');
+    if (!navigator.onLine) return avisoFs('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
+    soltarLoQueSuena(true);
+    cerrarHojaMusica();
+    recienteActual = { fuente: link.fuente, link: String(texto).trim(), titulo: '' };
+    sumarReciente(recienteActual);
+    await escucharMusica(texto);
+}
+
+function usarArchivo(archivo, reciente) {
+    if (!cajonEnLibreta()) return usarArchivoFreestyle(archivo, reciente);
+    soltarLoQueSuena(true);
+    cerrarHojaMusica();
+    recienteActual = reciente;
+    sumarReciente(reciente);
+    escucharArchivo(archivo, reciente.titulo);
+}
+
 // Un beat del teléfono: suena en el mismo reproductor de abajo, como un link.
 async function usarArchivoFreestyle(archivo, reciente) {
     avisoFs('');
@@ -1171,11 +1201,11 @@ function renderizarRecientes() {
         boton.addEventListener('click', async () => {
             if (reciente.fuente !== 'archivo') {
                 $('fs-link').value = reciente.link;
-                return usarLinkFreestyle(reciente.link);
+                return usarLink(reciente.link);
             }
             const archivo = await leerArchivo(reciente.id);
             if (!archivo) return avisoFs('Ese archivo ya no está guardado: buscalo de nuevo.');
-            usarArchivoFreestyle(archivo, reciente);
+            usarArchivo(archivo, reciente);
         });
         const borrar = document.createElement('button');
         borrar.type = 'button';
@@ -1196,7 +1226,7 @@ function renderizarRecientes() {
 new MutationObserver(() => {
     const titulo = $('reproductor-titulo').textContent.trim();
     // Se queda con el primero: en una playlist, el título de la que arrancó.
-    if (!recienteActual || recienteActual.titulo || !linkFreestyle || !titulo || titulo === 'Cargando…' || titulo.startsWith('No se pudo')) return;
+    if (!recienteActual || recienteActual.titulo || !titulo || titulo === 'Cargando…' || titulo.startsWith('No se pudo')) return;
     recienteActual.titulo = titulo;
     titularReciente(localStorage, recienteActual, titulo);
     renderizarRecientes();
@@ -1224,6 +1254,7 @@ $('fs-play').addEventListener('click', () => {
 $('fs-beat-pausar').addEventListener('click', () => {
     if (!ronda) return;
     if (!ronda.pausa) return pausarRonda();
+    if (!ronda.sigueSonando) return reanudarRonda();
     detenerBeat();
     ronda.sigueSonando = false;
     actualizarEfecto();
@@ -1258,12 +1289,12 @@ $('fs-pegar').addEventListener('click', async () => {
             if (texto) $('fs-link').value = texto;
         } catch { /* sin permiso para leer lo copiado */ }
     }
-    await usarLinkFreestyle($('fs-link').value);
+    await usarLink($('fs-link').value);
 });
 $('fs-link').addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    usarLinkFreestyle($('fs-link').value);
+    usarLink($('fs-link').value);
 });
 renderizarDuraciones();
 renderizarBeats();
@@ -1419,10 +1450,6 @@ function ocultarMusicaSiHaceFalta() {
 }
 new MutationObserver(ocultarMusicaSiHaceFalta).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-function avisoMusica(texto) {
-    $('musica-aviso').textContent = texto;
-    $('musica-aviso').hidden = !texto;
-}
 
 function seguirProgreso(leer) {
     clearInterval(progresoTimer);
@@ -1448,14 +1475,14 @@ function soltarLoQueSuena(desdeLaLibreta) {
 }
 
 async function escucharMusica(texto) {
-    const link = leerLink(typeof texto === 'string' ? texto : $('link-musica').value);
-    if (!link) return avisoMusica('Ese link no es de YouTube ni de SoundCloud.');
-    if (!navigator.onLine) return avisoMusica('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
-    avisoMusica('');
-    soltarLoQueSuena(typeof texto !== 'string');
+    const link = leerLink(texto);
+    if (!link) return avisoFs('Ese link no es de YouTube ni de SoundCloud.');
+    avisoFs('');
+    soltarLoQueSuena(false);
     cerrarMusica();
+    // SoundCloud arranca achicado (pedido de Swa): la flechita lo agranda.
+    plegado = link.fuente === 'soundcloud';
     const generacion = generacionMusica;
-    $('hoja-musica').hidden = true;
     $('reproductor-titulo').textContent = 'Cargando…';
     $('reproductor').hidden = false;
     document.body.classList.add('con-musica');
@@ -1693,18 +1720,20 @@ new ResizeObserver(ubicarReproductor).observe($('reproductor'));
 new ResizeObserver(ubicarReproductor).observe($('fs-sonando'));
 addEventListener('resize', ubicarReproductor);
 
+// La nota musical de la libreta abre una hoja con el mismo cajón de Freestyle (el
+// elemento se muda a la hoja y vuelve al cerrarla).
 $('abrir-musica').addEventListener('click', () => {
-    avisoMusica(navigator.onLine ? '' : 'Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
+    avisoFs(navigator.onLine ? '' : 'Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
+    $('hoja-musica-cajon').append($('fs-cajon'));
     $('hoja-musica').hidden = false;
-    $('link-musica').focus();
+    $('fs-link').focus();
 });
-$('cerrar-musica').addEventListener('click', () => { $('hoja-musica').hidden = true; });
-$('hoja-musica').addEventListener('click', e => { if (e.target === $('hoja-musica')) $('hoja-musica').hidden = true; });
-$('pegar-musica').addEventListener('click', async () => {
-    try { $('link-musica').value = await navigator.clipboard.readText(); } catch { avisoMusica('No pude leer lo copiado: pegalo con el dedo en el campo.'); }
-});
-$('escuchar-musica').addEventListener('click', escucharMusica);
-$('link-musica').addEventListener('keydown', e => { if (e.key === 'Enter') escucharMusica(); });
+function cerrarHojaMusica() {
+    $('hoja-musica').hidden = true;
+    $('pantalla-freestyle').querySelector('.contenido').append($('fs-cajon'));
+}
+$('cerrar-musica').addEventListener('click', cerrarHojaMusica);
+$('hoja-musica').addEventListener('click', e => { if (e.target === $('hoja-musica')) cerrarHojaMusica(); });
 $('musica-play').addEventListener('click', () => {
     if (falloMusica || !musica?.reproducir || (musica.fuente === 'youtube' && plegado)) return;
     musica[sonando ? 'pausar' : 'reproducir']?.();
@@ -1742,9 +1771,9 @@ $('musica-siguiente').addEventListener('click', () => { if (musica?.lista) music
 $('musica-cerrar').addEventListener('click', () => {
     const eraFreestyle = Boolean(linkFreestyle);
     cerrarMusica();
+    recienteActual = null;
     if (!eraFreestyle) return;
     linkFreestyle = null;
-    recienteActual = null;
     $('fs-link').value = '';
     if (ronda) terminarRonda();
     sincronizarLinkFreestyle();

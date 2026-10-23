@@ -1,10 +1,10 @@
-// Recientes de Freestyle: los últimos 3 beats que sonaron con un link (YouTube o
+// Recientes del cajón del link (Freestyle y la libreta): los últimos 10 beats que sonaron con un link (YouTube o
 // SoundCloud) o desde un archivo del teléfono. Sin DOM: la lista va en localStorage
 // y los archivos, aparte (en el navegador, IndexedDB; en SwiftUI, en Documents).
 
 const CLAVE = 'metrica.recientes';
-export const MAXIMO_RECIENTES = 3;
-const SUFIJOS = { youtube: 'YT', soundcloud: 'SCLOUD', archivo: 'ARCHIVO' };
+export const MAXIMO_RECIENTES = 10;
+const SUFIJOS = { youtube: 'YT', soundcloud: 'SCLOUD', archivo: 'CELULAR' };
 
 // Qué hace iguales a dos recientes: el mismo link, o el mismo archivo.
 function claveDe(reciente) {
@@ -20,7 +20,7 @@ export function leerRecientes(almacen) {
     }
 }
 
-// Suma uno arriba de todo, sin repetir, y se queda con 3. Devuelve los que se cayeron
+// Suma uno arriba de todo (el último usado primero), sin repetir, y se queda con 10. Devuelve los que se cayeron
 // de la lista, para borrar sus archivos.
 export function agregarReciente(almacen, reciente) {
     const anteriores = leerRecientes(almacen);
@@ -48,7 +48,7 @@ export function quitarReciente(almacen, reciente) {
     return quedan.length < lista.length;
 }
 
-// De dónde viene, entre paréntesis: «YT», «SCLOUD» o «ARCHIVO».
+// De dónde viene, entre paréntesis: «YT», «SCLOUD» o «CELULAR» (un archivo del teléfono).
 export function sufijoReciente(reciente) {
     return SUFIJOS[reciente.fuente];
 }
