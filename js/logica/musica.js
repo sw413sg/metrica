@@ -121,20 +121,18 @@ export function plegarVideo(sonando) {
     return { plegado: true, pausar: Boolean(sonando) };
 }
 
-// YouTube no puede seguir si la tarjeta no está en pantalla (teclado, o fuera del editor
-// y de Freestyle). SoundCloud sí puede sonar con el teclado abierto: el iframe ya vive fuera de vista.
-// En Freestyle la tarjeta es la misma, arriba de la barra de pestañas.
-export function pausarAlOcultar({ fuente, sonando, editor, teclado, freestyle }) {
-    if (!sonando) return false;
-    if (!editor && !freestyle) return true;
-    return fuente === 'youtube' && Boolean(teclado);
+// La tarjeta se ve en todas las secciones (arriba de la barra de pestañas, o abajo de todo
+// en la libreta), menos en Ajustes y con el teclado abierto. Escondida, YouTube se pausa:
+// su política no deja que suene sin verse. SoundCloud y los archivos siguen sonando.
+export function pausarAlOcultar({ fuente, sonando, visible }) {
+    return Boolean(sonando) && fuente === 'youtube' && !visible;
 }
 
 // Formato grande (cuadro de 200 al lado de los controles): YouTube siempre que no esté
-// plegado; SoundCloud solo en Freestyle, con la portada. Plegado, SoundCloud sigue sonando.
-export function tarjetaGrande({ fuente, plegado, freestyle }) {
+// plegado; SoundCloud solo fuera de la libreta (arriba de la barra), con la portada. Plegado, SoundCloud sigue sonando.
+export function tarjetaGrande({ fuente, plegado, fueraDelEditor }) {
     if (plegado) return false;
-    return fuente === 'youtube' || (fuente === 'soundcloud' && Boolean(freestyle));
+    return fuente === 'youtube' || (fuente === 'soundcloud' && Boolean(fueraDelEditor));
 }
 
 // Portada de una canción de SoundCloud (getCurrentSound), en 500×500. Si el tema no

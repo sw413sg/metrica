@@ -390,9 +390,19 @@ const servidor = http.createServer((req, res) => {
         await page.waitForFunction(() => window.__scListo);
         await page.locator('#editor-atras').click();
         await page.evaluate(() => window.__scListo());
-        assert.equal(await page.evaluate(() => window.__sc.plays), 0);
-        assert.equal(await page.evaluate(() => window.__sc.paused), true);
+        // Fuera de la libreta la tarjeta sigue a la vista, arriba de la barra, y suena.
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        assert.equal(await page.locator('#reproductor').isVisible(), true);
+        const tarjetaLista = await page.locator('#reproductor').boundingBox();
+        assert.ok(Math.abs(tarjetaLista.y + tarjetaLista.height - (844 - 86)) <= 2, `arriba de la barra: ${JSON.stringify(tarjetaLista)}`);
+        // En Ajustes no se ve, pero SoundCloud sigue sonando.
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         assert.equal(await page.locator('#reproductor').isVisible(), false);
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        assert.equal(await page.locator('#reproductor').isVisible(), true);
+        await page.screenshot({path: `capturas/rimas-reproductor-${tema}.png`});
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#lista-letras .tarjeta-letra button').click();
         assert.equal(await page.locator('#vista-editor').isVisible(), true);
         await page.locator('#musica-cerrar').click();
@@ -792,6 +802,19 @@ const servidor = http.createServer((req, res) => {
         assert.ok(Math.abs(sonandoCaja.y + sonandoCaja.height - (844 - 86)) <= 1, `pegado a las pestañas: ${JSON.stringify(sonandoCaja)}`);
         const tituloBeat = await page.locator('#fs-sonando-titulo').textContent();
         assert.match(await page.locator('#fs-sonando-fuente').textContent(), /^Métrica · \d+ BPM$/);
+        // Al cambiar de sección el beat sigue y su reproductor queda igual, arriba de la barra;
+        // en Ajustes no se ve. Al volver, la ronda está en pausa y el círculo la sigue.
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+        assert.deepEqual(await page.locator('#fs-sonando').boundingBox(), sonandoCaja);
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        assert.equal(await page.locator('#fs-sonando').isVisible(), false);
+        const pasoEnAjustes = await page.evaluate(() => document.documentElement.dataset.pasoBeat);
+        await page.waitForTimeout(600);
+        assert.notEqual(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoEnAjustes, 'en Ajustes el beat sigue');
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
+        await page.locator('#fs-reloj').click();
+        await page.waitForTimeout(450);
         await page.screenshot({path: `capturas/freestyle-sin-bandeja-${tema}.png`});
         // Tocar el círculo pausa: vuelve la bandeja y el reloj se frena.
         await page.locator('#fs-reloj').click();
@@ -1087,6 +1110,9 @@ const servidor = http.createServer((req, res) => {
         await page.unroute('https://soundcloud.com/oembed**').catch(() => {});
         // Recientes: los últimos 3, con el título acortado y de dónde vienen. Con 3, el cajón llega como mucho al alto del reproductor.
         assert.equal((await page.locator('#fs-recientes-caja summary').textContent()).trim(), 'Recientes');
+        // Arranca plegado: se abre tocándolo.
+        assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), false);
+        await page.locator('#fs-recientes-caja summary').click();
         const cajonLleno = await page.locator('#fs-cajon').boundingBox();
         assert.ok(cajonLleno.height > 150 && cajonLleno.height <= 252, `alto del cajón con 3 recientes: ${cajonLleno.height}`);
         assert.ok(Math.abs(cajonLleno.y + cajonLleno.height - (844 - 86)) <= 2, 'pegado arriba de la barra');

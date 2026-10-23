@@ -171,39 +171,10 @@
                     </div>
                     <input type="file" id="fs-archivo" accept="audio/*" hidden>
                     <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
-                    <details class="recientes-fs" id="fs-recientes-caja" open>
+                    <details class="recientes-fs" id="fs-recientes-caja">
                         <summary>Recientes</summary>
                         <ul class="lista-recientes" id="fs-recientes"></ul>
                     </details>
-                </div>
-                <!-- Mientras suena un beat de la app: el reproductor chico, como con SoundCloud.
-                     Pausa (y vuelven los botones y el cajón), flechas para pasar de beat y cerrar. -->
-                <div class="sonando-fs vidrio" id="fs-sonando">
-                    <div class="reproductor-cuerpo">
-                        <div class="reproductor-principal">
-                            <div class="reproductor-datos">
-                                <span class="reproductor-titulo" id="fs-sonando-titulo"></span>
-                                <span class="reproductor-fuente" id="fs-sonando-fuente"></span>
-                            </div>
-                            <button type="button" class="boton-musica" id="fs-beat-anterior" aria-label="Beat anterior">
-                                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
-                            </button>
-                            <button type="button" class="boton-play" id="fs-beat-pausar" aria-label="Pausar">
-                                <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
-                            </button>
-                            <button type="button" class="boton-musica" id="fs-beat-siguiente" aria-label="Beat siguiente">
-                                <svg viewBox="0 0 24 24" class="icono"><path d="M18 6v12M6 6l9 6-9 6z"/></svg>
-                            </button>
-                            <button type="button" class="boton-musica boton-cerrar" id="fs-beat-cerrar" aria-label="Terminar la ronda">
-                                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                            </button>
-                        </div>
-                        <div class="reproductor-barra">
-                            <span class="reproductor-tiempo" id="fs-sonando-tiempo">0:00</span>
-                            <div class="reproductor-pista"><div class="reproductor-riel"><div class="reproductor-llenado" id="fs-sonando-llenado"></div></div></div>
-                            <span class="reproductor-tiempo" id="fs-sonando-total"></span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -365,6 +336,36 @@
         </div>
     </div>
     <div class="reproductor-oculto" id="reproductor-oculto" aria-hidden="true"></div>
+    <!-- Mientras suena un beat de Freestyle: el reproductor chico, como con SoundCloud, arriba de la barra
+         en todas las secciones (en Ajustes no se ve, pero sigue sonando).
+         Pausa (y vuelven los botones y el cajón), flechas para pasar de beat y cerrar. -->
+    <div class="sonando-fs vidrio" id="fs-sonando">
+        <div class="reproductor-cuerpo">
+            <div class="reproductor-principal">
+                <div class="reproductor-datos">
+                    <span class="reproductor-titulo" id="fs-sonando-titulo"></span>
+                    <span class="reproductor-fuente" id="fs-sonando-fuente"></span>
+                </div>
+                <button type="button" class="boton-musica" id="fs-beat-anterior" aria-label="Beat anterior">
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
+                </button>
+                <button type="button" class="boton-play" id="fs-beat-pausar" aria-label="Pausar">
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
+                </button>
+                <button type="button" class="boton-musica" id="fs-beat-siguiente" aria-label="Beat siguiente">
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M18 6v12M6 6l9 6-9 6z"/></svg>
+                </button>
+                <button type="button" class="boton-musica boton-cerrar" id="fs-beat-cerrar" aria-label="Terminar la ronda">
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="reproductor-barra">
+                <span class="reproductor-tiempo" id="fs-sonando-tiempo">0:00</span>
+                <div class="reproductor-pista"><div class="reproductor-riel"><div class="reproductor-llenado" id="fs-sonando-llenado"></div></div></div>
+                <span class="reproductor-tiempo" id="fs-sonando-total"></span>
+            </div>
+        </div>
+    </div>
 
     <!-- Confirmar antes de borrar una letra (en SwiftUI: .alert con un botón .destructive). -->
     <div class="alerta-fondo" id="confirmar-borrado" hidden>
