@@ -197,9 +197,9 @@ const servidor = http.createServer((req, res) => {
         // Música: la nota abre la hoja para pegar un link; un link que no sirve avisa.
         await page.locator('#abrir-musica').click();
         assert.equal(await page.locator('#hoja-musica').isVisible(), true);
-        await page.locator('#link-musica').fill('https://spotify.com/track/1');
-        await page.locator('#escuchar-musica').click();
-        assert.match(await page.locator('#musica-aviso').textContent(), /no es de YouTube ni de SoundCloud/);
+        await page.locator('#fs-link').fill('https://spotify.com/track/1');
+        await page.locator('#fs-pegar').click();
+        assert.match(await page.locator('#fs-link-aviso').textContent(), /no es de YouTube ni de SoundCloud/);
         // Con un link de YouTube aparece el banner (acá con un YouTube de mentira, sin internet).
         await page.route('https://www.youtube.com/iframe_api', ruta => ruta.fulfill({contentType: 'text/javascript', body: `
             window.YT = { PlayerState: { PLAYING: 1 }, Player: function (lugar, o) {
@@ -213,8 +213,8 @@ const servidor = http.createServer((req, res) => {
                 setTimeout(() => o.events.onReady({ target: p }));
             } };
             setTimeout(() => onYouTubeIframeAPIReady());`}));
-        await page.locator('#link-musica').fill('https://youtu.be/dQw4w9WgXcQ');
-        await page.locator('#escuchar-musica').click();
+        await page.locator('#fs-link').fill('https://youtu.be/dQw4w9WgXcQ');
+        await page.locator('#fs-pegar').click();
         assert.equal(await page.locator('#hoja-musica').isVisible(), false);
         await page.locator('#reproductor-titulo', {hasText: 'Tema de prueba'}).waitFor();
         assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
@@ -305,8 +305,8 @@ const servidor = http.createServer((req, res) => {
             } };
             window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
         await page.locator('#abrir-musica').click();
-        await page.locator('#link-musica').fill('https://soundcloud.com/artista/tema');
-        await page.locator('#escuchar-musica').click();
+        await page.locator('#fs-link').fill('https://soundcloud.com/artista/tema');
+        await page.locator('#fs-pegar').click();
         await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
         assert.equal(await page.locator('#musica-plegar').isVisible(), false);
@@ -341,8 +341,8 @@ const servidor = http.createServer((req, res) => {
             })});
         });
         await page.locator('#abrir-musica').click();
-        await page.locator('#link-musica').fill('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ');
-        await page.locator('#escuchar-musica').click();
+        await page.locator('#fs-link').fill('https://on.soundcloud.com/0T0WGNd6Vxu9Wam1NZ');
+        await page.locator('#fs-pegar').click();
         await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
         const srcCorto = new URL(await page.locator('#reproductor-oculto iframe').getAttribute('src'));
         assert.equal(srcCorto.searchParams.get('url'), 'https://api.soundcloud.com/tracks/2416843668');
@@ -355,8 +355,8 @@ const servidor = http.createServer((req, res) => {
             ['https://m.soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr?si=abc', 'https://soundcloud.com/swa13sg/tenchnosad_88bpm-f-ambkr'],
         ]) {
             await page.locator('#abrir-musica').click();
-            await page.locator('#link-musica').fill(link);
-            await page.locator('#escuchar-musica').click();
+            await page.locator('#fs-link').fill(link);
+            await page.locator('#fs-pegar').click();
             await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
             const src = new URL(await page.locator('#reproductor-oculto iframe').getAttribute('src'));
             assert.equal(src.searchParams.get('url'), canonica, link);
@@ -385,8 +385,8 @@ const servidor = http.createServer((req, res) => {
             } };
             window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
         await page.locator('#abrir-musica').click();
-        await page.locator('#link-musica').fill('https://soundcloud.com/artista/tarda');
-        await page.locator('#escuchar-musica').click();
+        await page.locator('#fs-link').fill('https://soundcloud.com/artista/tarda');
+        await page.locator('#fs-pegar').click();
         await page.waitForFunction(() => window.__scListo);
         await page.locator('#editor-atras').click();
         await page.evaluate(() => window.__scListo());
@@ -425,8 +425,8 @@ const servidor = http.createServer((req, res) => {
                 onYouTubeIframeAPIReady();
             };`}));
         await page.locator('#abrir-musica').click();
-        await page.locator('#link-musica').fill('https://youtu.be/dQw4w9WgXcQ');
-        await page.locator('#escuchar-musica').click();
+        await page.locator('#fs-link').fill('https://youtu.be/dQw4w9WgXcQ');
+        await page.locator('#fs-pegar').click();
         await page.locator('#reproductor-titulo', {hasText: 'Cargando…'}).waitFor();
         await page.waitForFunction(() => window.__ytArmar);
         await page.locator('#musica-cerrar').click();
@@ -453,8 +453,8 @@ const servidor = http.createServer((req, res) => {
             } };
             setTimeout(() => onYouTubeIframeAPIReady());`}));
         await page.locator('#abrir-musica').click();
-        await page.locator('#link-musica').fill('https://youtu.be/dQw4w9WgXcQ');
-        await page.locator('#escuchar-musica').click();
+        await page.locator('#fs-link').fill('https://youtu.be/dQw4w9WgXcQ');
+        await page.locator('#fs-pegar').click();
         await page.locator('#reproductor-titulo', {hasText: 'No se pudo reproducir este video'}).waitFor();
         assert.equal((await page.locator('#reproductor-titulo').textContent()).trim(), 'No se pudo reproducir este video');
         assert.equal(await page.locator('#musica-play').getAttribute('aria-disabled'), 'true');
@@ -466,7 +466,7 @@ const servidor = http.createServer((req, res) => {
         // Sin internet, avisa.
         await page.context().setOffline(true);
         await page.locator('#abrir-musica').click();
-        assert.match(await page.locator('#musica-aviso').textContent(), /Sin internet/);
+        assert.match(await page.locator('#fs-link-aviso').textContent(), /Sin internet/);
         await page.locator('#cerrar-musica').click();
         await page.context().setOffline(false);
         // Los renglones arrancan prendidos y se apagan.
@@ -668,6 +668,10 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#palabras-simples').check();
         assert.match(await page.locator('#palabras-total').textContent(), /20\.000 palabras disponibles/);
 
+        // Los links que sonaron en la libreta quedan en los recientes del cajón (es el mismo).
+        assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('metrica.recientes') ?? '[]').length) > 0, 'la libreta suma recientes');
+        await page.evaluate(() => localStorage.removeItem('metrica.recientes'));
+        await page.reload();
         // Freestyle: bandeja de duración, beats, el reloj cuenta para atrás y el aro se llena.
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         const pantallaFs = page.locator('#pantalla-freestyle');
@@ -834,11 +838,11 @@ const servidor = http.createServer((req, res) => {
         assert.notEqual(await page.locator('#fs-sonando-titulo').textContent(), tituloBeat);
         await page.locator('#fs-beat-siguiente').click();
         assert.equal(await page.locator('#fs-sonando-titulo').textContent(), tituloBeat);
-        // La pausa del reproductor frena el beat y vuelven los botones y el cajón.
+        // La pausa del reproductor frena el beat, pero el reproductor queda a la vista: solo la cruz lo cierra.
         await page.locator('#fs-beat-pausar').click();
-        assert.equal(await page.locator('#fs-sonando').isVisible(), false);
-        assert.equal(await page.locator('#fs-elegir').isVisible(), true);
-        assert.equal(await page.locator('#fs-cajon').isVisible(), true);
+        assert.equal(await page.locator('#fs-sonando').isVisible(), true);
+        assert.equal(await page.locator('#fs-beat-pausar').getAttribute('aria-label'), 'Reproducir');
+        assert.equal(await page.locator('#fs-elegir').isVisible(), false);
         const pasoParado = await page.evaluate(() => document.documentElement.dataset.pasoBeat);
         await page.waitForTimeout(600);
         assert.equal(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoParado, 'la pausa del reproductor frena el beat');
@@ -881,6 +885,13 @@ const servidor = http.createServer((req, res) => {
         assert.ok(efectoCaja.x >= -1 && efectoCaja.x + efectoCaja.width <= 391, JSON.stringify(efectoCaja));
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
         await pararFs();
+        // La cruz del reproductor termina la ronda y vuelven los botones de beats y el cajón.
+        await page.locator('#fs-play').click();
+        await page.locator('#fs-beat-cerrar').click();
+        assert.equal(await page.locator('#fs-sonando').isVisible(), false);
+        assert.equal(await page.locator('#fs-elegir').isVisible(), true);
+        assert.equal(await page.locator('#fs-cajon').isVisible(), true);
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Empezar');
         // Una captura por beat, para ver la forma de cada mood.
         if (tema === 'dark') for (const id of ['boom-bap-clasico', 'boom-bap-jazz', 'trap-grave']) {
             await elegirBeatFs(id);
@@ -1082,6 +1093,9 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-play').isVisible(), true);
         const playsNube = await page.locator('#fs-play, #musica-play').evaluateAll(els => els.filter(e => e.getClientRects().length > 0).map(e => e.id));
         assert.deepEqual(playsNube, ['musica-play']);
+        // SoundCloud arranca achicado (pedido de Swa); la flechita lo agranda.
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false, 'SoundCloud arranca achicado');
+        await page.locator('#musica-agrandar').click();
         const beatNube = await page.locator('#reproductor').boundingBox();
         const tabNube = await page.locator('#barra-pestanas').boundingBox();
         assert.ok(beatNube.y + beatNube.height <= tabNube.y + 1, JSON.stringify({beatNube, tabNube}));
@@ -1109,7 +1123,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-cerrar').click();
         assert.equal(await page.locator('#fs-play').isVisible(), true);
         await page.unroute('https://soundcloud.com/oembed**').catch(() => {});
-        // Recientes: los últimos 3, con el título acortado y de dónde vienen. Con 3, el cajón llega como mucho al alto del reproductor.
+        // Recientes: los últimos (hasta 10), con el título acortado y de dónde vienen. El cajón llega como mucho al alto del reproductor.
         assert.equal((await page.locator('#fs-recientes-caja summary').textContent()).trim(), 'Recientes');
         // Arranca plegado: se abre tocándolo.
         assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), false);
@@ -1130,8 +1144,11 @@ const servidor = http.createServer((req, res) => {
         await page.waitForFunction(() => document.getElementById('fs-cuenta').textContent !== '1:00');
         await page.screenshot({path: `capturas/freestyle-archivo-${tema}.png`});
         await page.locator('#musica-cerrar').click();
-        assert.equal((await page.locator('#fs-recientes .usar-reciente').first().textContent()), 'boom-bap-jazz (ARCHIVO)');
-        assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 3);
+        assert.equal((await page.locator('#fs-recientes .usar-reciente').first().textContent()), 'boom-bap-jazz (CELULAR)');
+        // Ya no se cae ninguno: entran hasta 10, y la lista se desliza sin agrandar el cajón.
+        assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 4);
+        assert.ok((await page.locator('#fs-cajon').boundingBox()).height <= 252);
+        assert.equal(await page.locator('#fs-recientes').evaluate(e => getComputedStyle(e).overflowY), 'auto');
         // Tocar el reciente del teléfono lo vuelve a sacar de lo guardado.
         await page.locator('#fs-recientes .usar-reciente').first().click();
         await page.locator('#reproductor-titulo', {hasText: 'boom-bap-jazz'}).waitFor();
@@ -1149,8 +1166,8 @@ const servidor = http.createServer((req, res) => {
         assert.ok(cruzReciente.x + cruzReciente.width >= filaReciente.x + filaReciente.width - 1, 'la cruz va al borde derecho');
         await page.screenshot({path: `capturas/freestyle-recientes-${tema}.png`});
         await page.locator('#fs-recientes .borrar-reciente').first().click();
-        assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 2);
-        assert.ok(!(await page.locator('#fs-recientes .usar-reciente').allTextContents()).some(t => t.includes('ARCHIVO')));
+        assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 3);
+        assert.ok(!(await page.locator('#fs-recientes .usar-reciente').allTextContents()).some(t => t.includes('CELULAR')));
 
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();
