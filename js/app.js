@@ -3,7 +3,7 @@ import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
-import { CATALOGO_BEATS, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra } from './logica/freestyle.js';
+import { CATALOGO_BEATS, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
@@ -452,7 +452,7 @@ function aplicarAlternables() {
     $('silabas').classList.toggle('oculto', !$('mostrar-silabas').checked);
     document.querySelector('.editor-capas').classList.toggle('renglones', $('alternar-renglones').getAttribute('aria-pressed') === 'true');
 }
-$('mostrar-silabas').checked = localStorage.getItem('metrica.alternar-silabas') !== 'false';
+$('mostrar-silabas').checked = localStorage.getItem('metrica.alternar-silabas') === 'true';
 $('mostrar-silabas').addEventListener('change', () => {
     localStorage.setItem('metrica.alternar-silabas', $('mostrar-silabas').checked);
     aplicarAlternables();
@@ -707,9 +707,9 @@ let linkFreestyle = null; // el link ya leído (o { fuente: 'archivo' }), o null
 let recienteActual = null; // el reciente que está sonando, para ponerle el título cuando llega
 let relojTimer = null;
 let indicePalabra = 0;
-const COMPASES_POR_PALABRA = 2;
 const BPM_FS = 90;
-const MS_POR_PALABRA = msPorPalabra(BPM_FS, COMPASES_POR_PALABRA);
+// Cuántos compases dura cada palabra: sale de la velocidad de Ajustes > Freestyle.
+let compasesPorPalabra = compasesDeVelocidad(leerVelocidad(localStorage));
 const SILENCIO = { bombo: Array(16).fill(0), caja: Array(16).fill(0), hihat: Array(16).fill(0) };
 const ICONO_PLAY_FS = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>';
 const ICONO_PAUSA_FS = '<svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>';
@@ -746,7 +746,7 @@ new ResizeObserver(ajustarPalabraFs).observe($('fs-reloj'));
 function reiniciarBarraPalabra() {
     const barra = $('fs-barra-palabra');
     const archivo = linkFreestyle ? null : archivoDeBeat(beatId);
-    const ms = ronda?.modo === 'archivo' && archivo ? msPorPalabra(archivo.bpm, COMPASES_POR_PALABRA) : MS_POR_PALABRA;
+    const ms = ronda?.modo === 'archivo' && archivo ? msPorPalabra(archivo.bpm, compasesPorPalabra) : msPorPalabra(BPM_FS, compasesPorPalabra);
     barra.style.setProperty('--ms-palabra', `${ms}ms`);
     barra.classList.remove('corriendo');
     void barra.offsetWidth;
@@ -788,7 +788,7 @@ function alPasoBeat(paso, bombo) {
     // El resplandor late en cada kick del beat.
     if (bombo) efecto.golpe(paso % 16 === 0 ? 1 : 0.8);
     if (paso === 0) return reiniciarBarraPalabra();
-    if (!cambiaLaPalabra(paso, COMPASES_POR_PALABRA)) return;
+    if (!cambiaLaPalabra(paso, compasesPorPalabra)) return;
     cola = avanzarPalabras(cola, palabraAlAzar());
     mostrarCola();
     reiniciarBarraPalabra();
@@ -801,7 +801,7 @@ function tickReloj() {
     pintarCuenta(estado);
     if (estado.restantes === 0) return terminarRonda(true);
     if (ronda.modo !== 'reloj') return;
-    const indice = Math.floor((ahora - ronda.inicio) / MS_POR_PALABRA);
+    const indice = Math.floor((ahora - ronda.inicio) / msPorPalabra(BPM_FS, compasesPorPalabra));
     while (indicePalabra < indice) {
         indicePalabra++;
         cola = avanzarPalabras(cola, palabraAlAzar());
@@ -827,6 +827,19 @@ $('cantidad-efectos').addEventListener('input', () => {
     aplicarCantidadEfectos();
 });
 aplicarCantidadEfectos();
+// Ajustes > Freestyle: velocidad de cambio de palabra, de 1 a 10 (5 son 2 compases).
+function aplicarVelocidad() {
+    const velocidad = leerVelocidad(localStorage);
+    $('velocidad-palabras').value = velocidad;
+    $('valor-velocidad').textContent = String(velocidad);
+    compasesPorPalabra = compasesDeVelocidad(velocidad);
+}
+$('puntos-velocidad').append(...Array.from({ length: VELOCIDAD_MAXIMA }, () => document.createElement('span')));
+$('velocidad-palabras').addEventListener('input', () => {
+    guardarVelocidad(localStorage, $('velocidad-palabras').value);
+    aplicarVelocidad();
+});
+aplicarVelocidad();
 function ambienteActual() {
     // Con un link el resplandor no late: el audio de YouTube y SoundCloud no se puede leer.
     if (linkFreestyle) {

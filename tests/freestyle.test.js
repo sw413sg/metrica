@@ -157,3 +157,20 @@ test('cada palabra dura 2 compases del beat: la barrita se vacía en ese tiempo'
     assert.equal(msPorPalabra(90, 2), 8 * 60000 / 90);
     assert.equal(msPorPalabra(140, 2), 8 * 60000 / 140);
 });
+
+test('la velocidad de cambio de palabra va de 1 a 10 y en 5 son 2 compases', async () => {
+    const { leerVelocidad, guardarVelocidad, compasesDeVelocidad, PASOS_POR_COMPAS } = await import('../js/logica/freestyle.js');
+    const datos = new Map();
+    const almacen = { getItem: k => datos.has(k) ? datos.get(k) : null, setItem: (k, v) => datos.set(k, v) };
+    assert.equal(leerVelocidad(almacen), 5);
+    assert.equal(compasesDeVelocidad(5), 2);
+    assert.equal(guardarVelocidad(almacen, '9'), 9);
+    assert.equal(leerVelocidad(almacen), 9);
+    assert.equal(guardarVelocidad(almacen, 30), 10);
+    assert.equal(guardarVelocidad(almacen, 0), 5);
+    datos.set('metrica.velocidad-palabras', 'rapido');
+    assert.equal(leerVelocidad(almacen), 5);
+    // Más alto, más rápido, y siempre en pasos enteros del beat.
+    for (let v = 1; v < 10; v++) assert.ok(compasesDeVelocidad(v) > compasesDeVelocidad(v + 1));
+    for (let v = 1; v <= 10; v++) assert.ok(Number.isInteger(compasesDeVelocidad(v) * PASOS_POR_COMPAS));
+});

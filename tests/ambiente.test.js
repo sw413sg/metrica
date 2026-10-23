@@ -56,18 +56,18 @@ test('el brillo late con el tiempo', () => {
     assert.equal(brilloDeGolpe(-5, 90), 0);
 });
 
-test('la cantidad de efectos va de 0 a 10 y arranca en 10', async () => {
+test('la cantidad de efectos va de 0 a 10 y arranca en 5', async () => {
     const { leerCantidadEfectos, guardarCantidadEfectos } = await import('../js/logica/ambiente.js');
     const datos = new Map();
     const almacen = { getItem: k => datos.has(k) ? datos.get(k) : null, setItem: (k, v) => datos.set(k, v) };
-    assert.equal(leerCantidadEfectos(almacen), 10);
+    assert.equal(leerCantidadEfectos(almacen), 5);
     assert.equal(guardarCantidadEfectos(almacen, 0), 0);
     assert.equal(leerCantidadEfectos(almacen), 0);
     assert.equal(guardarCantidadEfectos(almacen, '4'), 4);
     assert.equal(guardarCantidadEfectos(almacen, 15), 10);
     assert.equal(guardarCantidadEfectos(almacen, -3), 0);
     almacen.setItem('metrica.efectos', 'cualquiera');
-    assert.equal(leerCantidadEfectos(almacen), 10);
+    assert.equal(leerCantidadEfectos(almacen), 5);
 });
 
 test('los kicks se encuentran en el audio y caen en su paso', async () => {

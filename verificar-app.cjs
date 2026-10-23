@@ -31,6 +31,10 @@ const servidor = http.createServer((req, res) => {
         page.on('console', m => m.type() === 'error' && errores.push(m.text()));
         await page.goto(url);
         await page.evaluate(() => navigator.serviceWorker.ready);
+        // Las sílabas por verso arrancan apagadas; acá se prenden para verificar el conteo.
+        assert.equal(await page.locator('#mostrar-silabas').isChecked(), false);
+        await page.evaluate(() => localStorage.setItem('metrica.alternar-silabas', 'true'));
+        await page.reload();
 
         assert.equal(await page.locator('#pantalla-letras').isVisible(), true);
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
@@ -119,7 +123,7 @@ const servidor = http.createServer((req, res) => {
         const filas = await page.locator('#silabas div').evaluateAll(fs => fs.slice(-2).map(f => Math.round(f.getBoundingClientRect().top)));
         const versos = await page.locator('#editor-fondo > span').evaluateAll(vs => vs.slice(-2).map(v => Math.round(v.getClientRects()[0].top)));
         assert.ok(filas.every((f, i) => Math.abs(f - versos[i]) <= 2), `${filas} vs ${versos}`);
-        assert.ok(versos[1] - versos[0] >= 46, 'el verso largo ocupa dos renglones');
+        assert.ok(versos[1] - versos[0] >= 40, 'el verso largo ocupa dos renglones');
         await page.screenshot({path: `capturas/editor-verso-largo-${tema}.png`});
         await page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, original);
         // Tocar un renglón vacío ofrece marcar la parte de la letra.
@@ -467,6 +471,11 @@ const servidor = http.createServer((req, res) => {
         const textoAntes = await page.locator('#editor-texto').inputValue();
         const escribir = texto => page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, texto);
         const marcas = () => page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent));
+        // Arrancan en 2 versos: se pasa a 4 para este ejemplo.
+        await page.locator('#abrir-ajustes-libreta').click();
+        assert.equal(await page.locator('[data-ajuste="internas"] [aria-selected="true"]').textContent(), '2 versos');
+        await page.locator('[data-ajuste="internas"] [data-opcion="cuatro"]').click();
+        await page.locator('#cerrar-ajustes-libreta').click();
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo', 'rima-0 suave:lejos']);
         await page.screenshot({path: `capturas/editor-internas-${tema}.png`});
@@ -494,7 +503,7 @@ const servidor = http.createServer((req, res) => {
         // Tamaño y separaciones: barras de 10 puntos imantados.
         assert.equal(await page.locator('#ajustes-libreta .fila-deslizador').count(), 3);
         assert.equal(await page.locator('#ajustes-libreta .fila-deslizador').first().locator('.puntos-deslizador span').count(), 10);
-        assert.equal(await page.locator('input[data-ajuste="tamano"]').inputValue(), '4');
+        assert.equal(await page.locator('input[data-ajuste="tamano"]').inputValue(), '3', 'el tamaño arranca en el punto 4');
         await page.locator('input[data-ajuste="tamano"]').fill('7');
         await page.locator('input[data-ajuste="separacion"]').fill('7');
         await page.locator('[data-ajuste="fuente"] [data-opcion="serif"]').click();
@@ -842,7 +851,13 @@ const servidor = http.createServer((req, res) => {
         assert.ok(await page.locator('#fs-reloj').evaluate(e => Number(getComputedStyle(e).zIndex)) > await page.locator('#fs-efecto').evaluate(e => Number(getComputedStyle(e).zIndex)), 'luces detrás del círculo');
         // Ajustes > Freestyle > Efectos en 0: no se dibuja nada aunque haya ronda.
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
-        assert.equal(await page.locator('#cantidad-efectos').inputValue(), '10');
+        assert.equal(await page.locator('#cantidad-efectos').inputValue(), '5');
+        // La velocidad de cambio de palabra arranca en 5 (2 compases) y se recuerda.
+        assert.equal(await page.locator('#velocidad-palabras').inputValue(), '5');
+        assert.equal(await page.locator('#puntos-velocidad span').count(), 10);
+        await page.locator('#velocidad-palabras').fill('10');
+        assert.equal(await page.locator('#valor-velocidad').textContent(), '10');
+        await page.locator('#velocidad-palabras').fill('5');
         await page.locator('#cantidad-efectos').fill('0');
         assert.equal(await page.locator('#valor-efectos').textContent(), '0');
         assert.equal(await page.locator('#puntos-efectos span').count(), 11);

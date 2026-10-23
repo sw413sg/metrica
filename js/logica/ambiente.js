@@ -63,11 +63,12 @@ export function moodDeBeat(beat) {
 // Cantidad de efectos, de 0 (apagados) a 10 (todos). Se elige en Ajustes > Freestyle.
 const CLAVE_EFECTOS = 'metrica.efectos';
 export const EFECTOS_MAXIMO = 10;
+export const EFECTOS_INICIAL = 5;
 
 export function leerCantidadEfectos(almacen) {
     const guardada = almacen.getItem(CLAVE_EFECTOS);
     const numero = Number(guardada);
-    return guardada !== null && Number.isInteger(numero) && numero >= 0 && numero <= EFECTOS_MAXIMO ? numero : EFECTOS_MAXIMO;
+    return guardada !== null && Number.isInteger(numero) && numero >= 0 && numero <= EFECTOS_MAXIMO ? numero : EFECTOS_INICIAL;
 }
 
 export function guardarCantidadEfectos(almacen, cantidad) {

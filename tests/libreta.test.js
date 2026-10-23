@@ -9,12 +9,12 @@ function almacenDePrueba(inicial = {}) {
 
 test('sin nada guardado: mediano, normal y la fuente del sistema', () => {
     const ajustes = leerAjustesLibreta(almacenDePrueba());
-    assert.deepEqual(ajustes, { tamano: '5', separacion: '4', letras: '6', internas: 'cuatro', fuente: 'sistema' });
+    assert.deepEqual(ajustes, { tamano: '4', separacion: '4', letras: '5', internas: 'dos', fuente: 'sistema' });
     const estilo = estiloLibreta(ajustes);
-    assert.equal(estilo.tamano, 17);
-    assert.equal(estilo.alto, 23);
-    assert.equal(estilo.letras, 0);
-    assert.equal(estilo.internas, 4);
+    assert.equal(estilo.tamano, 16);
+    assert.equal(estilo.alto, 22);
+    assert.equal(estilo.letras, -0.01);
+    assert.equal(estilo.internas, 2);
     assert.match(estilo.fuente, /system-ui/);
 });
 
@@ -24,16 +24,16 @@ test('se guarda y se recuerda cada ajuste', () => {
     guardarAjusteLibreta(almacen, 'fuente', 'serif');
     guardarAjusteLibreta(almacen, 'letras', '2');
     const ajustes = leerAjustesLibreta(almacen);
-    assert.deepEqual(ajustes, { tamano: '8', separacion: '4', letras: '2', internas: 'cuatro', fuente: 'serif' });
+    assert.deepEqual(ajustes, { tamano: '8', separacion: '4', letras: '2', internas: 'dos', fuente: 'serif' });
     assert.equal(estiloLibreta(ajustes).alto, 27);
     assert.ok(estiloLibreta(ajustes).letras < 0, 'junta: las letras más pegadas');
 });
 
 test('opciones que no existen o datos rotos no rompen nada', () => {
     const almacen = almacenDePrueba({ 'metrica.libreta': '{rota' });
-    assert.deepEqual(leerAjustesLibreta(almacen), { tamano: '5', separacion: '4', letras: '6', internas: 'cuatro', fuente: 'sistema' });
-    assert.equal(guardarAjusteLibreta(almacen, 'tamano', '11').tamano, '5');
-    assert.equal(guardarAjusteLibreta(almacen, 'color', 'rojo').tamano, '5');
+    assert.deepEqual(leerAjustesLibreta(almacen), { tamano: '4', separacion: '4', letras: '5', internas: 'dos', fuente: 'sistema' });
+    assert.equal(guardarAjusteLibreta(almacen, 'tamano', '11').tamano, '4');
+    assert.equal(guardarAjusteLibreta(almacen, 'color', 'rojo').tamano, '4');
 });
 
 test('tamaño y separaciones: 10 puntos, de menor a mayor', () => {
