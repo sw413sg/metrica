@@ -364,6 +364,33 @@ function actualizarEditor() {
 // Si se está cambiando una palabra, dónde está: { inicio, fin }. Si no, las sugerencias se agregan.
 let reemplazo = null;
 
+// La palabra tocada se ve en degradé violeta mientras se la cambia; al soltarla vuelve a su color.
+// El texto visible es el del fondo (la caja de texto es transparente), así que se pinta ahí,
+// por adentro del resaltado de la rima si lo tiene.
+function marcarTocada(rango) {
+    const fondo = $('editor-fondo');
+    for (const vieja of fondo.querySelectorAll('.tocada')) vieja.replaceWith(vieja.textContent);
+    fondo.normalize();
+    if (!rango) return;
+    const textos = document.createTreeWalker(fondo, NodeFilter.SHOW_TEXT);
+    const nodos = [];
+    while (textos.nextNode()) nodos.push(textos.currentNode);
+    let desde = 0;
+    for (const nodo of nodos) {
+        const hasta = desde + nodo.length;
+        const inicio = Math.max(rango.inicio, desde), fin = Math.min(rango.fin, hasta);
+        if (inicio < fin) {
+            const medio = nodo.splitText(inicio - desde);
+            medio.splitText(fin - inicio);
+            const span = document.createElement('span');
+            span.className = 'tocada';
+            medio.replaceWith(span);
+            span.append(medio);
+        }
+        desde = hasta;
+    }
+}
+
 // Al cambiar una palabra, la etiqueta es un botón que alterna entre rimas y sinónimos.
 function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(palabra, indiceRimas()).slice(0, 20) : [], alternable = false) {
     const botones = rimas.map(rima => {
@@ -412,6 +439,7 @@ editorTexto.addEventListener('click', () => {
     }
     $('sugerencias').hidden = true;
     reemplazo = null;
+    marcarTocada(null);
     // Solo si no está al final de todo (ahí se sigue escribiendo).
     if (selectionStart === value.length) return;
     const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
@@ -423,12 +451,14 @@ editorTexto.addEventListener('click', () => {
     verSinonimos = false;
     mostrarCambio();
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
+    marcarTocada(reemplazo);
 });
 
 // La barra aparece solo al tocar: si se cierra el teclado o se desliza la letra para leerla, se va.
 const ocultarSugerencias = () => {
     $('sugerencias').hidden = true;
     reemplazo = null;
+    marcarTocada(null);
 };
 editorTexto.addEventListener('blur', ocultarSugerencias);
 for (const evento of ['touchmove', 'wheel']) editorTexto.closest('.editor').addEventListener(evento, ocultarSugerencias, { passive: true });

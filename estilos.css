@@ -511,8 +511,13 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .editor-capas { flex: 1; position: relative; min-height: 100%; }
 /* Renglones de cuaderno, uno por línea de texto (se apagan desde la barra). */
 .editor-cuerpo:has(> .editor-capas.renglones) { background: repeating-linear-gradient(to bottom, transparent 0 calc(var(--libreta-alto, 23px) - 1px), var(--renglon) calc(var(--libreta-alto, 23px) - 1px) var(--libreta-alto, 23px)); }
-.editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: transparent; pointer-events: none; }
-.editor-fondo mark { color: transparent; border-radius: 4px; }
+.editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: var(--texto); pointer-events: none; }
+.editor-fondo mark { color: inherit; border-radius: 4px; }
+/* La palabra tocada, en degradé violeta mientras se la cambia (el texto que se ve es el del fondo). */
+.editor-fondo .tocada {
+    background: linear-gradient(135deg, var(--destacado), var(--destacado-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+}
 /* Separadores de partes ([Estribillo], [Hook]...): violeta, como lo especial. */
 .editor-fondo mark.seccion { background: var(--destacado-suave); box-shadow: inset 3px 0 0 var(--destacado); border-radius: 4px; }
 /* Un color por terminación, en el orden en que aparecen en la letra: 12 tonos, cada uno
@@ -535,7 +540,10 @@ mark.suave { background: color-mix(in srgb, var(--fondo-rima) 40%, transparent);
 .editor-texto {
     position: relative; display: block; width: 100%; min-height: 100%; border: 0; border-radius: 0; background: none;
     outline: none; resize: none; padding: 0; overflow: hidden; -webkit-appearance: none; appearance: none;
+    /* Las letras se ven en el fondo, que es igual pero con colores: acá solo queda el cursor. */
+    color: transparent; -webkit-text-fill-color: transparent; caret-color: var(--texto);
 }
+.editor-texto::placeholder { color: var(--texto-3); -webkit-text-fill-color: var(--texto-3); }
 .silabas { width: 20px; flex-shrink: 0; color: var(--texto-3); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; }
 .silabas div { height: var(--libreta-alto, 23px); }
 .silabas.oculto { display: none; }
