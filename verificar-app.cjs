@@ -1155,6 +1155,16 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
         await page.waitForFunction(() => document.getElementById('fs-cuenta').textContent !== '1:00');
         await page.screenshot({path: `capturas/freestyle-archivo-${tema}.png`});
+        // Al terminarse el tiempo la canción sigue sonando, y el play de la bandeja empieza otra ronda con ella.
+        await page.evaluate(() => { const ahora = performance.now.bind(performance); performance.now = () => ahora() + 120000; });
+        await page.locator('#fs-palabra', {hasText: '¡Tiempo!'}).waitFor();
+        await page.evaluate(() => { delete performance.now; });
+        assert.equal(await page.evaluate(() => document.querySelector('#reproductor-oculto audio').paused), false);
+        assert.equal(await page.locator('#fs-play').isVisible(), true);
+        await page.locator('#fs-play').click();
+        assert.equal(await page.locator('#fs-play').isVisible(), false);
+        await page.waitForFunction(() => !['1:00', '0:00'].includes(document.getElementById('fs-cuenta').textContent));
+        assert.equal(await page.evaluate(() => document.body.classList.contains('beat-sonando')), false);
         await page.locator('#musica-cerrar').click();
         assert.equal((await page.locator('#fs-recientes .usar-reciente').first().textContent()), 'boom-bap-jazz (CELULAR)');
         // Ya no se cae ninguno: entran hasta 10, y la lista se desliza sin agrandar el cajón.
@@ -1164,7 +1174,10 @@ const servidor = http.createServer((req, res) => {
         // Tocar el reciente del teléfono lo vuelve a sacar de lo guardado.
         await page.locator('#fs-recientes .usar-reciente').first().click();
         await page.locator('#reproductor-titulo', {hasText: 'boom-bap-jazz'}).waitFor();
+        // Elegir un reciente pliega la lista.
+        assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), false);
         await page.locator('#musica-cerrar').click();
+        await page.locator('#fs-recientes-caja summary').click();
         // Plegar «Recientes» achica el cajón, que sigue pegado a la barra.
         const cajonAbierto = await page.locator('#fs-cajon').boundingBox();
         await page.locator('#fs-recientes-caja summary').click();
@@ -1180,6 +1193,12 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-recientes .borrar-reciente').first().click();
         assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 3);
         assert.ok(!(await page.locator('#fs-recientes .usar-reciente').allTextContents()).some(t => t.includes('CELULAR')));
+
+        // Cambiar de sección pliega «Recientes».
+        assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), true);
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
+        assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), false);
 
         for (const p of ['freestyle', 'ajustes']) {
             await page.locator(`#barra-pestanas [data-pestana="${p}"]`).click();
