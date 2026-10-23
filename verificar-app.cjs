@@ -78,9 +78,13 @@ const servidor = http.createServer((req, res) => {
             t.dispatchEvent(new MouseEvent('click'));
         });
         assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «andar»:');
+        // La palabra tocada se ve en degradé violeta, y al cambiarla vuelve a su color.
+        assert.equal(await page.locator('#editor-fondo .tocada').textContent(), 'andar');
+        await page.screenshot({path: `capturas/editor-tocada-${tema}.png`});
         const otra = await page.locator('.sugerencia').first().textContent();
         await page.locator('.sugerencia').first().click();
         assert.ok((await page.locator('#editor-texto').inputValue()).includes(`se hace camino al ${otra}.`));
+        assert.equal(await page.locator('#editor-fondo .tocada').count(), 0);
         await page.screenshot({path: `capturas/editor-cambiar-${tema}.png`});
         await page.locator('#editor-texto').evaluate(t => {
             t.setSelectionRange(t.value.indexOf('Caminante') + 3, t.value.indexOf('Caminante') + 3);
