@@ -349,34 +349,15 @@ a { color: var(--acento); text-decoration: none; }
     /* Alargado de borde a borde de la caja de abajo, a media opacidad (pedidos de Swa). */
     background: radial-gradient(ellipse 50% 100% at 50% 100%, color-mix(in srgb, var(--destacado) 28%, transparent), transparent 100%);
     opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s .35s;
+    /* Solo se mira: la bandeja vuelve al pausar (tocando el círculo) o al terminar el tiempo. */
+    pointer-events: none;
 }
 #pantalla-freestyle.jugando .pausar-fs { opacity: 1; visibility: visible; transition: opacity .35s ease .2s; }
 /* Lo de abajo del resplandor va por encima, y sin sombra oscura hacia arriba que lo tape. */
 #fs-elegir { position: relative; z-index: 1; }
-/* Las cajas de abajo de Freestyle (el cajón del link y el reproductor) son vidrio
-   como el círculo (pedido de Swa): transparentes, con brillo en el borde y aberración
-   cromática, y sin sombra oscura hacia arriba. En SwiftUI: .glassEffect(in: .rect(cornerRadius: 22)). */
-body.freestyle-link .reproductor, .cajon-fs {
-    border-color: rgba(255, 255, 255, 0.18);
-    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.35);
-}
-body.freestyle-link .reproductor-vidrio, .cajon-fs {
-    background:
-        radial-gradient(70% 60% at 70% 100%, rgba(255, 255, 255, 0.08), transparent 60%),
-        linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.07));
-    -webkit-backdrop-filter: blur(6px) saturate(180%); backdrop-filter: blur(6px) saturate(180%);
-}
-body.freestyle-link .reproductor::after, .cajon-fs::after {
-    content: ''; position: absolute; inset: 0; z-index: 3; border-radius: inherit; pointer-events: none;
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-        inset 3px 4px 2px -2px rgba(255, 255, 255, 0.6),
-        inset -3px -4px 2px -2px rgba(255, 255, 255, 0.3),
-        inset 5px 0 7px -4px rgba(255, 60, 120, 0.45),
-        inset -5px 0 7px -4px rgba(60, 200, 255, 0.45),
-        inset 0 5px 7px -4px rgba(255, 220, 90, 0.3),
-        inset 0 -5px 7px -4px rgba(120, 90, 255, 0.4);
-}
+/* El reproductor en Freestyle: el mismo vidrio que la bandeja y la barra de pestañas,
+   sin sombra oscura hacia arriba que tape el resplandor. */
+body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 12px 24px -10px rgba(0, 0, 0, 0.35); }
 .play-fs {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
     background: var(--texto); color: var(--fondo);
@@ -437,7 +418,7 @@ body.freestyle-link .reproductor::after, .cajon-fs::after {
 #pantalla-freestyle { --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075); }
 #fs-elegir { margin-top: 12px; }
 .cajon-fs {
-    position: relative; flex-shrink: 0; max-height: 252px; margin-top: 12px; border-radius: 22px; padding: 8px;
+    flex-shrink: 0; max-height: 252px; margin-top: 12px; border-radius: 22px; padding: 8px;
     display: flex; flex-direction: column; overflow: hidden;
 }
 #pantalla-freestyle.con-link .cajon-fs { display: none; }

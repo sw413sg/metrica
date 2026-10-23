@@ -931,7 +931,7 @@ function reanudarRonda() {
     actualizarEfecto();
 }
 
-// Pausar mientras se juega (el resplandor de abajo o el círculo): se frenan el tiempo
+// Pausar mientras se juega (tocando el círculo): se frenan el tiempo
 // y las palabras, y el beat (o el link) sigue sonando (pedido de Swa). Tocar el círculo
 // en pausa sigue la ronda.
 function pausarJugando() {
@@ -1192,7 +1192,6 @@ $('fs-play').addEventListener('click', () => {
     if (ronda.pausa) return reanudarRonda();
     pausarRonda();
 });
-$('fs-pausar').addEventListener('click', pausarJugando);
 $('fs-reloj').addEventListener('click', () => {
     if (ronda?.pausa) reanudarRonda();
     else pausarJugando();
