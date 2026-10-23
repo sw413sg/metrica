@@ -768,6 +768,12 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
 .reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 3; justify-self: end; }
 #musica-marca[aria-pressed="false"], #musica-bucle[aria-pressed="false"] { color: var(--texto-2); }
+/* En chico, en la libreta van la marca y el bucle sin las flechas, y en las otras secciones
+   las flechas sin la marca ni el bucle. Agrandado va todo (pedido de Swa). */
+body.editando .reproductor:not(.grande) #musica-anterior,
+body.editando .reproductor:not(.grande) #musica-siguiente,
+body:not(.editando) .reproductor:not(.grande) #musica-marca,
+body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 #musica-bucle[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
 #musica-bucle .icono-relleno { fill: currentColor; stroke: none; }
 .reproductor.plegado #musica-anterior,

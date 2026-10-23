@@ -335,14 +335,18 @@ const servidor = http.createServer((req, res) => {
         assert.ok(oculto.x + oculto.width < 0, JSON.stringify(oculto));
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         const pistaNube = await page.locator('#musica-pista').boundingBox();
+        // Como en el iPhone: saltar a una parte que no bajó pausa el tema. Si venía sonando, sigue.
+        await page.evaluate(() => { const w = window.__sc, ir = w.seekTo; w.seekTo = ms => { ir(ms); w.pause(); }; });
         await page.mouse.click(pistaNube.x + pistaNube.width / 2, pistaNube.y + pistaNube.height / 2);
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
         assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - 90000) < 2000);
-        // La marca: a la izquierda de «anterior», del tamaño de las flechas. Marca este momento,
-        // y un toque cerca cae justo en ella.
+        // En la libreta, en chico: la marca y el bucle (del tamaño de las flechas), sin las flechas.
+        // Marca este momento, y un toque cerca cae justo en ella.
+        assert.equal(await page.locator('#musica-anterior').isVisible(), false);
+        assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
         const marcaBoton = await page.locator('#musica-marca').boundingBox();
-        const anteriorBoton = await page.locator('#musica-anterior').boundingBox();
-        assert.ok(marcaBoton.x < anteriorBoton.x && Math.round(marcaBoton.width) === Math.round(anteriorBoton.width));
-        assert.ok((await page.locator('#musica-bucle').boundingBox()).x < anteriorBoton.x);
+        assert.equal(Math.round(marcaBoton.width), 36);
+        assert.ok((await page.locator('#musica-bucle').boundingBox()).x > marcaBoton.x);
         assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
         await page.locator('#musica-marca').click();
         const enLaMarca = await page.evaluate(() => window.__sc.pos);
@@ -1163,8 +1167,19 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#reproductor-titulo', {hasText: 'Beat de prueba'}).waitFor();
         assert.deepEqual(await page.evaluate(() => [window.__ytFsOpciones.listType, window.__ytFsOpciones.list]), ['playlist', 'PLx0sYbCqOb8TBPRdmBHs5Iftvv9TPboYG']);
         assert.equal(await page.locator('#musica-siguiente').getAttribute('aria-disabled'), 'false');
+        // Agrandado se ve todo. La marca es del tema: pasar a otro de la playlist la borra.
+        assert.equal(await page.locator('#musica-marca').isVisible(), true);
+        await page.locator('#musica-marca').click();
+        assert.equal(await page.locator('#musica-marca').getAttribute('aria-pressed'), 'true');
         await page.locator('#musica-siguiente').click();
         await page.locator('#reproductor-titulo', {hasText: 'Beat 2 de la playlist'}).waitFor();
+        assert.equal(await page.locator('#musica-marca').getAttribute('aria-pressed'), 'false');
+        assert.equal(await page.locator('#musica-marca-punto').isVisible(), false);
+        // Fuera de la libreta, en chico: sin la marca ni el bucle.
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#musica-marca').isVisible(), false);
+        assert.equal(await page.locator('#musica-bucle').isVisible(), false);
+        await page.locator('#musica-mostrar').click();
         await page.locator('#musica-siguiente').click();
         await page.locator('#reproductor-titulo', {hasText: 'Beat 3 de la playlist'}).waitFor();
         await page.locator('#musica-anterior').click();
@@ -1205,7 +1220,13 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual(playsNube, ['musica-play']);
         // SoundCloud arranca achicado (pedido de Swa); la flechita lo agranda.
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false, 'SoundCloud arranca achicado');
+        // Fuera de la libreta, en chico: las flechas sin la marca ni el bucle; agrandado, todo.
+        assert.equal(await page.locator('#musica-siguiente').isVisible(), true);
+        assert.equal(await page.locator('#musica-marca').isVisible(), false);
+        assert.equal(await page.locator('#musica-bucle').isVisible(), false);
         await page.locator('#musica-agrandar').click();
+        assert.equal(await page.locator('#musica-marca').isVisible(), true);
+        assert.equal(await page.locator('#musica-bucle').isVisible(), true);
         const beatNube = await page.locator('#reproductor').boundingBox();
         const tabNube = await page.locator('#barra-pestanas').boundingBox();
         assert.ok(beatNube.y + beatNube.height <= tabNube.y + 1, JSON.stringify({beatNube, tabNube}));
