@@ -1807,7 +1807,9 @@ function cerrarHojaMusica() {
     $('hoja-musica').hidden = true;
     $('pantalla-freestyle').querySelector('.contenido').append($('fs-cajon'));
 }
-$('hoja-musica').addEventListener('click', e => { if (!$('fs-cajon').contains(e.target)) cerrarHojaMusica(); });
+// Con el camino del toque y no con contains: la cruz de un reciente ya no está en la página
+// cuando el toque llega acá (la lista se vuelve a armar) y cerraba la hoja.
+$('hoja-musica').addEventListener('click', e => { if (!e.composedPath().includes($('fs-cajon'))) cerrarHojaMusica(); });
 $('musica-play').addEventListener('click', () => {
     if (falloMusica || !musica?.reproducir || (musica.fuente === 'youtube' && plegado)) return;
     musica[sonando ? 'pausar' : 'reproducir']?.();
