@@ -831,8 +831,6 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
     opacity: 0; pointer-events: none;
 }
 .reproductor-oculto iframe { width: 300px; height: 166px; border: 0; }
-/* Prueba (?nube-visible): el reproductor de SoundCloud se ve arriba y se puede tocar. */
-body.nube-visible .reproductor-oculto { top: calc(60px + env(safe-area-inset-top)); left: 16px; z-index: 50; opacity: 1; pointer-events: auto; }
 /* 16 px de aire entre el último verso y la tarjeta. */
 body.con-musica.editando:not(.teclado-abierto) .editor-cuerpo {
     padding-bottom: calc(var(--alto-reproductor, 0px) + env(safe-area-inset-bottom));

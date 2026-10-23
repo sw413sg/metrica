@@ -1688,15 +1688,10 @@ async function escucharMusica(texto) {
             marco.title = 'SoundCloud';
             marco.src = urlWidgetSoundCloud(urlCancion);
             $('reproductor-oculto').replaceChildren(marco);
-            // Prueba: con ?nube-visible el reproductor de SoundCloud se ve arriba y se puede tocar,
-            // para ver si en el iPhone deja de trabarse cuando se lo toca una vez.
-            document.body.classList.toggle('nube-visible', new URLSearchParams(location.search).has('nube-visible'));
             const widget = SC.Widget(marco);
             const { Events } = SC.Widget;
-            let salto = null, rescate = null; // el último salto de la barra (ver irNube)
             const leerPosicion = () => widget.getPosition(ms => {
-                if (arrastrando || (salto && performance.now() < salto.hasta && Math.abs(ms - salto.ms) > 3000)) return;
-                anotarTiempo(ms / 1000);
+                if (!arrastrando) anotarTiempo(ms / 1000);
             });
             // Título y portada de la canción que suena: cambian al pasar de canción en un set.
             const mostrarCancion = () => widget.getCurrentSound(cancion => {
@@ -1733,36 +1728,18 @@ async function escucharMusica(texto) {
             widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); mostrarCancion(); });
             widget.bind(Events.PAUSE, () => { alCambiarEstado(false); leerPosicion(); });
             widget.bind(Events.FINISH, () => { alCambiarEstado(false); volverALaMarca(); });
-            // Después de un salto, el widget manda un rato las posiciones de antes: se ignoran,
-            // para que el punto no vuelva atrás y salte de nuevo.
             widget.bind(Events.PLAY_PROGRESS, data => {
                 const ms = typeof data === 'number' ? data : Number(data?.currentPosition);
                 if (!Number.isFinite(ms)) return;
-                if (salto && performance.now() < salto.hasta && Math.abs(ms - salto.ms) > 3000) return;
-                salto = null;
                 anotarTiempo(ms / 1000);
             });
             widget.bind(Events.ERROR, () => { $('reproductor-titulo').textContent = 'No se pudo reproducir esta canción'; });
-            // En el iPhone, saltar a una parte que no bajó corta el tema: si venía sonando,
-            // se le vuelve a dar play (pedido de Swa).
-            const irNube = segundos => {
-                const seguia = sonando;
-                const ms = Math.round(segundos * 1000);
-                salto = { ms, hasta: performance.now() + 3000 };
-                // Prueba para el iPhone (al adelantar se trababa): si venía sonando, se pausa,
-                // se salta y se le da play recién después, en vez de saltar con el tema andando.
-                clearTimeout(rescate);
-                if (seguia) widget.pause();
-                widget.seekTo(ms);
-                anotarTiempo(segundos);
-                if (seguia) rescate = setTimeout(() => { if (generacion === generacionMusica) widget.play(); }, 400);
-            };
             Object.assign(musica, {
                 reproducir: () => widget.play(),
-                pausar: () => { clearTimeout(rescate); widget.pause(); },
+                pausar: () => widget.pause(),
                 anterior: () => widget.prev(),
                 siguiente: () => widget.next(),
-                ir: irNube,
+                ir: segundos => { widget.seekTo(Math.round(segundos * 1000)); anotarTiempo(segundos); },
                 cerrar: () => marco.remove(),
             });
         }

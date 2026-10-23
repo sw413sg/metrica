@@ -338,16 +338,10 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => document.elementFromPoint(100, 80)?.closest('#reproductor-oculto')), null);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         const pistaNube = await page.locator('#musica-pista').boundingBox();
-        // Como en el iPhone: saltar a una parte que no bajó pausa el tema. Si venía sonando, sigue.
-        await page.evaluate(() => {
-            const w = window.__sc, ir = w.seekTo;
-            w.seekTo = ms => { ir(ms); w.pause(); w.onPLAY_PROGRESS?.({ currentPosition: 5000 }); };
-            w.isPaused = cb => cb(w.paused);
-        });
+        // La barra salta en el tema, que sigue sonando.
         await page.mouse.click(pistaNube.x + pistaNube.width / 2, pistaNube.y + pistaNube.height / 2);
-        // Una posición vieja que llega después del salto no lleva el punto para atrás.
         assert.equal((await page.locator('#musica-tiempo').textContent()).trim(), '1:30');
-        await page.waitForFunction(() => window.__sc.paused === false, null, {timeout: 3000});
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
         assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - 90000) < 2000);
         // En la libreta, en chico: la marca y el bucle (del tamaño de las flechas), sin las flechas.
         // Marca este momento, y un toque cerca cae justo en ella.
