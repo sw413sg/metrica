@@ -519,24 +519,15 @@ select.campo-celda { appearance: none; -webkit-appearance: none; color: var(--te
 .editor-fondo { position: absolute; inset: 0; white-space: pre-wrap; overflow-wrap: break-word; color: var(--texto); pointer-events: none; }
 .editor-fondo mark { color: inherit; border-radius: 4px; }
 /* La palabra tocada, en degradé violeta mientras se la cambia (el texto que se ve es el del fondo),
-   con un brillo que la cruza y destellos que titilan, como los nombres especiales de Discord. */
+   con un brillo que la cruza, como los nombres especiales de Discord. */
 .editor-fondo .tocada {
-    position: relative;
     background: linear-gradient(100deg, var(--destacado) 0 35%, #f4ecff 48%, var(--destacado-2) 60%, var(--destacado) 100%) 0 0 / 250% 100%;
     -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 6px color-mix(in srgb, var(--destacado) 55%, transparent));
     animation: brillo-tocada 2.2s linear infinite;
 }
-.editor-fondo .tocada::before, .editor-fondo .tocada::after {
-    content: '✦'; position: absolute; font-size: 0.8em; line-height: 1; pointer-events: none;
-    -webkit-text-fill-color: var(--destacado-2); color: var(--destacado-2); text-shadow: 0 0 6px var(--destacado-2), 0 0 2px #fff;
-    animation: destello-tocada 1.6s ease-in-out infinite;
-}
-.editor-fondo .tocada::before { top: -0.5em; right: -0.55em; }
-.editor-fondo .tocada::after { bottom: -0.2em; left: -0.5em; font-size: 0.55em; animation-delay: 0.8s; }
 @keyframes brillo-tocada { from { background-position: 100% 0; } to { background-position: -150% 0; } }
-@keyframes destello-tocada { 0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(90deg); } }
-@media (prefers-reduced-motion: reduce) { .editor-fondo .tocada, .editor-fondo .tocada::before, .editor-fondo .tocada::after { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .editor-fondo .tocada { animation: none; } }
 /* Separadores de partes ([Estribillo], [Hook]...): violeta, como lo especial. */
 .editor-fondo mark.seccion { background: var(--destacado-suave); box-shadow: inset 3px 0 0 var(--destacado); border-radius: 4px; }
 /* Un color por terminación, en el orden en que aparecen en la letra: 12 tonos, cada uno
