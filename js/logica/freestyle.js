@@ -60,8 +60,9 @@ export function cambiaLaPalabra(paso, compases) {
 }
 
 // Velocidad de cambio de palabra (Ajustes > Freestyle), de 1 a 10: cuántos compases dura
-// cada palabra. En 5, 2 compases, como era antes. Se guarda en el almacén (localStorage).
-export const COMPASES_POR_VELOCIDAD = [6, 4, 3, 2.5, 2, 1.5, 1, 0.75, 0.5, 0.25];
+// cada palabra. En 5, 2 compases, como era antes, y en 1, 4 (con 6 parecía congelada,
+// pedido de Swa). Se guarda en el almacén (localStorage).
+export const COMPASES_POR_VELOCIDAD = [4, 3.5, 3, 2.5, 2, 1.5, 1, 0.75, 0.5, 0.25];
 export const VELOCIDAD_MAXIMA = COMPASES_POR_VELOCIDAD.length;
 export const VELOCIDAD_INICIAL = 5;
 const CLAVE_VELOCIDAD = 'metrica.velocidad-palabras';

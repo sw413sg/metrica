@@ -164,6 +164,8 @@ test('la velocidad de cambio de palabra va de 1 a 10 y en 5 son 2 compases', asy
     const almacen = { getItem: k => datos.has(k) ? datos.get(k) : null, setItem: (k, v) => datos.set(k, v) };
     assert.equal(leerVelocidad(almacen), 5);
     assert.equal(compasesDeVelocidad(5), 2);
+    // La más lenta es un mínimo, no la congela: 4 compases.
+    assert.equal(compasesDeVelocidad(1), 4);
     assert.equal(guardarVelocidad(almacen, '9'), 9);
     assert.equal(leerVelocidad(almacen), 9);
     assert.equal(guardarVelocidad(almacen, 30), 10);
