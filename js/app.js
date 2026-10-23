@@ -5,7 +5,7 @@ import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInte
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
@@ -57,52 +57,103 @@ function mostrarVista(id) {
     ubicarReproductor();
 }
 
+// Las tarjetas en el orden en que se ven (cambia mientras se arrastra una).
+let tarjetasLetras = [];
+
 function renderizarLetras() {
     const letras = listarLetras(localStorage);
-    // Cada letra es una tarjeta con la fecha, el título y el principio del texto.
+    // Cada letra es una tarjeta con el título y el principio del texto.
     const parte = (clase, texto) => {
         const span = document.createElement('span');
         span.className = clase;
         span.textContent = texto;
         return span;
     };
-    $('lista-letras').replaceChildren(...letras.map((letra, i) => {
+    tarjetasLetras = letras.map(letra => {
         const tarjeta = document.createElement('li');
-        // La primera (la última que se tocó) va grande, arriba; el resto de a dos.
-        tarjeta.className = i === 0 ? 'tarjeta-letra destacada' : 'tarjeta-letra';
+        tarjeta.className = 'tarjeta-letra';
         const boton = document.createElement('button');
-        const fecha = new Date(letra.editada).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
-        boton.append(parte('fecha-letra', fecha), parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
-        const fueArrastrada = arrastrarParaBorrar(tarjeta, boton, letra);
+        boton.append(parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
+        const fueArrastrada = arrastrarTarjeta(tarjeta, boton, letra);
         boton.addEventListener('click', () => { if (!fueArrastrada()) abrirEditor(letra); });
         tarjeta.append(boton);
         return tarjeta;
-    }));
+    });
+    ubicarTarjetas();
+    $('lista-letras').replaceChildren(...tarjetasLetras);
     $('letras-vacio').hidden = letras.length > 0;
 }
 
-// Para borrar una letra se mantiene apretada la tarjeta y se la arrastra al tacho, que aparece
-// entre el título y las tarjetas. En SwiftUI: .draggable en la tarjeta y .dropDestination en el tacho.
-function arrastrarParaBorrar(tarjeta, boton, letra) {
+// Cada tarjeta va en su lugar de la grilla (la "+" es el lugar 0): de a tres, dos chicas y
+// una larga, y en el grupo siguiente al revés.
+function ubicarTarjetas() {
+    tarjetasLetras.forEach((tarjeta, i) => {
+        const { columna, fila, larga } = lugarEnGrilla(i + 1);
+        tarjeta.style.gridColumn = columna;
+        tarjeta.style.gridRow = `${fila} / span ${larga ? 2 : 1}`;
+        tarjeta.classList.toggle('destacada', larga);
+    });
+}
+
+// Mueve la tarjeta a otro lugar mientras se arrastra; las demás se corren con una animación.
+function reacomodar(tarjeta, lugar) {
+    const grilla = $('lista-letras').parentElement.getBoundingClientRect();
+    const antes = new Map(tarjetasLetras.map(t => [t, t.getBoundingClientRect()]));
+    tarjetasLetras.splice(tarjetasLetras.indexOf(tarjeta), 1);
+    tarjetasLetras.splice(lugar, 0, tarjeta);
+    ubicarTarjetas();
+    for (const t of tarjetasLetras) {
+        if (t === tarjeta) continue;
+        const a = antes.get(t);
+        const x = a.left - grilla.left - t.offsetLeft, y = a.top - grilla.top - t.offsetTop;
+        t.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'none' }], { duration: 250, easing: 'ease-out' });
+    }
+}
+
+// Mantener apretada una tarjeta la levanta: pasarla por arriba de otra la cambia de lugar, y
+// soltarla en el tacho (que aparece entre el título y las tarjetas) la borra.
+// En SwiftUI: .draggable en la tarjeta, y .dropDestination en las otras y en el tacho.
+function arrastrarTarjeta(tarjeta, boton, letra) {
     let espera = null, arrastrando = false, arrastrada = false, inicio = null, desde = null, dedo = null, cuadro = null;
+    let sobre = null, lugarInicial = 0, scrollInicial = 0;
     const tacho = $('tacho');
+    const lista = $('vista-lista-letras');
     const sobreTacho = () => {
         const r = tacho.getBoundingClientRect();
         return dedo.x >= r.left && dedo.x <= r.right && dedo.y >= r.top - 12 && dedo.y <= r.bottom + 12;
     };
-    // La tarjeta sigue al dedo aunque la grilla se corra cuando aparece el tacho
-    // (offsetLeft/offsetTop no cambian con el transform, solo con la grilla).
+    // Qué otra tarjeta tiene el dedo encima, según su lugar en la grilla (sin las animaciones).
+    const tarjetaBajoElDedo = () => {
+        const g = $('lista-letras').parentElement.getBoundingClientRect();
+        return tarjetasLetras.find(t => {
+            if (t === tarjeta) return false;
+            const x = dedo.x - g.left - t.offsetLeft, y = dedo.y - g.top - t.offsetTop;
+            return x >= 0 && y >= 0 && x <= t.offsetWidth && y <= t.offsetHeight;
+        });
+    };
+    // La tarjeta sigue al dedo aunque la grilla se corra (cuando aparece el tacho, cuando cambia
+    // de lugar o cuando la pantalla se desplaza): offsetLeft/offsetTop no cambian con el transform.
     const seguir = () => {
+        // Cerca de los bordes, la lista se desplaza sola para llegar al tacho o a las de abajo.
+        const alto = lista.getBoundingClientRect();
+        if (dedo.y < alto.top + 90) lista.scrollTop -= 8;
+        else if (dedo.y > alto.bottom - 130) lista.scrollTop += 8;
         const x = dedo.x - inicio.x - (tarjeta.offsetLeft - desde.left);
-        const y = dedo.y - inicio.y - (tarjeta.offsetTop - desde.top);
+        const y = dedo.y - inicio.y - (tarjeta.offsetTop - desde.top) + (lista.scrollTop - scrollInicial);
         tarjeta.style.transform = `translate(${x}px, ${y}px)`;
-        tacho.classList.toggle('encima', sobreTacho());
-        tarjeta.classList.toggle('sobre-tacho', sobreTacho());
+        const enTacho = sobreTacho();
+        tacho.classList.toggle('encima', enTacho);
+        tarjeta.classList.toggle('sobre-tacho', enTacho);
+        const otra = enTacho ? null : tarjetaBajoElDedo();
+        if (otra && otra !== sobre) reacomodar(tarjeta, tarjetasLetras.indexOf(otra));
+        sobre = otra;
         cuadro = requestAnimationFrame(seguir);
     };
     const empezar = () => {
         arrastrando = arrastrada = true;
         desde = { left: tarjeta.offsetLeft, top: tarjeta.offsetTop };
+        scrollInicial = lista.scrollTop;
+        lugarInicial = tarjetasLetras.indexOf(tarjeta);
         tarjeta.classList.add('arrastrando');
         tacho.classList.add('visible');
         navigator.vibrate?.(10);
@@ -113,6 +164,7 @@ function arrastrarParaBorrar(tarjeta, boton, letra) {
         inicio = null;
         if (!arrastrando) return;
         arrastrando = false;
+        sobre = null;
         cancelAnimationFrame(cuadro);
         const borrar = sobreTacho();
         // Mientras pregunta, la tarjeta queda sobre el tacho.
@@ -120,11 +172,14 @@ function arrastrarParaBorrar(tarjeta, boton, letra) {
             tacho.classList.remove('visible', 'encima');
             tarjeta.classList.remove('arrastrando', 'sobre-tacho');
         };
+        // Vuelve a su lugar (el nuevo, si se la cambió) y se guarda el orden.
         const volver = () => {
             soltar();
             tarjeta.classList.add('volviendo');
             tarjeta.style.transform = '';
-            setTimeout(() => tarjeta.classList.remove('volviendo'), 300);
+            const lugar = tarjetasLetras.indexOf(tarjeta);
+            if (lugar !== lugarInicial) moverLetra(localStorage, letra.id, lugar);
+            setTimeout(() => { tarjeta.classList.remove('volviendo'); if (lugar !== lugarInicial) renderizarLetras(); }, 300);
         };
         if (!borrar) return volver();
         confirmarBorrado(letra, ok => {

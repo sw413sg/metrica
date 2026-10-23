@@ -582,7 +582,8 @@ const servidor = http.createServer((req, res) => {
         // La letra queda guardada, también después de recargar.
         assert.equal(await page.locator('#lista-letras .titulo-letra').textContent(), 'Sacred Geometry');
         assert.match(await page.locator('#lista-letras .texto-letra').textContent(), /^Caminante, no hay camino,/);
-        assert.match(await page.locator('#lista-letras .fecha-letra').textContent(), /^\d\d\/\d\d$/);
+        // La tarjeta empieza con el título, sin la fecha.
+        assert.equal(await page.locator('#lista-letras .fecha-letra').count(), 0);
         await page.reload();
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 1);
         await page.screenshot({path: `capturas/letras-guardadas-${tema}.png`});
@@ -651,6 +652,46 @@ const servidor = http.createServer((req, res) => {
         await page.waitForTimeout(500);
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
         // Un toque común sigue abriendo la letra (ver arriba): acá ya no queda ninguna.
+
+        // Varias letras: la última editada va primera, de a tres (dos chicas y una larga, después
+        // al revés), y mantener apretada una tarjeta y pasarla por arriba de otra las cambia de lugar.
+        await page.evaluate(() => localStorage.setItem('metrica.letras', JSON.stringify(
+            ['A', 'B', 'C', 'D', 'E', 'F'].map((t, i) => ({ id: t, titulo: t, texto: 'verso', creada: i, editada: i + 1 })))));
+        await page.reload();
+        await page.waitForTimeout(500);
+        const titulos = () => page.locator('#lista-letras .titulo-letra').allTextContents();
+        assert.deepEqual(await titulos(), ['F', 'E', 'D', 'C', 'B', 'A']);
+        const tarjetaDe = t => page.locator('#lista-letras .tarjeta-letra').filter({has: page.getByText(t, {exact: true})});
+        const cajaDe = t => tarjetaDe(t).boundingBox();
+        const [mas, f, e, d, c, b] = [await page.locator('#nueva-letra').boundingBox(), await cajaDe('F'), await cajaDe('E'), await cajaDe('D'), await cajaDe('C'), await cajaDe('B')];
+        // "+" y E chicas a la izquierda, F larga a la derecha; después D larga a la izquierda, C y B chicas a la derecha.
+        assert.ok(mas.x < f.x && e.x === mas.x && f.height > mas.height * 2 && e.y > mas.y);
+        assert.ok(d.x === mas.x && d.height > mas.height * 2 && c.x === f.x && b.x === f.x && b.y > c.y);
+        await page.screenshot({path: `capturas/letras-grilla-${tema}.png`});
+        // Arrastrar D arriba de F la pone primera, y queda así al volver a entrar.
+        const dd = await cajaDe('D');
+        await page.mouse.move(dd.x + dd.width / 2, dd.y + 40);
+        await page.mouse.down();
+        await page.waitForTimeout(600);
+        const f2 = await cajaDe('F');
+        await page.mouse.move(f2.x + f2.width / 2, f2.y + 60, {steps: 30});
+        await page.waitForTimeout(400);
+        await page.mouse.up();
+        await page.waitForTimeout(500);
+        assert.deepEqual(await titulos(), ['D', 'F', 'E', 'C', 'B', 'A']);
+        assert.equal(await page.locator('#vista-editor').isVisible(), false);
+        await page.reload();
+        await page.waitForTimeout(500);
+        assert.deepEqual(await titulos(), ['D', 'F', 'E', 'C', 'B', 'A']);
+        // Editar una la vuelve a poner primera.
+        await tarjetaDe('C').locator('button').click();
+        await page.locator('#editor-texto').press('End');
+        await page.locator('#editor-texto').type(' nuevo');
+        await page.locator('#editor-atras').click();
+        assert.deepEqual(await titulos(), ['C', 'D', 'F', 'E', 'B', 'A']);
+        await page.evaluate(() => localStorage.removeItem('metrica.letras'));
+        await page.reload();
+        await page.waitForTimeout(500);
 
         // Rimas: 6 palabras al azar que cambian solas; escribir una palabra las cambia por rimas.
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
