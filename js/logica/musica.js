@@ -101,24 +101,6 @@ export function segundosEn(puntero, ancho, duracion) {
     return Math.min(1, Math.max(0, puntero / ancho)) * duracion;
 }
 
-// SoundCloud en el iPhone no sigue sonando si se salta a una parte que todavía no bajó
-// (atrás de lo escuchado sí anda: lo descubrió Swa). Lo bajado se lleva como un tramo
-// { desde, hasta } en ms, que crece mientras suena de corrido.
-export function crecerTramo(tramo, ms, salto = 5000) {
-    if (ms >= tramo.desde - 1000 && ms <= tramo.hasta + salto) return { desde: tramo.desde, hasta: Math.max(tramo.hasta, ms) };
-    return tramo;
-}
-
-export function dentroDelTramo(tramo, ms, margen = 5000) {
-    return ms >= tramo.desde && ms <= tramo.hasta + margen;
-}
-
-// El link del tema para cargarlo desde un momento: SoundCloud acepta #t=m:ss.
-export function urlNubeDesde(url, segundos) {
-    const total = Math.max(0, Math.floor(segundos));
-    return `${String(url).split('#')[0]}#t=${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
-}
-
 // La marca de la barra es imantada: un toque o un arrastre a menos de `radio` px de ella
 // cae justo en la marca.
 export function imantar(segundos, marca, duracion, ancho, radio = 16) {

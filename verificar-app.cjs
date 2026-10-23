@@ -314,15 +314,7 @@ const servidor = http.createServer((req, res) => {
                 w.getDuration = cb => cb(180000);
                 w.seekTo = ms => { w.pos = ms; };
                 w.getSounds = cb => cb([{}]);
-                w.getCurrentSound = cb => cb({ title: 'Tema nube', permalink_url: 'https://soundcloud.com/artista/tema' });
-                w.isPaused = cb => cb(w.paused);
-                // Cargar de nuevo con #t=m:ss arranca desde ahí.
-                w.load = url => {
-                    w.cargado = url;
-                    const t = /#t=(\\d+):(\\d+)/.exec(url);
-                    w.paused = true; w.pos = t ? (Number(t[1]) * 60 + Number(t[2])) * 1000 : 0;
-                    setTimeout(() => w.onREADY?.());
-                };
+                w.getCurrentSound = cb => cb({ title: 'Tema nube' });
                 setTimeout(() => w.onREADY?.());
                 return w;
             } };
@@ -346,24 +338,17 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => document.elementFromPoint(100, 80)?.closest('#reproductor-oculto')), null);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         const pistaNube = await page.locator('#musica-pista').boundingBox();
-        // Saltar a una parte que todavía no bajó (en el iPhone se cortaba): se carga el tema de
-        // nuevo desde ahí, con #t=m:ss, y sigue sonando.
-        await page.mouse.click(pistaNube.x + pistaNube.width / 2, pistaNube.y + pistaNube.height / 2);
-        assert.match(await page.evaluate(() => window.__sc.cargado), /^https:\/\/soundcloud\.com\/artista\/tema#t=1:(29|30|31)$/);
-        await page.waitForFunction(() => window.__sc.paused === false, null, {timeout: 3000});
-        assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - 90000) < 2000);
-        await page.evaluate(() => window.__sc.onPLAY_PROGRESS({ currentPosition: window.__sc.pos }));
-        // Dentro de lo que ya bajó, salta normal. Si el salto lo deja en pausa, sigue solo;
-        // una posición vieja que llega después no lleva el punto para atrás.
+        // Como en el iPhone: saltar a una parte que no bajó pausa el tema. Si venía sonando, sigue.
         await page.evaluate(() => {
             const w = window.__sc, ir = w.seekTo;
-            w.cargado = null;
-            w.seekTo = ms => { ir(ms); w.pause(); w.onPLAY_PROGRESS?.({ currentPosition: 5000 }); w.seekTo = ir; };
+            w.seekTo = ms => { ir(ms); w.pause(); w.onPLAY_PROGRESS?.({ currentPosition: 5000 }); };
+            w.isPaused = cb => cb(w.paused);
         });
-        await page.mouse.click(pistaNube.x + pistaNube.width / 2 + 4, pistaNube.y + pistaNube.height / 2);
-        assert.equal(await page.evaluate(() => window.__sc.cargado), null);
-        assert.notEqual((await page.locator('#musica-tiempo').textContent()).trim(), '0:05');
+        await page.mouse.click(pistaNube.x + pistaNube.width / 2, pistaNube.y + pistaNube.height / 2);
+        // Una posición vieja que llega después del salto no lleva el punto para atrás.
+        assert.equal((await page.locator('#musica-tiempo').textContent()).trim(), '1:30');
         await page.waitForFunction(() => window.__sc.paused === false, null, {timeout: 3000});
+        assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - 90000) < 2000);
         // En la libreta, en chico: la marca y el bucle (del tamaño de las flechas), sin las flechas.
         // Marca este momento, y un toque cerca cae justo en ella.
         assert.equal(await page.locator('#musica-anterior').isVisible(), false);
@@ -375,15 +360,15 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-marca').click();
         const enLaMarca = await page.evaluate(() => window.__sc.pos);
         assert.equal(await page.locator('#musica-marca-punto').isVisible(), true);
-        await page.mouse.click(pistaNube.x + pistaNube.width / 2 + 10, pistaNube.y + pistaNube.height / 2);
-        assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - enLaMarca) < 1000);
+        await page.mouse.click(pistaNube.x + pistaNube.width / 2 + 8, pistaNube.y + pistaNube.height / 2);
+        assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
         await page.mouse.click(pistaNube.x + pistaNube.width * 0.8, pistaNube.y + pistaNube.height / 2);
-        await page.waitForFunction(m => window.__sc.pos > m + 30000 && !window.__sc.paused, enLaMarca, {timeout: 3000});
+        assert.ok(await page.evaluate(() => window.__sc.pos) > enLaMarca + 30000);
         // El bucle: al terminar el tema vuelve a la marca y sigue sonando.
         await page.locator('#musica-bucle').click();
         assert.equal(await page.locator('#musica-bucle').getAttribute('aria-pressed'), 'true');
         await page.evaluate(() => { window.__sc.pos = 179000; window.__sc.paused = true; window.__sc.onFINISH(); });
-        assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - enLaMarca) < 1000);
+        assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         await page.screenshot({path: `capturas/reproductor-marca-${tema}.png`});
         await page.evaluate(() => document.body.classList.add('teclado-abierto'));
