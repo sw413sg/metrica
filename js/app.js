@@ -782,6 +782,8 @@ function mostrarCuentaIdle() {
 }
 
 function alPasoBeat(paso, bombo) {
+    // Para verificar-app.cjs: el beat sigue andando aunque la ronda esté en pausa.
+    document.documentElement.dataset.pasoBeat = paso;
     if (!ronda || ronda.pausa) return;
     // El resplandor late en cada kick del beat.
     if (bombo) efecto.golpe(paso % 16 === 0 ? 1 : 0.8);
@@ -896,10 +898,12 @@ function empezarRonda() {
     actualizarEfecto();
 }
 
-function pausarRonda() {
+// Con pararSonido en false se frenan el tiempo y las palabras, pero el beat sigue.
+function pausarRonda(pararSonido = true) {
     if (!ronda || ronda.pausa) return;
     ronda.pausa = performance.now();
-    detenerBeat();
+    ronda.sigueSonando = !pararSonido;
+    if (pararSonido) detenerBeat();
     marcarSonando(true);
     actualizarEfecto();
 }
@@ -908,17 +912,18 @@ function reanudarRonda() {
     if (!ronda?.pausa) return;
     ronda.inicio += performance.now() - ronda.pausa;
     ronda.pausa = null;
-    if (ronda.modo === 'beat' || ronda.modo === 'archivo') ronda.modo = arrancarSonido();
+    if (!ronda.sigueSonando && (ronda.modo === 'beat' || ronda.modo === 'archivo')) ronda.modo = arrancarSonido();
+    ronda.sigueSonando = false;
     marcarSonando(true);
     actualizarEfecto();
 }
 
-// Pausar mientras se juega (el resplandor de abajo o el círculo). Con un link pausa el
-// reproductor, y la ronda lo sigue.
+// Pausar mientras se juega (el resplandor de abajo o el círculo): se frenan el tiempo
+// y las palabras, y el beat (o el link) sigue sonando (pedido de Swa). Tocar el círculo
+// en pausa sigue la ronda.
 function pausarJugando() {
     if (!ronda || ronda.pausa) return;
-    if (linkFreestyle) return musica?.pausar?.();
-    pausarRonda();
+    pausarRonda(false);
 }
 
 function terminarRonda(porTiempo = false) {
@@ -1175,7 +1180,10 @@ $('fs-play').addEventListener('click', () => {
     pausarRonda();
 });
 $('fs-pausar').addEventListener('click', pausarJugando);
-$('fs-reloj').addEventListener('click', pausarJugando);
+$('fs-reloj').addEventListener('click', () => {
+    if (ronda?.pausa) reanudarRonda();
+    else pausarJugando();
+});
 // La bandeja solo se ve en pausa: ahí la flecha vuelve todo al principio (cronómetro y
 // palabras). Con un link, la música queda donde estaba.
 $('fs-reiniciar').addEventListener('click', () => {

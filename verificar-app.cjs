@@ -780,8 +780,10 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-pausar').isVisible(), false);
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
         const enPausa = await page.locator('#fs-cuenta').textContent();
+        const pasoEnPausa = await page.evaluate(() => document.documentElement.dataset.pasoBeat);
         await page.waitForTimeout(1100);
         assert.equal(await page.locator('#fs-cuenta').textContent(), enPausa, 'en pausa el reloj no sigue');
+        assert.notEqual(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoEnPausa, 'tocar el resplandor no frena el beat');
         // Todo entra en la bandeja: play, reiniciar y las 4 duraciones, sin scroll.
         assert.ok(await page.locator('#fs-duraciones').evaluate(e => e.scrollWidth <= e.clientWidth + 1), 'las duraciones entran');
         const reiniciarCaja = await page.locator('#fs-reiniciar').boundingBox();
@@ -790,11 +792,12 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#fs-play').click();
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Pausar');
         await page.waitForFunction(c => document.getElementById('fs-cuenta').textContent !== c, enPausa);
-        // Tocar el círculo también pausa.
+        // Tocar el círculo también pausa, y tocarlo en pausa sigue.
         await page.waitForTimeout(400);
         await page.locator('#fs-reloj').click();
         assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
-        await page.locator('#fs-play').click();
+        await page.locator('#fs-reloj').click();
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Pausar');
         await page.waitForTimeout(400);
         // El resplandor late en los kicks del beat.
         assert.ok(Number(await page.locator('#fs-efecto').getAttribute('data-golpes')) > 2, 'late con el bombo');
