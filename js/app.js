@@ -432,6 +432,7 @@ editorTexto.addEventListener('click', () => {
     const inicioVerso = value.lastIndexOf('\n', selectionStart - 1) + 1;
     const finVerso = value.indexOf('\n', selectionStart) < 0 ? value.length : value.indexOf('\n', selectionStart);
     if (!value.slice(inicioVerso, finVerso).trim()) {
+        marcarTocada(null);
         mostrarSugerencias(null, 'Marcar:', SECCIONES);
         reemplazo = { inicio: inicioVerso, fin: finVerso, seccion: true };
         mostrarCursorDespues();
@@ -461,6 +462,10 @@ const ocultarSugerencias = () => {
     marcarTocada(null);
 };
 editorTexto.addEventListener('blur', ocultarSugerencias);
+// En el iPhone tocar algo que no es un campo no cierra el teclado (no hay blur): igual se suelta la palabra.
+document.addEventListener('pointerdown', e => {
+    if (reemplazo && e.target !== editorTexto && !e.target.closest('#sugerencias')) ocultarSugerencias();
+});
 for (const evento of ['touchmove', 'wheel']) editorTexto.closest('.editor').addEventListener(evento, ocultarSugerencias, { passive: true });
 // Deslizar bastante (más de 150px) también cierra el teclado; poco, no: capaz solo querías ver un verso de abajo.
 let inicioDeslizar = 0;

@@ -85,6 +85,14 @@ const servidor = http.createServer((req, res) => {
         await page.locator('.sugerencia').first().click();
         assert.ok((await page.locator('#editor-texto').inputValue()).includes(`se hace camino al ${otra}.`));
         assert.equal(await page.locator('#editor-fondo .tocada').count(), 0);
+        // Tocar en otro lado (algo que no es un campo) también la suelta.
+        await page.locator('#editor-texto').evaluate(t => {
+            t.setSelectionRange(t.value.indexOf('volver') + 2, t.value.indexOf('volver') + 2);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
+        assert.equal(await page.locator('#editor-fondo .tocada').textContent(), 'volver');
+        await page.locator('#silabas').dispatchEvent('pointerdown');
+        assert.equal(await page.locator('#editor-fondo .tocada').count(), 0);
         await page.screenshot({path: `capturas/editor-cambiar-${tema}.png`});
         await page.locator('#editor-texto').evaluate(t => {
             t.setSelectionRange(t.value.indexOf('Caminante') + 3, t.value.indexOf('Caminante') + 3);
