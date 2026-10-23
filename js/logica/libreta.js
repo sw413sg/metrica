@@ -7,7 +7,7 @@ export const AJUSTES_LIBRETA = {
     tamano: {
         nombre: 'Tamaño de letra',
         deslizador: true,
-        porDefecto: '5',
+        porDefecto: '4',
         opciones: diezPuntos([13, 14, 15, 16, 17, 18, 19, 20, 22, 24]),
     },
     separacion: {
@@ -20,13 +20,13 @@ export const AJUSTES_LIBRETA = {
     letras: {
         nombre: 'Separación de letras',
         deslizador: true,
-        porDefecto: '6',
+        porDefecto: '5',
         opciones: diezPuntos([-0.05, -0.04, -0.03, -0.02, -0.01, 0, 0.02, 0.04, 0.06, 0.08]),
     },
     // Rimas internas: a cuántos versos se buscan las palabras del medio que riman.
     internas: {
         nombre: 'Rimas internas',
-        porDefecto: 'cuatro',
+        porDefecto: 'dos',
         opciones: { no: { nombre: 'No', valor: 0 }, dos: { nombre: '2 versos', valor: 2 }, cuatro: { nombre: '4 versos', valor: 4 }, ocho: { nombre: '8 versos', valor: 8 } },
     },
     fuente: {

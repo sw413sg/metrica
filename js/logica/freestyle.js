@@ -59,6 +59,29 @@ export function cambiaLaPalabra(paso, compases) {
     return paso % (PASOS_POR_COMPAS * compases) === 0;
 }
 
+// Velocidad de cambio de palabra (Ajustes > Freestyle), de 1 a 10: cuántos compases dura
+// cada palabra. En 5, 2 compases, como era antes. Se guarda en el almacén (localStorage).
+export const COMPASES_POR_VELOCIDAD = [6, 4, 3, 2.5, 2, 1.5, 1, 0.75, 0.5, 0.25];
+export const VELOCIDAD_MAXIMA = COMPASES_POR_VELOCIDAD.length;
+export const VELOCIDAD_INICIAL = 5;
+const CLAVE_VELOCIDAD = 'metrica.velocidad-palabras';
+
+export function leerVelocidad(almacen) {
+    const guardada = almacen.getItem(CLAVE_VELOCIDAD);
+    const numero = Number(guardada);
+    return guardada !== null && Number.isInteger(numero) && numero >= 1 && numero <= VELOCIDAD_MAXIMA ? numero : VELOCIDAD_INICIAL;
+}
+
+export function guardarVelocidad(almacen, velocidad) {
+    const numero = Math.round(Math.min(VELOCIDAD_MAXIMA, Math.max(1, Number(velocidad) || VELOCIDAD_INICIAL)));
+    almacen.setItem(CLAVE_VELOCIDAD, String(numero));
+    return numero;
+}
+
+export function compasesDeVelocidad(velocidad) {
+    return COMPASES_POR_VELOCIDAD[velocidad - 1] ?? COMPASES_POR_VELOCIDAD[VELOCIDAD_INICIAL - 1];
+}
+
 // Una ronda del aro son 8 compases: el aro se carga y los puntitos se van llenando.
 export const COMPASES_POR_RONDA = 8;
 
