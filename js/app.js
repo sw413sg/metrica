@@ -12,7 +12,7 @@ import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearEfecto } from './efectos.js';
 import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
-import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
+import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
@@ -476,6 +476,8 @@ let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segu
 let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = false;
 let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null;
+// La marca imantada del tema que suena (en segundos) y si al terminar vuelve a ella.
+let marca = null, volverAMarca = false;
 
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
 if (window.visualViewport) {
@@ -1465,6 +1467,27 @@ function pintarProgreso() {
     $('musica-pista').setAttribute('aria-valuemax', String(Math.round(duracion)));
     $('musica-pista').setAttribute('aria-valuenow', String(Math.round(actual)));
     $('reproductor').classList.toggle('arrastrando', arrastrando);
+    pintarMarca();
+}
+
+function pintarMarca() {
+    const hay = marca != null && duracion > 0;
+    $('musica-marca-punto').hidden = !hay;
+    if (hay) $('musica-marca-punto').style.left = `${fraccionDe(marca, duracion) * 100}%`;
+    $('musica-marca').setAttribute('aria-pressed', String(marca != null));
+    $('musica-bucle').setAttribute('aria-disabled', String(marca == null));
+    $('musica-bucle').setAttribute('aria-pressed', String(volverAMarca && marca != null));
+    // El archivo del teléfono va en loop desde el principio; con el bucle, vuelve a la marca.
+    const audio = $('reproductor-oculto').querySelector('audio');
+    if (audio) audio.loop = !(volverAMarca && marca != null);
+}
+
+// Cuando el tema termina: con el bucle prendido, sigue desde la marca.
+function volverALaMarca() {
+    if (!volverAMarca || marca == null || !musica?.ir) return false;
+    musica.ir(marca);
+    musica.reproducir?.();
+    return true;
 }
 
 function mostrarEstadoMusica() {
@@ -1604,6 +1627,7 @@ async function escucharMusica(texto) {
                         if (titulo) $('reproductor-titulo').textContent = titulo;
                         leerYouTube();
                         alCambiarEstado(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
+                        if (e.data === YT.PlayerState.ENDED) volverALaMarca();
                     },
                     onAutoplayBlocked: () => { if (!falloMusica) alCambiarEstado(false); },
                     onError: () => {
@@ -1687,7 +1711,7 @@ async function escucharMusica(texto) {
             });
             widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); mostrarCancion(); });
             widget.bind(Events.PAUSE, () => { alCambiarEstado(false); leerPosicion(); });
-            widget.bind(Events.FINISH, () => alCambiarEstado(false));
+            widget.bind(Events.FINISH, () => { alCambiarEstado(false); volverALaMarca(); });
             widget.bind(Events.PLAY_PROGRESS, data => {
                 const ms = typeof data === 'number' ? data : Number(data?.currentPosition);
                 if (Number.isFinite(ms)) anotarTiempo(ms / 1000);
@@ -1734,6 +1758,7 @@ function escucharArchivo(archivo, titulo) {
     audio.addEventListener('timeupdate', () => anotarTiempo(audio.currentTime, audio.duration));
     audio.addEventListener('play', () => alCambiarEstado(true));
     audio.addEventListener('pause', () => alCambiarEstado(false));
+    audio.addEventListener('ended', volverALaMarca);
     audio.addEventListener('error', () => {
         falloMusica = true;
         sonando = false;
@@ -1761,6 +1786,8 @@ function cerrarMusica() {
     progresoTimer = null;
     musica?.cerrar?.();
     musica = null;
+    marca = null;
+    volverAMarca = false;
     sonando = false;
     plegado = false;
     plegarAlPausar = false;
@@ -1857,8 +1884,19 @@ $('musica-cerrar').addEventListener('click', () => {
 
 function segundosDesdePuntero(clientX) {
     const r = $('musica-pista').getBoundingClientRect();
-    return segundosEn(clientX - r.left, r.width, duracion);
+    return imantar(segundosEn(clientX - r.left, r.width, duracion), marca, duracion, r.width);
 }
+// La marca: tocarla (sonando o en pausa) marca este momento; el bucle vuelve ahí al terminar.
+$('musica-marca').addEventListener('click', () => {
+    if (!musica || !duracion) return;
+    marca = actual;
+    pintarMarca();
+});
+$('musica-bucle').addEventListener('click', () => {
+    if (marca == null) return;
+    volverAMarca = !volverAMarca;
+    pintarMarca();
+});
 $('musica-pista').addEventListener('pointerdown', e => {
     if (!duracion || !musica?.ir) return;
     arrastrando = true;

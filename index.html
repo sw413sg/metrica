@@ -293,6 +293,13 @@
                         <span class="reproductor-fuente" id="reproductor-fuente"></span>
                     </div>
                     <div class="reproductor-acciones">
+                        <!-- Marca imantada en la barra, y volver a ella cuando termina el tema (pedido de Swa). -->
+                        <button class="boton-musica" id="musica-marca" aria-label="Marcar este momento" aria-pressed="false">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>
+                        </button>
+                        <button class="boton-musica" id="musica-bucle" aria-label="Al terminar, volver a la marca" aria-pressed="false" aria-disabled="true">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><path class="icono-relleno" d="M12 16.5s-3-2.8-3-5.1a3 3 0 0 1 6 0c0 2.3-3 5.1-3 5.1zm0-4.1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill-rule="evenodd"/></svg>
+                        </button>
                         <button class="boton-musica" id="musica-anterior" aria-label="Canción anterior">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
                         </button>
@@ -318,6 +325,7 @@
                 <span class="reproductor-tiempo" id="musica-tiempo">0:00</span>
                 <div class="reproductor-pista" id="musica-pista" role="slider" aria-label="Posición en el tema" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
                     <div class="reproductor-riel"><div class="reproductor-llenado" id="musica-llenado"></div></div>
+                    <div class="reproductor-marca" id="musica-marca-punto" hidden></div>
                     <div class="reproductor-punto" id="musica-punto"></div>
                 </div>
                 <span class="reproductor-tiempo" id="musica-duracion">0:00</span>

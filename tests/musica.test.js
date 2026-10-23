@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud, urlWidgetSoundCloud, resolverLinkSoundCloud, esLista } from '../js/logica/musica.js';
+import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud, urlWidgetSoundCloud, resolverLinkSoundCloud, esLista } from '../js/logica/musica.js';
 
 test('links de YouTube en todas sus formas', () => {
     const esperado = { fuente: 'youtube', id: 'dQw4w9WgXcQ', lista: null, inicio: 0 };
@@ -173,4 +173,13 @@ test('adelantar, atrasar y volumen no se pasan de los bordes', () => {
     assert.equal(moverSegundos(50, 10, 0), 60); // sin duración conocida
     assert.equal(cambiarVolumen(95, 10), 100);
     assert.equal(cambiarVolumen(5, -10), 0);
+});
+
+test('la marca de la barra imanta lo que cae cerca', () => {
+    // Tema de 200 s en una pista de 200 px: 1 px = 1 s.
+    assert.equal(imantar(95, 100, 200, 200), 100);
+    assert.equal(imantar(116, 100, 200, 200), 100);
+    assert.equal(imantar(117, 100, 200, 200), 117);
+    assert.equal(imantar(50, null, 200, 200), 50);
+    assert.equal(imantar(50, 40, 0, 200), 50);
 });
