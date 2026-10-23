@@ -269,13 +269,10 @@
         </div>
     </div>
 
-    <!-- Música: pegar el link (en SwiftUI: .sheet con un TextField). -->
+    <!-- Música: pegar el link. Solo el cajón de vidrio, sin fondo, título ni cruz: se cierra
+         tocando afuera (pedido de Swa; en SwiftUI, .sheet con fondo transparente). -->
     <div class="hoja-fondo" id="hoja-musica" hidden>
-        <div class="hoja hoja-ajustes" role="dialog" aria-modal="true" aria-labelledby="hoja-musica-titulo">
-            <button class="boton-barra cerrar-hoja" id="cerrar-musica" aria-label="Cerrar">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-            <h2 class="hoja-titulo" id="hoja-musica-titulo">Música</h2>
+        <div class="hoja" role="dialog" aria-modal="true" aria-label="Música">
             <!-- Acá se muda el cajón del link de Freestyle (#fs-cajon) mientras la hoja está abierta. -->
             <div id="hoja-musica-cajon"></div>
         </div>

@@ -810,3 +810,11 @@ body.con-musica.editando:not(.teclado-abierto) .editor-cuerpo {
     padding-bottom: calc(var(--alto-reproductor, 0px) + env(safe-area-inset-bottom));
 }
 #hoja-musica .buscador { margin-top: 8px; }
+/* La hoja de música es solo el cajón de vidrio, donde va la tarjeta del reproductor:
+   sin fondo oscuro, sin hoja opaca atrás (si no, el vidrio no deja ver la letra). */
+#hoja-musica { background: none; }
+#hoja-musica .hoja {
+    max-width: calc(430px - 32px); margin: 0 16px; padding: 0 0 calc(8px + env(safe-area-inset-bottom));
+    background: none; border: 0; box-shadow: none; overflow: visible;
+}
+#hoja-musica .cajon-fs { margin-top: 0; }
