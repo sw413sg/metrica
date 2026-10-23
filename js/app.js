@@ -12,7 +12,7 @@ import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearEfecto } from './efectos.js';
 import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
-import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
+import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, crecerTramo, dentroDelTramo, urlNubeDesde, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
@@ -1691,6 +1691,9 @@ async function escucharMusica(texto) {
             const widget = SC.Widget(marco);
             const { Events } = SC.Widget;
             let salto = null, rescate = null; // el último salto de la barra (ver irNube)
+            // Lo que ya bajó del tema, el link de la canción que suena y, si se recargó desde un
+            // momento, ese momento (para saltar ahí si SoundCloud no hizo caso del #t).
+            let tramo = { desde: 0, hasta: 0 }, enlaceNube = urlCancion, recarga = null, recargando = false;
             const leerPosicion = () => widget.getPosition(ms => {
                 if (arrastrando || (salto && performance.now() < salto.hasta && Math.abs(ms - salto.ms) > 3000)) return;
                 anotarTiempo(ms / 1000);
@@ -1699,6 +1702,10 @@ async function escucharMusica(texto) {
             const mostrarCancion = () => widget.getCurrentSound(cancion => {
                 if (generacion !== generacionMusica) return;
                 anotarCancion(cancion?.id ?? cancion?.title);
+                if (cancion?.permalink_url && cancion.permalink_url !== enlaceNube.split('#')[0]) {
+                    if (!recarga) tramo = { desde: 0, hasta: 0 };
+                    enlaceNube = cancion.permalink_url;
+                }
                 if (cancion?.title) $('reproductor-titulo').textContent = cancion.title;
                 widget.getDuration(ms => {
                     if (generacion !== generacionMusica) return;
@@ -1714,6 +1721,7 @@ async function escucharMusica(texto) {
             });
             widget.bind(Events.READY, () => {
                 if (generacion !== generacionMusica) return;
+                recargando = false;
                 widget.setVolume(VOLUMEN_INICIAL);
                 mostrarCancion();
                 // Un link corto puede ser un set: se sabe recién acá.
@@ -1734,9 +1742,17 @@ async function escucharMusica(texto) {
             // para que el punto no vuelva atrás y salte de nuevo.
             widget.bind(Events.PLAY_PROGRESS, data => {
                 const ms = typeof data === 'number' ? data : Number(data?.currentPosition);
-                if (!Number.isFinite(ms)) return;
+                if (!Number.isFinite(ms) || recargando) return;
+                if (recarga != null) {
+                    // SoundCloud no hizo caso del #t: arrancó de cero. Ahí sí se salta.
+                    if (ms < recarga - 5000) widget.seekTo(recarga);
+                    else tramo = { desde: Math.min(ms, recarga), hasta: ms };
+                    recarga = null;
+                    return;
+                }
                 if (salto && performance.now() < salto.hasta && Math.abs(ms - salto.ms) > 3000) return;
                 salto = null;
+                tramo = crecerTramo(tramo, ms);
                 anotarTiempo(ms / 1000);
             });
             widget.bind(Events.ERROR, () => { $('reproductor-titulo').textContent = 'No se pudo reproducir esta canción'; });
@@ -1745,6 +1761,18 @@ async function escucharMusica(texto) {
             const irNube = segundos => {
                 const seguia = sonando;
                 const ms = Math.round(segundos * 1000);
+                // A una parte que no bajó (en un tema suelto): se carga el tema de nuevo desde
+                // ahí, como al empezar, que es lo que anda (pedido de Swa).
+                if (seguia && !musica.lista && !dentroDelTramo(tramo, ms)) {
+                    clearTimeout(rescate);
+                    salto = { ms, hasta: performance.now() + 10000 };
+                    recarga = ms;
+                    recargando = true;
+                    tramo = { desde: ms, hasta: ms };
+                    anotarTiempo(segundos);
+                    widget.load(urlNubeDesde(enlaceNube, segundos), { auto_play: true, visual: false, hide_related: true, show_comments: false, show_user: false, show_reposts: false, show_teaser: false, show_artwork: false });
+                    return;
+                }
                 salto = { ms, hasta: performance.now() + 3000 };
                 widget.seekTo(ms);
                 anotarTiempo(segundos);

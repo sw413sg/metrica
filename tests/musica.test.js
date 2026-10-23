@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud, urlWidgetSoundCloud, resolverLinkSoundCloud, esLista } from '../js/logica/musica.js';
+import { leerLink, moverSegundos, cambiarVolumen, formatoTiempo, fraccionDe, segundosEn, imantar, crecerTramo, dentroDelTramo, urlNubeDesde, LADO_YOUTUBE, muestraVideo, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud, urlWidgetSoundCloud, resolverLinkSoundCloud, esLista } from '../js/logica/musica.js';
 
 test('links de YouTube en todas sus formas', () => {
     const esperado = { fuente: 'youtube', id: 'dQw4w9WgXcQ', lista: null, inicio: 0 };
@@ -182,4 +182,18 @@ test('la marca de la barra imanta lo que cae cerca', () => {
     assert.equal(imantar(117, 100, 200, 200), 117);
     assert.equal(imantar(50, null, 200, 200), 50);
     assert.equal(imantar(50, 40, 0, 200), 50);
+});
+
+test('SoundCloud: lo que ya bajó y el link desde un momento', () => {
+    let tramo = { desde: 0, hasta: 0 };
+    for (const ms of [250, 1000, 4000, 9000]) tramo = crecerTramo(tramo, ms);
+    assert.deepEqual(tramo, { desde: 0, hasta: 9000 });
+    // Un salto largo no lo agranda: eso no bajó.
+    assert.deepEqual(crecerTramo(tramo, 90000), tramo);
+    assert.equal(dentroDelTramo(tramo, 3000), true);
+    assert.equal(dentroDelTramo(tramo, 13000), true);
+    assert.equal(dentroDelTramo(tramo, 60000), false);
+    assert.equal(dentroDelTramo({ desde: 60000, hasta: 70000 }, 30000), false);
+    assert.equal(urlNubeDesde('https://soundcloud.com/a/b', 90.7), 'https://soundcloud.com/a/b#t=1:30');
+    assert.equal(urlNubeDesde('https://soundcloud.com/a/b#t=0:10', 5), 'https://soundcloud.com/a/b#t=0:05');
 });
