@@ -1245,7 +1245,8 @@ $('fs-archivo').addEventListener('change', async () => {
     if (!archivo) return;
     const reciente = { fuente: 'archivo', id: `${archivo.name}-${archivo.size}`, titulo: tituloDeArchivo(archivo.name) };
     // Primero suena (todavía dentro del toque, para que iOS deje), después se guarda.
-    usarArchivoFreestyle(archivo, reciente);
+    // Desde la libreta, la hoja se cierra.
+    usarArchivo(archivo, reciente);
     await guardarArchivo(reciente.id, archivo);
 });
 renderizarRecientes();
@@ -1751,8 +1752,7 @@ function cerrarHojaMusica() {
     $('hoja-musica').hidden = true;
     $('pantalla-freestyle').querySelector('.contenido').append($('fs-cajon'));
 }
-$('cerrar-musica').addEventListener('click', cerrarHojaMusica);
-$('hoja-musica').addEventListener('click', e => { if (e.target === $('hoja-musica')) cerrarHojaMusica(); });
+$('hoja-musica').addEventListener('click', e => { if (!$('fs-cajon').contains(e.target)) cerrarHojaMusica(); });
 $('musica-play').addEventListener('click', () => {
     if (falloMusica || !musica?.reproducir || (musica.fuente === 'youtube' && plegado)) return;
     musica[sonando ? 'pausar' : 'reproducir']?.();

@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando 0.1: así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-5.0';
+const VERSION = 'metrica-5.1';
 const ARCHIVOS = [
     './',
     'index.html',
