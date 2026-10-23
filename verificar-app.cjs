@@ -331,14 +331,23 @@ const servidor = http.createServer((req, res) => {
         assert.ok(Math.abs(nube.height - 92) <= 2, JSON.stringify(nube));
         assert.equal(Math.round(nube.x), 16, JSON.stringify(nube));
         assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).width), 40);
+        // El iframe no se ve, pero queda adentro de la pantalla: afuera el navegador lo frena.
         const oculto = await page.locator('#reproductor-oculto iframe').boundingBox();
-        assert.ok(oculto.x + oculto.width < 0, JSON.stringify(oculto));
+        assert.ok(oculto.x >= 0 && oculto.width >= 300, JSON.stringify(oculto));
+        assert.equal(await page.locator('#reproductor-oculto').evaluate(e => getComputedStyle(e).opacity), '0');
+        assert.equal(await page.evaluate(() => document.elementFromPoint(100, 80)?.closest('#reproductor-oculto')), null);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         const pistaNube = await page.locator('#musica-pista').boundingBox();
         // Como en el iPhone: saltar a una parte que no bajó pausa el tema. Si venía sonando, sigue.
-        await page.evaluate(() => { const w = window.__sc, ir = w.seekTo; w.seekTo = ms => { ir(ms); w.pause(); }; });
+        await page.evaluate(() => {
+            const w = window.__sc, ir = w.seekTo;
+            w.seekTo = ms => { ir(ms); w.pause(); w.onPLAY_PROGRESS?.({ currentPosition: 5000 }); };
+            w.isPaused = cb => cb(w.paused);
+        });
         await page.mouse.click(pistaNube.x + pistaNube.width / 2, pistaNube.y + pistaNube.height / 2);
-        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        // Una posición vieja que llega después del salto no lleva el punto para atrás.
+        assert.equal((await page.locator('#musica-tiempo').textContent()).trim(), '1:30');
+        await page.waitForFunction(() => window.__sc.paused === false, null, {timeout: 3000});
         assert.ok(Math.abs(await page.evaluate(() => window.__sc.pos) - 90000) < 2000);
         // En la libreta, en chico: la marca y el bucle (del tamaño de las flechas), sin las flechas.
         // Marca este momento, y un toque cerca cae justo en ella.

@@ -823,9 +823,12 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 .reproductor-nota { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--texto-2); text-align: center; }
 .reproductor-nota[hidden] { display: none; }
 /* SoundCloud: fuera de la pantalla, y fuera de la tarjeta para que el teclado no lo corte. */
+/* El iframe de SoundCloud no se ve, pero queda adentro de la pantalla (invisible y detrás
+   de todo): fuera de pantalla el navegador frena los iframes de otro sitio, y al saltar en
+   la barra el tema sonaba un segundo y se cortaba (en el iPhone). */
 .reproductor-oculto {
-    position: fixed; left: 0; top: 0; width: 300px; height: 166px;
-    transform: translateX(-100vw); pointer-events: none;
+    position: fixed; left: 0; top: 0; width: 300px; height: 166px; z-index: -1;
+    opacity: 0; pointer-events: none;
 }
 .reproductor-oculto iframe { width: 300px; height: 166px; border: 0; }
 /* 16 px de aire entre el último verso y la tarjeta. */

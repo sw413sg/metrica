@@ -1690,7 +1690,11 @@ async function escucharMusica(texto) {
             $('reproductor-oculto').replaceChildren(marco);
             const widget = SC.Widget(marco);
             const { Events } = SC.Widget;
-            const leerPosicion = () => widget.getPosition(ms => { if (!arrastrando) anotarTiempo(ms / 1000); });
+            let salto = null, rescate = null; // el último salto de la barra (ver irNube)
+            const leerPosicion = () => widget.getPosition(ms => {
+                if (arrastrando || (salto && performance.now() < salto.hasta && Math.abs(ms - salto.ms) > 3000)) return;
+                anotarTiempo(ms / 1000);
+            });
             // Título y portada de la canción que suena: cambian al pasar de canción en un set.
             const mostrarCancion = () => widget.getCurrentSound(cancion => {
                 if (generacion !== generacionMusica) return;
@@ -1726,22 +1730,32 @@ async function escucharMusica(texto) {
             widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); mostrarCancion(); });
             widget.bind(Events.PAUSE, () => { alCambiarEstado(false); leerPosicion(); });
             widget.bind(Events.FINISH, () => { alCambiarEstado(false); volverALaMarca(); });
+            // Después de un salto, el widget manda un rato las posiciones de antes: se ignoran,
+            // para que el punto no vuelva atrás y salte de nuevo.
             widget.bind(Events.PLAY_PROGRESS, data => {
                 const ms = typeof data === 'number' ? data : Number(data?.currentPosition);
-                if (Number.isFinite(ms)) anotarTiempo(ms / 1000);
+                if (!Number.isFinite(ms)) return;
+                if (salto && performance.now() < salto.hasta && Math.abs(ms - salto.ms) > 3000) return;
+                salto = null;
+                anotarTiempo(ms / 1000);
             });
             widget.bind(Events.ERROR, () => { $('reproductor-titulo').textContent = 'No se pudo reproducir esta canción'; });
             // En el iPhone, saltar a una parte que no bajó corta el tema: si venía sonando,
             // se le vuelve a dar play (pedido de Swa).
             const irNube = segundos => {
                 const seguia = sonando;
-                widget.seekTo(Math.round(segundos * 1000));
+                const ms = Math.round(segundos * 1000);
+                salto = { ms, hasta: performance.now() + 3000 };
+                widget.seekTo(ms);
                 anotarTiempo(segundos);
-                if (seguia) widget.play();
+                // Si venía sonando y el salto lo dejó en pausa (en el iPhone pasa al ir a una
+                // parte que no bajó), se le da play cuando ya cargó, no encima del salto.
+                clearTimeout(rescate);
+                if (seguia) rescate = setTimeout(() => widget.isPaused?.(pausado => { if (pausado && generacion === generacionMusica) widget.play(); }), 1200);
             };
             Object.assign(musica, {
                 reproducir: () => widget.play(),
-                pausar: () => widget.pause(),
+                pausar: () => { clearTimeout(rescate); widget.pause(); },
                 anterior: () => widget.prev(),
                 siguiente: () => widget.next(),
                 ir: irNube,
