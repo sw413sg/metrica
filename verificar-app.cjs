@@ -197,6 +197,16 @@ const servidor = http.createServer((req, res) => {
         // Música: la nota abre la hoja para pegar un link; un link que no sirve avisa.
         await page.locator('#abrir-musica').click();
         assert.equal(await page.locator('#hoja-musica').isVisible(), true);
+        // Solo el cajón de vidrio: sin fondo oscuro, sin hoja opaca, título ni cruz.
+        assert.equal(await page.locator('#hoja-musica').evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
+        assert.equal(await page.locator('#hoja-musica .hoja').evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
+        assert.equal(await page.locator('#hoja-musica h2, #cerrar-musica').count(), 0);
+        assert.match(await page.locator('#fs-cajon').evaluate(e => getComputedStyle(e).backdropFilter), /blur/);
+        await page.waitForTimeout(400); // la hoja sube con una animación
+        const cajonHoja = await page.locator('#fs-cajon').boundingBox();
+        assert.equal(Math.round(cajonHoja.x), 16, JSON.stringify(cajonHoja));
+        assert.ok(Math.abs(cajonHoja.y + cajonHoja.height - 836) <= 2, JSON.stringify(cajonHoja));
+        await page.screenshot({path: `capturas/libreta-cajon-musica-${tema}.png`});
         await page.locator('#fs-link').fill('https://spotify.com/track/1');
         await page.locator('#fs-pegar').click();
         assert.match(await page.locator('#fs-link-aviso').textContent(), /no es de YouTube ni de SoundCloud/);
@@ -479,8 +489,16 @@ const servidor = http.createServer((req, res) => {
         await page.context().setOffline(true);
         await page.locator('#abrir-musica').click();
         assert.match(await page.locator('#fs-link-aviso').textContent(), /Sin internet/);
-        await page.locator('#cerrar-musica').click();
+        await page.mouse.click(195, 100);
+        assert.equal(await page.locator('#hoja-musica').isVisible(), false);
         await page.context().setOffline(false);
+        // Una canción del teléfono suena sola y la hoja se cierra.
+        await page.locator('#abrir-musica').click();
+        await page.locator('#fs-archivo').setInputFiles(path.join(__dirname, 'beats/boom-bap-jazz.mp3'));
+        await page.locator('#reproductor-titulo', {hasText: 'boom-bap-jazz'}).waitFor();
+        assert.equal(await page.locator('#hoja-musica').isVisible(), false);
+        await page.waitForFunction(() => document.querySelector('#reproductor-oculto audio')?.paused === false);
+        await page.locator('#musica-cerrar').click();
         // Los renglones arrancan prendidos y se apagan.
         assert.match(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), /repeating-linear-gradient/);
         // De borde a borde, como un cuaderno, y el texto a 16px del borde, como en Keep.
