@@ -343,11 +343,16 @@ a { color: var(--acento); text-decoration: none; }
     transition: clip-path .35s ease, opacity .35s ease, visibility 0s .35s;
 }
 .pausar-fs {
-    position: relative; z-index: 2; height: 36px; margin-top: -36px; width: 100%;
+    position: relative; z-index: 0; height: 36px; margin-top: -36px; width: 100%;
+    /* Baja los 12 px de aire: el resplandor sale justo del borde de la caja de abajo. */
+    transform: translateY(12px);
     background: radial-gradient(ellipse 34% 100% at 50% 100%, color-mix(in srgb, var(--destacado) 55%, transparent), transparent 75%);
     opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s .35s;
 }
 #pantalla-freestyle.jugando .pausar-fs { opacity: 1; visibility: visible; transition: opacity .35s ease .2s; }
+/* Lo de abajo del resplandor va por encima, y sin sombra oscura hacia arriba que lo tape. */
+#fs-elegir { position: relative; z-index: 1; }
+body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 12px 24px -10px rgba(0, 0, 0, 0.35); }
 .play-fs {
     width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
     background: var(--texto); color: var(--fondo);
@@ -427,19 +432,21 @@ a { color: var(--acento); text-decoration: none; }
 #fs-elegir[hidden] { display: none; }
 #fs-link-aviso { margin: 8px 4px 0; }
 /* Recientes: desplegable con hasta 3, el título acortado y (YT), (SCLOUD) o (ARCHIVO). */
-.recientes-fs { margin-top: 10px; min-height: 0; }
+.recientes-fs { margin-top: 8px; min-height: 0; }
 .recientes-fs[hidden] { display: none; }
+/* «Recientes» es una fila más del cajón: separador arriba, al medio y con una flecha a cada
+   lado, hacia abajo cerrado (para abrir) y hacia arriba abierto (para plegar). */
 .recientes-fs summary {
-    list-style: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 32px; padding: 0 4px;
-    font-size: 13px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; color: var(--texto-2); cursor: pointer;
+    list-style: none; display: flex; align-items: center; justify-content: center; gap: 8px; height: 36px;
+    border-top: 1px solid var(--separador);
+    font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--texto-3); cursor: pointer;
 }
 .recientes-fs summary::-webkit-details-marker { display: none; }
-/* «Recientes» al medio, con una flecha a cada lado: abajo si está abierto, al costado si no. */
 .recientes-fs summary::before, .recientes-fs summary::after {
-    content: ''; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0;
+    content: ''; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0;
     transform: translateY(-2px) rotate(45deg); transition: transform .2s;
 }
-.recientes-fs:not([open]) summary::before, .recientes-fs:not([open]) summary::after { transform: rotate(-45deg); }
+.recientes-fs[open] summary::before, .recientes-fs[open] summary::after { transform: translateY(2px) rotate(-135deg); }
 .lista-recientes { list-style: none; margin: 0; padding: 0; }
 .lista-recientes li { display: flex; align-items: center; border-top: 1px solid var(--separador); }
 .usar-reciente {
