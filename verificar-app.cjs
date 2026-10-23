@@ -1140,6 +1140,14 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-cuenta').textContent(), congelada, 'en pausa el reloj no sigue');
         await page.locator('#musica-play').click();
         await page.waitForFunction(c => document.getElementById('fs-cuenta').textContent !== c, congelada);
+        // Bajar la velocidad de las palabras en plena ronda no deja la palabra trabada.
+        const velocidad = v => page.locator('#velocidad-palabras').evaluate((e, v) => { e.value = v; e.dispatchEvent(new Event('input')); }, v);
+        await velocidad('10');
+        await page.waitForTimeout(2500);
+        await velocidad('9');
+        const lenta = await page.locator('#fs-palabra').textContent();
+        await page.waitForFunction(p => document.getElementById('fs-palabra').textContent !== p, lenta, {timeout: 2000});
+        await velocidad('5');
         // Con un link, el mood sale del título del tema.
         assert.equal(await page.locator('#fs-efecto').getAttribute('data-mood'), 'sad');
         await page.waitForTimeout(400);

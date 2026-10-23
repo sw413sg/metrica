@@ -896,6 +896,9 @@ function aplicarVelocidad() {
     $('velocidad-palabras').value = velocidad;
     $('valor-velocidad').textContent = String(velocidad);
     compasesPorPalabra = compasesDeVelocidad(velocidad);
+    // Sin beat, la palabra cambia por reloj: se recuenta con la velocidad nueva, para que
+    // al bajarla no quede trabada hasta alcanzar la cuenta de antes (ni salte varias al subirla).
+    if (ronda?.modo === 'reloj') indicePalabra = Math.floor(((ronda.pausa ?? performance.now()) - ronda.inicio) / msPorPalabra(BPM_FS, compasesPorPalabra));
 }
 $('puntos-velocidad').append(...Array.from({ length: VELOCIDAD_MAXIMA }, () => document.createElement('span')));
 $('velocidad-palabras').addEventListener('input', () => {
