@@ -1688,6 +1688,9 @@ async function escucharMusica(texto) {
             marco.title = 'SoundCloud';
             marco.src = urlWidgetSoundCloud(urlCancion);
             $('reproductor-oculto').replaceChildren(marco);
+            // Prueba: con ?nube-visible el reproductor de SoundCloud se ve arriba y se puede tocar,
+            // para ver si en el iPhone deja de trabarse cuando se lo toca una vez.
+            document.body.classList.toggle('nube-visible', new URLSearchParams(location.search).has('nube-visible'));
             const widget = SC.Widget(marco);
             const { Events } = SC.Widget;
             let salto = null, rescate = null; // el último salto de la barra (ver irNube)
@@ -1746,12 +1749,13 @@ async function escucharMusica(texto) {
                 const seguia = sonando;
                 const ms = Math.round(segundos * 1000);
                 salto = { ms, hasta: performance.now() + 3000 };
+                // Prueba para el iPhone (al adelantar se trababa): si venía sonando, se pausa,
+                // se salta y se le da play recién después, en vez de saltar con el tema andando.
+                clearTimeout(rescate);
+                if (seguia) widget.pause();
                 widget.seekTo(ms);
                 anotarTiempo(segundos);
-                // Si venía sonando y el salto lo dejó en pausa (en el iPhone pasa al ir a una
-                // parte que no bajó), se le da play cuando ya cargó, no encima del salto.
-                clearTimeout(rescate);
-                if (seguia) rescate = setTimeout(() => widget.isPaused?.(pausado => { if (pausado && generacion === generacionMusica) widget.play(); }), 1200);
+                if (seguia) rescate = setTimeout(() => { if (generacion === generacionMusica) widget.play(); }, 400);
             };
             Object.assign(musica, {
                 reproducir: () => widget.play(),
