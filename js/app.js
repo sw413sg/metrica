@@ -41,6 +41,8 @@ function mostrarPestana(nombre) {
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
     // En Ajustes el reproductor no se ve, pero lo que suena sigue (salvo YouTube).
     document.body.classList.toggle('en-ajustes', nombre === 'ajustes');
+    // «Recientes» se pliega al cambiar de sección (pedido de Swa).
+    $('fs-recientes-caja').open = false;
     sincronizarLinkFreestyle();
     ubicarReproductor();
 }
@@ -898,6 +900,7 @@ function marcarSonando(activo) {
     const enPausa = Boolean(ronda?.pausa);
     $('fs-play').setAttribute('aria-label', !activo ? 'Empezar' : enPausa ? 'Seguir' : 'Pausar');
     $('fs-play').innerHTML = activo && !enPausa ? ICONO_PAUSA_FS : ICONO_PLAY_FS;
+    $('fs-play').hidden = Boolean(linkFreestyle && ronda);
 }
 
 function empezarBeat() {
@@ -978,7 +981,6 @@ function terminarRonda(porTiempo = false) {
     clearInterval(relojTimer);
     relojTimer = null;
     marcarSonando(false);
-    if (porTiempo && linkFreestyle && sonando) musica?.pausar?.();
     if (porTiempo) {
         $('fs-cuenta').textContent = '0:00';
         $('fs-reloj').style.setProperty('--avance', '1');
@@ -1007,7 +1009,9 @@ function sincronizarLinkFreestyle() {
     $('pantalla-freestyle').classList.toggle('con-link', hay);
     $('pantalla-freestyle').classList.toggle('con-youtube', linkFreestyle?.fuente === 'youtube');
     $('fs-elegir').hidden = hay;
-    $('fs-play').hidden = hay;
+    // Con un link, el play de la ronda es el de la tarjeta; el de la bandeja solo aparece
+    // sin ronda (por ejemplo, cuando se terminó el tiempo y la canción sigue).
+    $('fs-play').hidden = hay && Boolean(ronda);
     ocultarMusicaSiHaceFalta();
     if (musica) aplicarVideo();
     else ubicarReproductor();
@@ -1199,6 +1203,8 @@ function renderizarRecientes() {
         sufijo.textContent = ` (${sufijoReciente(reciente)})`;
         boton.append(titulo, sufijo);
         boton.addEventListener('click', async () => {
+            // Elegir un reciente pliega la lista (pedido de Swa).
+            $('fs-recientes-caja').open = false;
             if (reciente.fuente !== 'archivo') {
                 $('fs-link').value = reciente.link;
                 return usarLink(reciente.link);
@@ -1244,17 +1250,20 @@ $('fs-archivo').addEventListener('change', async () => {
 });
 renderizarRecientes();
 
-// Si viene sonando (o en pausa) una canción de la libreta, el play de la bandeja la toma
-// para la ronda en vez de sumar un beat encima (pedido de Swa: se duplicaba el audio).
-function tomarMusicaDeLaLibreta() {
-    linkFreestyle = { fuente: musica.fuente };
-    sincronizarLinkFreestyle();
+// Si viene sonando (o en pausa) una canción, de la libreta o de una ronda que ya terminó,
+// el play de la bandeja la toma para la ronda en vez de sumar un beat encima (pedido de
+// Swa: se duplicaba el audio).
+function empezarConLaMusica() {
+    if (!linkFreestyle) {
+        linkFreestyle = { fuente: musica.fuente };
+        sincronizarLinkFreestyle();
+    }
     if (sonando) empezarRonda();
     else musica.reproducir?.();
 }
 
 $('fs-play').addEventListener('click', () => {
-    if (!ronda && musica && !linkFreestyle) return tomarMusicaDeLaLibreta();
+    if (!ronda && musica) return empezarConLaMusica();
     if (!ronda) return empezarRonda();
     if (ronda.pausa) return reanudarRonda();
     pausarRonda();
