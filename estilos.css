@@ -344,8 +344,8 @@ a { color: var(--acento); text-decoration: none; }
 }
 .pausar-fs {
     position: relative; z-index: 0; height: 36px; margin-top: -36px; width: 100%;
-    /* Baja los 12 px de aire: el resplandor sale justo del borde de la caja de abajo. */
-    transform: translateY(12px);
+    /* Baja los 10 px de aire: el resplandor sale justo del borde de la caja de abajo. */
+    transform: translateY(10px);
     /* Alargado de borde a borde de la caja de abajo, a media opacidad (pedidos de Swa). */
     background: radial-gradient(ellipse 50% 100% at 50% 100%, color-mix(in srgb, var(--destacado) 28%, transparent), transparent 100%);
     opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility 0s .35s;
@@ -409,19 +409,31 @@ body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
    recientes hasta el alto del reproductor de YouTube (252); sin recientes es solo el campo. */
 #pantalla-freestyle .contenido {
     flex: 1; min-height: 0; display: flex; flex-direction: column;
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
 }
 #pantalla-freestyle .escenario-fs {
     flex: 1 1 0; min-height: 140px; width: 100%; height: auto; margin: 0; container-type: size;
     display: flex; align-items: center; justify-content: center;
 }
 #pantalla-freestyle { --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075); }
-#fs-elegir { margin-top: 12px; }
+#fs-elegir { margin-top: 10px; }
 .cajon-fs {
-    flex-shrink: 0; max-height: 252px; margin-top: 12px; border-radius: 22px; padding: 8px;
+    flex-shrink: 0; max-height: 252px; margin-top: 10px; border-radius: 30px; padding: 8px;
     display: flex; flex-direction: column; overflow: hidden;
 }
 #pantalla-freestyle.con-link .cajon-fs { display: none; }
+/* Mientras suena un beat de la app, el reproductor chico ocupa el lugar de los botones de
+   beats y del cajón (pedido de Swa); al pausar vuelven. Mismo vidrio que la barra de pestañas. */
+.sonando-fs {
+    display: none; flex-shrink: 0; margin-top: 10px; border-radius: 30px;
+    box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 12px 24px -10px rgba(0, 0, 0, 0.35);
+}
+#pantalla-freestyle.beat-sonando .sonando-fs { display: block; }
+#pantalla-freestyle.beat-sonando #fs-elegir,
+#pantalla-freestyle.beat-sonando .cajon-fs { display: none; }
+.sonando-fs .reproductor-principal { height: 40px; }
+.sonando-fs .reproductor-pista { pointer-events: none; }
+#fs-beat-anterior[aria-disabled="true"], #fs-beat-siguiente[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
 .pegar-fs { display: flex; align-items: center; gap: 3px; }
 .pegar-fs textarea {
     flex: 1; min-width: 0; height: 44px; border: 0; outline: none; resize: none; font: inherit;
@@ -462,7 +474,9 @@ body.freestyle-link .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
 .sufijo-reciente { flex-shrink: 0; white-space: pre; color: var(--texto-2); }
 .borrar-reciente { width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center; color: var(--texto-3); }
 .borrar-reciente .icono { width: 18px; height: 18px; }
-/* La tarjeta va 84 px arriba del borde y --alto-reproductor ya suma 24 de aire: quedan 12 entre bandeja y tarjeta. */
+/* Las cajas de abajo de Freestyle (bandeja, botones, cajón, reproductor) y la barra de pestañas
+   van separadas por 10 px, con bordes de 30 (pedido de Swa). La tarjeta va 86 px arriba del
+   borde (10 sobre la barra) y --alto-reproductor ya suma 24 de aire: quedan 10 entre bandeja y tarjeta. */
 #pantalla-freestyle.con-link .contenido {
     padding-bottom: calc(72px + var(--alto-reproductor, 160px) + env(safe-area-inset-bottom));
 }
@@ -710,7 +724,8 @@ body.teclado-abierto .reproductor { display: none; }
 /* Freestyle con link: la misma tarjeta, arriba de la barra de pestañas. */
 body.freestyle-link:not(.editando):not(.teclado-abierto) .reproductor:not([hidden]) {
     display: block;
-    bottom: calc(84px + env(safe-area-inset-bottom));
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    border-radius: 30px;
 }
 .reproductor-vidrio {
     position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;

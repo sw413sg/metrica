@@ -799,6 +799,7 @@ function tickReloj() {
     const ahora = performance.now();
     const estado = estadoRonda(ronda.inicio, ahora, ronda.duracion);
     pintarCuenta(estado);
+    pintarBeatSonando();
     if (estado.restantes === 0) return terminarRonda(true);
     if (ronda.modo !== 'reloj') return;
     const indice = Math.floor((ahora - ronda.inicio) / msPorPalabra(BPM_FS, compasesPorPalabra));
@@ -860,6 +861,25 @@ function actualizarEfecto() {
     $('pantalla-freestyle').classList.toggle('jugando', jugando);
     if (jugando) efecto.prender();
     else efecto.apagar();
+    pintarBeatSonando();
+}
+
+// Mientras suena un beat de la app se ve el reproductor chico, como con SoundCloud, en
+// lugar de los botones de beats y del cajón del link. Al pausarlo vuelven.
+function pintarBeatSonando() {
+    const suena = Boolean(ronda && !linkFreestyle && (!ronda.pausa || ronda.sigueSonando));
+    $('pantalla-freestyle').classList.toggle('beat-sonando', suena);
+    if (!suena) return;
+    const beat = CATALOGO_BEATS.find(b => b.id === beatId);
+    const i = CATALOGO_BEATS.indexOf(beat);
+    $('fs-sonando-titulo').textContent = etiquetaBeat(beat);
+    $('fs-sonando-fuente').textContent = `Métrica · ${beat.bpm ?? BPM_FS} BPM`;
+    $('fs-beat-anterior').setAttribute('aria-disabled', String(i === 0));
+    $('fs-beat-siguiente').setAttribute('aria-disabled', String(i === CATALOGO_BEATS.length - 1));
+    const segundos = ((ronda.pausa ?? performance.now()) - ronda.inicio) / 1000;
+    $('fs-sonando-tiempo').textContent = formatoTiempo(segundos);
+    $('fs-sonando-total').textContent = ronda.duracion == null ? '' : formatoTiempo(ronda.duracion);
+    $('fs-sonando-llenado').style.width = ronda.duracion ? `${Math.min(1, segundos / ronda.duracion) * 100}%` : '0%';
 }
 
 // El play de la bandeja: Empezar, Pausar (jugando) o Seguir (en pausa).
@@ -1022,7 +1042,7 @@ function elegirBeat(id) {
     beatId = id;
     beatPorGenero[beat.genero] = id;
     renderizarBeats();
-    if (cambio && ronda && !ronda.pausa) ronda.modo = arrancarSonido();
+    if (cambio && ronda && (!ronda.pausa || ronda.sigueSonando)) ronda.modo = arrancarSonido();
     if (cambio) actualizarEfecto();
 }
 
@@ -1192,6 +1212,22 @@ $('fs-play').addEventListener('click', () => {
     if (ronda.pausa) return reanudarRonda();
     pausarRonda();
 });
+// El reproductor de los beats de la app: pausa del todo (beat incluido), pasa de beat
+// en el orden del catálogo y la cruz termina la ronda.
+$('fs-beat-pausar').addEventListener('click', () => {
+    if (!ronda) return;
+    if (!ronda.pausa) return pausarRonda();
+    detenerBeat();
+    ronda.sigueSonando = false;
+    actualizarEfecto();
+});
+for (const [id, paso] of [['fs-beat-anterior', -1], ['fs-beat-siguiente', 1]]) {
+    $(id).addEventListener('click', () => {
+        const beat = CATALOGO_BEATS[CATALOGO_BEATS.findIndex(b => b.id === beatId) + paso];
+        if (beat) elegirBeat(beat.id);
+    });
+}
+$('fs-beat-cerrar').addEventListener('click', () => terminarRonda());
 $('fs-reloj').addEventListener('click', () => {
     if (ronda?.pausa) reanudarRonda();
     else pausarJugando();
