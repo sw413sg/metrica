@@ -1073,3 +1073,6 @@ body.con-musica.editando:not(.teclado-abierto) .editor-cuerpo {
 #hoja-musica .cajon-fs { margin-top: 0; }
 /* Sobre la letra, el gris más claro no se lee: «Recientes» va con el de los subtítulos. */
 #hoja-musica .recientes-fs summary { color: var(--texto-2); }
+/* Con el selector de música de la libreta abierto, la tarjeta de lo que suena se esconde
+   (sin cortarlo) y vuelve al cerrarlo (pedido de Swa). */
+body.eligiendo-musica #reproductor { visibility: hidden; }

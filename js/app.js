@@ -1624,6 +1624,7 @@ async function usarLink(texto) {
     if (!link) return avisoFs('Ese link no es de YouTube ni de SoundCloud.');
     if (!navigator.onLine) return avisoFs('Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
     soltarLoQueSuena(true);
+    $('fs-link').blur();
     cerrarHojaMusica();
     recienteActual = { fuente: link.fuente, link: String(texto).trim(), titulo: '' };
     sumarReciente(recienteActual);
@@ -2083,7 +2084,10 @@ async function escucharMusica(texto) {
                         if (generacion !== generacionMusica) return;
                         e.target.setVolume(VOLUMEN_INICIAL);
                         leerYouTube();
+                        // Un link nuevo arranca solo (pedido de Swa). Si el teclado tapa la
+                        // tarjeta, arranca cuando se cierra.
                         if (!plegado && reproductorVisible()) e.target.playVideo();
+                        else if (!plegado && document.body.classList.contains('teclado-abierto')) pausadoPorTeclado = true;
                     },
                     onStateChange: e => {
                         if (generacion !== generacionMusica || falloMusica) return;
@@ -2173,9 +2177,9 @@ async function escucharMusica(texto) {
                     musica.lista = canciones.length > 1;
                     mostrarEstadoMusica();
                 });
-                // Si saliste del editor (o cerraste) mientras cargaba, no arranca oculto.
-                if (reproductorVisible()) widget.play();
-                else widget.pause();
+                // Un link nuevo arranca solo (pedido de Swa): SoundCloud puede sonar aunque
+                // el teclado tape la tarjeta.
+                widget.play();
                 leerPosicion();
             });
             widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); mostrarCancion(); });
@@ -2241,9 +2245,12 @@ function escucharArchivo(archivo, titulo) {
 }
 
 // La tarjeta se ve en todas las secciones menos Ajustes, y se esconde con el teclado.
+// Con el selector de música de la libreta abierto también se esconde, pero lo que suena
+// sigue: cuenta como a la vista, aunque el teclado esté abierto (pedido de Swa).
 function reproductorVisible() {
     const clases = document.body.classList;
-    return !$('reproductor').hidden && !clases.contains('teclado-abierto') && !clases.contains('en-ajustes');
+    if ($('reproductor').hidden || clases.contains('en-ajustes')) return false;
+    return clases.contains('eligiendo-musica') || !clases.contains('teclado-abierto');
 }
 
 function cerrarMusica() {
@@ -2296,10 +2303,12 @@ $('abrir-musica').addEventListener('click', () => {
     avisoFs(navigator.onLine ? '' : 'Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
     $('hoja-musica-cajon').append($('fs-cajon'));
     $('hoja-musica').hidden = false;
+    document.body.classList.add('eligiendo-musica');
     $('fs-link').focus();
 });
 function cerrarHojaMusica() {
     $('hoja-musica').hidden = true;
+    document.body.classList.remove('eligiendo-musica');
     $('pantalla-freestyle').querySelector('.contenido').append($('fs-cajon'));
 }
 // Con el camino del toque y no con contains: la cruz de un reciente ya no está en la página
