@@ -7,6 +7,7 @@ import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVeci
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
+import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases } from './logica/baul.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
@@ -226,6 +227,164 @@ function confirmarBorrado(letra, responder) {
     $('aceptar-borrado').onclick = () => cerrar(true);
     $('cancelar-borrado').onclick = () => cerrar(false);
 }
+
+// ---------- Baúl de frases (NavigationStack: Letras -> baúl) ----------
+let filtroBaul = 'todas';
+const ICONO_CHECK = '<svg viewBox="0 0 24 24" class="icono"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
+$('abrir-baul').addEventListener('click', () => { mostrarVista('vista-baul'); renderizarBaul(); });
+$('baul-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
+
+// El campo crece con lo que se escribe (hasta el máximo del CSS) y «Guardar» se prende con texto.
+function ajustarCampoBaul() {
+    const campo = $('baul-texto');
+    campo.style.height = 'auto';
+    campo.style.height = `${campo.scrollHeight}px`;
+    $('baul-guardar').disabled = !campo.value.trim();
+}
+$('baul-texto').addEventListener('input', ajustarCampoBaul);
+// Que tocar «Guardar» no cierre el teclado: así se puede seguir anotando.
+$('baul-guardar').addEventListener('mousedown', e => e.preventDefault());
+$('baul-guardar').addEventListener('click', () => {
+    if (!anotarFrase(localStorage, $('baul-texto').value)) return;
+    $('baul-texto').value = '';
+    ajustarCampoBaul();
+    renderizarBaul();
+});
+
+// La lupa de arriba muestra el buscador; cerrarlo vuelve a mostrar todas.
+$('baul-abrir-busqueda').addEventListener('click', () => {
+    const abrir = $('baul-busqueda').hidden;
+    $('baul-busqueda').hidden = !abrir;
+    $('baul-abrir-busqueda').setAttribute('aria-expanded', abrir);
+    if (abrir) $('baul-buscar').focus(); else $('baul-buscar').value = '';
+    renderizarBaul();
+});
+$('baul-buscar').addEventListener('input', () => renderizarBaul());
+
+$('baul-filtros').append(...FILTROS.map(({ id, nombre }) => {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.setAttribute('role', 'radio');
+    boton.dataset.filtro = id;
+    boton.textContent = nombre;
+    boton.addEventListener('click', () => { filtroBaul = id; renderizarBaul(); });
+    return boton;
+}));
+
+function renderizarBaul() {
+    $('baul-filtros').querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b.dataset.filtro === filtroBaul));
+    const todas = listarFrases(localStorage);
+    const busqueda = $('baul-buscar').value;
+    const frases = filtrarFrases(todas, { filtro: filtroBaul, busqueda });
+    const columnas = [...$('baul-frases').children];
+    columnas.forEach(c => c.replaceChildren());
+    // Cada tarjeta va a la columna más corta (en SwiftUI: dos VStack, o un Layout propio).
+    for (const frase of frases) {
+        const [a, b] = columnas;
+        const corta = a.offsetHeight === b.offsetHeight ? (a.children.length <= b.children.length ? a : b) : (a.offsetHeight < b.offsetHeight ? a : b);
+        corta.append(tarjetaFrase(frase));
+    }
+    const vacio = $('baul-vacio');
+    vacio.hidden = frases.length > 0;
+    vacio.textContent = busqueda.trim() ? `Ninguna frase tiene «${busqueda.trim()}».`
+        : !todas.length ? 'Anotá arriba las frases que se te ocurran, para usarlas después en una letra.'
+        : filtroBaul === 'usadas' ? 'Todavía no marcaste ninguna como usada.' : 'Ya usaste todas.';
+}
+
+// Tocar una tarjeta la edita ahí mismo y se agranda con el texto; al tocar afuera se guarda y
+// vuelve a su alto máximo. Mantenerla apretada abre el menú.
+function tarjetaFrase(frase) {
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'tarjeta-frase';
+    const texto = document.createElement('p');
+    texto.className = 'texto-frase';
+    texto.textContent = frase.texto;
+    tarjeta.append(texto);
+    if (frase.usada) {
+        const check = document.createElement('span');
+        check.className = 'check-usada';
+        check.setAttribute('aria-label', 'Usada');
+        check.innerHTML = ICONO_CHECK;
+        tarjeta.append(check);
+    }
+    let espera = null, inicio = null, abrioMenu = false;
+    const editando = () => tarjeta.classList.contains('editando');
+    const soltar = () => { clearTimeout(espera); inicio = null; tarjeta.classList.remove('apretada'); };
+    tarjeta.addEventListener('pointerdown', e => {
+        if (editando()) return;
+        abrioMenu = false;
+        inicio = { x: e.clientX, y: e.clientY };
+        tarjeta.classList.add('apretada');
+        espera = setTimeout(() => { soltar(); abrioMenu = true; navigator.vibrate?.(10); abrirMenuFrase(frase, tarjeta); }, 450);
+    });
+    tarjeta.addEventListener('pointermove', e => {
+        // Si se mueve antes de tiempo es que quiere desplazar la pantalla.
+        if (inicio && Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y) > 10) soltar();
+    });
+    tarjeta.addEventListener('pointerup', soltar);
+    tarjeta.addEventListener('pointercancel', soltar);
+    tarjeta.addEventListener('contextmenu', e => { if (!editando()) e.preventDefault(); });
+    tarjeta.addEventListener('click', () => {
+        if (abrioMenu || editando()) return;
+        tarjeta.classList.add('editando');
+        texto.contentEditable = 'plaintext-only';
+        texto.focus();
+        // El cursor, al final del texto.
+        const rango = document.createRange();
+        rango.selectNodeContents(texto);
+        rango.collapse(false);
+        getSelection().removeAllRanges();
+        getSelection().addRange(rango);
+    });
+    texto.addEventListener('blur', () => {
+        if (!editando()) return;
+        tarjeta.classList.remove('editando');
+        texto.contentEditable = 'false';
+        editarFrase(localStorage, frase.id, texto.innerText);
+        frase.texto = texto.innerText.trim();
+        // Vacía se borra; con un buscador, puede que ya no entre.
+        if (!frase.texto || $('baul-buscar').value.trim()) renderizarBaul();
+        else texto.textContent = frase.texto;
+    });
+    return tarjeta;
+}
+
+// El menú de una frase: la tarjeta queda arriba, con el resto borroneado, y abajo las opciones.
+let fraseDelMenu = null;
+function abrirMenuFrase(frase, tarjeta) {
+    fraseDelMenu = frase;
+    const fondo = $('baul-menu'), elevada = $('baul-menu-frase'), opciones = $('baul-menu-opciones');
+    elevada.replaceChildren(...[...tarjeta.children].map(n => n.cloneNode(true)));
+    elevada.className = 'tarjeta-frase frase-elevada';
+    $('baul-usada-texto').textContent = frase.usada ? 'Desmarcar como usada' : 'Marcar como usada';
+    fondo.hidden = false;
+    const r = tarjeta.getBoundingClientRect();
+    elevada.style.left = `${r.left}px`;
+    elevada.style.width = `${r.width}px`;
+    // Si el menú no entra abajo, sube todo.
+    const alto = elevada.offsetHeight;
+    const top = Math.max(60, Math.min(r.top, innerHeight - alto - opciones.offsetHeight - 40));
+    elevada.style.top = `${top}px`;
+    opciones.style.top = `${top + elevada.offsetHeight + 12}px`;
+    opciones.style.left = `${Math.min(r.left, innerWidth - opciones.offsetWidth - 16)}px`;
+}
+const cerrarMenuFrase = () => { $('baul-menu').hidden = true; fraseDelMenu = null; };
+$('baul-menu').addEventListener('click', e => { if (e.target === $('baul-menu')) cerrarMenuFrase(); });
+$('baul-copiar').addEventListener('click', () => {
+    navigator.clipboard?.writeText(fraseDelMenu.texto).catch(() => {});
+    cerrarMenuFrase();
+});
+$('baul-usada').addEventListener('click', () => {
+    alternarUsada(localStorage, fraseDelMenu.id);
+    cerrarMenuFrase();
+    renderizarBaul();
+});
+$('baul-borrar').addEventListener('click', () => {
+    borrarFrase(localStorage, fraseDelMenu.id);
+    cerrarMenuFrase();
+    renderizarBaul();
+});
 
 const editorTexto = $('editor-texto');
 let letraActual = null;
