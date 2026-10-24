@@ -5,7 +5,7 @@ import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInte
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
@@ -657,7 +657,7 @@ function fragmentoRima(palabra, clase) {
 
 const palabraBuscada = () => $('buscar-rima').value.trim().toLowerCase();
 const rimasDeLaBusqueda = () => buscarRimas(palabraBuscada(), indiceRimas(), { tipo: tipoRima });
-// Las rimas buscadas llevan la terminación como la palabra tocada de la libreta.
+// Las terminaciones llevan el efecto de la palabra tocada de la libreta.
 const CLASE_BUSCADA = 'brillo-violeta';
 // En el cajón de todas van hasta 300 (las más usadas primero): más allá son rarezas.
 const MAXIMO_TODAS = 300;
@@ -687,13 +687,14 @@ function renderizarRimas() {
     $('cajon-todas').hidden = !lista.length;
     const total = todas.length.toLocaleString('es-AR');
     $('encabezado-resultados').textContent = todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
-    $('rimas-vacio').textContent = palabra ? `No encontré rimas ${tipoRima}s para «${palabra}».` : 'Escribí una palabra para ver con qué rima.';
-    $('rimas-vacio').hidden = lista.length > 0;
+    $('rimas-vacio').textContent = `No encontré rimas ${tipoRima}s para «${palabra}».`;
+    $('rimas-vacio').hidden = !palabra || lista.length > 0;
     $('limpiar-rima').hidden = !palabra;
 }
 
 // Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
 function buscarRima() {
+    desde = 0;
     renderizarRimas();
     refrescarPalabras(false);
     frenarReloj();
@@ -710,8 +711,8 @@ document.querySelectorAll('#tipo-rima [role="tab"]').forEach(b => b.addEventList
 
 // El «?» de cada opción abre una viñeta corta, con la puntita hacia el «?». Se cierra tocando afuera.
 const AYUDA_TIPO = {
-    consonante: '<strong>Consonante:</strong> desde la vocal fuerte hasta el final suena todo igual, vocales y consonantes. «canción» y «razón».',
-    asonante: '<strong>Asonante:</strong> desde la vocal fuerte solo coinciden las vocales; las consonantes pueden cambiar. «casa» y «llama».',
+    consonante: '<strong>Consonante:</strong> el final suena igual, letra por letra. Ej.: ca<b>sa</b> y pa<b>sa</b>, can<b>ción</b> y ra<b>zón</b>.',
+    asonante: '<strong>Asonante:</strong> el final repite solo las vocales. Ej.: c<b>a</b>s<b>a</b> y c<b>a</b>m<b>a</b> (a-a), l<b>u</b>n<b>a</b> y c<b>u</b>r<b>a</b> (u-a).',
 };
 function cerrarAyudaTipo() {
     $('vineta-tipo').hidden = true;
@@ -737,6 +738,7 @@ let rimasALaVista = false; // la pestaña Rimas está abierta
 let pausadoPorUsuario = false;
 let restante = SEGUNDOS * 1000;
 let cuadro = null, antes = 0, cambio = 0;
+let desde = 0; // al buscar, desde cuál rima se muestran las 4 (refrescar pasa a las 4 siguientes)
 const ICONO_PAUSA_AZAR = '<svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>';
 const ICONO_PLAY_AZAR = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>';
 
@@ -750,22 +752,78 @@ function poolActual() {
     return rimas.filter(p => conjunto.has(p));
 }
 
-// Tarjeta de la caja: la palabra (con la rima pintada) y, abajo, cuántas sílabas tiene.
-function cajaPalabra(palabra, clase, i, animar) {
+// Botón «Guardar» (como el marcador de Twitter): guardada, se pinta con el efecto violeta.
+const ICONO_GUARDAR = '<span class="icono-guardar"><span></span></span>';
+function botonGuardar(palabra) {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'guardar';
+    boton.innerHTML = ICONO_GUARDAR;
+    boton.setAttribute('aria-label', `Guardar ${palabra}`);
+    boton.setAttribute('aria-pressed', listarGuardadas(localStorage).includes(palabra));
+    boton.addEventListener('click', () => {
+        boton.setAttribute('aria-pressed', alternarGuardada(localStorage, palabra));
+        renderizarGuardadas();
+    });
+    return boton;
+}
+
+// Tarjeta de la caja: la palabra (con la rima pintada) y, abajo, cuántas sílabas tiene,
+// centradas en el alto; a la derecha, el botón para guardarla.
+function cajaPalabra(palabra, i, animar) {
     const caja = document.createElement('div');
     caja.className = `palabra-caja${animar ? ' entra' : ''}`;
     caja.style.setProperty('--i', i);
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'palabra';
-    boton.append(fragmentoRima(palabra, clase));
-    boton.addEventListener('click', () => buscarPalabra(palabra));
+    const texto = document.createElement('span');
+    texto.className = 'texto-palabra';
+    texto.append(fragmentoRima(palabra, CLASE_BUSCADA));
     const silabas = document.createElement('span');
     silabas.className = 'silabas-tarjeta';
     const n = separarSilabas(palabra).length;
     silabas.textContent = n ? `${n} ${n === 1 ? 'sílaba' : 'sílabas'}` : '';
-    caja.append(boton, silabas);
+    boton.append(texto, silabas);
+    boton.addEventListener('click', () => buscarPalabra(palabra));
+    caja.append(boton, botonGuardar(palabra));
     return caja;
+}
+
+// El cajón de las guardadas: como el de todas, con una X para sacar cada una.
+function renderizarGuardadas() {
+    const guardadas = listarGuardadas(localStorage);
+    $('lista-guardadas').replaceChildren(...guardadas.map(p => {
+        const item = document.createElement('li');
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.append(fragmentoRima(p, CLASE_BUSCADA));
+        boton.addEventListener('click', () => buscarPalabra(p));
+        const borrar = document.createElement('button');
+        borrar.type = 'button';
+        borrar.className = 'borrar-guardada';
+        borrar.setAttribute('aria-label', `Borrar ${p}`);
+        borrar.innerHTML = '<svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+        borrar.addEventListener('click', () => {
+            alternarGuardada(localStorage, p);
+            renderizarGuardadas();
+        });
+        item.append(boton, borrar);
+        return item;
+    }));
+    $('cajon-guardadas').hidden = !guardadas.length;
+    // Las cajitas a la vista muestran si su palabra sigue guardada.
+    document.querySelectorAll('#grilla-palabras .guardar').forEach(b =>
+        b.setAttribute('aria-pressed', guardadas.includes(b.getAttribute('aria-label').replace('Guardar ', ''))));
+}
+
+// Cada palabra en un renglón: si no entra, se le achica la letra. Con la pestaña escondida
+// no se puede medir: se vuelve a ajustar al abrirla.
+function ajustarPalabras() {
+    $('grilla-palabras').querySelectorAll('.texto-palabra').forEach(texto => {
+        texto.style.fontSize = '';
+        for (let tam = 22; texto.scrollWidth > texto.clientWidth && tam > 12; tam--) texto.style.fontSize = `${tam - 1}px`;
+    });
 }
 
 // Cambia las 4 palabras. Con `animar`, las viejas se van borroneadas y las nuevas entran
@@ -774,14 +832,16 @@ function refrescarPalabras(animar = true) {
     restante = SEGUNDOS * 1000;
     const buscando = Boolean(palabraBuscada());
     const pool = poolActual();
-    const elegidas = buscando ? pool.slice(0, CANTIDAD) : palabrasAlAzar(pool, CANTIDAD);
+    if (desde >= pool.length) desde = 0;
+    const elegidas = buscando ? pool.slice(desde, desde + CANTIDAD) : palabrasAlAzar(pool, CANTIDAD);
     const grilla = $('grilla-palabras');
     const esta = ++cambio;
     const poner = () => {
         if (esta !== cambio) return;
         grilla.classList.remove('sale');
         grilla.replaceChildren(...elegidas.map((palabra, i) =>
-            cajaPalabra(palabra, buscando ? CLASE_BUSCADA : `rima-${i % 12}`, i, animar)));
+            cajaPalabra(palabra, i, animar)));
+        ajustarPalabras();
         if (animar) {
             $('caja-azar').classList.remove('cambio');
             void $('caja-azar').offsetWidth;
@@ -799,7 +859,6 @@ function refrescarPalabras(animar = true) {
 }
 
 function mostrarTiempo() {
-    $('cuenta-azar').textContent = pausadoPorUsuario ? 'en pausa' : `cambian en ${Math.max(1, Math.ceil(restante / 1000))} s`;
     $('tiempo-azar').style.setProperty('--queda', Math.max(0, restante) / (SEGUNDOS * 1000));
     $('caja-azar').classList.toggle('en-pausa', pausadoPorUsuario);
     $('pausar-palabras').innerHTML = pausadoPorUsuario ? ICONO_PLAY_AZAR : ICONO_PAUSA_AZAR;
@@ -827,6 +886,7 @@ function frenarReloj() {
 
 function reanudarPalabras() {
     rimasALaVista = true;
+    ajustarPalabras();
     if (!palabraBuscada() && !pausadoPorUsuario) refrescarPalabras();
     arrancarReloj();
 }
@@ -847,6 +907,8 @@ $('refrescar-palabras').addEventListener('click', () => {
     boton.classList.remove('gira');
     void boton.offsetWidth;
     boton.classList.add('gira');
+    // Al buscar, pasa a las 4 rimas siguientes.
+    if (palabraBuscada()) desde += CANTIDAD;
     refrescarPalabras();
 });
 $('palabras-simples').addEventListener('click', () => {
@@ -2082,6 +2144,7 @@ renderizarApariencia();
 renderizarExtras();
 renderizarLetras();
 renderizarRimas();
+renderizarGuardadas();
 refrescarPalabras(false);
 // Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
 setTimeout(() => { indiceRimas(); corregir(''); }, 300);

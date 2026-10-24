@@ -24,6 +24,8 @@
     --destacado: #7b61ff;
     --destacado-2: #c56cf0;
     --destacado-suave: rgba(123, 97, 255, 0.14);
+    /* El degradé de la palabra tocada (se mueve con brillo-tocada). */
+    --degrade-tocada: linear-gradient(100deg, var(--destacado) 0 35%, #f4ecff 48%, var(--destacado-2) 60%, var(--destacado) 100%) 0 0 / 250% 100%;
     --verde: #34c759;
     --segmento: #ffffff;
     --libreta: #ffffff;
@@ -223,7 +225,17 @@ a { color: var(--acento); text-decoration: none; }
 .busqueda-rima {
     height: 44px; border-radius: 22px; display: flex; align-items: center; gap: 8px; padding: 0 16px; color: var(--texto-2);
 }
-.busqueda-rima .icono { width: 20px; height: 20px; flex-shrink: 0; }
+/* La lupa, con el degradé violeta y el brillo de la palabra tocada. La forma es una máscara;
+   el resplandor va afuera porque la máscara lo cortaría. */
+.lupa-violeta, .icono-guardar { flex-shrink: 0; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--destacado) 55%, transparent)); }
+.lupa-violeta span, .guardar[aria-pressed="true"] .icono-guardar span {
+    display: block; background: var(--degrade-tocada); animation: brillo-tocada 2.2s linear infinite;
+}
+.lupa-violeta span {
+    width: 20px; height: 20px;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6'/%3E%3Cpath d='M15 15l5 5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6'/%3E%3Cpath d='M15 15l5 5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 .busqueda-rima input {
     flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 17px; color: var(--texto); padding: 0;
 }
@@ -233,7 +245,14 @@ a { color: var(--acento); text-decoration: none; }
 .opcion-tipo { flex: 1; position: relative; display: flex; border-radius: 17px; }
 .opcion-tipo:has(> [aria-selected="true"]) { background: var(--tarjeta); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
 #tipo-rima [role="tab"] { flex: 1; border-radius: 17px; font-size: 14px; font-weight: 500; padding: 0 22px 0 0; background: none; box-shadow: none; color: var(--texto-2); }
-#tipo-rima [role="tab"][aria-selected="true"] { font-weight: 600; color: var(--texto); }
+/* El tipo elegido va con el efecto de la palabra tocada. */
+#tipo-rima [role="tab"][aria-selected="true"] { font-weight: 700; }
+#tipo-rima [role="tab"][aria-selected="true"], #pantalla-rimas mark.brillo-violeta {
+    background: var(--degrade-tocada);
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--destacado) 55%, transparent));
+    animation: brillo-tocada 2.2s linear infinite;
+}
 /* El «?» en un circulito, a la derecha de cada opción. */
 .segmentado .ayuda-tipo {
     position: absolute; right: 8px; top: 50%; translate: 0 -50%; flex: none; padding: 0;
@@ -246,7 +265,7 @@ a { color: var(--acento); text-decoration: none; }
     position: relative; margin-top: 10px; padding: 12px 14px; border-radius: 18px; font-size: 14px; line-height: 1.35; color: var(--texto);
     background: var(--tarjeta); box-shadow: var(--sombra-vidrio); animation: aparecer-vineta .2s ease;
 }
-.vineta-tipo strong { color: var(--destacado); }
+.vineta-tipo strong, .vineta-tipo b { color: var(--destacado); }
 .vineta-tipo::before {
     content: ""; position: absolute; top: -6px; left: var(--punta, 50%); width: 12px; height: 12px; margin-left: -6px;
     background: inherit; rotate: 45deg; border-radius: 2px;
@@ -264,14 +283,30 @@ a { color: var(--acento); text-decoration: none; }
 .cabecera-azar { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 0 6px 10px; }
 .titulo-azar { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: var(--texto-2); }
 .cajon-todas .titulo-azar { padding: 0 6px 8px; }
-.cuenta-azar { font-size: 13px; color: var(--texto-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .grilla-palabras { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .palabra-caja { position: relative; height: 84px; border-radius: 20px; overflow: hidden; }
+/* La palabra y las sílabas, centradas en el alto y tiradas a la izquierda; a la derecha, «Guardar». */
 .palabra-caja .palabra {
-    position: absolute; inset: 0; padding: 14px; border-radius: 20px; background: none; box-shadow: none;
+    position: absolute; inset: 0; padding: 0 40px 0 14px; border-radius: 20px; background: none; box-shadow: none;
+    display: flex; flex-direction: column; justify-content: center; gap: 4px;
     text-align: left; font-size: 22px; font-weight: 600; line-height: 1.15; color: var(--texto); overflow-wrap: anywhere;
 }
-.silabas-tarjeta { position: absolute; left: 14px; bottom: 12px; font-size: 12px; line-height: 1; color: var(--texto-3); pointer-events: none; }
+.silabas-tarjeta { font-size: 12px; font-weight: 400; line-height: 1; color: var(--texto-3); }
+/* La palabra va en un renglón: si no entra, se achica la letra (como la del aro de Freestyle). */
+.texto-palabra { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; }
+/* Guardar: el marcador de Twitter, sin círculo. Guardada, con el degradé violeta. */
+.guardar { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 36px; height: 44px; display: grid; place-items: center; }
+.icono-guardar { filter: none; }
+.icono-guardar span {
+    display: block; width: 20px; height: 20px; background: var(--texto-3);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h12v17l-6-4.2-6 4.2z'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h12v17l-6-4.2-6 4.2z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.guardar[aria-pressed="true"] .icono-guardar { filter: drop-shadow(0 0 5px color-mix(in srgb, var(--destacado) 55%, transparent)); }
+.guardar[aria-pressed="true"] .icono-guardar span {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 3.5h12v17l-6-4.2-6 4.2z' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 3.5h12v17l-6-4.2-6 4.2z' stroke='%23000' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
 /* Al cambiar, las palabras viejas se borronean hacia arriba y las nuevas entran una tras otra
    con un brillo violeta que cruza la tarjeta. */
 .grilla-palabras.sale .palabra-caja { animation: salir-palabra .22s ease-in forwards; }
@@ -299,27 +334,23 @@ a { color: var(--acento); text-decoration: none; }
 .chip-simples { margin-left: auto; height: 40px; padding: 0 16px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--texto-2); background: var(--tarjeta); }
 .chip-simples[aria-pressed="true"] { background: var(--destacado-suave); color: var(--destacado); }
 /* Al buscar, el azar se frena: solo queda el filtro de palabras simples. */
-.caja-azar.buscando :is(.cuenta-azar, .tiempo-azar, .boton-azar) { display: none; }
+.caja-azar.buscando :is(.tiempo-azar, #pausar-palabras) { display: none; }
 #pantalla-rimas mark[class*="rima-"] { color: inherit; border-radius: 4px; padding: 0 1px; margin: 0 -1px; }
 /* La terminación de las rimas buscadas va como la palabra tocada de la libreta: degradé
    violeta con un brillo que la cruza y resplandor (sin destellos). */
-#pantalla-rimas mark.brillo-violeta {
-    background: linear-gradient(100deg, var(--destacado) 0 35%, #f4ecff 48%, var(--destacado-2) 60%, var(--destacado) 100%) 0 0 / 250% 100%;
-    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--destacado) 55%, transparent));
-    animation: brillo-tocada 2.2s linear infinite;
-}
 @media (prefers-reduced-motion: reduce) {
-    #pantalla-rimas mark.brillo-violeta, .palabra-caja.entra, .palabra-caja.entra::after, .grilla-palabras.sale .palabra-caja { animation: none; }
+    #pantalla-rimas mark.brillo-violeta, #tipo-rima [role="tab"], .lupa-violeta span, .icono-guardar span, .palabra-caja.entra, .palabra-caja.entra::after, .grilla-palabras.sale .palabra-caja { animation: none; }
 }
-/* Todas: dos columnas de 10 renglones a la vista (20 palabras) y el resto se desliza adentro. */
+/* Todas y guardadas: dos columnas de 5 renglones a la vista (10 palabras) y el resto se desliza adentro. */
 .lista-todas {
     list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 40px; column-gap: 8px;
-    max-height: 400px; overflow-y: auto; overscroll-behavior: contain; border-radius: 16px;
+    max-height: 200px; overflow-y: auto; overscroll-behavior: contain; border-radius: 16px;
 }
-.lista-todas li { min-width: 0; border-bottom: 0.5px solid var(--separador); }
-.lista-todas button { width: 100%; height: 100%; padding: 0 8px; text-align: left; font-size: 17px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lista-todas li { min-width: 0; display: flex; align-items: center; border-bottom: 0.5px solid var(--separador); }
+.lista-todas button:first-child { flex: 1; min-width: 0; height: 100%; padding: 0 8px; text-align: left; font-size: 17px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pantalla-rimas .vacio { margin: 28px 8px; }
+.borrar-guardada { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; color: var(--texto-3); }
+.borrar-guardada .icono { width: 16px; height: 16px; }
 
 /* Freestyle (freestyle_v2_A): el aro se llena de violeta y adentro van la palabra
    y los segundos que quedan. La palabra va siempre en una línea: si no entra, app.js

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla } from '../js/logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from '../js/logica/sesiones.js';
 
 // Imita localStorage: guarda texto por clave.
 function almacenDePrueba(inicial = {}) {
@@ -69,4 +69,14 @@ test('lugarEnGrilla: dos chicas y una larga, y después al revés', () => {
     const lugares = Array.from({ length: 9 }, (_, i) => lugarEnGrilla(i));
     assert.deepEqual(lugares.map(l => `${l.columna}/${l.fila}${l.larga ? 'L' : ''}`),
         ['1/1', '2/1L', '1/2', '1/3L', '2/3', '2/4', '1/5', '2/5L', '1/6']);
+});
+
+test('palabras guardadas: guardar, sacar y la última primero', () => {
+    const almacen = almacenDePrueba({ 'metrica.guardadas': '"rota"' });
+    assert.deepEqual(listarGuardadas(almacen), []);
+    assert.equal(alternarGuardada(almacen, 'luna'), true);
+    assert.equal(alternarGuardada(almacen, 'corazón'), true);
+    assert.deepEqual(listarGuardadas(almacen), ['corazón', 'luna']);
+    assert.equal(alternarGuardada(almacen, 'luna'), false);
+    assert.deepEqual(listarGuardadas(almacen), ['corazón']);
 });

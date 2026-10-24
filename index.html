@@ -89,8 +89,9 @@
             <h1 class="titulo-grande">Rimas</h1>
             <div class="contenido">
                 <div class="busqueda-rima">
-                    <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>
-                    <input id="buscar-rima" type="search" placeholder="una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
+                    <!-- La lupa va con el efecto de la palabra tocada (degradé violeta con brillo). -->
+                    <span class="lupa-violeta" aria-hidden="true"><span></span></span>
+                    <input id="buscar-rima" type="search" placeholder="Escribí una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
                     <button type="button" id="limpiar-rima" aria-label="Borrar" hidden>✕</button>
                 </div>
                 <!-- Cada opción lleva un «?» que abre una viñeta corta que la explica. -->
@@ -109,7 +110,6 @@
                 <div class="caja-azar vidrio" id="caja-azar">
                     <div class="cabecera-azar">
                         <h2 class="titulo-azar" id="encabezado-usadas">Terminaciones al azar</h2>
-                        <span class="cuenta-azar" id="cuenta-azar">cambian en 6 s</span>
                     </div>
                     <div class="grilla-palabras" id="grilla-palabras"></div>
                     <!-- Se vacía mientras falta para el cambio. -->
@@ -124,12 +124,17 @@
                 </div>
                 <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
                 <button type="button" class="publicidad" data-paywall>Publicidad · <strong>Métrica Extras</strong> la quita</button>
-                <!-- Todas las rimas, en un cajón que muestra 20 y se desliza para ver el resto. -->
+                <!-- Todas las rimas, en un cajón que muestra 10 y se desliza para ver el resto. -->
                 <div class="cajon-todas vidrio" id="cajon-todas" hidden>
                     <h2 class="titulo-azar" id="encabezado-resultados">Todas</h2>
                     <ul class="lista-todas" id="resultados-rimas"></ul>
                 </div>
-                <p class="vacio" id="rimas-vacio">Escribí una palabra para ver con qué rima.</p>
+                <p class="vacio" id="rimas-vacio" hidden></p>
+                <!-- Las que se guardaron con el botón de cada cajita, cada una con su X para borrarla. -->
+                <div class="cajon-todas vidrio" id="cajon-guardadas" hidden>
+                    <h2 class="titulo-azar">Palabras guardadas</h2>
+                    <ul class="lista-todas" id="lista-guardadas"></ul>
+                </div>
             </div>
         </section>
 
