@@ -4,7 +4,6 @@
 // saldrá de Transaction.currentEntitlements. Las rimas y lo básico nunca se bloquean.
 
 const CLAVE_COMPRA = 'metrica.extras';
-const CLAVE_TEMA = 'metrica.tema-libreta';
 
 export const PRODUCTO = { id: 'metrica.extras', nombre: 'Métrica Extras', precio: 'USD 4,99' };
 
@@ -30,7 +29,7 @@ export function comprarExtras(almacen) {
     return true;
 }
 
-// Para probar: vuelve a la versión gratis (un tema de pago elegido pasa al inicial, ver temaActual).
+// Para probar: vuelve a la versión gratis (un tema de pago elegido pasa al inicial, ver temaDeLetra).
 export function borrarCompra(almacen) {
     almacen.setItem(CLAVE_COMPRA, '');
 }
@@ -43,15 +42,8 @@ export function temaDisponible(clave, almacen) {
     return Boolean(tema) && (!tema.extra || tieneExtras(almacen));
 }
 
-// El tema elegido; si no está disponible (o no existe), el inicial.
-export function temaActual(almacen) {
-    const clave = almacen.getItem(CLAVE_TEMA);
-    return temaDisponible(clave, almacen) ? clave : TEMA_INICIAL;
-}
-
-// Elige un tema. Devuelve false si está bloqueado (hay que mostrar el paywall).
-export function elegirTema(almacen, clave) {
-    if (!temaDisponible(clave, almacen)) return false;
-    almacen.setItem(CLAVE_TEMA, clave);
-    return true;
+// Cada letra tiene su tema (letra.tema, guardado con la letra). Si no eligió ninguno, o el suyo
+// no está disponible (de Extras sin comprar), va el inicial: Gris liso.
+export function temaDeLetra(letra, almacen) {
+    return temaDisponible(letra?.tema, almacen) ? letra.tema : TEMA_INICIAL;
 }

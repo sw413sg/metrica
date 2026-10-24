@@ -1632,7 +1632,7 @@ const servidor = http.createServer((req, res) => {
             await page.locator('#editor-atras').click();
         };
         await abrirTemas();
-        assert.equal(await page.locator('#temas-libreta .celda').count(), 7);
+        assert.equal(await page.locator('#temas-libreta .tema-libreta').count(), 7);
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 5);
         await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), true);
@@ -1675,27 +1675,49 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/ajustes-extras-${tema}.png`, fullPage: true});
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         assert.equal(await page.locator('#pantalla-rimas .publicidad').isVisible(), false);
+        // Cada letra tiene su tema: una nueva arranca en gris y lo que se elige queda en esa letra.
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#nueva-letra').click();
         await page.locator('#editor-texto').fill('Me acuerdo porque te fuiste\nno me alcanzaban las manos\nsemana entera pensando\ncomo pude aceptarlo');
+        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        await page.locator('#abrir-ajustes-libreta').click();
+        await page.locator('[data-tema="madrugada"]').click();
+        assert.equal(await page.locator('[data-tema="madrugada"]').getAttribute('aria-pressed'), 'true');
+        await page.locator('#cerrar-ajustes-libreta').click();
         assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(27, 32, 52)');
         assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), /fondos\/madrugada\.svg/);
         await page.locator('#editor-texto').blur();
         await page.screenshot({path: `capturas/editor-madrugada-${tema}.png`});
         // Los otros temas de Extras, cada uno con su ilustración abajo.
         for (const otro of ['sierra', 'ondas', 'arena', 'partitura']) {
-            await page.evaluate(clave => { localStorage.setItem('metrica.tema-libreta', clave); document.body.dataset.libreta = clave; }, otro);
+            await page.evaluate(clave => { document.body.dataset.libreta = clave; }, otro);
             assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), new RegExp(`fondos/${otro}\\.svg`));
             await page.screenshot({path: `capturas/editor-${otro}-${tema}.png`});
         }
-        await page.evaluate(() => { localStorage.setItem('metrica.tema-libreta', 'madrugada'); document.body.dataset.libreta = 'madrugada'; });
+        await page.locator('#editor-atras').click();
+        // Otra letra no hereda el tema; al volver a la primera, sigue con el suyo (también al recargar).
+        await page.locator('#nueva-letra').click();
+        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        await page.locator('#editor-texto').fill('Otra letra');
+        await page.locator('#editor-atras').click();
+        await page.reload();
+        await page.locator('#lista-letras .tarjeta-letra', {hasText: 'Me acuerdo'}).locator('button').first().click();
+        assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(27, 32, 52)');
+        await page.locator('#editor-atras').click();
+        await page.locator('#lista-letras .tarjeta-letra', {hasText: 'Otra letra'}).locator('button').first().click();
+        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('#borrar-letra').click();
         await page.locator('#aceptar-borrado').click();
         // Volver a la versión gratis: el tema de pago vuelve a gris y vuelve la publicidad.
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         await page.locator('#borrar-compra').click();
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+        await page.locator('#lista-letras .tarjeta-letra', {hasText: 'Me acuerdo'}).locator('button').first().click();
         assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        await page.locator('#abrir-ajustes-libreta').click();
+        await page.locator('#borrar-letra').click();
+        await page.locator('#aceptar-borrado').click();
         await abrirTemas();
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 5);
         await cerrarLibreta();

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from '../js/logica/compra.js';
+import { TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra } from '../js/logica/compra.js';
 
 function almacenDePrueba(inicial = {}) {
     const datos = new Map(Object.entries(inicial));
@@ -25,31 +25,30 @@ test('al comprar se va la publicidad y se desbloquean todos los temas', () => {
     assert.ok(TEMAS.every(t => temaDisponible(t.clave, almacen)));
 });
 
-test('elegirTema no deja elegir uno bloqueado', () => {
+test('cada letra tiene su tema; sin elegir, el gris', () => {
     const almacen = almacenDePrueba();
-    assert.equal(temaActual(almacen), 'gris');
-    assert.equal(elegirTema(almacen, 'madrugada'), false);
-    assert.equal(temaActual(almacen), 'gris');
-    assert.equal(elegirTema(almacen, 'blanco'), true);
-    assert.equal(temaActual(almacen), 'blanco');
-    comprarExtras(almacen);
-    assert.equal(elegirTema(almacen, 'madrugada'), true);
-    assert.equal(temaActual(almacen), 'madrugada');
+    assert.equal(temaDeLetra({ id: '1' }, almacen), 'gris');
+    assert.equal(temaDeLetra(null, almacen), 'gris');
+    assert.equal(temaDeLetra({ id: '1', tema: 'blanco' }, almacen), 'blanco');
+    assert.equal(temaDeLetra({ id: '2' }, almacen), 'gris', 'el tema de una no pasa a las otras');
 });
 
-test('si se borra la compra, un tema de pago vuelve al inicial', () => {
+test('un tema de pago en una letra solo vale con Extras', () => {
     const almacen = almacenDePrueba();
+    const letra = { id: '1', tema: 'madrugada' };
+    assert.equal(temaDeLetra(letra, almacen), 'gris');
     comprarExtras(almacen);
-    elegirTema(almacen, 'arena');
+    assert.equal(temaDeLetra(letra, almacen), 'madrugada');
     borrarCompra(almacen);
     assert.equal(tieneExtras(almacen), false);
-    assert.equal(temaActual(almacen), 'gris');
+    assert.equal(temaDeLetra(letra, almacen), 'gris');
 });
 
-test('datos raros en el almacén no desbloquean nada', () => {
-    const almacen = almacenDePrueba({ 'metrica.extras': 'true', 'metrica.tema-libreta': 'sierra' });
+test('datos raros no desbloquean nada', () => {
+    const almacen = almacenDePrueba({ 'metrica.extras': 'true' });
     assert.equal(tieneExtras(almacen), false);
-    assert.equal(temaActual(almacen), 'gris');
+    assert.equal(temaDeLetra({ tema: 'sierra' }, almacen), 'gris');
+    assert.equal(temaDeLetra({ tema: 'inventado' }, almacen), 'gris');
 });
 
 test('siempre hay al menos un tema gratis', () => {

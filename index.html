@@ -315,21 +315,20 @@
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
             <h2 class="hoja-titulo" id="ajustes-libreta-titulo">Libreta</h2>
-            <ul class="lista-agrupada">
-                <li class="celda">
-                    <label for="mostrar-silabas">Sílabas por verso</label>
-                    <input type="checkbox" class="interruptor" id="mostrar-silabas">
-                </li>
-            </ul>
-            <h3 class="encabezado-grupo">Tema</h3>
-            <ul class="lista-agrupada" id="temas-libreta"></ul>
-            <p class="nota">Los temas con candado vienen con Métrica Extras.</p>
-            <!-- Un control segmentado por ajuste (tamaño, separaciones, fuente): lo arma js/app.js -->
+            <!-- Cajas de vidrio como las de Rimas y Freestyle (pedido de Swa). -->
+            <div class="caja-libreta vidrio">
+                <h3 class="titulo-azar">Tema de esta letra</h3>
+                <div class="temas-libreta" id="temas-libreta"></div>
+            </div>
+            <!-- Tamaño, separaciones, fuente y rimas internas: lo arma js/app.js -->
             <div id="opciones-libreta"></div>
+            <!-- Al final, antes de borrar (pedido de Swa). -->
+            <div class="caja-libreta vidrio fila-libreta">
+                <label for="mostrar-silabas">Sílabas por verso</label>
+                <input type="checkbox" class="interruptor" id="mostrar-silabas">
+            </div>
             <!-- Abajo de todo, borrar la letra (pide confirmación). -->
-            <ul class="lista-agrupada lista-borrar">
-                <li class="celda"><button class="celda-boton texto-rojo" id="borrar-letra">Borrar letra</button></li>
-            </ul>
+            <button type="button" class="caja-libreta vidrio boton-borrar-letra" id="borrar-letra">Borrar letra</button>
         </div>
     </div>
 
