@@ -53,10 +53,10 @@ export function alternarUsada(almacen, id) {
     return usada;
 }
 
-// El botón de volver al baúl desde una letra lleva su nombre: «Choque» entra entero, y uno
-// largo queda en las palabras que entran y «…» («Bypass de mes» -> «Bypass…»). Si así queda
-// casi nada («Si…»), se corta en la letra.
-export function etiquetaVolver(titulo, maximo = 8) {
+// El botón de volver al baúl desde una letra lleva su nombre, hasta 16 letras: «Bypass de mes»
+// entra entero, y uno largo queda en las palabras que entran y «…» («Después de ese…»). Si así queda
+// casi nada («Yo…»), se corta en la letra.
+export function etiquetaVolver(titulo, maximo = 16) {
     titulo = titulo.trim().replace(/\s+/g, ' ');
     if (!titulo) return 'Sin título';
     if (titulo.length <= maximo) return titulo;
