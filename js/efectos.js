@@ -12,8 +12,9 @@ const AREA_BASE = 390 * 420;
 
 const azar = (min, max) => min + Math.random() * (max - min);
 
-// `aro` es el elemento del círculo: de ahí salen el centro y el radio.
-export function crearEfecto(canvas, aro) {
+// `aro` es el elemento del círculo: de ahí salen el centro y el radio. Sin aro (Rimas)
+// van solo las partículas, sin resplandor.
+export function crearEfecto(canvas, aro = null) {
     const ctx = canvas.getContext('2d');
     const quieto = matchMedia('(prefers-reduced-motion: reduce)');
     let mood = MOODS.neutro;
@@ -40,6 +41,7 @@ export function crearEfecto(canvas, aro) {
     // El aro puede moverse sin cambiar de tamaño (cuando aparece o se va el reproductor de
     // abajo): se vuelve a ubicar en cada cuadro, así el resplandor no queda en el lugar viejo.
     function ubicarAro() {
+        if (!aro) return;
         const caja = canvas.getBoundingClientRect(), circulo = aro.getBoundingClientRect();
         cx = circulo.left + circulo.width / 2 - caja.left;
         cy = circulo.top + circulo.height / 2 - caja.top;
@@ -47,7 +49,7 @@ export function crearEfecto(canvas, aro) {
     }
     const observador = new ResizeObserver(medir);
     observador.observe(canvas);
-    observador.observe(aro);
+    if (aro) observador.observe(aro);
 
     // Las partículas andan por todo el canvas, adentro y afuera del aro.
     function nueva(desdeAbajo = false) {
@@ -125,19 +127,21 @@ export function crearEfecto(canvas, aro) {
 
         // Resplandor solo afuera del aro (pedido de Swa): no se ve en el vidrio del círculo.
         // Sale del borde hacia afuera y se desvanece, como un blur.
-        const halo = ctx.createRadialGradient(cx, cy, r, cx, cy, r * (1.7 + 0.25 * brillo));
-        halo.addColorStop(0, conAlfa(mood.colores[0], (0.2 + 0.35 * brillo) * fuerza));
-        halo.addColorStop(0.45, conAlfa(mood.colores[1], (0.06 + 0.15 * brillo) * fuerza));
-        halo.addColorStop(1, conAlfa(mood.colores[1], 0));
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, 0, ancho, alto);
-        // Un poco por debajo del borde: si no, queda una línea oscura entre el vidrio y la luz.
-        ctx.arc(cx, cy, Math.max(0, r - 3), 0, Math.PI * 2);
-        ctx.clip('evenodd');
-        ctx.fillStyle = halo;
-        ctx.fillRect(0, 0, ancho, alto);
-        ctx.restore();
+        if (aro) {
+            const halo = ctx.createRadialGradient(cx, cy, r, cx, cy, r * (1.7 + 0.25 * brillo));
+            halo.addColorStop(0, conAlfa(mood.colores[0], (0.2 + 0.35 * brillo) * fuerza));
+            halo.addColorStop(0.45, conAlfa(mood.colores[1], (0.06 + 0.15 * brillo) * fuerza));
+            halo.addColorStop(1, conAlfa(mood.colores[1], 0));
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, 0, ancho, alto);
+            // Un poco por debajo del borde: si no, queda una línea oscura entre el vidrio y la luz.
+            ctx.arc(cx, cy, Math.max(0, r - 3), 0, Math.PI * 2);
+            ctx.clip('evenodd');
+            ctx.fillStyle = halo;
+            ctx.fillRect(0, 0, ancho, alto);
+            ctx.restore();
+        }
 
         if (!quieto.matches) {
             quizasRayo(ahora, dt);

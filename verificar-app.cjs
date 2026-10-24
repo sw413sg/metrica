@@ -762,8 +762,15 @@ const servidor = http.createServer((req, res) => {
         // Todo con el efecto de la palabra tocada: terminaciones, lupa y el tipo elegido.
         assert.equal(await page.locator('.palabra mark').first().getAttribute('class'), 'brillo-violeta');
         assert.equal(await page.locator('.lupa-violeta span').evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
-        assert.equal(await page.locator('#tipo-rima [aria-selected="true"]').evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
-        assert.equal(await page.locator('#tipo-rima [aria-selected="false"]').evaluate(e => getComputedStyle(e).animationName), 'none');
+        // El tipo elegido va con la pastilla violeta suave de «Palabras simples» encendido, sin el efecto.
+        assert.equal(await page.locator('#tipo-rima [aria-selected="true"]').evaluate(e => getComputedStyle(e).animationName), 'none');
+        await page.locator('#palabras-simples').click();
+        const pastillaSimples = await page.locator('#palabras-simples').evaluate(e => getComputedStyle(e).backgroundColor);
+        await page.locator('#palabras-simples').click();
+        assert.equal(await page.locator('.opcion-tipo').first().evaluate(e => getComputedStyle(e).backgroundColor), pastillaSimples);
+        // El «?» va pegado al texto.
+        const textoTipo = await page.locator('#tipo-rima [data-tipo="consonante"]').boundingBox(), signo = await page.locator('[data-ayuda="consonante"]').boundingBox();
+        assert.ok(signo.x - (textoTipo.x + textoTipo.width) < 8, JSON.stringify([textoTipo, signo]));
         // La palabra va centrada en el alto de la cajita.
         const centro = await page.locator('.palabra-caja').first().evaluate(c => {
             const caja = c.getBoundingClientRect(), t = c.querySelector('.palabra').firstElementChild.getBoundingClientRect(), s = c.querySelector('.silabas-tarjeta').getBoundingClientRect();
@@ -823,6 +830,8 @@ const servidor = http.createServer((req, res) => {
         assert.match(await page.locator('#vineta-tipo').textContent(), /Asonante:.*solo las vocales.*casa y cama/);
         await page.waitForTimeout(300);
         await page.screenshot({path: `capturas/rimas-ayuda-${tema}.png`});
+        assert.equal(await page.locator('#vineta-tipo mark.brillo-violeta').first().evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
+        assert.equal(await page.locator('#vineta-tipo strong').evaluate(e => getComputedStyle(e).color), await page.locator('#vineta-tipo').evaluate(e => getComputedStyle(e).color));
         await page.locator('[data-ayuda="consonante"]').click();
         assert.match(await page.locator('#vineta-tipo').textContent(), /Consonante:/);
         await page.locator('#pantalla-rimas .titulo-grande').click();
@@ -834,12 +843,12 @@ const servidor = http.createServer((req, res) => {
         const tarjetas = await page.locator('.palabra .texto-palabra').allTextContents();
         assert.equal(tarjetas.length, 4);
         assert.ok(tarjetas.every(p => /[oó]n$/.test(p)), tarjetas.join());
-        assert.match(await page.locator('#encabezado-usadas').textContent(), /canción/);
+        assert.match(await page.locator('#encabezado-usadas').textContent(), /^[\d.]+ rimas con «canción»$/);
         assert.equal(await page.locator('#tiempo-azar').isVisible(), false);
         assert.equal(await page.locator('#pausar-palabras').isVisible(), false);
         // Refrescar, a la izquierda de «Palabras simples», pasa a las 4 rimas siguientes.
         const refrescar = await page.locator('#refrescar-palabras').boundingBox(), chip = await page.locator('#palabras-simples').boundingBox();
-        assert.ok(await page.locator('#refrescar-palabras').isVisible() && refrescar.x < chip.x);
+        assert.ok(await page.locator('#refrescar-palabras').isVisible() && refrescar.x < chip.x && chip.x - (refrescar.x + refrescar.width) < 16, JSON.stringify([refrescar, chip]));
         // Con búsqueda el azar se frena: las 4 quedan quietas.
         await page.waitForTimeout(6500);
         assert.deepEqual(await page.locator('.palabra .texto-palabra').allTextContents(), tarjetas);
@@ -847,6 +856,16 @@ const servidor = http.createServer((req, res) => {
         await page.waitForTimeout(400);
         const siguientes = await page.locator('.palabra .texto-palabra').allTextContents();
         assert.ok(siguientes.length === 4 && siguientes.every(p => /[oó]n$/.test(p)) && !siguientes.some(p => tarjetas.includes(p)), siguientes.join());
+        // Deslizar la caja a un costado también refresca, sin repetir.
+        const cajaAzar = await page.locator('#caja-azar').boundingBox();
+        await page.mouse.move(cajaAzar.x + cajaAzar.width * 0.7, cajaAzar.y + 120);
+        await page.mouse.down();
+        await page.mouse.move(cajaAzar.x + cajaAzar.width * 0.2, cajaAzar.y + 125, { steps: 5 });
+        await page.mouse.up();
+        await page.waitForFunction(() => !document.querySelector('#grilla-palabras.sale'));
+        const deslizadas = await page.locator('.palabra .texto-palabra').allTextContents();
+        assert.equal(await page.locator('#buscar-rima').inputValue(), 'canción', 'deslizar no toca la palabra');
+        assert.ok(deslizadas.length === 4 && !deslizadas.some(p => tarjetas.includes(p) || siguientes.includes(p)), deslizadas.join());
         await page.locator('#buscar-rima').fill('canció');
         await page.locator('#buscar-rima').fill('canción');
         await page.waitForTimeout(300);
@@ -864,6 +883,11 @@ const servidor = http.createServer((req, res) => {
         assert.equal(Math.round(cajon.alto / cajon.fila), 5, JSON.stringify(cajon));
         assert.ok(cajon.total > cajon.alto);
         await page.screenshot({path: `capturas/rimas-${tema}.png`});
+        // «Guardar» también en «Todas».
+        const deTodas = (await page.locator('#resultados-rimas li').nth(1).textContent());
+        await page.locator('#resultados-rimas .guardar').nth(1).click();
+        assert.equal(await page.locator('#resultados-rimas .guardar').nth(1).getAttribute('aria-pressed'), 'true');
+        assert.ok((await page.locator('#lista-guardadas li').allTextContents()).includes(deTodas));
         await page.locator('#cajon-todas').scrollIntoViewIfNeeded();
         await page.screenshot({path: `capturas/rimas-todas-${tema}.png`});
         await page.locator('#tipo-rima [data-tipo="asonante"]').click();
@@ -1101,6 +1125,13 @@ const servidor = http.createServer((req, res) => {
         assert.ok(efectoCaja.width > aroCaja.width + 60 && efectoCaja.y < aroCaja.y - 40, 'las luces salen del aro');
         assert.ok(efectoCaja.x >= -1 && efectoCaja.x + efectoCaja.width <= 391, JSON.stringify(efectoCaja));
         await page.screenshot({path: `capturas/freestyle-${tema}.png`});
+        // Con el beat sonando, en Rimas sube el polvo del Boombap 1 (sin resplandor).
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        await page.waitForTimeout(1200);
+        assert.equal(await page.locator('#rimas-efecto').getAttribute('data-mood'), 'boombap');
+        assert.ok(await page.locator('#rimas-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 50, 'en Rimas hay partículas con música');
+        await page.screenshot({path: `capturas/rimas-particulas-${tema}.png`});
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         await pararFs();
         // La cruz del reproductor termina la ronda y vuelven los botones de beats y el cajón.
         await page.locator('#fs-play').click();

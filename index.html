@@ -85,6 +85,8 @@
         <!-- Rimas: arriba, 4 terminaciones al azar que cambian solas (o, al buscar, las 4 rimas
              más usadas de la palabra) y, abajo, el cajón con todas las rimas. -->
         <section class="pantalla" id="pantalla-rimas" data-pestana="rimas">
+            <!-- Con música sonando, partículas que suben detrás de todo (js/efectos.js, sin resplandor). -->
+            <canvas class="efecto-fs" id="rimas-efecto" aria-hidden="true"></canvas>
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Rimas</h1>
             <div class="contenido">
@@ -98,11 +100,11 @@
                 <div class="segmentado" role="tablist" id="tipo-rima">
                     <div class="opcion-tipo">
                         <button type="button" role="tab" aria-selected="true" data-tipo="consonante">Consonante</button>
-                        <button type="button" class="ayuda-tipo" data-ayuda="consonante" aria-label="¿Qué es una rima consonante?" aria-expanded="false">?</button>
+                        <button type="button" class="ayuda-tipo" data-ayuda="consonante" aria-label="¿Qué es una rima consonante?" aria-expanded="false"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><path d="M12 16.9v.1"/></svg></button>
                     </div>
                     <div class="opcion-tipo">
                         <button type="button" role="tab" aria-selected="false" data-tipo="asonante">Asonante</button>
-                        <button type="button" class="ayuda-tipo" data-ayuda="asonante" aria-label="¿Qué es una rima asonante?" aria-expanded="false">?</button>
+                        <button type="button" class="ayuda-tipo" data-ayuda="asonante" aria-label="¿Qué es una rima asonante?" aria-expanded="false"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><path d="M12 16.9v.1"/></svg></button>
                     </div>
                 </div>
                 <div class="vineta-tipo" id="vineta-tipo" role="tooltip" hidden></div>

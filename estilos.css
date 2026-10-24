@@ -242,30 +242,30 @@ a { color: var(--acento); text-decoration: none; }
 .busqueda-rima input::-webkit-search-cancel-button, .busqueda-rima input::-webkit-search-decoration { display: none; }
 #limpiar-rima { color: var(--texto-2); font-size: 16px; padding: 4px; }
 #tipo-rima { margin-top: 10px; height: 38px; padding: 3px; border-radius: 20px; gap: 3px; }
-.opcion-tipo { flex: 1; position: relative; display: flex; border-radius: 17px; }
-.opcion-tipo:has(> [aria-selected="true"]) { background: var(--tarjeta); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12); }
-#tipo-rima [role="tab"] { flex: 1; border-radius: 17px; font-size: 14px; font-weight: 500; padding: 0 22px 0 0; background: none; box-shadow: none; color: var(--texto-2); }
-/* El tipo elegido va con el efecto de la palabra tocada. */
-#tipo-rima [role="tab"][aria-selected="true"] { font-weight: 700; }
-#tipo-rima [role="tab"][aria-selected="true"], #pantalla-rimas mark.brillo-violeta {
+/* Cada opción: el texto y el «?» juntos al medio. El texto estira su zona de toque a toda la
+   pastilla (::after), y el «?» queda por encima. */
+.opcion-tipo { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 17px; }
+/* La elegida, con la pastilla violeta suave de «Palabras simples» encendido (pedido de Swa). */
+.opcion-tipo:has(> [aria-selected="true"]) { background: var(--destacado-suave); }
+#tipo-rima [role="tab"] { flex: none; padding: 0; border-radius: 0; font-size: 14px; font-weight: 500; background: none; box-shadow: none; color: var(--texto-2); }
+#tipo-rima [role="tab"]::after { content: ""; position: absolute; inset: 0; border-radius: 17px; }
+#tipo-rima [role="tab"][aria-selected="true"] { font-weight: 600; color: var(--destacado); }
+#pantalla-rimas mark.brillo-violeta {
     background: var(--degrade-tocada);
     -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
     filter: drop-shadow(0 0 6px color-mix(in srgb, var(--destacado) 55%, transparent));
     animation: brillo-tocada 2.2s linear infinite;
 }
-/* El «?» en un circulito, a la derecha de cada opción. */
-.segmentado .ayuda-tipo {
-    position: absolute; right: 8px; top: 50%; translate: 0 -50%; flex: none; padding: 0;
-    width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
-    border: 1.5px solid currentColor; color: var(--texto-3); font-size: 11px; font-weight: 700; line-height: 1;
-}
-.segmentado .ayuda-tipo[aria-expanded="true"] { color: var(--destacado); }
+/* El «?» en un circulito, pegado al texto. Es un dibujo, así queda justo al centro. */
+.segmentado .ayuda-tipo { position: relative; z-index: 1; flex: none; padding: 0; width: 24px; height: 24px; margin: 0 -3px; display: grid; place-items: center; color: var(--texto-3); }
+.segmentado .ayuda-tipo .icono { width: 18px; height: 18px; stroke-width: 1.6; }
+.segmentado .ayuda-tipo[aria-expanded="true"], .opcion-tipo:has(> [aria-selected="true"]) .ayuda-tipo { color: var(--destacado); }
 /* La viñeta: un globito de vidrio con la puntita hacia el «?» que la abrió. */
 .vineta-tipo {
     position: relative; margin-top: 10px; padding: 12px 14px; border-radius: 18px; font-size: 14px; line-height: 1.35; color: var(--texto);
     background: var(--tarjeta); box-shadow: var(--sombra-vidrio); animation: aparecer-vineta .2s ease;
 }
-.vineta-tipo strong, .vineta-tipo b { color: var(--destacado); }
+.vineta-tipo strong { font-weight: 600; }
 .vineta-tipo::before {
     content: ""; position: absolute; top: -6px; left: var(--punta, 50%); width: 12px; height: 12px; margin-left: -6px;
     background: inherit; rotate: 45deg; border-radius: 2px;
@@ -295,7 +295,8 @@ a { color: var(--acento); text-decoration: none; }
 /* La palabra va en un renglón: si no entra, se achica la letra (como la del aro de Freestyle). */
 .texto-palabra { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; }
 /* Guardar: el marcador de Twitter, sin círculo. Guardada, con el degradé violeta. */
-.guardar { position: absolute; right: 4px; top: 50%; translate: 0 -50%; width: 36px; height: 44px; display: grid; place-items: center; }
+.guardar { width: 36px; height: 40px; flex-shrink: 0; display: grid; place-items: center; }
+.palabra-caja .guardar { position: absolute; right: 4px; top: 50%; translate: 0 -50%; height: 44px; }
 .icono-guardar { filter: none; }
 .icono-guardar span {
     display: block; width: 20px; height: 20px; background: var(--texto-3);
@@ -333,13 +334,18 @@ a { color: var(--acento); text-decoration: none; }
 #refrescar-palabras.gira .icono { animation: girar .5s ease; }
 .chip-simples { margin-left: auto; height: 40px; padding: 0 16px; border-radius: 20px; font-size: 14px; font-weight: 600; color: var(--texto-2); background: var(--tarjeta); }
 .chip-simples[aria-pressed="true"] { background: var(--destacado-suave); color: var(--destacado); }
+/* Al buscar, el refrescar va pegado a la izquierda de «Palabras simples». */
+.caja-azar.buscando #refrescar-palabras { margin-left: auto; }
+.caja-azar.buscando .chip-simples { margin-left: 0; }
+/* Se puede deslizar a los costados para refrescar. */
+.caja-azar { touch-action: pan-y; }
 /* Al buscar, el azar se frena: solo queda el filtro de palabras simples. */
 .caja-azar.buscando :is(.tiempo-azar, #pausar-palabras) { display: none; }
 #pantalla-rimas mark[class*="rima-"] { color: inherit; border-radius: 4px; padding: 0 1px; margin: 0 -1px; }
 /* La terminación de las rimas buscadas va como la palabra tocada de la libreta: degradé
    violeta con un brillo que la cruza y resplandor (sin destellos). */
 @media (prefers-reduced-motion: reduce) {
-    #pantalla-rimas mark.brillo-violeta, #tipo-rima [role="tab"], .lupa-violeta span, .icono-guardar span, .palabra-caja.entra, .palabra-caja.entra::after, .grilla-palabras.sale .palabra-caja { animation: none; }
+    #pantalla-rimas mark.brillo-violeta, .lupa-violeta span, .icono-guardar span, .palabra-caja.entra, .palabra-caja.entra::after, .grilla-palabras.sale .palabra-caja { animation: none; }
 }
 /* Todas y guardadas: dos columnas de 5 renglones a la vista (10 palabras) y el resto se desliza adentro. */
 .lista-todas {
@@ -397,6 +403,12 @@ a { color: var(--acento); text-decoration: none; }
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 8px; overflow: hidden;
 }
+/* En Rimas, con música sonando, el polvo que sube del Boombap 1 (sin resplandor). */
+#pantalla-rimas { overflow-x: hidden; }
+#pantalla-rimas > .barra-nav, #pantalla-rimas > .titulo-grande, #pantalla-rimas > .contenido { position: relative; z-index: 1; }
+/* Las cajas de vidrio taparían el polvo: va por encima, sin tocar los toques, y se desvanece abajo. */
+#rimas-efecto { z-index: 2; }
+
 /* Luces al ritmo del beat (js/efectos.js): las partículas vuelan por toda la pantalla,
    detrás de todo, y se desvanecen antes del 20% de abajo (pedido de Swa). El resplandor
    queda alrededor del aro. */
