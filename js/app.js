@@ -885,7 +885,7 @@ function renderizarRimas() {
     $('cajon-relacionadas').hidden = !relacionadas.length;
     $('encabezado-relacionadas').textContent = `Palabras relacionadas · ${relacionadas.length}`;
     const total = todas.length.toLocaleString('es-AR');
-    $('encabezado-resultados').textContent = conSinonimos() ? `Sinónimos · ${total}` : todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
+    $('encabezado-resultados').textContent = conSinonimos() ? `Todos los sinónimos · ${total}` : todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
     $('rimas-vacio').textContent = conSinonimos() ? `No encontré sinónimos para «${palabra}».` : `No encontré rimas ${tipoRima}s para «${palabra}».`;
     $('tipo-rima').classList.toggle('apagado', Boolean(palabra) && conSinonimos());
     $('rimas-vacio').hidden = !palabra || lista.length > 0;

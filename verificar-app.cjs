@@ -916,7 +916,7 @@ const servidor = http.createServer((req, res) => {
         const deSinonimos = await page.locator('#resultados-rimas li').allTextContents();
         assert.deepEqual(deSinonimos.slice(0, 3), ['son', 'composición', 'improvisación']);
         assert.ok(deSinonimos.includes('melodía'));
-        assert.match(await page.locator('#encabezado-resultados').textContent(), /^Sinónimos · \d+$/);
+        assert.match(await page.locator('#encabezado-resultados').textContent(), /^Todos los sinónimos · \d+$/);
         await page.screenshot({path: `capturas/rimas-sinonimos-${tema}.png`});
         await page.locator('#ver-sinonimos').click();
         assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado');
