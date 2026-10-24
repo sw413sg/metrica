@@ -44,3 +44,14 @@ Transformación: intersección exacta con el diccionario local, Unicode NFC, se 
 Transformación: pasar de ISO-8859-1 a UTF-8 (NFC), quedarse solo con palabras sueltas (sin expresiones de varias palabras), sacar repetidos y la palabra misma, y ordenar cada grupo del tesauro de más usada a menos usada con `frecuencias.js`. Además, `textoFormasSinonimos` dice de qué palabra base sale cada forma ("lindas" → "lindo", "quería" → "querer"), con los sufijos de `es.aff` y solo para formas de `palabras.js`: 107.716 formas de 12.851 bases.
 
 Regenerar con `node generar-sinonimos.cjs` (hace falta cada vez que cambien `palabras.js`, `frecuencias.js` o la lista rioplatense). No requiere conexión.
+
+## Palabras relacionadas
+
+`../relacionados.js` tiene las palabras relacionadas que muestra el editor al tocar «Cambiar» dos veces («Relacionados»): 19.151 palabras con hasta 20 relacionadas cada una («noche»: oscuridad, luna, madrugada, medianoche, crepúsculo...). Sale de dos fuentes:
+
+- ConceptNet Numberbatch 19.08, de Luminoso Technologies y el proyecto ConceptNet (Robyn Speer y otros): vectores de palabras multilingües construidos con ConceptNet, Wiktionary, OpenSubtitles y otras fuentes. Licencia CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/. Descarga: https://conceptnet.s3.amazonaws.com/downloads/2019/numberbatch/numberbatch-19.08.txt.gz (3 GB, no se guarda en el repo), el 24 de octubre de 2026. Proyecto: https://github.com/commonsense/conceptnet-numberbatch. `relacionados.js` es una obra derivada y se distribuye bajo CC BY-SA 4.0 con esta atribución.
+- `relacionados-propios.txt`: lista propia de Métrica con temas comunes en las letras (noche, amor, calle, barrio...). Cada renglón es "palabra: relacionadas" y van antes que las de Numberbatch.
+
+Transformación: de los vectores en español (`/c/es/`) se toman los de las 60.000 palabras más usadas de `frecuencias.js`. Para cada una de las 20.000 más usadas se buscan las más parecidas por coseno (al menos 0,3), solo entre palabras base del diccionario (entradas de `es.dic` con banderas, sin las formas de `textoFormasSinonimos`), y se descartan las de la misma familia ("noches", "lunar": mismo comienzo) y las repetidas. Las búsquedas en plural usan las del singular.
+
+Regenerar con `node generar-relacionados.cjs ruta/a/numberbatch-19.08.txt.gz` (tarda unos 3 minutos; hace falta si cambian `frecuencias.js`, `sinonimos.js` o la lista propia). La app no necesita conexión.
