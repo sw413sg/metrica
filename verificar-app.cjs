@@ -914,6 +914,15 @@ const servidor = http.createServer((req, res) => {
         assert.equal(Math.round(cajon.alto / cajon.fila), 5, JSON.stringify(cajon));
         assert.ok(cajon.total > cajon.alto);
         await page.screenshot({path: `capturas/rimas-${tema}.png`});
+        // «Palabras relacionadas»: otro cajón con el mismo formato que «Todas».
+        assert.equal(await page.locator('#cajon-relacionadas').isVisible(), true);
+        const enRelacionadas = await page.locator('#lista-relacionadas li').allTextContents();
+        assert.ok(enRelacionadas.length > 0 && !enRelacionadas.includes('canción'), enRelacionadas.join());
+        assert.equal(await page.locator('#lista-relacionadas .guardar').count(), enRelacionadas.length);
+        assert.equal(await page.locator('#lista-relacionadas mark').first().getAttribute('class'), 'brillo-violeta');
+        await page.locator('#cajon-relacionadas').scrollIntoViewIfNeeded();
+        await page.screenshot({path: `capturas/rimas-relacionadas-${tema}.png`});
+        await page.locator('#pantalla-rimas').evaluate(p => p.scrollTo(0, 0));
         // «Guardar» también en «Todas».
         const deTodas = (await page.locator('#resultados-rimas li').nth(1).textContent());
         await page.locator('#resultados-rimas .guardar').nth(1).click();
