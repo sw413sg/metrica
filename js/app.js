@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, ANGLICISMOS } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, claveConsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
@@ -657,6 +657,16 @@ function fragmentoRima(palabra, clase) {
 
 const palabraBuscada = () => $('buscar-rima').value.trim().toLowerCase();
 const rimasDeLaBusqueda = () => buscarRimas(palabraBuscada(), indiceRimas(), { tipo: tipoRima });
+const conSinonimos = () => $('ver-sinonimos').getAttribute('aria-pressed') === 'true';
+// Con «Sinónimos», los de la palabra buscada: primero los que riman consonante, después los
+// asonantes y al final el resto.
+function sinonimosDeLaBusqueda() {
+    const palabra = palabraBuscada();
+    const consonante = claveConsonante(palabra), asonante = claveAsonante(palabra);
+    const orden = p => (consonante && claveConsonante(p) === consonante ? 0 : asonante && claveAsonante(p) === asonante ? 1 : 2);
+    return buscarSinonimos(palabra, indiceSinonimos()).map((p, i) => [orden(p), i, p]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+}
+const resultadosBuscados = () => (conSinonimos() ? sinonimosDeLaBusqueda() : rimasDeLaBusqueda());
 // Las terminaciones llevan el efecto de la palabra tocada de la libreta.
 const CLASE_BUSCADA = 'brillo-violeta';
 // En el cajón de todas van hasta 300 (las más usadas primero): más allá son rarezas.
@@ -672,7 +682,7 @@ function buscarPalabra(palabra) {
 // El cajón de todas: dos columnas de 10 a la vista, y el resto se desliza adentro.
 function renderizarRimas() {
     const palabra = palabraBuscada();
-    const todas = palabra ? rimasDeLaBusqueda() : [];
+    const todas = palabra ? resultadosBuscados() : [];
     const lista = todas.slice(0, MAXIMO_TODAS);
     $('resultados-rimas').replaceChildren(...lista.map(p => {
         const item = document.createElement('li');
@@ -686,8 +696,9 @@ function renderizarRimas() {
     $('resultados-rimas').scrollTop = 0;
     $('cajon-todas').hidden = !lista.length;
     const total = todas.length.toLocaleString('es-AR');
-    $('encabezado-resultados').textContent = todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
-    $('rimas-vacio').textContent = `No encontré rimas ${tipoRima}s para «${palabra}».`;
+    $('encabezado-resultados').textContent = conSinonimos() ? `Sinónimos · ${total}` : todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
+    $('rimas-vacio').textContent = conSinonimos() ? `No encontré sinónimos para «${palabra}».` : `No encontré rimas ${tipoRima}s para «${palabra}».`;
+    $('tipo-rima').classList.toggle('apagado', Boolean(palabra) && conSinonimos());
     $('rimas-vacio').hidden = !palabra || lista.length > 0;
     $('limpiar-rima').hidden = !palabra;
 }
@@ -695,6 +706,8 @@ function renderizarRimas() {
 // Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
 function buscarRima() {
     desde = 0;
+    // Sin palabra no hay sinónimos: al borrarla, «Sinónimos» se apaga.
+    if (!palabraBuscada()) $('ver-sinonimos').setAttribute('aria-pressed', 'false');
     renderizarRimas();
     refrescarPalabras(false);
     frenarReloj();
@@ -703,6 +716,10 @@ function buscarRima() {
 
 $('buscar-rima').addEventListener('input', buscarRima);
 $('limpiar-rima').addEventListener('click', () => { $('buscar-rima').value = ''; buscarRima(); });
+$('ver-sinonimos').addEventListener('click', () => {
+    $('ver-sinonimos').setAttribute('aria-pressed', !conSinonimos());
+    buscarRima();
+});
 document.querySelectorAll('#tipo-rima [role="tab"]').forEach(b => b.addEventListener('click', () => {
     tipoRima = b.dataset.tipo;
     document.querySelectorAll('#tipo-rima [role="tab"]').forEach(o => o.setAttribute('aria-selected', o === b));
@@ -746,7 +763,7 @@ const ICONO_PLAY_AZAR = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><p
 function poolActual() {
     const simples = $('palabras-simples').getAttribute('aria-pressed') === 'true';
     if (!palabraBuscada()) return simples ? palabrasSimples : todasLasPalabras;
-    const rimas = rimasDeLaBusqueda();
+    const rimas = resultadosBuscados();
     if (!simples) return rimas;
     const conjunto = new Set(palabrasSimples);
     return rimas.filter(p => conjunto.has(p));
@@ -852,10 +869,10 @@ function refrescarPalabras(animar = true) {
         grilla.classList.add('sale');
         setTimeout(poner, 220);
     } else poner();
-    $('caja-azar').hidden = pool.length === 0;
     $('caja-azar').classList.toggle('buscando', buscando);
     const total = pool.length.toLocaleString('es-AR');
-    $('encabezado-usadas').textContent = buscando ? `${total} ${pool.length === 1 ? 'rima' : 'rimas'} con «${palabraBuscada()}»` : 'Terminaciones al azar';
+    const que = conSinonimos() ? (pool.length === 1 ? 'sinónimo de' : 'sinónimos de') : (pool.length === 1 ? 'rima con' : 'rimas con');
+    $('encabezado-usadas').textContent = buscando ? `${total} ${que} «${palabraBuscada()}»` : 'Terminaciones al azar';
     mostrarTiempo();
 }
 
