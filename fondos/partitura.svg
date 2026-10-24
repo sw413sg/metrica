@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Partitura: un pentagrama que cruza la hoja en curva, con algunas notas. -->
+  <g fill="none" stroke="#45566b" stroke-width="1.1" opacity=".22">
+    <path d="M-10 330c90-60 190-50 270-10s110 36 140 20"/>
+    <path d="M-10 342c90-60 190-50 270-10s110 36 140 20"/>
+    <path d="M-10 354c90-60 190-50 270-10s110 36 140 20"/>
+    <path d="M-10 366c90-60 190-50 270-10s110 36 140 20"/>
+    <path d="M-10 378c90-60 190-50 270-10s110 36 140 20"/>
+  </g>
+  <g fill="#45566b" opacity=".3">
+    <ellipse cx="74" cy="318" rx="6" ry="4.4" transform="rotate(-24 74 318)"/>
+    <rect x="78.6" y="282" width="1.4" height="34"/>
+    <ellipse cx="128" cy="304" rx="6" ry="4.4" transform="rotate(-24 128 304)"/>
+    <rect x="132.6" y="266" width="1.4" height="36"/>
+    <ellipse cx="160" cy="300" rx="6" ry="4.4" transform="rotate(-24 160 300)"/>
+    <rect x="164.6" y="262" width="1.4" height="36"/>
+    <path d="M133 266l33-4v5l-33 4z"/>
+    <ellipse cx="236" cy="330" rx="6" ry="4.4" transform="rotate(-24 236 330)"/>
+    <rect x="240.6" y="292" width="1.4" height="36"/>
+    <path d="M242 292c6 6 14 8 12 20c-2-8-6-10-12-12z"/>
+  </g>
+</svg>

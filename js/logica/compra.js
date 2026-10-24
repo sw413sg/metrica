@@ -12,10 +12,11 @@ export const PRODUCTO = { id: 'metrica.extras', nombre: 'Métrica Extras', preci
 export const TEMAS = [
     { clave: 'gris', nombre: 'Gris liso', extra: false },
     { clave: 'blanco', nombre: 'Blanco', extra: false },
-    { clave: 'papel', nombre: 'Papel', extra: true },
-    { clave: 'pizarra', nombre: 'Pizarra', extra: true },
-    { clave: 'medianoche', nombre: 'Medianoche', extra: true },
-    { clave: 'lavanda', nombre: 'Lavanda', extra: true },
+    { clave: 'madrugada', nombre: 'Madrugada', extra: true },
+    { clave: 'sierra', nombre: 'Sierra', extra: true },
+    { clave: 'ondas', nombre: 'Ondas', extra: true },
+    { clave: 'arena', nombre: 'Arena', extra: true },
+    { clave: 'partitura', nombre: 'Partitura', extra: true },
 ];
 const TEMA_INICIAL = 'gris';
 
