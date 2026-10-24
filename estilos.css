@@ -824,13 +824,7 @@ body.editando[data-libreta="partitura"] #vista-editor, .muestra-tema[data-libret
 }
 body.editando .vista#vista-editor, .muestra-tema { background-image: var(--ilustracion, none); background-repeat: no-repeat; }
 body.editando .vista#vista-editor { background-position: center bottom; background-size: 100% auto; }
-.muestra-tema { background-position: 80% 100%; background-size: 220% auto; }
 #vista-editor { color: var(--texto); }
-.celda-tema { flex-direction: row; align-items: center; gap: 12px; }
-.muestra-tema { width: 28px; height: 28px; border-radius: 8px; background-color: var(--libreta); border: 1px solid var(--separador); flex-shrink: 0; }
-.marca-tema { margin-left: auto; display: flex; color: var(--acento); }
-.marca-tema .icono { width: 20px; height: 20px; }
-.celda-tema:has(.marca-tema rect) { color: var(--texto-2); }
 .texto-rojo { color: #ff3b30; }
 
 /* Espacio de publicidad simulado, entre las tarjetas y la lista. Con Extras no se muestra. */
@@ -895,12 +889,63 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 /* Ajustes de la libreta: hoja más baja, sin brillos. */
 .hoja-ajustes { background: var(--fondo); text-align: left; }
 .hoja-titulo { font-size: 20px; font-weight: 600; margin: 0 0 8px; text-align: center; }
-.hoja-ajustes .encabezado-grupo { margin: 20px 4px 6px; }
-.hoja-ajustes .segmentado { margin-top: 0; }
-.hoja-ajustes .lista-borrar { margin-top: 28px; }
-.lista-borrar .celda-boton { align-items: center; }
+/* Las opciones van en cajas de vidrio, como las de Rimas y Freestyle: bordes de 30, título chico
+   en mayúsculas y lo elegido en violeta (pedido de Swa). */
+.caja-libreta { margin-top: 12px; border-radius: 30px; padding: 14px; }
+.caja-libreta .titulo-azar { padding: 0 6px 10px; }
+.ajuste-libreta + .ajuste-libreta { margin-top: 14px; }
+.nombre-ajuste { display: flex; justify-content: space-between; align-items: baseline; padding: 0 6px; font-size: 15px; font-weight: 500; }
+.valor-ajuste { font-size: 15px; font-weight: 600; color: var(--destacado); font-variant-numeric: tabular-nums; }
+/* Barras: lo recorrido en violeta y la perilla blanca con un resplandor violeta. */
+#ajustes-libreta .fila-deslizador { margin-top: 4px; padding: 0; }
+#ajustes-libreta .deslizador { -webkit-appearance: none; appearance: none; height: 28px; background: none; }
+#ajustes-libreta .deslizador::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(to right, var(--destacado) var(--progreso, 0%), var(--relleno) var(--progreso, 0%));
+}
+#ajustes-libreta .deslizador::-moz-range-track { height: 6px; border-radius: 3px; background: var(--relleno); }
+#ajustes-libreta .deslizador::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--destacado); }
+#ajustes-libreta .deslizador::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: #fff; border: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 0 12px color-mix(in srgb, var(--destacado) 55%, transparent);
+}
+#ajustes-libreta .deslizador::-moz-range-thumb {
+    width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 0 12px color-mix(in srgb, var(--destacado) 55%, transparent);
+}
+#ajustes-libreta .puntos-deslizador { padding: 0 10px; }
+#ajustes-libreta .puntos-deslizador span.lleno { background: var(--destacado); }
+/* Pastillas: la elegida con la pastilla violeta suave de consonante/asonante. */
+.pastillas-libreta { display: flex; gap: 4px; margin-top: 8px; padding: 3px; border-radius: 20px; background: var(--tarjeta); }
+.pastillas-libreta button {
+    flex: 1; height: 34px; border-radius: 17px; font-size: 14px; font-weight: 500; color: var(--texto-2); white-space: nowrap;
+}
+.pastillas-libreta button[aria-selected="true"] { background: var(--destacado-suave); color: var(--destacado); font-weight: 600; }
+.caja-libreta .titulo-azar + .ajuste-libreta .pastillas-libreta { margin-top: 0; }
 #opciones-libreta button[data-opcion="serif"] { font-family: ui-serif, "New York", Georgia, serif; }
 #opciones-libreta button[data-opcion="maquina"] { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+/* Temas: una grilla de muestras con «Aa» en los colores del tema. */
+.temas-libreta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
+.tema-libreta { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+.tema-libreta .muestra-tema {
+    position: relative; width: 100%; height: 58px; border-radius: 16px; display: grid; place-items: center;
+    font-size: 17px; font-weight: 600; color: var(--texto); border: 1px solid var(--separador);
+    background-color: var(--libreta); background-size: 180% auto; background-position: 70% 100%;
+}
+.tema-libreta[aria-pressed="true"] .muestra-tema {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--destacado), 0 0 14px color-mix(in srgb, var(--destacado) 55%, transparent);
+}
+.nombre-tema { max-width: 100%; font-size: 12px; font-weight: 500; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tema-libreta[aria-pressed="true"] .nombre-tema { color: var(--destacado); font-weight: 600; }
+.tema-libreta .marca-tema { position: absolute; top: 5px; right: 5px; color: var(--texto-2); }
+.tema-libreta .marca-tema:empty { display: none; }
+.tema-libreta .marca-tema .icono { width: 14px; height: 14px; }
+.tema-libreta:has(.marca-tema rect) .muestra-tema { opacity: 0.75; }
+/* Sílabas por verso: un renglón con el interruptor, en violeta prendido. */
+.fila-libreta { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px 10px 20px; font-weight: 500; }
+.fila-libreta .interruptor:checked { background: var(--destacado); }
+.boton-borrar-letra { display: block; width: 100%; height: 52px; padding: 0; margin-top: 12px; color: #ff3b30; font-weight: 600; }
 
 /* Arrastrar una tarjeta al tacho la borra (sin menú de copiar ni selección de iOS). */
 .tarjeta-letra { position: relative; }

@@ -17,7 +17,7 @@ import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantid
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
-import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaActual, elegirTema } from './logica/compra.js';
+import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
 const COLORES_RIMA = 12;
@@ -429,6 +429,7 @@ function abrirEditor(letra) {
     letraActual = letra;
     $('editor-titulo').value = letra.titulo;
     editorTexto.value = letra.texto;
+    renderizarTemas();
     mostrarVista('vista-editor');
     actualizarEditor();
     // Al entrar a una letra empezada no se abre el teclado (se lee primero, pedido de Swa);
@@ -787,7 +788,15 @@ function deslizadorLibreta(clave, ajuste, elegida) {
     barra.value = opciones.indexOf(elegida);
     barra.dataset.ajuste = clave;
     barra.setAttribute('aria-label', ajuste.nombre);
+    // Lo recorrido va en violeta, igual que los puntitos que quedaron atrás.
+    const pintar = () => {
+        barra.style.setProperty('--progreso', `${(barra.value / barra.max) * 100}%`);
+        puntos.querySelectorAll('span').forEach((punto, i) => punto.classList.toggle('lleno', i <= barra.value));
+        const valor = fila.parentElement?.querySelector('.valor-ajuste');
+        if (valor) valor.textContent = ajuste.opciones[opciones[barra.value]].nombre;
+    };
     barra.addEventListener('input', () => {
+        pintar();
         guardarAjusteLibreta(localStorage, clave, opciones[barra.value]);
         aplicarEstiloLibreta();
         actualizarEditor();
@@ -798,35 +807,66 @@ function deslizadorLibreta(clave, ajuste, elegida) {
     const fila = document.createElement('div');
     fila.className = 'fila-deslizador';
     fila.append(barra, puntos);
+    pintar();
     return fila;
+}
+
+// Los ajustes van en cajas de vidrio, como las de Rimas: la letra (barras y fuente) y las rimas internas.
+const CAJAS_LIBRETA = [['Letra', ['tamano', 'separacion', 'letras', 'fuente']], ['Rimas internas', ['internas']]];
+
+// Pastillas para elegir una opción, con la elegida en violeta suave (como consonante/asonante).
+function pastillasLibreta(clave, ajuste, elegida) {
+    const grupo = document.createElement('div');
+    grupo.className = 'pastillas-libreta';
+    grupo.setAttribute('role', 'tablist');
+    grupo.dataset.ajuste = clave;
+    grupo.append(...Object.entries(ajuste.opciones).map(([opcion, { nombre }]) => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.setAttribute('role', 'tab');
+        boton.setAttribute('aria-selected', opcion === elegida);
+        boton.dataset.opcion = opcion;
+        boton.textContent = nombre;
+        boton.addEventListener('click', () => {
+            guardarAjusteLibreta(localStorage, clave, opcion);
+            aplicarAjustesLibreta();
+            actualizarEditor();
+        });
+        return boton;
+    }));
+    return grupo;
 }
 
 function aplicarAjustesLibreta() {
     aplicarEstiloLibreta();
     const ajustes = leerAjustesLibreta(localStorage);
-    $('opciones-libreta').replaceChildren(...Object.entries(AJUSTES_LIBRETA).flatMap(([clave, ajuste]) => {
-        const titulo = document.createElement('h3');
-        titulo.className = 'encabezado-grupo';
-        titulo.textContent = ajuste.nombre;
-        if (ajuste.deslizador) return [titulo, deslizadorLibreta(clave, ajuste, ajustes[clave])];
-        const grupo = document.createElement('div');
-        grupo.className = 'segmentado';
-        grupo.setAttribute('role', 'tablist');
-        grupo.dataset.ajuste = clave;
-        grupo.append(...Object.entries(ajuste.opciones).map(([opcion, { nombre }]) => {
-            const boton = document.createElement('button');
-            boton.setAttribute('role', 'tab');
-            boton.setAttribute('aria-selected', opcion === ajustes[clave]);
-            boton.dataset.opcion = opcion;
-            boton.textContent = nombre;
-            boton.addEventListener('click', () => {
-                guardarAjusteLibreta(localStorage, clave, opcion);
-                aplicarAjustesLibreta();
-                actualizarEditor();
-            });
-            return boton;
+    $('opciones-libreta').replaceChildren(...CAJAS_LIBRETA.map(([titulo, claves]) => {
+        const caja = document.createElement('div');
+        caja.className = 'caja-libreta vidrio';
+        const encabezado = document.createElement('h3');
+        encabezado.className = 'titulo-azar';
+        encabezado.textContent = titulo;
+        caja.append(encabezado, ...claves.map(clave => {
+            const ajuste = AJUSTES_LIBRETA[clave];
+            const fila = document.createElement('div');
+            fila.className = 'ajuste-libreta';
+            // Con un solo ajuste en la caja, el título de la caja ya lo nombra.
+            if (claves.length > 1) {
+                const nombre = document.createElement('div');
+                nombre.className = 'nombre-ajuste';
+                nombre.textContent = ajuste.nombre;
+                if (ajuste.deslizador) {
+                    const valor = document.createElement('span');
+                    valor.className = 'valor-ajuste';
+                    valor.textContent = ajuste.opciones[ajustes[clave]].nombre;
+                    nombre.append(valor);
+                }
+                fila.append(nombre);
+            }
+            fila.append(ajuste.deslizador ? deslizadorLibreta(clave, ajuste, ajustes[clave]) : pastillasLibreta(clave, ajuste, ajustes[clave]));
+            return fila;
         }));
-        return [titulo, grupo];
+        return caja;
     }));
 }
 aplicarAjustesLibreta();
@@ -1834,26 +1874,39 @@ function renderizarExtras() {
     $('estado-extras').textContent = extras ? 'Comprado. ¡Gracias!' : `Sin publicidad, temas y widgets · ${PRODUCTO.precio}`;
     $('comprar-extras').textContent = extras ? 'Ya tenés Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
     $('comprar-extras').disabled = extras;
-    document.body.dataset.libreta = temaActual(localStorage);
-    // Lista de temas (Picker .inline): tilde en el elegido, candado en los bloqueados.
+    renderizarTemas();
+}
+
+// Temas de la libreta: cada letra tiene el suyo (arranca en Gris liso) y se guarda con ella.
+// Una grilla de muestras: la elegida con borde violeta, las bloqueadas con candado.
+function renderizarTemas() {
+    const actual = temaDeLetra(letraActual, localStorage);
+    document.body.dataset.libreta = actual;
     $('temas-libreta').replaceChildren(...TEMAS.map(tema => {
-        const celda = document.createElement('li');
-        celda.className = 'celda';
         const boton = document.createElement('button');
-        boton.className = 'celda-boton celda-tema';
+        boton.type = 'button';
+        boton.className = 'tema-libreta';
         boton.dataset.tema = tema.clave;
+        boton.setAttribute('aria-pressed', tema.clave === actual);
         const muestra = document.createElement('span');
         muestra.className = 'muestra-tema';
         muestra.dataset.libreta = tema.clave;
-        const nombre = document.createElement('span');
-        nombre.textContent = tema.nombre;
+        muestra.textContent = 'Aa';
         const marca = document.createElement('span');
         marca.className = 'marca-tema';
-        marca.innerHTML = !temaDisponible(tema.clave, localStorage) ? CANDADO : tema.clave === temaActual(localStorage) ? TILDE : '';
-        boton.append(muestra, nombre, marca);
-        boton.addEventListener('click', () => elegirTema(localStorage, tema.clave) ? renderizarExtras() : abrirPaywall());
-        celda.append(boton);
-        return celda;
+        marca.innerHTML = temaDisponible(tema.clave, localStorage) ? '' : CANDADO;
+        muestra.append(marca);
+        const nombre = document.createElement('span');
+        nombre.className = 'nombre-tema';
+        nombre.textContent = tema.nombre;
+        boton.append(muestra, nombre);
+        boton.addEventListener('click', () => {
+            if (!temaDisponible(tema.clave, localStorage)) return abrirPaywall();
+            letraActual = { ...letraActual, tema: tema.clave };
+            guardarActual();
+            renderizarTemas();
+        });
+        return boton;
     }));
 }
 
