@@ -1,8 +1,9 @@
-// Letras guardadas. Sin DOM: el almacenamiento se pasa como
+// Letras y palabras guardadas. Sin DOM: el almacenamiento se pasa como
 // parámetro (localStorage en la web; en SwiftUI será SwiftData o similar).
 // Solo usa getItem/setItem, así que en los tests alcanza con un objeto simple.
 
 const CLAVE_LETRAS = 'metrica.letras';
+const CLAVE_GUARDADAS = 'metrica.guardadas';
 
 function leer(almacen, clave) {
     try {
@@ -64,4 +65,17 @@ export function guardarLetra(almacen, letra, ahora = Date.now()) {
 
 export function borrarLetra(almacen, id) {
     escribir(almacen, CLAVE_LETRAS, leer(almacen, CLAVE_LETRAS).filter(l => l.id !== id));
+}
+
+// Palabras guardadas desde Rimas, de la última guardada a la primera.
+export function listarGuardadas(almacen) {
+    return leer(almacen, CLAVE_GUARDADAS);
+}
+
+// Guarda o saca una palabra. Devuelve true si quedó guardada.
+export function alternarGuardada(almacen, palabra) {
+    const guardadas = leer(almacen, CLAVE_GUARDADAS);
+    const queda = !guardadas.includes(palabra);
+    escribir(almacen, CLAVE_GUARDADAS, queda ? [palabra, ...guardadas] : guardadas.filter(g => g !== palabra));
+    return queda;
 }
