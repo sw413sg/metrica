@@ -411,8 +411,19 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-plegar').isVisible(), false);
         assert.equal(await page.locator('#musica-mostrar').isVisible(), false);
         assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'SoundCloud');
+        // Chico: una fila con el título (sin la fuente) y la barra; la flecha lo agranda (pedido de Swa).
+        assert.equal(await page.locator('#reproductor-fuente').isVisible(), false);
+        assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
         const nube = await page.locator('#reproductor').boundingBox();
-        assert.ok(Math.abs(nube.height - 92) <= 2, JSON.stringify(nube));
+        assert.ok(Math.abs(nube.height - 80) <= 2, JSON.stringify(nube));
+        await page.screenshot({path: `capturas/reproductor-chico-libreta-${tema}.png`});
+        // En la libreta también se agranda (el formato alto) y se vuelve a achicar sin cortarse.
+        await page.locator('#musica-agrandar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
+        assert.equal(await page.locator('#musica-plegar').isVisible(), true);
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
         assert.equal(Math.round(nube.x), 16, JSON.stringify(nube));
         assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).width), 40);
         // El iframe no se ve, pero queda adentro de la pantalla: afuera el navegador lo frena.
@@ -1526,6 +1537,7 @@ const servidor = http.createServer((req, res) => {
         const bandejaChica = await page.locator('.bandeja-fs').boundingBox();
         const chica = await page.locator('#reproductor').boundingBox();
         assert.ok(chica.y - (bandejaChica.y + bandejaChica.height) <= 16, 'la bandeja baja con la tarjeta chica');
+        assert.ok(Math.abs(chica.height - 80) <= 2, JSON.stringify(chica));
         await page.screenshot({path: `capturas/freestyle-nube-chico-${tema}.png`});
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);

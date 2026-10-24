@@ -1011,6 +1011,11 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor-cuerpo { position: relative; z-index: 1; padding: 9px 12px 11px; display: flex; flex-direction: column; }
 .reproductor-principal { display: flex; align-items: center; gap: 6px; }
 .reproductor:not(.grande) .reproductor-principal { height: 40px; }
+/* Chico (pedido de Swa): una fila con el título solo, sin la fuente, y la barra más pegada.
+   YouTube plegado sigue diciendo «en pausa». La barra mantiene sus 44 px para tocarla. */
+.reproductor:not(.grande):not(.plegado) .reproductor-fuente { display: none; }
+.reproductor:not(.grande):not(.plegado) .reproductor-cuerpo { padding-top: 8px; padding-bottom: 8px; }
+.reproductor:not(.grande):not(.plegado) .reproductor-barra { margin: -8px 0 -14px; }
 .reproductor.grande .reproductor-principal { align-items: stretch; gap: 10px; }
 /* Formato chico (SoundCloud en el editor o plegado, YouTube plegado): una sola fila.
    Los contenedores se disuelven. */
