@@ -32,6 +32,7 @@ const ARCHIVOS = [
     'js/logica/musica.js',
     'js/logica/ambiente.js',
     'js/logica/recientes.js',
+    'js/logica/baul.js',
     'iconos/icono.svg',
     'iconos/icono-180.png',
     'iconos/icono-192.png',

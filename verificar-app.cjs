@@ -40,6 +40,35 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
         await page.screenshot({path: `capturas/letras-${tema}.png`});
 
+        // Baúl de frases: anotar, editar en la tarjeta, marcar como usada desde el menú y buscar.
+        await page.locator('#abrir-baul').click();
+        assert.equal(await page.locator('#vista-baul').isVisible(), true);
+        for (const frase of ['barrio de cemento, corazón de madera', 'mi vieja me dijo que no afloje']) {
+            await page.locator('#baul-texto').fill(frase);
+            await page.locator('#baul-guardar').click();
+        }
+        assert.deepEqual(await page.locator('#baul-frases .texto-frase').allTextContents(), ['mi vieja me dijo que no afloje', 'barrio de cemento, corazón de madera']);
+        await page.locator('#baul-frases .tarjeta-frase').first().click();
+        await page.keyboard.type(' jamás');
+        await page.locator('#vista-baul .titulo-grande').click();
+        assert.equal(await page.locator('#baul-frases .texto-frase').first().textContent(), 'mi vieja me dijo que no afloje jamás');
+        const cajaFrase = await page.locator('#baul-frases .tarjeta-frase').last().boundingBox();
+        await page.mouse.move(cajaFrase.x + 20, cajaFrase.y + 20);
+        await page.mouse.down();
+        await page.waitForTimeout(600);
+        await page.mouse.up();
+        assert.equal(await page.locator('#baul-menu').isVisible(), true);
+        await page.screenshot({path: `capturas/baul-menu-${tema}.png`});
+        await page.locator('#baul-usada').click();
+        assert.equal(await page.locator('#baul-frases .check-usada').count(), 1);
+        await page.locator('#baul-abrir-busqueda').click();
+        await page.locator('#baul-buscar').fill('corazon');
+        assert.equal(await page.locator('#baul-frases .tarjeta-frase').count(), 1);
+        await page.screenshot({path: `capturas/baul-${tema}.png`});
+        await page.locator('#baul-abrir-busqueda').click();
+        await page.locator('#baul-atras').click();
+        await page.evaluate(() => localStorage.removeItem('metrica.frases'));
+
         await page.locator('#nueva-letra').click();
         assert.equal(await page.locator('#vista-editor').isVisible(), true);
         assert.equal(await page.locator('#barra-pestanas').isVisible(), false);
@@ -767,7 +796,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.getByText(/cambian en/).count(), 0);
         // Todo con el efecto de la palabra tocada: terminaciones, lupa y el tipo elegido.
         assert.equal(await page.locator('.palabra mark').first().getAttribute('class'), 'brillo-violeta');
-        assert.equal(await page.locator('.lupa-violeta span').evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
+        assert.equal(await page.locator('#pantalla-rimas .lupa-violeta span').evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
         // El tipo elegido va con la pastilla violeta suave de «Palabras simples» encendido, sin el efecto.
         assert.equal(await page.locator('#tipo-rima [aria-selected="true"]').evaluate(e => getComputedStyle(e).animationName), 'none');
         await page.locator('#palabras-simples').click();
