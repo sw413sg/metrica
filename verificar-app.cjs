@@ -346,6 +346,18 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#reproductor').isVisible(), true);
         await page.waitForFunction(() => !window.__yt.pausado);
         assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
+        // La nota musical esconde la tarjeta mientras se elige, sin cortar lo que suena
+        // (aunque el teclado esté abierto), y tocar afuera la vuelve a mostrar.
+        await page.locator('#abrir-musica').click();
+        await page.evaluate(() => document.body.classList.add('teclado-abierto'));
+        assert.equal(await page.locator('#reproductor').isVisible(), false);
+        await page.waitForTimeout(200);
+        assert.equal(await page.evaluate(() => window.__yt.pausado), false);
+        await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
+        await page.mouse.click(195, 100);
+        assert.equal(await page.locator('#hoja-musica').isVisible(), false);
+        assert.equal(await page.locator('#reproductor').isVisible(), true);
+        assert.equal(await page.evaluate(() => window.__yt.pausado), false);
         // Si lo pausaste vos, el teclado no lo vuelve a poner en play.
         await page.locator('#musica-play').click();
         await page.evaluate(() => document.body.classList.add('teclado-abierto'));
@@ -376,7 +388,11 @@ const servidor = http.createServer((req, res) => {
             window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
         await page.locator('#abrir-musica').click();
         await page.locator('#fs-link').fill('https://soundcloud.com/artista/tema');
+        // Un link nuevo arranca solo, aunque el teclado esté abierto.
+        await page.evaluate(() => document.body.classList.add('teclado-abierto'));
         await page.locator('#fs-pegar').click();
+        await page.waitForFunction(() => window.__sc?.paused === false);
+        await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
         await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
         assert.equal(await page.locator('#musica-plegar').isVisible(), false);
