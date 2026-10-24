@@ -866,6 +866,25 @@ const servidor = http.createServer((req, res) => {
         const deslizadas = await page.locator('.palabra .texto-palabra').allTextContents();
         assert.equal(await page.locator('#buscar-rima').inputValue(), 'canción', 'deslizar no toca la palabra');
         assert.ok(deslizadas.length === 4 && !deslizadas.some(p => tarjetas.includes(p) || siguientes.includes(p)), deslizadas.join());
+        // Al buscar: «Sinónimos», refrescar y «Palabras simples» con la misma separación y el
+        // refrescar al medio de las tarjetas.
+        const [bSin, bRef, bSim] = await Promise.all(['#ver-sinonimos', '#refrescar-palabras', '#palabras-simples'].map(id => page.locator(id).boundingBox()));
+        const grillaCaja = await page.locator('#grilla-palabras').boundingBox();
+        assert.ok(bSin.height === 40 && bSim.height === 40, 'cada botón en un renglón');
+        assert.ok(Math.abs(bRef.x + bRef.width / 2 - (grillaCaja.x + grillaCaja.width / 2)) < 2, 'refrescar al centro');
+        assert.ok(Math.abs((bRef.x - (bSin.x + bSin.width)) - (bSim.x - (bRef.x + bRef.width))) < 1 && Math.abs(bSin.width - bSim.width) < 1, JSON.stringify([bSin, bRef, bSim]));
+        // Sinónimos: las tarjetas y la lista muestran sinónimos, primero los que riman; consonante y asonante se apagan.
+        await page.locator('#ver-sinonimos').click();
+        assert.match(await page.locator('#encabezado-usadas').textContent(), /^\d+ sinónimos de «canción»$/);
+        assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado apagado');
+        assert.ok(Number(await page.locator('#tipo-rima [data-tipo="consonante"]').evaluate(e => getComputedStyle(e).opacity)) < 0.5);
+        const deSinonimos = await page.locator('#resultados-rimas li').allTextContents();
+        assert.deepEqual(deSinonimos.slice(0, 3), ['son', 'composición', 'improvisación']);
+        assert.ok(deSinonimos.includes('melodía'));
+        assert.match(await page.locator('#encabezado-resultados').textContent(), /^Sinónimos · \d+$/);
+        await page.screenshot({path: `capturas/rimas-sinonimos-${tema}.png`});
+        await page.locator('#ver-sinonimos').click();
+        assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado');
         await page.locator('#buscar-rima').fill('canció');
         await page.locator('#buscar-rima').fill('canción');
         await page.waitForTimeout(300);
