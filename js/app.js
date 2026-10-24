@@ -39,6 +39,7 @@ const bienEscrita = palabra => palabra && (ANGLICISMOS.has(palabra.toLowerCase()
 
 // ---------- Pestañas (TabView) ----------
 function mostrarPestana(nombre) {
+    cerrarBusquedaBaul();
     document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
     document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
@@ -49,7 +50,15 @@ function mostrarPestana(nombre) {
     sincronizarLinkFreestyle();
     ubicarReproductor();
 }
-document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListener('click', () => mostrarPestana(b.dataset.pestana)));
+// Tocar «Letras» estando en el baúl vuelve al inicio de Letras; desde otra sección, el baúl
+// sigue abierto donde estaba (pedido de Swa).
+document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.pestana === 'letras' && $('pantalla-letras').classList.contains('activa') && $('vista-baul').classList.contains('activa')) {
+        mostrarVista('vista-lista-letras');
+        renderizarLetras();
+    }
+    mostrarPestana(b.dataset.pestana);
+}));
 
 // ---------- Letras (NavigationStack: lista -> editor) ----------
 function mostrarVista(id) {
@@ -243,6 +252,7 @@ function abrirBaul(desdeLetra) {
 $('abrir-baul').addEventListener('click', () => abrirBaul(false));
 $('abrir-baul-libreta').addEventListener('click', () => { ocultarSugerencias(); document.activeElement?.blur(); abrirBaul(true); });
 $('baul-atras').addEventListener('click', () => {
+    cerrarBusquedaBaul();
     if (baulDesdeLetra) return mostrarVista('vista-editor');
     mostrarVista('vista-lista-letras');
     renderizarLetras();
@@ -266,12 +276,20 @@ $('baul-guardar').addEventListener('click', () => {
 });
 
 // La lupa de arriba muestra el buscador; cerrarlo vuelve a mostrar todas.
-$('baul-abrir-busqueda').addEventListener('click', () => {
-    const abrir = $('baul-busqueda').hidden;
-    $('baul-busqueda').hidden = !abrir;
-    $('baul-abrir-busqueda').setAttribute('aria-expanded', abrir);
-    if (abrir) $('baul-buscar').focus(); else $('baul-buscar').value = '';
+// La lupa de arriba muestra el buscador. Se cierra y se borra con la lupa, al volver o al
+// cambiar de sección (pedido de Swa).
+function cerrarBusquedaBaul() {
+    if ($('baul-busqueda').hidden) return;
+    $('baul-busqueda').hidden = true;
+    $('baul-abrir-busqueda').setAttribute('aria-expanded', false);
+    $('baul-buscar').value = '';
     renderizarBaul();
+}
+$('baul-abrir-busqueda').addEventListener('click', () => {
+    if (!$('baul-busqueda').hidden) return cerrarBusquedaBaul();
+    $('baul-busqueda').hidden = false;
+    $('baul-abrir-busqueda').setAttribute('aria-expanded', true);
+    $('baul-buscar').focus();
 });
 $('baul-buscar').addEventListener('input', () => renderizarBaul());
 

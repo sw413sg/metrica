@@ -58,9 +58,9 @@ test('filtrarFrases por usadas y por palabra, sin tildes ni mayúsculas', () => 
 
 test('etiquetaVolver acorta el nombre largo de la letra', () => {
     assert.equal(etiquetaVolver('Choque'), 'Choque');
-    assert.equal(etiquetaVolver('Orgánico'), 'Orgánico');
-    assert.equal(etiquetaVolver('Bypass de mes'), 'Bypass…');
-    assert.equal(etiquetaVolver('Si sabíamos'), 'Si sabía…');
-    assert.equal(etiquetaVolver('Desconectados'), 'Desconec…');
+    assert.equal(etiquetaVolver('Bypass de mes'), 'Bypass de mes');
+    assert.equal(etiquetaVolver('Después de ese choque'), 'Después de ese…');
+    assert.equal(etiquetaVolver('Yo desconectadísimo'), 'Yo desconectadís…');
+    assert.equal(etiquetaVolver('Desconectadísimamente'), 'Desconectadísima…');
     assert.equal(etiquetaVolver('  '), 'Sin título');
 });
