@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Ondas: el sonido que sale de un parlante, en anillos finos desde la esquina. -->
+  <g fill="none" stroke="#6fc3b8" stroke-width="1.4">
+    <circle cx="330" cy="430" r="40" opacity=".5"/>
+    <circle cx="330" cy="430" r="78" opacity=".38"/>
+    <circle cx="330" cy="430" r="120" opacity=".28"/>
+    <circle cx="330" cy="430" r="166" opacity=".2"/>
+    <circle cx="330" cy="430" r="216" opacity=".13"/>
+    <circle cx="330" cy="430" r="270" opacity=".08"/>
+  </g>
+  <circle cx="330" cy="430" r="14" fill="#6fc3b8" opacity=".45"/>
+</svg>

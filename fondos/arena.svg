@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Arena: medio sol y médanos suaves, en tonos de tierra. -->
+  <circle cx="96" cy="318" r="46" fill="#e2875a" opacity=".22"/>
+  <path fill="#e3cfae" opacity=".7" d="M0 330c70-26 130-30 200-6s130 20 190-10v146H0z"/>
+  <path fill="#d9bf98" opacity=".75" d="M0 384c60-30 140-34 214-8 60 20 120 18 176-6v90H0z"/>
+  <path fill="#cfb187" opacity=".7" d="M0 430c90-18 180-20 260-6 46 8 90 6 130-4v40H0z"/>
+  <g fill="none" stroke="#b8956a" stroke-width="1" opacity=".35">
+    <path d="M40 360c40-10 80-10 120 0"/><path d="M230 404c30-8 60-8 96 0"/>
+  </g>
+</svg>

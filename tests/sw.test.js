@@ -35,6 +35,11 @@ test('los beats grabados están en la caché y pesan menos de 1.5 MB', () => {
     }
 });
 
+test('los fondos de los temas de la libreta están en la caché', () => {
+    const css = fs.readFileSync('estilos.css', 'utf8');
+    for (const [, archivo] of css.matchAll(/url\("(fondos\/[^"]+)"\)/g)) assert.ok(enCache.has(archivo), `falta ${archivo} en sw.js`);
+});
+
 test('la versión es un número con un decimal, como se ve en Ajustes', () => {
     assert.match(sw.match(/const VERSION = '([^']+)'/)[1], /^metrica-\d+\.\d+$/);
 });

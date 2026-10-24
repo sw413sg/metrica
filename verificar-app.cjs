@@ -1407,9 +1407,9 @@ const servidor = http.createServer((req, res) => {
             await page.locator('#editor-atras').click();
         };
         await abrirTemas();
-        assert.equal(await page.locator('#temas-libreta .celda').count(), 6);
-        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 4);
-        await page.locator('[data-tema="pizarra"]').click();
+        assert.equal(await page.locator('#temas-libreta .celda').count(), 7);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 5);
+        await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), true);
         assert.match(await page.locator('#comprar-extras').textContent(), /^Desbloquear por USD 4,99$/);
         assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
@@ -1439,7 +1439,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-cuenta').isVisible(), false);
         await page.locator('#fs-duraciones [data-duracion="60"]').click();
         await abrirTemas();
-        await page.locator('[data-tema="pizarra"]').click();
+        await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 0);
         await page.screenshot({path: `capturas/ajustes-libreta-temas-${tema}.png`});
@@ -1452,9 +1452,18 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#pantalla-rimas .publicidad').isVisible(), false);
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#nueva-letra').click();
-        await page.locator('#editor-texto').fill('Pizarra con tiza\ny una sonrisa');
-        assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(36, 51, 44)');
-        await page.screenshot({path: `capturas/editor-pizarra-${tema}.png`});
+        await page.locator('#editor-texto').fill('Me acuerdo porque te fuiste\nno me alcanzaban las manos\nsemana entera pensando\ncomo pude aceptarlo');
+        assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(27, 32, 52)');
+        assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), /fondos\/madrugada\.svg/);
+        await page.locator('#editor-texto').blur();
+        await page.screenshot({path: `capturas/editor-madrugada-${tema}.png`});
+        // Los otros temas de Extras, cada uno con su ilustración abajo.
+        for (const otro of ['sierra', 'ondas', 'arena', 'partitura']) {
+            await page.evaluate(clave => { localStorage.setItem('metrica.tema-libreta', clave); document.body.dataset.libreta = clave; }, otro);
+            assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), new RegExp(`fondos/${otro}\\.svg`));
+            await page.screenshot({path: `capturas/editor-${otro}-${tema}.png`});
+        }
+        await page.evaluate(() => { localStorage.setItem('metrica.tema-libreta', 'madrugada'); document.body.dataset.libreta = 'madrugada'; });
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('#borrar-letra').click();
         await page.locator('#aceptar-borrado').click();
@@ -1463,7 +1472,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#borrar-compra').click();
         assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
         await abrirTemas();
-        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 4);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 5);
         await cerrarLibreta();
 
         // Sin internet: recarga desde el service worker y anda todo.

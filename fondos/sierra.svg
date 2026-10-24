@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Sierra: un sol bajo y tres cordones de montañas que se oscurecen hacia adelante. -->
+  <circle cx="276" cy="236" r="30" fill="#f0d9a8" opacity=".12"/>
+  <path fill="#3d4d45" opacity=".55" d="M0 300l46-30 34 18 52-52 40 34 30-20 58 46 42-28 46 30 42-22v184H0z"/>
+  <path fill="#2f3d36" opacity=".8" d="M0 350l60-44 38 24 44-30 66 52 40-22 36 18 54-40 52 40v122H0z"/>
+  <path fill="#1c2621" d="M0 400l52-26 48 20 70-40 58 38 44-16 50 22 68-30v152H0z"/>
+</svg>

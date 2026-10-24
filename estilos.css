@@ -599,31 +599,50 @@ body.editando .vista#vista-editor {
     top: var(--arriba-visible, 0px); height: var(--alto-visible, 100%);
 }
 
-/* Temas de la libreta (Métrica Extras). "Gris liso" usa los colores de arriba.
-   Solo cambian la libreta mientras se escribe (no la hoja de ajustes); la muestra usa el mismo color. */
+/* Temas de la libreta. Gris liso (los colores de arriba) y Blanco son gratis; los otros cinco
+   son de Métrica Extras y llevan una ilustración sutil abajo (fondos/*.svg), quieta mientras
+   el texto pasa por encima. Solo cambian la libreta mientras se escribe (no la hoja de ajustes);
+   la muestra usa el mismo color y la misma ilustración. */
 body.editando[data-libreta="blanco"] #vista-editor, .muestra-tema[data-libreta="blanco"],
-body.editando[data-libreta="papel"] #vista-editor, .muestra-tema[data-libreta="papel"],
-body.editando[data-libreta="lavanda"] #vista-editor, .muestra-tema[data-libreta="lavanda"] {
+body.editando[data-libreta="arena"] #vista-editor, .muestra-tema[data-libreta="arena"],
+body.editando[data-libreta="partitura"] #vista-editor, .muestra-tema[data-libreta="partitura"] {
     color-scheme: light;
     --texto: #1c1530; --texto-2: rgba(60, 50, 90, 0.62); --texto-3: rgba(60, 50, 90, 0.32);
     --separador: rgba(60, 50, 90, 0.12); --vidrio: rgba(255, 255, 255, 0.55); --vidrio-borde: rgba(255, 255, 255, 0.85);
     --acento: #3c4043; --renglon: rgba(60, 60, 67, 0.08); --teclado: #d1d4da;
 }
-body.editando[data-libreta="pizarra"] #vista-editor, .muestra-tema[data-libreta="pizarra"],
-body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libreta="medianoche"] {
+body.editando[data-libreta="madrugada"] #vista-editor, .muestra-tema[data-libreta="madrugada"],
+body.editando[data-libreta="sierra"] #vista-editor, .muestra-tema[data-libreta="sierra"],
+body.editando[data-libreta="ondas"] #vista-editor, .muestra-tema[data-libreta="ondas"] {
     color-scheme: dark;
-    --texto: #f1f4ee; --texto-2: rgba(240, 244, 236, 0.6); --texto-3: rgba(240, 244, 236, 0.32);
+    --texto: #eef0f4; --texto-2: rgba(238, 240, 244, 0.6); --texto-3: rgba(238, 240, 244, 0.32);
     --separador: rgba(255, 255, 255, 0.1); --vidrio: rgba(255, 255, 255, 0.1); --vidrio-borde: rgba(255, 255, 255, 0.12);
     --acento: #e8eaed; --renglon: rgba(255, 255, 255, 0.06); --teclado: #2c2c2e;
 }
 body.editando[data-libreta="blanco"] #vista-editor, .muestra-tema[data-libreta="blanco"] { --libreta: #ffffff; }
-body.editando[data-libreta="papel"] #vista-editor, .muestra-tema[data-libreta="papel"] { --libreta: #f5ecd7; --texto: #3a2e1e; --renglon: rgba(120, 90, 40, 0.11); --teclado: #e4d9c0; }
-body.editando[data-libreta="lavanda"] #vista-editor, .muestra-tema[data-libreta="lavanda"] { --libreta: #ece6ff; --renglon: rgba(123, 97, 255, 0.1); --teclado: #d9d1f5; }
-body.editando[data-libreta="pizarra"] #vista-editor, .muestra-tema[data-libreta="pizarra"] { --libreta: #24332c; --teclado: #1b2621; }
-body.editando[data-libreta="medianoche"] #vista-editor, .muestra-tema[data-libreta="medianoche"] { --libreta: #0d1230; --texto: #e6e9ff; --teclado: #161b3d; }
+body.editando[data-libreta="madrugada"] #vista-editor, .muestra-tema[data-libreta="madrugada"] {
+    --libreta: #1b2034; --texto: #e7eaf6; --teclado: #22283f; --ilustracion: url("fondos/madrugada.svg");
+}
+body.editando[data-libreta="sierra"] #vista-editor, .muestra-tema[data-libreta="sierra"] {
+    --libreta: #26302b; --texto: #eef1ea; --teclado: #2e3a34; --ilustracion: url("fondos/sierra.svg");
+}
+body.editando[data-libreta="ondas"] #vista-editor, .muestra-tema[data-libreta="ondas"] {
+    --libreta: #1e2224; --teclado: #282d30; --ilustracion: url("fondos/ondas.svg");
+}
+body.editando[data-libreta="arena"] #vista-editor, .muestra-tema[data-libreta="arena"] {
+    --libreta: #f4ede1; --texto: #3a2e22; --texto-2: rgba(70, 52, 34, 0.62); --texto-3: rgba(70, 52, 34, 0.32);
+    --renglon: rgba(120, 90, 50, 0.1); --teclado: #e6dccb; --ilustracion: url("fondos/arena.svg");
+}
+body.editando[data-libreta="partitura"] #vista-editor, .muestra-tema[data-libreta="partitura"] {
+    --libreta: #eef1f4; --texto: #1f2a36; --texto-2: rgba(40, 55, 72, 0.62); --texto-3: rgba(40, 55, 72, 0.32);
+    --renglon: rgba(40, 55, 72, 0.08); --teclado: #dde2e8; --ilustracion: url("fondos/partitura.svg");
+}
+body.editando .vista#vista-editor, .muestra-tema { background-image: var(--ilustracion, none); background-repeat: no-repeat; }
+body.editando .vista#vista-editor { background-position: center bottom; background-size: 100% auto; }
+.muestra-tema { background-position: 80% 100%; background-size: 220% auto; }
 #vista-editor { color: var(--texto); }
 .celda-tema { flex-direction: row; align-items: center; gap: 12px; }
-.muestra-tema { width: 28px; height: 28px; border-radius: 8px; background: var(--libreta); border: 1px solid var(--separador); flex-shrink: 0; }
+.muestra-tema { width: 28px; height: 28px; border-radius: 8px; background-color: var(--libreta); border: 1px solid var(--separador); flex-shrink: 0; }
 .marca-tema { margin-left: auto; display: flex; color: var(--acento); }
 .marca-tema .icono { width: 20px; height: 20px; }
 .celda-tema:has(.marca-tema rect) { color: var(--texto-2); }
