@@ -103,7 +103,8 @@ test('SoundCloud va en grande solo en Freestyle, y plegado va chico', () => {
     assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: false, fueraDelEditor: false }), true);
     assert.equal(tarjetaGrande({ fuente: 'youtube', plegado: true, fueraDelEditor: true }), false);
     assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, fueraDelEditor: true }), true);
-    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, fueraDelEditor: false }), false);
+    assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: false, fueraDelEditor: false }), true);
+    assert.equal(tarjetaGrande({ fuente: 'archivo', plegado: false }), false);
     assert.equal(tarjetaGrande({ fuente: 'soundcloud', plegado: true, freestyle: true }), false);
 });
 

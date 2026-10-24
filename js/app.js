@@ -2019,8 +2019,7 @@ function mostrarEstadoMusica() {
 
 function aplicarVideo() {
     const esYouTube = musica?.fuente === 'youtube';
-    const fueraDelEditor = !document.body.classList.contains('editando');
-    const grande = tarjetaGrande({ fuente: musica?.fuente, plegado, fueraDelEditor });
+    const grande = tarjetaGrande({ fuente: musica?.fuente, plegado });
     const card = $('reproductor');
     card.classList.toggle('youtube', Boolean(esYouTube));
     card.classList.toggle('plegado', Boolean(esYouTube && plegado));
@@ -2028,8 +2027,8 @@ function aplicarVideo() {
     $('musica-plegar').hidden = !grande;
     $('musica-mostrar').hidden = !(esYouTube && plegado);
     $('musica-nota-youtube').hidden = !(esYouTube && plegado);
-    // SoundCloud chico arriba de la barra: la flechita lo vuelve a agrandar.
-    $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && fueraDelEditor && plegado);
+    // SoundCloud chico, en la libreta o arriba de la barra: la flechita lo agranda.
+    $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && plegado);
     mostrarEstadoMusica();
     ubicarReproductor();
 }
