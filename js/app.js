@@ -5,7 +5,7 @@ import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInte
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarFavoritos, alternarFavorito } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
@@ -636,23 +636,8 @@ $('abrir-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta'
 $('cerrar-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = true; });
 $('ajustes-libreta').addEventListener('click', e => { if (e.target === $('ajustes-libreta')) $('ajustes-libreta').hidden = true; });
 
-// ---------- Rimas (palabras al azar o que riman con la que se escribe) ----------
+// ---------- Rimas (terminaciones al azar o las que riman con la que se escribe) ----------
 let tipoRima = 'consonante';
-
-// Botón de estrella para marcar una palabra como favorita.
-function botonFavorito(palabra, alCambiar = () => {}) {
-    const boton = document.createElement('button');
-    boton.className = 'estrella';
-    boton.setAttribute('aria-label', `Favorita: ${palabra}`);
-    boton.setAttribute('aria-pressed', listarFavoritos(localStorage).includes(palabra));
-    boton.innerHTML = '<svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1-4.5-4.2 6.1-.8z"/></svg>';
-    boton.addEventListener('click', e => {
-        e.stopPropagation();
-        boton.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra));
-        alCambiar();
-    });
-    return boton;
-}
 
 // La sílaba que rima, desde la tónica, sin espacio adentro del resaltado ("can" + "ción").
 function fragmentoRima(palabra, clase) {
@@ -670,88 +655,111 @@ function fragmentoRima(palabra, clase) {
     return frag;
 }
 
-// Celda con la palabra (tocarla busca sus rimas) y la estrella.
-function celdaPalabra(palabra, clase, alCambiar) {
-    const celda = document.createElement('li');
-    celda.className = 'celda';
-    const boton = document.createElement('button');
-    boton.type = 'button';
-    boton.className = 'celda-boton';
-    boton.append(fragmentoRima(palabra, clase));
-    boton.addEventListener('click', () => { $('buscar-rima').value = palabra; buscarRima(); });
-    celda.append(boton, botonFavorito(palabra, alCambiar));
-    return celda;
-}
-
 const palabraBuscada = () => $('buscar-rima').value.trim().toLowerCase();
 const rimasDeLaBusqueda = () => buscarRimas(palabraBuscada(), indiceRimas(), { tipo: tipoRima });
-const rimasBuscadas = () => rimasDeLaBusqueda().slice(0, 100);
-const claseRima = () => `rima-0${tipoRima === 'asonante' ? ' suave' : ''}`;
+// Las rimas buscadas llevan la terminación como la palabra tocada de la libreta.
+const CLASE_BUSCADA = 'brillo-violeta';
+// En el cajón de todas van hasta 300 (las más usadas primero): más allá son rarezas.
+const MAXIMO_TODAS = 300;
 
-function actualizarLimpiar() {
-    $('limpiar-rima').hidden = !palabraBuscada();
+// Tocar una palabra (de la caja o del cajón) busca sus rimas.
+function buscarPalabra(palabra) {
+    $('buscar-rima').value = palabra;
+    buscarRima();
+    $('pantalla-rimas').scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Abajo de las tarjetas, la lista completa de rimas (o las favoritas si no se buscó nada).
+// El cajón de todas: dos columnas de 10 a la vista, y el resto se desliza adentro.
 function renderizarRimas() {
     const palabra = palabraBuscada();
-    const todas = palabra ? rimasDeLaBusqueda() : null;
-    const lista = palabra ? todas.slice(0, 100) : listarFavoritos(localStorage);
-    const clase = claseRima();
-    $('resultados-rimas').replaceChildren(...lista.map((p, i) => celdaPalabra(p, palabra ? clase : `rima-${i % 12}`, palabra ? undefined : renderizarRimas)));
-    $('encabezado-resultados').hidden = !lista.length;
-    $('encabezado-resultados').textContent = palabra ? `Todas · ${todas.length.toLocaleString('es-AR')}` : 'Favoritas';
-    $('rimas-vacio').textContent = !palabra
-        ? 'Escribí una palabra para ver con qué rima. Tocá la estrella para guardarla en favoritas.'
-        : `No encontré rimas ${tipoRima}s para «${palabra}».`;
+    const todas = palabra ? rimasDeLaBusqueda() : [];
+    const lista = todas.slice(0, MAXIMO_TODAS);
+    $('resultados-rimas').replaceChildren(...lista.map(p => {
+        const item = document.createElement('li');
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.append(fragmentoRima(p, CLASE_BUSCADA));
+        boton.addEventListener('click', () => buscarPalabra(p));
+        item.append(boton);
+        return item;
+    }));
+    $('resultados-rimas').scrollTop = 0;
+    $('cajon-todas').hidden = !lista.length;
+    const total = todas.length.toLocaleString('es-AR');
+    $('encabezado-resultados').textContent = todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
+    $('rimas-vacio').textContent = palabra ? `No encontré rimas ${tipoRima}s para «${palabra}».` : 'Escribí una palabra para ver con qué rima.';
     $('rimas-vacio').hidden = lista.length > 0;
-    actualizarLimpiar();
+    $('limpiar-rima').hidden = !palabra;
 }
 
+// Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
 function buscarRima() {
     renderizarRimas();
-    if (temporizador === null) return refrescarPalabras();
-    pausarPalabras();
-    reanudarPalabras();
+    refrescarPalabras(false);
+    frenarReloj();
+    arrancarReloj();
 }
 
 $('buscar-rima').addEventListener('input', buscarRima);
 $('limpiar-rima').addEventListener('click', () => { $('buscar-rima').value = ''; buscarRima(); });
-document.querySelectorAll('#tipo-rima button').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('#tipo-rima [role="tab"]').forEach(b => b.addEventListener('click', () => {
     tipoRima = b.dataset.tipo;
-    document.querySelectorAll('#tipo-rima button').forEach(o => o.setAttribute('aria-selected', o === b));
+    document.querySelectorAll('#tipo-rima [role="tab"]').forEach(o => o.setAttribute('aria-selected', o === b));
     buscarRima();
 }));
 
-// Las 6 tarjetas cambian cada 6 segundos.
-const CANTIDAD = 6;
-const SEGUNDOS = 6;
-let temporizador = null;
-let pausadoPorUsuario = false;
+// El «?» de cada opción abre una viñeta corta, con la puntita hacia el «?». Se cierra tocando afuera.
+const AYUDA_TIPO = {
+    consonante: '<strong>Consonante:</strong> desde la vocal fuerte hasta el final suena todo igual, vocales y consonantes. «canción» y «razón».',
+    asonante: '<strong>Asonante:</strong> desde la vocal fuerte solo coinciden las vocales; las consonantes pueden cambiar. «casa» y «llama».',
+};
+function cerrarAyudaTipo() {
+    $('vineta-tipo').hidden = true;
+    document.querySelectorAll('.ayuda-tipo').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+document.querySelectorAll('.ayuda-tipo').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    if (b.getAttribute('aria-expanded') === 'true') return cerrarAyudaTipo();
+    cerrarAyudaTipo();
+    b.setAttribute('aria-expanded', 'true');
+    const vineta = $('vineta-tipo');
+    vineta.innerHTML = AYUDA_TIPO[b.dataset.ayuda];
+    vineta.hidden = false;
+    const caja = vineta.getBoundingClientRect(), signo = b.getBoundingClientRect();
+    vineta.style.setProperty('--punta', `${signo.left + signo.width / 2 - caja.left}px`);
+}));
+document.addEventListener('click', e => { if (!$('vineta-tipo').hidden && !e.target.closest('#vineta-tipo')) cerrarAyudaTipo(); });
 
-// De dónde salen las tarjetas: las rimas más usadas de la palabra escrita, o todo el diccionario.
+// Las 4 palabras cambian cada 6 segundos, con la cuenta y una barrita que se vacía.
+const CANTIDAD = 4;
+const SEGUNDOS = 6;
+let rimasALaVista = false; // la pestaña Rimas está abierta
+let pausadoPorUsuario = false;
+let restante = SEGUNDOS * 1000;
+let cuadro = null, antes = 0, cambio = 0;
+const ICONO_PAUSA_AZAR = '<svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>';
+const ICONO_PLAY_AZAR = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>';
+
+// De dónde salen las palabras: las rimas de la palabra escrita, o todo el diccionario.
 function poolActual() {
-    const simples = $('palabras-simples').checked;
+    const simples = $('palabras-simples').getAttribute('aria-pressed') === 'true';
     if (!palabraBuscada()) return simples ? palabrasSimples : todasLasPalabras;
-    const rimas = rimasBuscadas().slice(0, 60);
+    const rimas = rimasDeLaBusqueda();
     if (!simples) return rimas;
     const conjunto = new Set(palabrasSimples);
     return rimas.filter(p => conjunto.has(p));
 }
 
-// Tarjeta de la grilla: la palabra (con la rima pintada) y, abajo, cuántas sílabas tiene.
-function cajaPalabra(palabra, clase) {
+// Tarjeta de la caja: la palabra (con la rima pintada) y, abajo, cuántas sílabas tiene.
+function cajaPalabra(palabra, clase, i, animar) {
     const caja = document.createElement('div');
-    caja.className = 'palabra-caja';
+    caja.className = `palabra-caja${animar ? ' entra' : ''}`;
+    caja.style.setProperty('--i', i);
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'palabra';
     boton.append(fragmentoRima(palabra, clase));
-    boton.setAttribute('aria-pressed', listarFavoritos(localStorage).includes(palabra));
-    boton.addEventListener('click', () => {
-        boton.setAttribute('aria-pressed', alternarFavorito(localStorage, palabra));
-        if (!palabraBuscada()) renderizarRimas();
-    });
+    boton.addEventListener('click', () => buscarPalabra(palabra));
     const silabas = document.createElement('span');
     silabas.className = 'silabas-tarjeta';
     const n = separarSilabas(palabra).length;
@@ -760,40 +768,92 @@ function cajaPalabra(palabra, clase) {
     return caja;
 }
 
-function refrescarPalabras() {
+// Cambia las 4 palabras. Con `animar`, las viejas se van borroneadas y las nuevas entran
+// una tras otra; sin animar (al escribir), cambian de una.
+function refrescarPalabras(animar = true) {
+    restante = SEGUNDOS * 1000;
+    const buscando = Boolean(palabraBuscada());
     const pool = poolActual();
-    const clase = claseRima();
-    $('grilla-palabras').replaceChildren(...palabrasAlAzar(pool, CANTIDAD).map((palabra, i) =>
-        cajaPalabra(palabra, palabraBuscada() ? clase : `rima-${i % 12}`)));
-    $('fila-usadas').hidden = pool.length === 0;
-    $('encabezado-usadas').textContent = palabraBuscada() ? 'Más usadas' : 'Al azar';
-    $('palabras-total').textContent = palabraBuscada()
-        ? `Tocá una palabra para guardarla en favoritas. Las tarjetas muestran ${pool.length} rimas que se usan mucho.`
-        : `Tocá una palabra para guardarla en favoritas. ${pool.length.toLocaleString('es-AR')} palabras disponibles.`;
+    const elegidas = buscando ? pool.slice(0, CANTIDAD) : palabrasAlAzar(pool, CANTIDAD);
+    const grilla = $('grilla-palabras');
+    const esta = ++cambio;
+    const poner = () => {
+        if (esta !== cambio) return;
+        grilla.classList.remove('sale');
+        grilla.replaceChildren(...elegidas.map((palabra, i) =>
+            cajaPalabra(palabra, buscando ? CLASE_BUSCADA : `rima-${i % 12}`, i, animar)));
+        if (animar) {
+            $('caja-azar').classList.remove('cambio');
+            void $('caja-azar').offsetWidth;
+            $('caja-azar').classList.add('cambio');
+        }
+    };
+    if (animar && grilla.children.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        grilla.classList.add('sale');
+        setTimeout(poner, 220);
+    } else poner();
+    $('caja-azar').hidden = pool.length === 0;
+    $('caja-azar').classList.toggle('buscando', buscando);
+    $('encabezado-usadas').textContent = buscando ? `Rimas con «${palabraBuscada()}»` : 'Terminaciones al azar';
+    mostrarTiempo();
+}
+
+function mostrarTiempo() {
+    $('cuenta-azar').textContent = pausadoPorUsuario ? 'en pausa' : `cambian en ${Math.max(1, Math.ceil(restante / 1000))} s`;
+    $('tiempo-azar').style.setProperty('--queda', Math.max(0, restante) / (SEGUNDOS * 1000));
+    $('caja-azar').classList.toggle('en-pausa', pausadoPorUsuario);
+    $('pausar-palabras').innerHTML = pausadoPorUsuario ? ICONO_PLAY_AZAR : ICONO_PAUSA_AZAR;
+    $('pausar-palabras').setAttribute('aria-label', pausadoPorUsuario ? 'Seguir' : 'Pausar');
+    $('pausar-palabras').setAttribute('aria-pressed', pausadoPorUsuario);
+}
+
+// El reloj corre solo con la pestaña a la vista, sin pausa y sin búsqueda.
+function tic(ahora) {
+    restante -= ahora - antes;
+    antes = ahora;
+    if (restante <= 0) refrescarPalabras();
+    else mostrarTiempo();
+    cuadro = requestAnimationFrame(tic);
+}
+function arrancarReloj() {
+    if (cuadro !== null || !rimasALaVista || pausadoPorUsuario || palabraBuscada()) return;
+    antes = performance.now();
+    cuadro = requestAnimationFrame(tic);
+}
+function frenarReloj() {
+    cancelAnimationFrame(cuadro);
+    cuadro = null;
 }
 
 function reanudarPalabras() {
-    if (pausadoPorUsuario || temporizador !== null) return;
-    temporizador = setInterval(refrescarPalabras, SEGUNDOS * 1000);
-    refrescarPalabras();
+    rimasALaVista = true;
+    if (!palabraBuscada() && !pausadoPorUsuario) refrescarPalabras();
+    arrancarReloj();
 }
 
 function pausarPalabras() {
-    clearInterval(temporizador);
-    temporizador = null;
+    rimasALaVista = false;
+    frenarReloj();
+    cerrarAyudaTipo();
 }
 
 $('pausar-palabras').addEventListener('click', () => {
     pausadoPorUsuario = !pausadoPorUsuario;
-    $('pausar-palabras').textContent = pausadoPorUsuario ? 'en pausa' : 'cambian cada 6 s';
-    pausadoPorUsuario ? pausarPalabras() : reanudarPalabras();
+    pausadoPorUsuario ? frenarReloj() : arrancarReloj();
+    mostrarTiempo();
 });
 $('refrescar-palabras').addEventListener('click', () => {
-    if (temporizador === null) return refrescarPalabras();
-    pausarPalabras();
-    reanudarPalabras();
+    const boton = $('refrescar-palabras');
+    boton.classList.remove('gira');
+    void boton.offsetWidth;
+    boton.classList.add('gira');
+    refrescarPalabras();
 });
-$('palabras-simples').addEventListener('change', refrescarPalabras);
+$('palabras-simples').addEventListener('click', () => {
+    const boton = $('palabras-simples');
+    boton.setAttribute('aria-pressed', boton.getAttribute('aria-pressed') !== 'true');
+    refrescarPalabras();
+});
 
 // ---------- Freestyle ----------
 let ronda = null; // { inicio, duracion, pausa, modo } mientras se está jugando
@@ -2022,7 +2082,7 @@ renderizarApariencia();
 renderizarExtras();
 renderizarLetras();
 renderizarRimas();
-refrescarPalabras();
+refrescarPalabras(false);
 // Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
 setTimeout(() => { indiceRimas(); corregir(''); }, 300);
 

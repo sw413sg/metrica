@@ -1,9 +1,8 @@
-// Letras guardadas y favoritos. Sin DOM: el almacenamiento se pasa como
+// Letras guardadas. Sin DOM: el almacenamiento se pasa como
 // parámetro (localStorage en la web; en SwiftUI será SwiftData o similar).
 // Solo usa getItem/setItem, así que en los tests alcanza con un objeto simple.
 
 const CLAVE_LETRAS = 'metrica.letras';
-const CLAVE_FAVORITOS = 'metrica.favoritos';
 
 function leer(almacen, clave) {
     try {
@@ -65,17 +64,4 @@ export function guardarLetra(almacen, letra, ahora = Date.now()) {
 
 export function borrarLetra(almacen, id) {
     escribir(almacen, CLAVE_LETRAS, leer(almacen, CLAVE_LETRAS).filter(l => l.id !== id));
-}
-
-// Palabras favoritas, de la última marcada a la primera.
-export function listarFavoritos(almacen) {
-    return leer(almacen, CLAVE_FAVORITOS);
-}
-
-// Marca o desmarca una palabra. Devuelve true si quedó como favorita.
-export function alternarFavorito(almacen, palabra) {
-    const favoritos = leer(almacen, CLAVE_FAVORITOS);
-    const queda = !favoritos.includes(palabra);
-    escribir(almacen, CLAVE_FAVORITOS, queda ? [palabra, ...favoritos] : favoritos.filter(f => f !== palabra));
-    return queda;
 }

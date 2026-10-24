@@ -82,7 +82,8 @@
             </div>
         </section>
 
-        <!-- Rimas: 6 tarjetas fijas y, abajo, la lista. Sin búsqueda, la lista son las favoritas. -->
+        <!-- Rimas: arriba, 4 terminaciones al azar que cambian solas (o, al buscar, las 4 rimas
+             más usadas de la palabra) y, abajo, el cajón con todas las rimas. -->
         <section class="pantalla" id="pantalla-rimas" data-pestana="rimas">
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Rimas</h1>
@@ -92,31 +93,43 @@
                     <input id="buscar-rima" type="search" placeholder="una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
                     <button type="button" id="limpiar-rima" aria-label="Borrar" hidden>✕</button>
                 </div>
+                <!-- Cada opción lleva un «?» que abre una viñeta corta que la explica. -->
                 <div class="segmentado" role="tablist" id="tipo-rima">
-                    <button type="button" role="tab" aria-selected="true" data-tipo="consonante">Consonante</button>
-                    <button type="button" role="tab" aria-selected="false" data-tipo="asonante">Asonante</button>
+                    <div class="opcion-tipo">
+                        <button type="button" role="tab" aria-selected="true" data-tipo="consonante">Consonante</button>
+                        <button type="button" class="ayuda-tipo" data-ayuda="consonante" aria-label="¿Qué es una rima consonante?" aria-expanded="false">?</button>
+                    </div>
+                    <div class="opcion-tipo">
+                        <button type="button" role="tab" aria-selected="false" data-tipo="asonante">Asonante</button>
+                        <button type="button" class="ayuda-tipo" data-ayuda="asonante" aria-label="¿Qué es una rima asonante?" aria-expanded="false">?</button>
+                    </div>
                 </div>
-                <!-- 6 palabras en grilla de 2x3: al azar o las rimas más usadas. Cambian cada 6 s. -->
-                <div class="fila-usadas" id="fila-usadas">
-                    <h2 class="encabezado-grupo" id="encabezado-usadas">Más usadas</h2>
-                    <span class="aviso-cambio">
-                        <button type="button" id="refrescar-palabras" aria-label="Refrescar">↻</button>
-                        <button type="button" id="pausar-palabras">cambian cada 6 s</button>
-                    </span>
+                <div class="vineta-tipo" id="vineta-tipo" role="tooltip" hidden></div>
+                <!-- La caja de vidrio de las 4 palabras, como la bandeja de Freestyle. -->
+                <div class="caja-azar vidrio" id="caja-azar">
+                    <div class="cabecera-azar">
+                        <h2 class="titulo-azar" id="encabezado-usadas">Terminaciones al azar</h2>
+                        <span class="cuenta-azar" id="cuenta-azar">cambian en 6 s</span>
+                    </div>
+                    <div class="grilla-palabras" id="grilla-palabras"></div>
+                    <!-- Se vacía mientras falta para el cambio. -->
+                    <div class="tiempo-azar" id="tiempo-azar"><span></span></div>
+                    <div class="controles-azar">
+                        <button type="button" class="boton-azar" id="pausar-palabras" aria-label="Pausar" aria-pressed="false"></button>
+                        <button type="button" class="boton-azar" id="refrescar-palabras" aria-label="Refrescar">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>
+                        </button>
+                        <button type="button" class="chip-simples" id="palabras-simples" aria-pressed="false">Palabras simples</button>
+                    </div>
                 </div>
-                <div class="grilla-palabras" id="grilla-palabras"></div>
                 <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
                 <button type="button" class="publicidad" data-paywall>Publicidad · <strong>Métrica Extras</strong> la quita</button>
-                <h2 class="encabezado-grupo" id="encabezado-resultados" hidden>Favoritas</h2>
-                <ul class="lista-agrupada" id="resultados-rimas"></ul>
+                <!-- Todas las rimas, en un cajón que muestra 20 y se desliza para ver el resto. -->
+                <div class="cajon-todas vidrio" id="cajon-todas" hidden>
+                    <h2 class="titulo-azar" id="encabezado-resultados">Todas</h2>
+                    <ul class="lista-todas" id="resultados-rimas"></ul>
+                </div>
                 <p class="vacio" id="rimas-vacio">Escribí una palabra para ver con qué rima.</p>
-                <ul class="lista-agrupada lista-simples">
-                    <li class="celda">
-                        <label for="palabras-simples">Palabras simples</label>
-                        <input type="checkbox" class="interruptor" id="palabras-simples">
-                    </li>
-                </ul>
-                <p class="nota" id="palabras-total"></p>
             </div>
         </section>
 
