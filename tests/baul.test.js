@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases } from '../js/logica/baul.js';
+import { listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from '../js/logica/baul.js';
 
 // Imita localStorage: guarda texto por clave.
 function almacenDePrueba() {
@@ -54,4 +54,13 @@ test('filtrarFrases por usadas y por palabra, sin tildes ni mayúsculas', () => 
     assert.deepEqual(filtrarFrases(frases, { busqueda: 'año' }).map(f => f.id), ['3']);
     assert.deepEqual(filtrarFrases(frases, { busqueda: 'ano' }).map(f => f.id), []);
     assert.deepEqual(filtrarFrases(frases, { filtro: 'sin-usar', busqueda: 'de' }).map(f => f.id), ['1']);
+});
+
+test('etiquetaVolver acorta el nombre largo de la letra', () => {
+    assert.equal(etiquetaVolver('Choque'), 'Choque');
+    assert.equal(etiquetaVolver('Orgánico'), 'Orgánico');
+    assert.equal(etiquetaVolver('Bypass de mes'), 'Bypass…');
+    assert.equal(etiquetaVolver('Si sabíamos'), 'Si sabía…');
+    assert.equal(etiquetaVolver('Desconectados'), 'Desconec…');
+    assert.equal(etiquetaVolver('  '), 'Sin título');
 });
