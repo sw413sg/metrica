@@ -158,8 +158,10 @@ export function buscarRimas(palabra, indice, { tipo = 'consonante' } = {}) {
 // Para pintar la letra: recibe la última palabra de cada verso y devuelve, para cada
 // una, el número de grupo de rima (0, 1, 2... en orden de aparición) o null si no
 // rima con ninguna otra. Agrupa por asonancia, que incluye a las consonantes.
-export function agruparRimas(palabras) {
-    const claves = palabras.map(p => (p && claveAsonante(p)) || null);
+// Con `estrofas` (el número de estrofa de cada verso, de numerarEstrofas), solo agrupa
+// dentro de la misma estrofa: un "casa" y un "cama" de estrofas distintas no riman.
+export function agruparRimas(palabras, estrofas = []) {
+    const claves = palabras.map((p, i) => (p && claveAsonante(p)) ? `${estrofas[i] ?? 0}|${claveAsonante(p)}` : null);
     const cuantas = new Map();
     for (const clave of claves) if (clave) cuantas.set(clave, (cuantas.get(clave) ?? 0) + 1);
     const grupos = new Map();
@@ -172,8 +174,9 @@ export function agruparRimas(palabras) {
 
 // Para pintar más fuerte las consonantes: para cada palabra, si otra de la lista
 // rima consonante con ella ("corazón" / "canción"). Las demás de su grupo son asonantes.
-export function rimanConsonante(palabras) {
-    const claves = palabras.map(p => (p && claveConsonante(p)) || null);
+// Con `estrofas`, solo dentro de la misma estrofa.
+export function rimanConsonante(palabras, estrofas = []) {
+    const claves = palabras.map((p, i) => (p && claveConsonante(p)) ? `${estrofas[i] ?? 0}|${claveConsonante(p)}` : null);
     return claves.map((clave, i) => clave != null && claves.some((otra, j) => j !== i && otra === clave));
 }
 
@@ -229,4 +232,24 @@ export function rimasInternas(versos, distancia = 4) {
 export function numerarEstrofas(versos) {
     let estrofa = 0;
     return versos.map(palabras => palabras.length ? estrofa : ++estrofa);
+}
+
+// Un color fijo para cada terminación en toda la letra, en el orden en que aparecen. Cuando
+// se acaban los `cantidad` colores, se reusa uno que no esté en las estrofas de esa terminación:
+// como las rimas no cruzan de estrofa, no se confunden. clavesPorEstrofa: [['a-a', 'o'], ['e-a',
+// 'a-a'], ...], en orden. Devuelve un Map de clave a color (de 0 a cantidad - 1).
+export function asignarColores(clavesPorEstrofa, cantidad) {
+    const colores = new Map();
+    clavesPorEstrofa.forEach((claves, e) => claves.forEach(clave => {
+        if (colores.has(clave)) return;
+        // Colores ya tomados por otras terminaciones de alguna estrofa donde aparece esta.
+        const ocupados = new Set();
+        clavesPorEstrofa.forEach(otras => {
+            if (otras.includes(clave)) otras.forEach(otra => colores.has(otra) && ocupados.add(colores.get(otra)));
+        });
+        let color = colores.size < cantidad ? colores.size : 0;
+        while (ocupados.has(color) && color < cantidad - 1) color++;
+        colores.set(clave, ocupados.has(color) ? colores.size % cantidad : color);
+    }));
+    return colores;
 }

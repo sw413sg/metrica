@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, asignarColores } from '../js/logica/rimas.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
@@ -140,6 +140,9 @@ test('agruparRimas: numera los grupos en orden y deja sola a la que no rima', ()
     assert.deepEqual(agruparRimas(['corazón', 'luna', 'canción', 'fortuna', 'mesa', null]), [0, 1, 0, 1, null, null]);
     assert.deepEqual(agruparRimas(['amor', 'dolor', 'corazón']), [0, 0, 0]);
     assert.deepEqual(agruparRimas([]), []);
+    // Con estrofas, solo dentro de la misma: "casa" de la primera no rima con "cama" de la segunda.
+    assert.deepEqual(agruparRimas(['casa', 'pasa', null, 'cama', 'luna'], [0, 0, 1, 1, 1]), [0, 0, null, null, null]);
+    assert.deepEqual(agruparRimas(['casa', 'pasa', null, 'cama', 'rama'], [0, 0, 1, 1, 1]), [0, 0, null, 1, 1]);
 });
 
 test('rimanConsonante: marca las que tienen pareja consonante en la letra', () => {
@@ -147,6 +150,16 @@ test('rimanConsonante: marca las que tienen pareja consonante en la letra', () =
     assert.deepEqual(rimanConsonante(['casa', 'mala', 'pasa']), [true, false, true]);
     assert.deepEqual(rimanConsonante(['voz', 'dos']), [true, true]); // seseo
     assert.deepEqual(rimanConsonante([]), []);
+    assert.deepEqual(rimanConsonante(['casa', 'masa', null, 'pasa', 'mala'], [0, 0, 1, 1, 1]), [true, true, false, false, false]);
+});
+
+test('asignarColores: un color fijo por terminación, sin repetir dentro de una estrofa', () => {
+    const colores = asignarColores([['a-a', 'o'], ['e-a', 'a-a']], 12);
+    assert.deepEqual([...colores], [['a-a', 0], ['o', 1], ['e-a', 2]]);
+    // Cuando se acaban, se reusan los de otras estrofas en vez de chocar en la misma.
+    const pocos = asignarColores([['a', 'e'], ['i', 'o'], ['u', 'a']], 2);
+    assert.deepEqual([...pocos], [['a', 0], ['e', 1], ['i', 0], ['o', 1], ['u', 1]]);
+    assert.deepEqual([...asignarColores([], 12)], []);
 });
 
 test('rimasInternas: palabras del medio que riman consonante con otras cercanas', () => {
