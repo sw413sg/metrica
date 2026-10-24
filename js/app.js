@@ -706,8 +706,10 @@ function renderizarRimas() {
 // Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
 function buscarRima() {
     desde = 0;
-    // Sin palabra no hay sinónimos: al borrarla, «Sinónimos» se apaga.
-    if (!palabraBuscada()) $('ver-sinonimos').setAttribute('aria-pressed', 'false');
+    // Si la palabra no tiene sinónimos (o se borró), «Sinónimos» se apaga y no se puede tocar.
+    const haySinonimos = Boolean(palabraBuscada()) && buscarSinonimos(palabraBuscada(), indiceSinonimos()).length > 0;
+    $('ver-sinonimos').disabled = !haySinonimos;
+    if (!haySinonimos) $('ver-sinonimos').setAttribute('aria-pressed', 'false');
     renderizarRimas();
     refrescarPalabras(false);
     frenarReloj();
