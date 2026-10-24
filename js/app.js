@@ -680,7 +680,7 @@ function renderizarRimas() {
         boton.type = 'button';
         boton.append(fragmentoRima(p, CLASE_BUSCADA));
         boton.addEventListener('click', () => buscarPalabra(p));
-        item.append(boton);
+        item.append(boton, botonGuardar(p));
         return item;
     }));
     $('resultados-rimas').scrollTop = 0;
@@ -711,8 +711,8 @@ document.querySelectorAll('#tipo-rima [role="tab"]').forEach(b => b.addEventList
 
 // El «?» de cada opción abre una viñeta corta, con la puntita hacia el «?». Se cierra tocando afuera.
 const AYUDA_TIPO = {
-    consonante: '<strong>Consonante:</strong> el final suena igual, letra por letra. Ej.: ca<b>sa</b> y pa<b>sa</b>, can<b>ción</b> y ra<b>zón</b>.',
-    asonante: '<strong>Asonante:</strong> el final repite solo las vocales. Ej.: c<b>a</b>s<b>a</b> y c<b>a</b>m<b>a</b> (a-a), l<b>u</b>n<b>a</b> y c<b>u</b>r<b>a</b> (u-a).',
+    consonante: '<strong>Consonante:</strong> el final suena igual, letra por letra. Ej.: c<mark class="brillo-violeta">asa</mark> y p<mark class="brillo-violeta">asa</mark>, canc<mark class="brillo-violeta">ión</mark> y raz<mark class="brillo-violeta">ón</mark>.',
+    asonante: '<strong>Asonante:</strong> el final repite solo las vocales. Ej.: c<mark class="brillo-violeta">a</mark>s<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">a</mark>m<mark class="brillo-violeta">a</mark> (a-a), l<mark class="brillo-violeta">u</mark>n<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">u</mark>r<mark class="brillo-violeta">a</mark> (u-a).',
 };
 function cerrarAyudaTipo() {
     $('vineta-tipo').hidden = true;
@@ -760,6 +760,7 @@ function botonGuardar(palabra) {
     boton.className = 'guardar';
     boton.innerHTML = ICONO_GUARDAR;
     boton.setAttribute('aria-label', `Guardar ${palabra}`);
+    boton.dataset.palabra = palabra;
     boton.setAttribute('aria-pressed', listarGuardadas(localStorage).includes(palabra));
     boton.addEventListener('click', () => {
         boton.setAttribute('aria-pressed', alternarGuardada(localStorage, palabra));
@@ -812,9 +813,8 @@ function renderizarGuardadas() {
         return item;
     }));
     $('cajon-guardadas').hidden = !guardadas.length;
-    // Las cajitas a la vista muestran si su palabra sigue guardada.
-    document.querySelectorAll('#grilla-palabras .guardar').forEach(b =>
-        b.setAttribute('aria-pressed', guardadas.includes(b.getAttribute('aria-label').replace('Guardar ', ''))));
+    // Los botones de las cajitas y de «Todas» muestran si su palabra sigue guardada.
+    document.querySelectorAll('#pantalla-rimas .guardar').forEach(b => b.setAttribute('aria-pressed', guardadas.includes(b.dataset.palabra)));
 }
 
 // Cada palabra en un renglón: si no entra, se le achica la letra. Con la pestaña escondida
@@ -854,7 +854,8 @@ function refrescarPalabras(animar = true) {
     } else poner();
     $('caja-azar').hidden = pool.length === 0;
     $('caja-azar').classList.toggle('buscando', buscando);
-    $('encabezado-usadas').textContent = buscando ? `Rimas con «${palabraBuscada()}»` : 'Terminaciones al azar';
+    const total = pool.length.toLocaleString('es-AR');
+    $('encabezado-usadas').textContent = buscando ? `${total} ${pool.length === 1 ? 'rima' : 'rimas'} con «${palabraBuscada()}»` : 'Terminaciones al azar';
     mostrarTiempo();
 }
 
@@ -887,12 +888,14 @@ function frenarReloj() {
 function reanudarPalabras() {
     rimasALaVista = true;
     ajustarPalabras();
+    vigilarMusica();
     if (!palabraBuscada() && !pausadoPorUsuario) refrescarPalabras();
     arrancarReloj();
 }
 
 function pausarPalabras() {
     rimasALaVista = false;
+    vigilarMusica();
     frenarReloj();
     cerrarAyudaTipo();
 }
@@ -902,7 +905,8 @@ $('pausar-palabras').addEventListener('click', () => {
     pausadoPorUsuario ? frenarReloj() : arrancarReloj();
     mostrarTiempo();
 });
-$('refrescar-palabras').addEventListener('click', () => {
+// Refrescar: al buscar, pasa a las 4 rimas siguientes, sin repetir hasta mostrarlas todas.
+function refrescarALaFuerza() {
     const boton = $('refrescar-palabras');
     boton.classList.remove('gira');
     void boton.offsetWidth;
@@ -910,10 +914,47 @@ $('refrescar-palabras').addEventListener('click', () => {
     // Al buscar, pasa a las 4 rimas siguientes.
     if (palabraBuscada()) desde += CANTIDAD;
     refrescarPalabras();
+}
+$('refrescar-palabras').addEventListener('click', refrescarALaFuerza);
+
+// Deslizar la caja a la izquierda o a la derecha también refresca. Después de deslizar,
+// el toque no cuenta como tocar una palabra.
+let inicioSwipe = null, deslizo = false;
+$('caja-azar').addEventListener('pointerdown', e => { inicioSwipe = { x: e.clientX, y: e.clientY }; deslizo = false; });
+$('caja-azar').addEventListener('pointerup', e => {
+    if (!inicioSwipe) return;
+    const dx = e.clientX - inicioSwipe.x, dy = e.clientY - inicioSwipe.y;
+    inicioSwipe = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    deslizo = true;
+    refrescarALaFuerza();
 });
+$('caja-azar').addEventListener('pointercancel', () => { inicioSwipe = null; });
+$('caja-azar').addEventListener('click', e => {
+    if (!deslizo) return;
+    deslizo = false;
+    e.stopPropagation();
+    e.preventDefault();
+}, true);
+
+// Con música sonando (un link, un archivo o un beat de la app), detrás de Rimas sube el
+// polvo del Boombap 1, sin resplandor (pedido de Swa).
+const efectoRimas = crearEfecto($('rimas-efecto'));
+efectoRimas.configurar({ mood: 'boombap' });
+const hayMusica = () => sonando || Boolean(ronda && !linkFreestyle && !esAcapella() && (!ronda.pausa || ronda.sigueSonando));
+let vigiaMusica = null;
+function vigilarMusica() {
+    clearInterval(vigiaMusica);
+    vigiaMusica = null;
+    if (!rimasALaVista) return efectoRimas.apagar();
+    const mirar = () => (hayMusica() ? efectoRimas.prender() : efectoRimas.apagar());
+    mirar();
+    vigiaMusica = setInterval(mirar, 500);
+}
 $('palabras-simples').addEventListener('click', () => {
     const boton = $('palabras-simples');
     boton.setAttribute('aria-pressed', boton.getAttribute('aria-pressed') !== 'true');
+    desde = 0;
     refrescarPalabras();
 });
 
@@ -1040,6 +1081,7 @@ function aplicarCantidadEfectos() {
     $('cantidad-efectos').value = cantidad;
     $('valor-efectos').textContent = String(cantidad);
     efecto.cantidad(cantidad / EFECTOS_MAXIMO);
+    efectoRimas.cantidad(cantidad / EFECTOS_MAXIMO);
 }
 $('puntos-efectos').append(...Array.from({ length: EFECTOS_MAXIMO + 1 }, () => document.createElement('span')));
 $('cantidad-efectos').addEventListener('input', () => {
