@@ -329,20 +329,28 @@ const servidor = http.createServer((req, res) => {
         assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'YouTube · en pausa');
         assert.equal((await page.locator('#musica-mostrar').textContent()).trim(), 'Mostrar video para reproducir');
         // Achicado, la tarjeta explica por qué YouTube no puede seguir sonando.
-        assert.equal(await page.locator('#musica-nota-youtube').textContent(), 'Los videos no se pueden minimizar por política de YouTube');
+        assert.equal(await page.locator('#musica-nota-youtube').textContent(), 'Los videos no se pueden minimizar por política de YouTube. Usá SoundCloud para evitar esto.');
         assert.equal(await page.locator('#musica-nota-youtube').isVisible(), true);
+        await page.screenshot({path: `capturas/editor-youtube-plegado-${tema}.png`});
         const plegado = await page.locator('#reproductor').boundingBox();
         assert.ok(Math.abs(plegado.height - 184) <= 4, JSON.stringify(plegado.height));
         await page.locator('#musica-mostrar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
         assert.equal(await page.locator('#musica-nota-youtube').isVisible(), false);
         assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
-        // Con el teclado abierto la tarjeta se va y YouTube queda en pausa. Al cerrarlo no sigue solo.
+        // Con el teclado abierto la tarjeta se va y YouTube queda en pausa. Al cerrarlo vuelve a sonar solo.
         await page.evaluate(() => document.body.classList.add('teclado-abierto'));
         await page.waitForFunction(() => window.__yt.pausado);
         assert.equal(await page.locator('#reproductor').isVisible(), false);
         await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
         assert.equal(await page.locator('#reproductor').isVisible(), true);
+        await page.waitForFunction(() => !window.__yt.pausado);
+        assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Pausar');
+        // Si lo pausaste vos, el teclado no lo vuelve a poner en play.
+        await page.locator('#musica-play').click();
+        await page.evaluate(() => document.body.classList.add('teclado-abierto'));
+        await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
+        await page.waitForTimeout(200);
         assert.equal(await page.evaluate(() => window.__yt.pausado), true);
         assert.equal(await page.locator('#musica-play').getAttribute('aria-label'), 'Reproducir');
         await page.screenshot({path: `capturas/editor-musica-${tema}.png`});

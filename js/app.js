@@ -1996,10 +1996,19 @@ function alCambiarEstado(activo) {
 }
 
 // La tarjeta se esconde con el teclado y fuera del editor. YouTube se pausa en los dos
-// casos; SoundCloud solo al salir del editor (con el teclado puede seguir).
+// casos; SoundCloud solo al salir del editor (con el teclado puede seguir). Si lo pausó
+// el teclado, al cerrarlo vuelve a sonar solo (pedido de Swa).
+let pausadoPorTeclado = false;
 function ocultarMusicaSiHaceFalta() {
     if (!musica?.pausar) return;
-    if (pausarAlOcultar({ fuente: musica.fuente, sonando, visible: reproductorVisible() })) musica.pausar();
+    const visible = reproductorVisible();
+    if (pausarAlOcultar({ fuente: musica.fuente, sonando, visible })) {
+        pausadoPorTeclado = document.body.classList.contains('teclado-abierto');
+        musica.pausar();
+    } else if (pausadoPorTeclado && visible) {
+        pausadoPorTeclado = false;
+        if (!sonando) musica.reproducir();
+    }
 }
 new MutationObserver(ocultarMusicaSiHaceFalta).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
@@ -2239,6 +2248,7 @@ function reproductorVisible() {
 
 function cerrarMusica() {
     generacionMusica++;
+    pausadoPorTeclado = false;
     clearInterval(progresoTimer);
     progresoTimer = null;
     musica?.cerrar?.();
