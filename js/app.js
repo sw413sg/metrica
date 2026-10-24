@@ -688,21 +688,30 @@ function buscarPalabra(palabra) {
 }
 
 // El cajón de todas: dos columnas de 10 a la vista, y el resto se desliza adentro.
+// Una palabra de los cajones: tocarla busca sus rimas, y al lado va «Guardar».
+function itemPalabra(p) {
+    const item = document.createElement('li');
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.append(fragmentoRima(p, CLASE_BUSCADA));
+    boton.addEventListener('click', () => buscarPalabra(p));
+    item.append(boton, botonGuardar(p));
+    return item;
+}
+
 function renderizarRimas() {
     const palabra = palabraBuscada();
     const todas = palabra ? resultadosBuscados() : [];
     const lista = todas.slice(0, MAXIMO_TODAS);
-    $('resultados-rimas').replaceChildren(...lista.map(p => {
-        const item = document.createElement('li');
-        const boton = document.createElement('button');
-        boton.type = 'button';
-        boton.append(fragmentoRima(p, CLASE_BUSCADA));
-        boton.addEventListener('click', () => buscarPalabra(p));
-        item.append(boton, botonGuardar(p));
-        return item;
-    }));
+    $('resultados-rimas').replaceChildren(...lista.map(itemPalabra));
     $('resultados-rimas').scrollTop = 0;
     $('cajon-todas').hidden = !lista.length;
+    // Palabras relacionadas (js/logica/relacionados.js), con el mismo formato que «Todas».
+    const relacionadas = palabra ? buscarRelacionados(palabra, indiceRelacionados()) : [];
+    $('lista-relacionadas').replaceChildren(...relacionadas.map(itemPalabra));
+    $('lista-relacionadas').scrollTop = 0;
+    $('cajon-relacionadas').hidden = !relacionadas.length;
+    $('encabezado-relacionadas').textContent = `Palabras relacionadas · ${relacionadas.length}`;
     const total = todas.length.toLocaleString('es-AR');
     $('encabezado-resultados').textContent = conSinonimos() ? `Sinónimos · ${total}` : todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
     $('rimas-vacio').textContent = conSinonimos() ? `No encontré sinónimos para «${palabra}».` : `No encontré rimas ${tipoRima}s para «${palabra}».`;
