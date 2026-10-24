@@ -213,7 +213,12 @@ export function rimasInternas(versos, distancia = 4) {
     datos.forEach((palabras, i) => palabras.forEach(dato => {
         if (dato) dato.rimaConsonante = distancia > 0 && cercanas(dato, i).some(otro => otro.consonante === dato.consonante);
     }));
-    return datos.map((palabras, i) => palabras.map(dato => {
+    // Las finales que ya tienen color propio: riman con otra final de su estrofa.
+    const finales = datos.map((palabras, i) => palabras.at(-1)?.final && palabras.at(-1));
+    finales.forEach((dato, i) => {
+        if (dato) dato.agrupada = finales.some((otro, j) => otro && j !== i && estrofa[j] === estrofa[i] && otro.asonante === dato.asonante);
+    });
+    const resultado = datos.map((palabras, i) => palabras.map(dato => {
         if (!dato || distancia < 1) return null;
         if (dato.rimaConsonante) return { clave: dato.asonante, suave: false };
         const misma = otro => otro.asonante === dato.asonante;
@@ -223,8 +228,17 @@ export function rimasInternas(versos, distancia = 4) {
             && (otro.asonante + dato.asonante).length === 3 && new Set(otro.asonante + dato.asonante).size === 1;
         if (cercanas(dato, i).some(asonante)) return { clave: dato.asonante, suave: true };
         // La aguda toma la clave de la llana (é -> e-e), para que las dos se pinten del mismo color.
-        if (cercanas(dato, i).some(eco)) return { clave: dato.asonante[0].repeat(2), suave: true };
+        dato.parejas = cercanas(dato, i).filter(eco);
+        if (dato.parejas.length) return { clave: dato.asonante[0].repeat(2), suave: true, eco: true };
         return null;
+    }));
+    // Si la pareja ya tiene color por otra rima (es final con grupo o rima con otra del medio),
+    // se toma el suyo ("verme" con el "seré" que rima con "querés"), para que no quede sola.
+    datos.forEach((palabras, i) => palabras.forEach((dato, n) => { if (dato) dato.color = resultado[i][n]; }));
+    return resultado.map((palabras, i) => palabras.map((r, n) => {
+        if (!r?.eco) return r;
+        const pintada = datos[i][n].parejas.find(otro => otro.agrupada || (otro.color && !otro.color.eco));
+        return { clave: pintada ? pintada.agrupada ? pintada.asonante : pintada.color.clave : r.clave, suave: true };
     }));
 }
 

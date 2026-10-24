@@ -190,6 +190,10 @@ test('rimasInternas: asonantes, con la última palabra de un verso', () => {
     const ee = { clave: 'ee', suave: true };
     assert.deepEqual(rimasInternas([['encontré', 'solo'], ['protegerte', 'luna']]), [[ee, null], [ee, null]], 'é con e-e');
     assert.deepEqual(rimasInternas([['encontré', 'solo'], ['siento', 'luna']]), [[null, null], [null, null]], 'é con e-o no');
+    // Si la aguda ya rima consonante con otra, la llana toma su color en vez de quedar sola.
+    const internas = rimasInternas([['seré', 'un', 'anónimo', 'si', 'no', 'querés', 'verme', 'otra', 'vez']], 2);
+    assert.deepEqual(internas[0][0], { clave: 'e', suave: true }, 'seré con querés');
+    assert.deepEqual(internas[0][6], { clave: 'e', suave: true }, 'verme toma el color de seré');
 });
 
 test('rimasInternas: respeta la distancia y no pinta de más', () => {
