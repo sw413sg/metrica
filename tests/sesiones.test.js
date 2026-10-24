@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarFavoritos, alternarFavorito } from '../js/logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla } from '../js/logica/sesiones.js';
 
 // Imita localStorage: guarda texto por clave.
 function almacenDePrueba(inicial = {}) {
@@ -40,19 +40,10 @@ test('borrarLetra', () => {
 });
 
 test('datos rotos en el almacén no rompen la app', () => {
-    const almacen = almacenDePrueba({ 'metrica.letras': '{roto', 'metrica.favoritos': '"hola"' });
+    const almacen = almacenDePrueba({ 'metrica.letras': '{roto' });
     assert.deepEqual(listarLetras(almacen), []);
-    assert.deepEqual(listarFavoritos(almacen), []);
 });
 
-test('favoritos: marcar, desmarcar y la última primero', () => {
-    const almacen = almacenDePrueba();
-    assert.equal(alternarFavorito(almacen, 'luna'), true);
-    assert.equal(alternarFavorito(almacen, 'corazón'), true);
-    assert.deepEqual(listarFavoritos(almacen), ['corazón', 'luna']);
-    assert.equal(alternarFavorito(almacen, 'luna'), false);
-    assert.deepEqual(listarFavoritos(almacen), ['corazón']);
-});
 
 test('moverLetra acomoda a mano, y editar vuelve a poner la letra primera', () => {
     const almacen = almacenDePrueba();
