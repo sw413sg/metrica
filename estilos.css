@@ -200,11 +200,12 @@ a { color: var(--acento); text-decoration: none; }
 .texto-letra { color: var(--texto-2); font-size: 14px; line-height: 1.35; white-space: pre-line; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 7; -webkit-box-orient: vertical; }
 
 /* Baúl de frases. El cofre va arriba a la derecha de Letras. */
-.boton-baul { margin-left: auto; }
+/* En Letras va en la misma línea que el título. */
+.fila-titulo { display: flex; align-items: center; justify-content: space-between; padding-right: 16px; }
 .boton-baul .icono { width: 23px; height: 23px; }
 /* La cerradura, en violeta con resplandor, como el «+» de la letra nueva. */
 .boton-baul .cerrojo { stroke: var(--destacado); fill: var(--destacado-suave); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--destacado) 70%, transparent)); }
-.anotar-frase { display: flex; align-items: flex-end; gap: 8px; padding: 10px 10px 10px 16px; border-radius: 22px; }
+.anotar-frase { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-radius: 22px; }
 /* Crece con lo que se escribe (lo ajusta js/app.js), hasta 200 px; después se desliza adentro. */
 .anotar-frase textarea {
     flex: 1; min-width: 0; min-height: 48px; max-height: 200px; padding: 4px 0; border: 0; background: none; outline: none; resize: none;
@@ -226,6 +227,8 @@ a { color: var(--acento); text-decoration: none; }
 .guardar-frase:not(:disabled) { box-shadow: 0 0 10px color-mix(in srgb, var(--destacado) 45%, transparent); }
 .guardar-frase:disabled { opacity: .45; cursor: default; }
 .busqueda-baul { margin-bottom: 12px; }
+/* Desde la libreta, el botón de volver lleva el nombre de la letra (etiquetaVolver lo acorta). */
+#baul-atras-texto { white-space: nowrap; }
 .busqueda-baul[hidden] { display: none; }
 .filtros-baul { display: flex; gap: 8px; margin: 12px 0; }
 .filtros-baul button { height: 34px; padding: 0 14px; border-radius: 17px; font-size: 14px; font-weight: 500; color: var(--texto-2); background: var(--tarjeta); }

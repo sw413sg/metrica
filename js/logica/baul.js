@@ -53,8 +53,19 @@ export function alternarUsada(almacen, id) {
     return usada;
 }
 
+// El botón de volver al baúl desde una letra lleva su nombre: «Choque» entra entero, y uno
+// largo queda en las palabras que entran y «…» («Bypass de mes» -> «Bypass…»). Si así queda
+// casi nada («Si…»), se corta en la letra.
+export function etiquetaVolver(titulo, maximo = 8) {
+    titulo = titulo.trim().replace(/\s+/g, ' ');
+    if (!titulo) return 'Sin título';
+    if (titulo.length <= maximo) return titulo;
+    const espacio = titulo.slice(0, maximo + 1).lastIndexOf(' ');
+    return `${(espacio >= 4 ? titulo.slice(0, espacio) : titulo.slice(0, maximo)).trim()}…`;
+}
+
 // Sin tildes ni mayúsculas, para que «corazon» encuentre «Corazón». La ñ queda.
-const normalizar = texto => texto.toLowerCase().normalize('NFD').replace(/(?!̃)[̀-ͯ]/g, '').normalize('NFC');
+const normalizar = texto => texto.toLowerCase().normalize('NFD').replace(/(?!\u0303)[\u0300-\u036f]/g, '').normalize('NFC');
 
 // Las frases del filtro elegido que contienen lo buscado.
 export function filtrarFrases(frases, { filtro = 'todas', busqueda = '' } = {}) {

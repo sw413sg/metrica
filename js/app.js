@@ -7,7 +7,7 @@ import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVeci
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
-import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases } from './logica/baul.js';
+import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
@@ -232,8 +232,21 @@ function confirmarBorrado(letra, responder) {
 let filtroBaul = 'todas';
 const ICONO_CHECK = '<svg viewBox="0 0 24 24" class="icono"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
-$('abrir-baul').addEventListener('click', () => { mostrarVista('vista-baul'); renderizarBaul(); });
-$('baul-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
+// Se entra desde Letras o desde una letra abierta; el botón de volver dice a dónde vuelve.
+let baulDesdeLetra = false;
+function abrirBaul(desdeLetra) {
+    baulDesdeLetra = desdeLetra;
+    $('baul-atras-texto').textContent = desdeLetra ? etiquetaVolver($('editor-titulo').value) : 'Letras';
+    mostrarVista('vista-baul');
+    renderizarBaul();
+}
+$('abrir-baul').addEventListener('click', () => abrirBaul(false));
+$('abrir-baul-libreta').addEventListener('click', () => { ocultarSugerencias(); document.activeElement?.blur(); abrirBaul(true); });
+$('baul-atras').addEventListener('click', () => {
+    if (baulDesdeLetra) return mostrarVista('vista-editor');
+    mostrarVista('vista-lista-letras');
+    renderizarLetras();
+});
 
 // El campo crece con lo que se escribe (hasta el máximo del CSS) y «Guardar» se prende con texto.
 function ajustarCampoBaul() {
