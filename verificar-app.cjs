@@ -885,6 +885,12 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/rimas-sinonimos-${tema}.png`});
         await page.locator('#ver-sinonimos').click();
         assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado');
+        // Sin sinónimos, el botón queda apagado y no se puede tocar.
+        await page.locator('#buscar-rima').fill('zumbabaz');
+        assert.equal(await page.locator('#ver-sinonimos').isDisabled(), true);
+        assert.equal(await page.locator('#ver-sinonimos').getAttribute('aria-pressed'), 'false');
+        await page.locator('#buscar-rima').fill('canción');
+        assert.equal(await page.locator('#ver-sinonimos').isDisabled(), false);
         await page.locator('#buscar-rima').fill('canció');
         await page.locator('#buscar-rima').fill('canción');
         await page.waitForTimeout(300);

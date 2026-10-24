@@ -337,6 +337,7 @@ a { color: var(--acento); text-decoration: none; }
 /* Al buscar: «Sinónimos», refrescar y «Palabras simples», con la misma separación que las
    tarjetas y el refrescar justo al medio de las dos columnas. */
 .caja-azar:not(.buscando) #ver-sinonimos { display: none; }
+#ver-sinonimos:disabled { opacity: 0.4; cursor: default; }
 .caja-azar.buscando .controles-azar { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; }
 .caja-azar.buscando .chip-simples { margin-left: 0; padding: 0 8px; font-size: 13px; white-space: nowrap; }
 /* Con sinónimos, consonante y asonante se apagan. */
