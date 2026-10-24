@@ -244,6 +244,19 @@ const servidor = http.createServer((req, res) => {
         // Música: la nota abre la hoja para pegar un link; un link que no sirve avisa.
         await page.locator('#abrir-musica').click();
         assert.equal(await page.locator('#hoja-musica').isVisible(), true);
+        // Con el teclado abierto (se ven 500 px), el cajón queda arriba del teclado.
+        await page.evaluate(() => {
+            document.documentElement.style.setProperty('--alto-visible', '500px');
+            document.body.classList.add('teclado-abierto');
+        });
+        await page.waitForTimeout(400);
+        const cajonTeclado = await page.locator('#fs-cajon').boundingBox();
+        assert.ok(cajonTeclado.y + cajonTeclado.height <= 500 && cajonTeclado.y + cajonTeclado.height >= 480, JSON.stringify(cajonTeclado));
+        await page.screenshot({path: `capturas/hoja-musica-teclado-${tema}.png`});
+        await page.evaluate(() => {
+            document.documentElement.style.setProperty('--alto-visible', innerHeight + 'px');
+            document.body.classList.remove('teclado-abierto');
+        });
         // Solo el cajón de vidrio: sin fondo oscuro, sin hoja opaca, título ni cruz.
         assert.equal(await page.locator('#hoja-musica').evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
         assert.equal(await page.locator('#hoja-musica .hoja').evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
