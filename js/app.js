@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, claveAsonante, claveConsonante, ANGLICISMOS } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo } from './beats.js';
@@ -490,20 +490,26 @@ function actualizarEditor() {
     });
     const palabras = sinAgregados.map((verso, i) => esSeparador(versos[i]) ? [] : (verso.match(/\p{L}+/gu) ?? []).map(bienEscrita));
     const palabrasFinales = palabras.map(p => p.at(-1));
-    const grupos = pintar ? agruparRimas(palabrasFinales) : [];
+    // Las finales riman solo dentro de su estrofa (el renglón vacío o la parte la corta).
+    const estrofas = numerarEstrofas(palabras);
+    const grupos = pintar ? agruparRimas(palabrasFinales, estrofas) : [];
     // Consonante con el fondo lleno; asonante con el mismo color, más suave.
-    const consonantes = rimanConsonante(palabrasFinales);
+    const consonantes = rimanConsonante(palabrasFinales, estrofas);
+    // Internas y multisilábicas, a la distancia elegida en «Rimas internas» («No» las apaga).
+    const distancia = estiloLibreta(leerAjustesLibreta(localStorage)).internas;
     // Multisilábicas: si las sílabas de antes de la tónica también riman, se pintan desde ahí.
-    const multis = pintar ? rimasMultisilabicas(palabras, grupos) : [];
-    const internas = pintar ? rimasInternas(palabras, estiloLibreta(leerAjustesLibreta(localStorage)).internas) : [];
-    // Cada terminación, un color fijo en toda la letra (12 en estilos.css, .rima-0 a .rima-11):
-    // las internas que suenan como un grupo de finales usan su color.
-    const colores = new Map();
-    grupos.forEach((grupo, i) => { if (grupo != null) colores.set(claveAsonante(palabrasFinales[i]), grupo); });
-    const colorDe = clave => {
-        if (!colores.has(clave)) colores.set(clave, colores.size);
-        return colores.get(clave);
-    };
+    // Llegan hasta `distancia` versos de separación (con 2, también las cruzadas ABAB).
+    const multis = pintar && distancia ? rimasMultisilabicas(palabras, grupos, distancia + 1) : [];
+    const internas = pintar ? rimasInternas(palabras, distancia) : [];
+    // Cada terminación, un color fijo en toda la letra (12 en estilos.css, .rima-0 a .rima-11),
+    // sin repetir color dentro de una estrofa: las internas que suenan como un grupo de finales usan su color.
+    const clavesPorEstrofa = [];
+    palabras.forEach((_, i) => {
+        const claves = clavesPorEstrofa[estrofas[i]] ??= [];
+        if (grupos[i] != null) claves.push(claveAsonante(palabrasFinales[i]));
+        internas[i]?.forEach(interna => interna && claves.push(interna.clave));
+    });
+    const colores = asignarColores(clavesPorEstrofa.filter(Boolean), COLORES_RIMA);
     const marca = (clase, texto) => {
         const elemento = document.createElement('mark');
         elemento.className = clase;
@@ -527,8 +533,8 @@ function actualizarEditor() {
             const esFinal = j === trozos.length - 2;
             const multi = multis[i]?.[n];
             let clase = null;
-            if ((esFinal || multi != null) && grupos[i] != null) clase = `rima-${grupos[i] % COLORES_RIMA}${consonantes[i] ? '' : ' suave'}`;
-            else if (internas[i]?.[n]) clase = `rima-${colorDe(internas[i][n].clave) % COLORES_RIMA}${internas[i][n].suave ? ' suave' : ''}`;
+            if ((esFinal || multi != null) && grupos[i] != null) clase = `rima-${colores.get(claveAsonante(palabrasFinales[i]))}${consonantes[i] ? '' : ' suave'}`;
+            else if (internas[i]?.[n]) clase = `rima-${colores.get(internas[i][n].clave)}${internas[i][n].suave ? ' suave' : ''}`;
             if (!clase) return parte;
             // Se pinta solo desde la sílaba tónica (o desde antes, si es multisilábica).
             // Si se corrigió más que una tilde, se mira lo escrito.
