@@ -1,0 +1,28 @@
+# Palabras relacionadas propias de Métrica (no vienen de ConceptNet Numberbatch).
+# Cada renglón: "palabra: relacionadas", separadas por comas. Van primero, antes que las de Numberbatch.
+# Regenerar con: node generar-relacionados.cjs <numberbatch-19.08.txt.gz>
+noche: oscuridad, luna, madrugada, estrellas, sombra, sueño, insomnio, desvelo, luces, frío, silencio, boliche
+luna: noche, estrellas, cielo, luz, plata, marea, oscuridad, sol
+amor: corazón, beso, pasión, cariño, deseo, desamor, piel, alma, ternura, celos
+corazón: amor, alma, latido, pecho, sangre, herida, sentimiento
+calle: barrio, esquina, vereda, asfalto, avenida, semáforo, cordón, noche
+barrio: calle, esquina, cancha, pibes, vecinos, potrero, almacén, plaza
+dinero: plata, guita, billete, mango, banco, fortuna, deuda, oro
+plata: dinero, guita, billete, mango, luna, brillo
+fuego: llama, brasa, humo, ceniza, calor, chispa, hoguera, quemar, arder
+mar: ola, playa, arena, sal, barco, puerto, orilla, marea, horizonte
+lluvia: nube, tormenta, gota, charco, trueno, gris, paraguas, humedad
+sol: luz, día, calor, verano, cielo, amanecer, rayo, playa
+tiempo: reloj, hora, minuto, pasado, futuro, recuerdo, años, segundo
+muerte: tumba, luto, duelo, cementerio, despedida, final, ausencia, fantasma
+vida: alma, tiempo, camino, destino, suerte, sueño, muerte
+tristeza: lágrima, llanto, pena, dolor, soledad, nostalgia, melancolía, gris
+soledad: silencio, vacío, ausencia, tristeza, distancia, olvido, frío
+fiesta: baile, música, boliche, noche, alcohol, joda, previa, amigos
+música: canción, ritmo, beat, melodía, verso, rima, letra, micrófono, escenario
+rap: rima, verso, flow, beat, micrófono, freestyle, batalla, barra
+guerra: batalla, soldado, sangre, bala, enemigo, trinchera, paz
+madre: vieja, hijo, familia, hogar, cuna, abrazo, amor
+casa: hogar, techo, puerta, ventana, familia, barrio
+cielo: nube, estrella, azul, luna, sol, ángel, paraíso
+sueño: noche, cama, almohada, deseo, meta, ilusión, despertar

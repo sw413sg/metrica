@@ -113,6 +113,12 @@ const servidor = http.createServer((req, res) => {
         const sinonimos = await page.locator('.sugerencia').allTextContents();
         assert.ok(sinonimos.includes('senda'), sinonimos.join(', '));
         await page.screenshot({path: `capturas/editor-sinonimos-${tema}.png`});
+        // Otro toque muestra las relacionadas, y el siguiente vuelve a las rimas.
+        await page.locator('.sugerencias-alternar').click();
+        assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Relacionados «camino»:');
+        const relacionadas = await page.locator('.sugerencia').allTextContents();
+        assert.ok(relacionadas.includes('ruta'), relacionadas.join(', '));
+        await page.screenshot({path: `capturas/editor-relacionados-${tema}.png`});
         await page.locator('.sugerencias-alternar').click();
         assert.equal(await page.locator('.sugerencias-etiqueta').textContent(), 'Cambiar «camino»:');
         await page.locator('.sugerencias-alternar').click();
