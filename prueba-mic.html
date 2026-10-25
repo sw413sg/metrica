@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de micrófono</title>
+    <!-- Prueba suelta (no es parte de la app): sirve para ver en el iPhone si se puede grabar
+         la voz con el beat sonando por el parlante, y cuánto baja el beat con la cancelación de eco. -->
+    <style>
+        :root { color-scheme: light dark; --violeta: #8b5cf6; }
+        body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 24px 16px; max-width: 480px; margin-inline: auto; }
+        h1 { font-size: 28px; margin: 0 0 16px; }
+        .caja { background: rgba(127, 127, 127, 0.12); border-radius: 30px; padding: 16px 20px; margin-bottom: 12px; }
+        .caja h2 { font-size: 13px; text-transform: uppercase; opacity: 0.6; margin: 0 0 10px; font-weight: 600; }
+        button { font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 10px 18px; background: rgba(127, 127, 127, 0.2); color: inherit; }
+        button.activo { background: var(--violeta); color: white; }
+        button:disabled { opacity: 0.4; }
+        .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        label { display: block; margin-top: 10px; }
+        input[type=range] { width: 100%; accent-color: var(--violeta); }
+        #estado { font-size: 14px; opacity: 0.7; white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <h1>Prueba de micrófono</h1>
+
+    <div class="caja">
+        <h2>1. Escuchá el beat sin micrófono</h2>
+        <div class="fila"><button id="probar">▶ Beat</button></div>
+    </div>
+
+    <div class="caja">
+        <h2>2. Grabá con el beat por el parlante</h2>
+        <div class="fila">
+            <span>Cancelación de eco:</span>
+            <button id="eco-si" class="activo">Sí</button>
+            <button id="eco-no">No</button>
+        </div>
+        <div class="fila" style="margin-top: 12px"><button id="rec">● REC</button></div>
+    </div>
+
+    <div class="caja">
+        <h2>3. Escuchá la grabación</h2>
+        <div class="fila">
+            <button id="mezcla" disabled>▶ Voz + beat</button>
+            <button id="voz" disabled>▶ Voz sola</button>
+        </div>
+        <label>Volumen del beat <span id="vol-n">50</span>%<input id="vol" type="range" min="0" max="100" value="50"></label>
+        <label>Adelantar la voz <span id="corr-n">0</span> ms<input id="corr" type="range" min="-300" max="300" step="10" value="0"></label>
+    </div>
+
+    <p id="estado"></p>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        let ctx, beat, sonando = [], eco = true, grabador, flujo, vozBuffer, inicioBeat;
+
+        function estado(texto) { $('estado').textContent = texto; }
+
+        async function cargarBeat() {
+            ctx ??= new AudioContext();
+            await ctx.resume();
+            beat ??= await ctx.decodeAudioData(await (await fetch('beats/boom-bap-bateria.mp3')).arrayBuffer());
+        }
+
+        function sonar(buffer, cuando, volumen = 1, loop = false) {
+            const fuente = ctx.createBufferSource();
+            const ganancia = ctx.createGain();
+            fuente.buffer = buffer;
+            fuente.loop = loop;
+            ganancia.gain.value = volumen;
+            fuente.connect(ganancia).connect(ctx.destination);
+            fuente.start(Math.max(cuando, ctx.currentTime));
+            sonando.push(fuente);
+            return fuente;
+        }
+
+        function parar() {
+            sonando.forEach(f => { try { f.stop(); } catch {} });
+            sonando = [];
+            document.querySelectorAll('button.sonando').forEach(b => { b.classList.remove('sonando', 'activo'); b.textContent = b.dataset.texto; });
+        }
+
+        function alternar(boton, empezar) {
+            boton.dataset.texto ??= boton.textContent;
+            if (boton.classList.contains('sonando')) return parar();
+            parar();
+            boton.classList.add('sonando', 'activo');
+            boton.textContent = '■ Parar';
+            empezar();
+        }
+
+        $('probar').onclick = async () => { await cargarBeat(); alternar($('probar'), () => sonar(beat, 0, 1, true)); };
+
+        function elegirEco(valor) { eco = valor; $('eco-si').classList.toggle('activo', valor); $('eco-no').classList.toggle('activo', !valor); }
+        $('eco-si').onclick = () => elegirEco(true);
+        $('eco-no').onclick = () => elegirEco(false);
+
+        $('rec').onclick = async () => {
+            if (grabador?.state === 'recording') return grabador.stop();
+            parar();
+            try {
+                await cargarBeat();
+                flujo = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: eco, noiseSuppression: eco, autoGainControl: eco } });
+            } catch (error) {
+                return estado('No se pudo usar el micrófono: ' + error.message);
+            }
+            const ajustes = flujo.getAudioTracks()[0].getSettings();
+            grabador = new MediaRecorder(flujo);
+            const partes = [];
+            grabador.ondataavailable = e => partes.push(e.data);
+            grabador.onstart = () => { inicioBeat = ctx.currentTime; sonar(beat, inicioBeat, 1, true); };
+            grabador.onstop = async () => {
+                parar();
+                flujo.getTracks().forEach(t => t.stop());
+                $('rec').textContent = '● REC';
+                $('rec').classList.remove('activo');
+                const blob = new Blob(partes, { type: grabador.mimeType });
+                vozBuffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+                $('mezcla').disabled = $('voz').disabled = false;
+                estado(`Grabado: ${vozBuffer.duration.toFixed(1)} s (${grabador.mimeType || 'formato del navegador'})\n` +
+                    `Cancelación de eco pedida: ${eco ? 'sí' : 'no'}, la que dio el navegador: ${ajustes.echoCancellation ?? 'no dice'}\n` +
+                    `Latencia de salida: ${Math.round(((ctx.outputLatency || 0) + (ctx.baseLatency || 0)) * 1000)} ms`);
+            };
+            grabador.start();
+            $('rec').textContent = '■ Parar';
+            $('rec').classList.add('activo');
+            estado('Grabando… rapeá arriba del beat.');
+        };
+
+        function escuchar(conBeat) {
+            const boton = conBeat ? $('mezcla') : $('voz');
+            alternar(boton, () => {
+                const ahora = ctx.currentTime + 0.1;
+                const corrido = Number($('corr').value) / 1000;
+                const voz = sonar(vozBuffer, ahora - Math.min(corrido, 0));
+                if (conBeat) sonar(beat, ahora + Math.max(corrido, 0), $('vol').value / 100, true);
+                voz.onended = parar;
+            });
+        }
+        $('mezcla').onclick = () => escuchar(true);
+        $('voz').onclick = () => escuchar(false);
+        $('vol').oninput = () => $('vol-n').textContent = $('vol').value;
+        $('corr').oninput = () => $('corr-n').textContent = $('corr').value;
+    </script>
+</body>
+</html>
