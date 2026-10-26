@@ -26,6 +26,8 @@
         <!-- Letras (NavigationStack: lista -> editor) -->
         <section class="pantalla activa" id="pantalla-letras" data-pestana="letras">
             <div class="vista activa" id="vista-lista-letras">
+                <!-- Con música sonando, el mismo polvo de Rimas detrás de las tarjetas (js/efectos.js). -->
+                <canvas class="efecto-fs" id="letras-efecto" aria-hidden="true"></canvas>
                 <header class="barra-nav"></header>
                 <!-- El título y, en la misma línea, el cofre del baúl de frases. -->
                 <div class="fila-titulo">
@@ -276,13 +278,11 @@
                         <span class="chevron">›</span>
                     </li>
                 </ul>
-                <!-- Apariencia de la app (Picker .inline): aparte de los temas de cada libreta. -->
+                <!-- Apariencia de la app (Picker .inline): aparte de los temas de cada libreta. Abajo,
+                     cuántas luces hay en Freestyle, Rimas y Letras (Slider con step en SwiftUI; pedido de Swa). -->
                 <h2 class="encabezado-grupo">Apariencia</h2>
-                <ul class="lista-agrupada" id="apariencia"></ul>
-                <!-- Freestyle: cuántas luces hay alrededor del aro (Slider con step en SwiftUI). -->
-                <h2 class="encabezado-grupo">Freestyle</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda celda-deslizador">
+                <ul class="lista-agrupada" id="apariencia">
+                    <li class="celda celda-deslizador" id="celda-efectos">
                         <label for="cantidad-efectos">Efectos</label>
                         <span class="valor" id="valor-efectos">5</span>
                         <div class="fila-deslizador">
@@ -290,6 +290,10 @@
                             <div class="puntos-deslizador" id="puntos-efectos"></div>
                         </div>
                     </li>
+                </ul>
+                <!-- Freestyle: cada cuánto cambia la palabra. -->
+                <h2 class="encabezado-grupo">Freestyle</h2>
+                <ul class="lista-agrupada">
                     <li class="celda celda-deslizador">
                         <label for="velocidad-palabras">Velocidad cambio palabras</label>
                         <span class="valor" id="valor-velocidad">5</span>

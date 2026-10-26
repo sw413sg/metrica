@@ -44,6 +44,7 @@ function mostrarPestana(nombre) {
     document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
     document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
+    vigilarMusica();
     // En Ajustes el reproductor no se ve, pero lo que suena sigue (salvo YouTube).
     document.body.classList.toggle('en-ajustes', nombre === 'ajustes');
     // Los nombres de los micrófonos y salidas aparecen recién después del primer permiso.
@@ -70,6 +71,7 @@ function mostrarVista(id) {
     ocultarMusicaSiHaceFalta();
     if (musica) aplicarVideo();
     ubicarReproductor();
+    vigilarMusica();
 }
 
 // Las tarjetas en el orden en que se ven (cambia mientras se arrastra una).
@@ -1220,19 +1222,25 @@ $('caja-azar').addEventListener('click', e => {
     e.preventDefault();
 }, true);
 
-// Con música sonando (un link, un archivo o un beat de la app), detrás de Rimas sube el
-// polvo del Boombap 1, sin resplandor (pedido de Swa).
+// Con música sonando (un link, un archivo o un beat de la app), detrás de Rimas y de las
+// tarjetas de Letras sube el polvo del Boombap 1, sin resplandor (pedidos de Swa).
 const efectoRimas = crearEfecto($('rimas-efecto'));
 efectoRimas.configurar({ mood: 'boombap' });
+const efectoLetras = crearEfecto($('letras-efecto'));
+efectoLetras.configurar({ mood: 'boombap' });
 const hayMusica = () => sonando || Boolean(ronda && !linkFreestyle && !esAcapella() && (!ronda.pausa || ronda.sigueSonando));
+const letrasALaVista = () => $('pantalla-letras').classList.contains('activa') && $('vista-lista-letras').classList.contains('activa');
 let vigiaMusica = null;
 function vigilarMusica() {
     clearInterval(vigiaMusica);
     vigiaMusica = null;
-    if (!rimasALaVista) return efectoRimas.apagar();
-    const mirar = () => (hayMusica() ? efectoRimas.prender() : efectoRimas.apagar());
+    const mirar = () => {
+        const hay = hayMusica();
+        if (hay && rimasALaVista) efectoRimas.prender(); else efectoRimas.apagar();
+        if (hay && letrasALaVista()) efectoLetras.prender(); else efectoLetras.apagar();
+    };
     mirar();
-    vigiaMusica = setInterval(mirar, 500);
+    if (rimasALaVista || letrasALaVista()) vigiaMusica = setInterval(mirar, 500);
 }
 $('palabras-simples').addEventListener('click', () => {
     const boton = $('palabras-simples');
@@ -1365,6 +1373,7 @@ function aplicarCantidadEfectos() {
     $('valor-efectos').textContent = String(cantidad);
     efecto.cantidad(cantidad / EFECTOS_MAXIMO);
     efectoRimas.cantidad(cantidad / EFECTOS_MAXIMO);
+    efectoLetras.cantidad(cantidad / EFECTOS_MAXIMO);
 }
 $('puntos-efectos').append(...Array.from({ length: EFECTOS_MAXIMO + 1 }, () => document.createElement('span')));
 $('cantidad-efectos').addEventListener('input', () => {
@@ -3237,7 +3246,7 @@ function renderizarApariencia() {
         boton.addEventListener('click', () => { elegirApariencia(localStorage, clave); renderizarApariencia(); });
         celda.append(boton);
         return celda;
-    }));
+    }), $('celda-efectos'));
 }
 
 // ---------- Inicio ----------
