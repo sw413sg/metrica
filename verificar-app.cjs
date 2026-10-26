@@ -1191,10 +1191,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-cuenta').textContent(), enPausa, 'en pausa el reloj no sigue');
         assert.notEqual(await page.evaluate(() => document.documentElement.dataset.pasoBeat), pasoEnPausa, 'pausar no frena el beat');
         // Mientras el beat sigue, su reproductor sigue a la vista; las flechas pasan de beat.
+        // Sonando, las flechas se esconden para que se lea el título (pedido de Swa).
         assert.equal(await page.locator('#fs-sonando').isVisible(), true);
-        await page.locator('#fs-beat-anterior').click();
+        assert.equal(await page.locator('#fs-beat-anterior').isVisible(), false);
+        await page.evaluate(() => document.getElementById('fs-beat-anterior').click());
         assert.notEqual(await page.locator('#fs-sonando-titulo').textContent(), tituloBeat);
-        await page.locator('#fs-beat-siguiente').click();
+        await page.evaluate(() => document.getElementById('fs-beat-siguiente').click());
         assert.equal(await page.locator('#fs-sonando-titulo').textContent(), tituloBeat);
         // La pausa del reproductor frena el beat, pero el reproductor queda a la vista: solo la cruz lo cierra.
         await page.locator('#fs-beat-pausar').click();
@@ -1510,8 +1512,12 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual(playsNube, ['musica-play']);
         // SoundCloud arranca achicado (pedido de Swa); la flechita lo agranda.
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false, 'SoundCloud arranca achicado');
-        // Fuera de la libreta, en chico: las flechas sin la marca ni el bucle; agrandado, todo.
+        // Fuera de la libreta, en chico: las flechas sin la marca ni el bucle (sonando, las flechas
+        // se esconden para que se lea el título); agrandado, todo.
+        assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
+        await page.locator('#musica-play').click();
         assert.equal(await page.locator('#musica-siguiente').isVisible(), true);
+        await page.locator('#musica-play').click();
         assert.equal(await page.locator('#musica-marca').isVisible(), false);
         assert.equal(await page.locator('#musica-bucle').isVisible(), false);
         await page.locator('#musica-agrandar').click();

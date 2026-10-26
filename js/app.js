@@ -4,7 +4,7 @@ import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
-import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat } from './beats.js';
+import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
@@ -46,6 +46,8 @@ function mostrarPestana(nombre) {
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
     // En Ajustes el reproductor no se ve, pero lo que suena sigue (salvo YouTube).
     document.body.classList.toggle('en-ajustes', nombre === 'ajustes');
+    // Los nombres de los micrófonos y salidas aparecen recién después del primer permiso.
+    if (nombre === 'ajustes') renderizarAudio();
     // «Recientes» se pliega al cambiar de sección (pedido de Swa).
     $('fs-recientes-caja').open = false;
     sincronizarLinkFreestyle();
@@ -1424,6 +1426,7 @@ function pintarBeatSonando() {
     }
     if (!hay) return;
     const suena = !ronda.pausa || ronda.sigueSonando;
+    $('fs-sonando').classList.toggle('sonando', suena);
     $('fs-beat-pausar').setAttribute('aria-label', suena ? 'Pausar' : 'Reproducir');
     $('fs-beat-pausar').innerHTML = suena ? ICONO_PAUSA_FS : ICONO_PLAY_FS;
     const beat = CATALOGO_BEATS.find(b => b.id === beatId);
@@ -1894,7 +1897,13 @@ mostrarCuentaIdle();
 // en Grabaciones. El permiso se pide al tocar REC (el micrófono para las luces le pareció muy
 // invasivo a Swa). Con YouTube o SoundCloud se guarda solo la voz, con el link y el segundo.
 // En SwiftUI: AVAudioSession .playAndRecord, el micrófono de abajo y voiceProcessing.
-const pedirMicrofono = () => navigator.mediaDevices.getUserMedia(pedidoMicrofono(localStorage.getItem(CLAVE_MICROFONO)));
+// El micrófono de Ajustes. El iPhone cambia los ids de un día para otro: se lo busca por el nombre.
+async function pedirMicrofono() {
+    const nombre = localStorage.getItem(CLAVE_MICROFONO + '-nombre');
+    const lista = nombre ? await navigator.mediaDevices.enumerateDevices().catch(() => []) : [];
+    const id = lista.find(d => d.kind === 'audioinput' && d.label === nombre)?.deviceId ?? localStorage.getItem(CLAVE_MICROFONO);
+    return navigator.mediaDevices.getUserMedia(pedidoMicrofono(id));
+}
 let recPrendido = false;
 let grabacion = null; // lo que se está grabando
 let archivoSonando = null; // el archivo del teléfono que suena, para guardarlo con la grabación
@@ -1930,6 +1939,18 @@ function grabadora(flujo) {
     return { grabador, listo };
 }
 
+// Los segundos grabados, sin los ratos en pausa.
+const tiempoGrabado = g => (performance.now() - g.comienzo - g.enPausa - (g.pausaDesde ? performance.now() - g.pausaDesde : 0)) / 1000;
+function pausarGrabacion() {
+    grabacion.pausaDesde = performance.now();
+    grabacion.voz.grabador.pause();
+}
+function seguirGrabacion() {
+    grabacion.enPausa += performance.now() - grabacion.pausaDesde;
+    grabacion.pausaDesde = null;
+    grabacion.voz.grabador.resume();
+}
+
 // El segundo del tema ahora mismo: entre lectura y lectura del reproductor, se suma lo que pasó.
 const posicionMusica = () => musica?.posicion?.() ?? actual + (sonando ? (performance.now() - momentoActual) / 1000 : 0);
 const avisoMicrofono = () => avisoFs('Para grabar, Métrica necesita el micrófono: permitilo en los ajustes del navegador.');
@@ -1954,7 +1975,8 @@ async function alternarRec() {
 
 // Graba si REC está prendido: al dar play, o al tocar el REC del reproductor.
 async function empezarGrabacion() {
-    if (!recPrendido || grabacion) return;
+    // Escuchando en Grabaciones no se graba: el play de una grabación con un tema no es REC.
+    if (!recPrendido || grabacion || !$('grabaciones').hidden) return;
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return avisoFs('Este navegador no deja grabar.');
     // Suena una cosa a la vez: el tema del reproductor, o si no, el beat de la ronda.
     const fuente = musica?.fuente;
@@ -1994,6 +2016,8 @@ async function empezarGrabacion() {
         tipo, titulo, origen, letra, fuente, voz, beat, microfono,
         fecha: Date.now(),
         comienzo: performance.now(),
+        enPausa: 0,
+        pausaDesde: null,
         desfase: desfaseDeVoz({ ...latencia, entrada: microfono.getAudioTracks()[0].getSettings().latency }),
         link: tipo === 'link' ? recienteActual?.link : null,
         archivo: tipo === 'archivo' ? archivoSonando : null,
@@ -2006,7 +2030,7 @@ async function empezarGrabacion() {
     beat?.grabador.start();
     pintarGrabacion();
     relojGrabacion = setInterval(() => {
-        if (grabacion?.fuente && sonando) grabacion.muestras.push(posicionMusica() - (performance.now() - grabacion.comienzo) / 1000);
+        if (grabacion?.fuente && sonando) grabacion.muestras.push(posicionMusica() - tiempoGrabado(grabacion));
         pintarGrabacion();
     }, 500);
 }
@@ -2019,8 +2043,11 @@ function pintarGrabacion() {
     $('fs-rec').disabled = Boolean(grabacion);
     $('fs-rec').setAttribute('aria-label', recPrendido ? 'Apagar la grabación' : 'Grabar al dar play');
     const grabando = Boolean(grabacion?.voz);
-    const texto = grabando ? formatoTiempo((performance.now() - grabacion.comienzo) / 1000) : 'REC';
+    const texto = grabando ? formatoTiempo(tiempoGrabado(grabacion)) : 'REC';
+    // Con YouTube achicado (en pausa por su política) no se puede grabar (pedido de Swa).
+    const sinVideo = musica?.fuente === 'youtube' && plegado;
     document.querySelectorAll('[data-rec]').forEach(boton => {
+        boton.disabled = !grabando && sinVideo;
         boton.classList.toggle('grabando', grabando);
         boton.setAttribute('aria-label', grabando ? 'Dejar de grabar' : 'Grabar desde acá');
         boton.querySelector('.tiempo-rec').textContent = texto;
@@ -2039,7 +2066,7 @@ async function pararGrabacion() {
     g.beat?.grabador.stop();
     g.microfono.getTracks().forEach(t => t.stop());
     g.beat?.soltar();
-    const duracion = (performance.now() - g.comienzo) / 1000 - g.desfase;
+    const duracion = tiempoGrabado(g) - g.desfase;
     const [voz, beat] = await Promise.all([g.voz.listo, g.beat?.listo]);
     // Muy corta (un toque sin querer): no se guarda (pedido de Swa).
     if (duracion < 2 || !voz.size) return;
@@ -2464,38 +2491,51 @@ function renderizarVolumenes() {
 // Bluetooth, así el beat no se cuela). Los nombres aparecen después del primer permiso.
 async function renderizarMicrofonos() {
     const lista = (await navigator.mediaDevices?.enumerateDevices?.().catch(() => []) ?? []).filter(d => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'default');
-    const elegido = localStorage.getItem(CLAVE_MICROFONO) ?? '';
-    $('microfono-grabaciones').hidden = lista.length < 2;
-    $('microfono').replaceChildren(new Option('El del teléfono, automático', ''), ...lista.map((d, i) => new Option(d.label || `Micrófono ${i + 1}`, d.deviceId)));
+    const nombre = localStorage.getItem(CLAVE_MICROFONO + '-nombre');
+    const elegido = lista.find(d => d.label && d.label === nombre)?.deviceId ?? localStorage.getItem(CLAVE_MICROFONO) ?? '';
+    $('microfono').replaceChildren(new Option('Automático', ''), ...lista.map((d, i) => new Option(d.label || `Micrófono ${i + 1}`, d.deviceId)));
     $('microfono').value = lista.some(d => d.deviceId === elegido) ? elegido : '';
 }
-$('microfono').addEventListener('change', () => localStorage.setItem(CLAVE_MICROFONO, $('microfono').value));
+$('microfono').addEventListener('change', () => {
+    localStorage.setItem(CLAVE_MICROFONO, $('microfono').value);
+    localStorage.setItem(CLAVE_MICROFONO + '-nombre', $('microfono').value ? $('microfono').selectedOptions[0].textContent : '');
+    $('microfono').blur();
+});
 
-// La salida (pedido de Swa): donde el navegador deja elegirla (AudioContext.setSinkId), un
-// selector; en el iPhone, el menú del sistema (el de AirPlay) para elegir auriculares o parlante.
-// En SwiftUI: AVRoutePickerView.
+// La salida, en Ajustes y para toda la app (pedido de Swa): donde el navegador deja elegirla
+// (setSinkId), un selector; en el iPhone, el menú del sistema (el de AirPlay) para elegir
+// auriculares o parlante. En SwiftUI: AVRoutePickerView.
 const CLAVE_SALIDA = 'metrica.grabaciones.salida';
 let elegidorSalida = null;
 async function renderizarSalidas() {
     const conSelector = 'setSinkId' in AudioContext.prototype;
     const lista = conSelector ? (await navigator.mediaDevices?.enumerateDevices?.().catch(() => []) ?? []).filter(d => d.kind === 'audiooutput' && d.deviceId && d.deviceId !== 'default') : [];
     const conMenu = !lista.length && 'webkitShowPlaybackTargetPicker' in HTMLMediaElement.prototype;
-    $('salida-grabaciones').hidden = !lista.length && !conMenu;
+    $('salida-ajustes').hidden = !lista.length && !conMenu;
     $('salida').hidden = !lista.length;
     $('elegir-salida').hidden = !conMenu;
     if (!lista.length) return;
     const elegida = localStorage.getItem(CLAVE_SALIDA) ?? '';
-    $('salida').replaceChildren(new Option('La del teléfono, automática', ''), ...lista.map((d, i) => new Option(d.label || `Salida ${i + 1}`, d.deviceId)));
+    $('salida').replaceChildren(new Option('Automática', ''), ...lista.map((d, i) => new Option(d.label || `Salida ${i + 1}`, d.deviceId)));
     $('salida').value = lista.some(d => d.deviceId === elegida) ? elegida : '';
 }
-function aplicarSalida(ctx) {
+// Los beats, las grabaciones y el archivo del teléfono suenan por la salida elegida.
+function aplicarSalida(reproductor) {
     const id = localStorage.getItem(CLAVE_SALIDA);
-    if (id != null && ctx.setSinkId) ctx.setSinkId(id).catch(() => {});
+    if (id != null && reproductor?.setSinkId) reproductor.setSinkId(id).catch(() => {});
+}
+function aplicarSalidaATodo() {
+    const id = localStorage.getItem(CLAVE_SALIDA);
+    if (id != null) usarSalida(id);
+    aplicarSalida(audioGrabaciones);
+    aplicarSalida($('reproductor-oculto').querySelector('audio'));
 }
 $('salida').addEventListener('change', () => {
     localStorage.setItem(CLAVE_SALIDA, $('salida').value);
-    aplicarSalida(contextoGrabaciones());
+    aplicarSalidaATodo();
+    $('salida').blur();
 });
+aplicarSalidaATodo();
 $('elegir-salida').addEventListener('click', () => {
     // El menú necesita un <audio> con algo cargado: medio segundo de silencio.
     if (!elegidorSalida) {
@@ -2505,7 +2545,16 @@ $('elegir-salida').addEventListener('click', () => {
     }
     elegidorSalida.webkitShowPlaybackTargetPicker();
 });
-navigator.mediaDevices?.addEventListener?.('devicechange', () => { if (!$('grabaciones').hidden) { renderizarMicrofonos(); renderizarSalidas(); } });
+// Cambiar el micrófono o la salida hace que el teléfono avise que cambiaron los dispositivos
+// (devicechange), a veces varias veces: si se rearmaba la lista con el selector abierto, se
+// trababa. Se rearma solo con los selectores quietos.
+function renderizarAudio() {
+    if ([$('microfono'), $('salida')].includes(document.activeElement)) return;
+    renderizarMicrofonos();
+    renderizarSalidas();
+}
+navigator.mediaDevices?.addEventListener?.('devicechange', renderizarAudio);
+renderizarAudio();
 
 async function renderizarGrabaciones() {
     const lista = await leerGrabaciones();
@@ -2525,8 +2574,6 @@ function cerrarGrabaciones() {
 document.querySelectorAll('[data-grabaciones]').forEach(boton => boton.addEventListener('click', () => {
     $('grabaciones').hidden = false;
     renderizarVolumenes();
-    renderizarMicrofonos();
-    renderizarSalidas();
     renderizarGrabaciones();
 }));
 $('cerrar-grabaciones').addEventListener('click', cerrarGrabaciones);
@@ -2674,6 +2721,7 @@ function mostrarEstadoMusica() {
     $('reproductor-fuente').textContent = nombre ? (enPausa ? `${nombre} · en pausa` : nombre) : '';
     // Sin playlist no hay a qué canción pasar: las flechas quedan apagadas.
     for (const id of ['musica-anterior', 'musica-siguiente']) $(id).setAttribute('aria-disabled', String(!musica?.lista));
+    $('reproductor').classList.toggle('sonando', !falloMusica && sonando && !enPausa);
     if (falloMusica) {
         $('musica-play').setAttribute('aria-label', 'No se puede reproducir');
         $('musica-play').setAttribute('aria-disabled', 'true');
@@ -2687,6 +2735,7 @@ function mostrarEstadoMusica() {
 }
 
 function aplicarVideo() {
+    pintarGrabacion();
     const esYouTube = musica?.fuente === 'youtube';
     const grande = tarjetaGrande({ fuente: musica?.fuente, plegado });
     const card = $('reproductor');
@@ -2704,6 +2753,12 @@ function aplicarVideo() {
 
 function alCambiarEstado(activo) {
     sonando = activo;
+    // La grabación en pausa por el teclado sigue cuando el video vuelve a sonar.
+    if (grabacion?.pausaDesde) {
+        if (activo) seguirGrabacion();
+        mostrarEstadoMusica();
+        return;
+    }
     // Lo pausó el iPhone al abrir el micrófono: sigue sonando y grabando.
     if (!activo && grabacion && performance.now() < grabacion.reanudarHasta) {
         musica?.reproducir?.();
@@ -2736,6 +2791,9 @@ function ocultarMusicaSiHaceFalta() {
     const visible = reproductorVisible();
     if (pausarAlOcultar({ fuente: musica.fuente, sonando, visible })) {
         pausadoPorTeclado = document.body.classList.contains('teclado-abierto');
+        // Si se grababa, la grabación queda en pausa con el video y sigue cuando vuelve a
+        // sonar (pedido de Swa): así la voz no se corre del tema.
+        if (pausadoPorTeclado && grabacion?.voz && grabacion.fuente) pausarGrabacion();
         musica.pausar();
     } else if (pausadoPorTeclado && visible) {
         pausadoPorTeclado = false;
@@ -2958,6 +3016,7 @@ function escucharArchivo(archivo, titulo) {
     aplicarVideo();
     archivoSonando = archivo;
     const audio = new Audio(URL.createObjectURL(archivo));
+    aplicarSalida(audio);
     audio.loop = true;
     audio.volume = VOLUMEN_INICIAL / 100;
     $('reproductor-oculto').replaceChildren(audio);

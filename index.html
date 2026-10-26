@@ -298,6 +298,14 @@
                         </div>
                     </li>
                 </ul>
+                <!-- Grabar: con qué micrófono se graba y dónde se escucha, para toda la app (pedido de Swa).
+                     Salida: un selector si el navegador deja elegirla, o en el iPhone el menú del sistema.
+                     En SwiftUI: AVAudioSession.setPreferredInput y AVRoutePickerView. -->
+                <h2 class="encabezado-grupo">Grabar</h2>
+                <ul class="lista-agrupada">
+                    <li class="celda celda-audio"><label for="microfono">Micrófono</label><select id="microfono"></select></li>
+                    <li class="celda celda-audio" id="salida-ajustes" hidden><label for="salida">Salida</label><select id="salida"></select><button type="button" class="elegir-salida" id="elegir-salida" hidden>Elegir</button></li>
+                </ul>
                 <h2 class="encabezado-grupo">Acerca de</h2>
                 <ul class="lista-agrupada">
                     <li class="celda">
@@ -483,10 +491,6 @@
             <h2 class="hoja-titulo" id="grabaciones-titulo">Grabaciones</h2>
             <!-- Volumen de la voz y del beat, para todas (y para descargar). -->
             <div class="caja-libreta vidrio volumenes-grabaciones" id="volumenes-grabaciones"></div>
-            <label class="microfono-grabaciones" id="microfono-grabaciones" hidden>Micrófono <select id="microfono"></select></label>
-            <!-- Dónde se escucha: un selector si el navegador deja elegir la salida, o en el iPhone
-                 el menú del sistema (auriculares, parlante, AirPlay). -->
-            <label class="microfono-grabaciones" id="salida-grabaciones" hidden>Salida <select id="salida"></select><button type="button" class="elegir-salida" id="elegir-salida" hidden>Elegir dónde se escucha</button></label>
             <ul class="lista-grabaciones" id="lista-grabaciones"></ul>
             <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Prendé el botón rojo al lado del play y dale play.</p>
             <p class="nota aviso-grabaciones" id="grabaciones-aviso" hidden>Las grabaciones usan micrófono y parlante del celular al mismo tiempo, lo cual baja la calidad. Usá esta grabación como referencia.</p>
