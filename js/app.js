@@ -812,12 +812,35 @@ function pintarTema(animar = true) {
     caja.classList.add('cambio');
 }
 
+// Las que se vieron desde que se abrió la hoja: la flecha vuelve a la anterior y el
+// refrescar, si se había vuelto, avanza por las ya vistas antes de traer una nueva (pedido de Swa).
+let historialTema = [];
+let posTema = -1;
+
+function mostrarDelHistorial(pos) {
+    posTema = pos;
+    temaActual = historialTema[pos];
+    $('tema-anterior').disabled = posTema <= 0;
+    pintarTema();
+}
+
+// Una nueva del filtro (al refrescar, cambiar de categoría o prender Desamor).
 function otraTema() {
     $('tema-desamor').hidden = filtroTema !== 'amor';
     $('tema-desamor').setAttribute('aria-pressed', desamor);
     const sub = filtroTema === 'amor' && desamor ? 'desamor' : null;
-    temaActual = siguienteTema(CONSIGNAS, localStorage, { categoria: filtroTema, sub, evitar: temaActual?.id });
-    pintarTema();
+    const tema = siguienteTema(CONSIGNAS, localStorage, { categoria: filtroTema, sub, evitar: temaActual?.id });
+    historialTema = [...historialTema.slice(0, posTema + 1), tema];
+    mostrarDelHistorial(historialTema.length - 1);
+}
+
+function siguienteDelHistorial() {
+    if (posTema < historialTema.length - 1) mostrarDelHistorial(posTema + 1);
+    else otraTema();
+}
+
+function anteriorDelHistorial() {
+    if (posTema > 0) mostrarDelHistorial(posTema - 1);
 }
 
 function mostrarFichaTema() {
@@ -892,6 +915,8 @@ $('dame-tema').addEventListener('click', () => {
     sincronizarChips();
     $('chips-tema').scrollLeft = 0;
     temaActual = null;
+    historialTema = [];
+    posTema = -1;
     otraTema();
     document.activeElement?.blur();
 });
@@ -903,9 +928,10 @@ $('tema-otra').addEventListener('click', () => {
     $('tema-otra').classList.remove('gira');
     void $('tema-otra').offsetWidth;
     $('tema-otra').classList.add('gira');
-    otraTema();
+    siguienteDelHistorial();
 });
-// Deslizar la caja a un costado trae otra, como la de Rimas.
+$('tema-anterior').addEventListener('click', anteriorDelHistorial);
+// Deslizar la caja a la izquierda trae otra, como la de Rimas; a la derecha, vuelve a la anterior.
 {
     let inicio = null;
     $('caja-tema').addEventListener('pointerdown', e => { inicio = { x: e.clientX, y: e.clientY }; });
@@ -914,7 +940,9 @@ $('tema-otra').addEventListener('click', () => {
         const dx = e.clientX - inicio.x;
         const dy = e.clientY - inicio.y;
         inicio = null;
-        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) otraTema();
+        if (Math.abs(dx) <= 50 || Math.abs(dx) <= Math.abs(dy) * 1.5) return;
+        if (dx < 0) siguienteDelHistorial();
+        else anteriorDelHistorial();
     });
     $('caja-tema').addEventListener('pointercancel', () => { inicio = null; });
 }

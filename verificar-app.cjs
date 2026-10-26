@@ -106,6 +106,11 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#tema-otra').click();
         const consigna = await page.locator('#tema-frase').textContent();
         assert.notEqual(consigna, temaAntes);
+        // La flecha vuelve a la anterior y el refrescar avanza otra vez a la misma.
+        await page.locator('#tema-anterior').click();
+        assert.equal(await page.locator('#tema-frase').textContent(), temaAntes);
+        await page.locator('#tema-otra').click();
+        assert.equal(await page.locator('#tema-frase').textContent(), consigna);
         assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 150$/);
         await page.locator('#tema-baul').click();
         assert.equal(await page.locator('#tema-baul-texto').textContent(), 'En el baúl');

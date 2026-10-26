@@ -1356,7 +1356,11 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 }
 #tema-desamor[aria-pressed="true"]::before { opacity: 1; }
 #tema-desamor[aria-pressed="true"] { box-shadow: 0 0 10px color-mix(in srgb, var(--destacado) 45%, transparent); }
-#tema-desamor:not([hidden]) + #tema-baul { margin-left: 0; }
+/* La flecha a la anterior va a la izquierda de «Desamor» (o de «Al baúl»), del tamaño del refrescar. */
+#caja-tema .controles-azar .chip-simples { margin-left: 0; }
+#tema-anterior { margin-left: auto; width: 46px; height: 46px; }
+#tema-anterior .icono { width: 23px; height: 23px; }
+#tema-anterior:disabled { opacity: .35; cursor: default; }
 #tema-otra .icono { width: 23px; height: 23px; }
 .baul-tema { display: inline-flex; align-items: center; gap: 6px; }
 .baul-tema .icono { width: 18px; height: 18px; }
