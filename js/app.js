@@ -5,7 +5,7 @@ import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInte
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
-import { nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
+import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
@@ -2332,6 +2332,19 @@ function descargarGrabacion(g, fila) {
     }, ok => { if (ok) prepararDescarga(g, fila); });
 }
 
+// El codificador MP3 (lamejs, js/vendor) se carga recién la primera vez que se descarga.
+let lame = null;
+function cargarLame() {
+    lame ??= new Promise((listo, fallo) => {
+        const script = document.createElement('script');
+        script.src = 'js/vendor/lame.min.js';
+        script.onload = () => listo(window.lamejs.Mp3Encoder);
+        script.onerror = () => { lame = null; fallo(new Error('sin lamejs')); };
+        document.head.append(script);
+    });
+    return lame;
+}
+
 async function prepararDescarga(g, fila) {
     const boton = fila.querySelector('.descargar-grabacion');
     const avance = valor => boton.style.setProperty('--avance', String(valor));
@@ -2339,20 +2352,19 @@ async function prepararDescarga(g, fila) {
     boton.classList.add('procesando');
     avance(0);
     try {
-        let blob = g.voz;
-        if (g.pista) {
-            const buffers = await decodificar(g);
-            avance(0.1);
-            const frecuencia = buffers.voz.sampleRate;
-            const ctx = new OfflineAudioContext(2, Math.ceil(g.duracion * frecuencia), frecuencia);
-            conectarMezcla(ctx, g, buffers, 0, 0);
-            // El círculo avanza mientras se mezcla (de a décimos del largo).
-            for (let i = 1; i < 10; i++) {
-                try { ctx.suspend(g.duracion * i / 10).then(() => { avance(0.1 + i * 0.08); ctx.resume(); }).catch(() => {}); } catch { /* sin suspend: el círculo salta al final */ }
-            }
-            const mezcla = await ctx.startRendering();
-            blob = new Blob([codificarWav([mezcla.getChannelData(0), mezcla.getChannelData(1)], frecuencia)], { type: 'audio/wav' });
+        // Siempre en MP3 (pedido de Swa), también la voz sola: se mezcla con los volúmenes
+        // elegidos y se codifica. El círculo llega a 0,4 mezclando y a 1 codificando.
+        const [buffers, Mp3Encoder] = await Promise.all([decodificar(g), cargarLame()]);
+        avance(0.1);
+        const frecuencia = buffers.voz.sampleRate;
+        const ctx = new OfflineAudioContext(2, Math.ceil(g.duracion * frecuencia), frecuencia);
+        conectarMezcla(ctx, g, buffers, 0, 0);
+        for (let i = 1; i < 10; i++) {
+            try { ctx.suspend(g.duracion * i / 10).then(() => { avance(0.1 + i * 0.03); ctx.resume(); }).catch(() => {}); } catch { /* sin suspend: el círculo salta */ }
         }
+        const mezcla = await ctx.startRendering();
+        const pedazos = await codificarMp3([mezcla.getChannelData(0), mezcla.getChannelData(1)], frecuencia, Mp3Encoder, a => avance(0.4 + a * 0.6));
+        const blob = new Blob(pedazos, { type: 'audio/mpeg' });
         avance(1);
         boton.archivo = new File([blob], nombreDeArchivo(g, extensionDeAudio(blob.type)), { type: blob.type });
         await compartirArchivo(boton.archivo, fila, g);

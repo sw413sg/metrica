@@ -89,6 +89,7 @@ export function describirGrabacion({ nombre, titulo, fecha, duracion, fuente }) 
 }
 
 export function extensionDeAudio(tipo = '') {
+    if (tipo.includes('mpeg')) return 'mp3';
     if (tipo.includes('wav')) return 'wav';
     if (tipo.includes('webm')) return 'webm';
     if (tipo.includes('ogg')) return 'ogg';
@@ -100,7 +101,29 @@ export function nombreDeArchivo({ fecha }, extension) {
     return `Métrica freestyle ${f.getFullYear()}-${dos(f.getMonth() + 1)}-${dos(f.getDate())} ${dos(f.getHours())}-${dos(f.getMinutes())}.${extension}`;
 }
 
-// La mezcla para descargar, en WAV de 16 bits (lo abre cualquier teléfono).
+// La mezcla para descargar, en MP3 de 128 kbps (pedido de Swa: pesa unas 10 veces menos que
+// el WAV). El codificador es el de lamejs (js/vendor), que se pasa como Mp3Encoder. Va de a
+// pedazos y avisa cuánto lleva, así el círculo del botón se llena y la pantalla no se traba.
+// Devuelve los pedazos del archivo, para armar un Blob de tipo audio/mpeg.
+export async function codificarMp3(canales, frecuencia, Mp3Encoder, avance = () => {}) {
+    const largo = canales[0]?.length ?? 0;
+    const codificador = new Mp3Encoder(canales.length, frecuencia, 128);
+    const enteros = canales.map(canal => Int16Array.from(canal, m => (m < 0 ? Math.max(-1, m) * 0x8000 : Math.min(1, m) * 0x7fff)));
+    const pedazos = [];
+    const bloque = 1152 * 40;
+    for (let i = 0; i < largo; i += bloque) {
+        const partes = enteros.map(canal => canal.subarray(i, i + bloque));
+        const datos = codificador.encodeBuffer(...partes);
+        if (datos.length) pedazos.push(new Uint8Array(datos));
+        avance(Math.min(1, (i + bloque) / largo));
+        await new Promise(listo => setTimeout(listo, 0));
+    }
+    const final = codificador.flush();
+    if (final.length) pedazos.push(new Uint8Array(final));
+    return pedazos;
+}
+
+// En WAV de 16 bits (para el silencio con el que se abre el menú de salida del iPhone).
 export function codificarWav(canales, frecuencia) {
     const largo = canales[0]?.length ?? 0;
     const bytes = largo * canales.length * 2;
