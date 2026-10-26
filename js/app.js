@@ -10,7 +10,7 @@ import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarE
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
-import { elegirTema, listarUsados, marcarUsado } from './logica/temas.js';
+import { marcarUsado, siguienteTema, numeroEnCategoria } from './logica/temas.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
@@ -787,9 +787,11 @@ function sincronizarChips() {
     }
 }
 
-function pintarTema() {
+function pintarTema(animar = true) {
     const categoria = CATEGORIAS_TEMA.find(c => c.id === temaActual.categoria);
-    $('tema-categoria').textContent = categoria ? categoria.nombre : '';
+    // «Amor 37 de 150»: qué número tocó dentro de su categoría (pedido de Swa).
+    const { numero, total } = numeroEnCategoria(CONSIGNAS, temaActual);
+    $('tema-categoria').textContent = categoria ? `${categoria.nombre} ${numero} de ${total}` : '';
     // La última palabra va pegada al ícono de mandar a la nota, así nunca queda solo en un renglón.
     const palabras = temaActual.texto.split(' ');
     $('tema-ultima').textContent = palabras.pop();
@@ -801,6 +803,7 @@ function pintarTema() {
     $('tema-baul-texto').textContent = guardada ? 'En el baúl' : 'Al baúl';
     $('tema-baul').setAttribute('aria-pressed', guardada);
     // La frase nueva entra borroneada y el resplandor de atrás se enciende, como en Rimas.
+    if (!animar) return;
     const caja = $('caja-tema');
     caja.classList.remove('cambio');
     void caja.offsetWidth;
@@ -808,7 +811,7 @@ function pintarTema() {
 }
 
 function otraTema() {
-    temaActual = elegirTema(CONSIGNAS, { categoria: filtroTema, usados: listarUsados(localStorage), evitar: temaActual?.id });
+    temaActual = siguienteTema(CONSIGNAS, localStorage, { categoria: filtroTema, evitar: temaActual?.id });
     pintarTema();
 }
 
@@ -876,11 +879,11 @@ function renderListaTema() {
 }
 
 $('dame-tema').addEventListener('click', () => {
-    filtroTema = 'todas';
+    // Arranca en Amor (pedido de Swa).
+    filtroTema = 'amor';
     mostrarFichaTema();
     $('hoja-tema').hidden = false;
     sincronizarChips();
-    // Arranca mostrando el orden desde Amor (Todas queda elegida, al final).
     $('chips-tema').scrollLeft = 0;
     temaActual = null;
     otraTema();
@@ -926,9 +929,14 @@ $('tema-nota').addEventListener('click', () => {
 });
 $('tema-baul').addEventListener('click', () => {
     if (!temaActual) return;
-    if (!listarFrases(localStorage).some(f => f.texto === temaActual.texto)) anotarFrase(localStorage, temaActual.texto);
-    usarTemaActual();
-    pintarTema();
+    // Tocarlo de nuevo la saca del baúl (pedido de Swa).
+    const guardada = listarFrases(localStorage).find(f => f.texto === temaActual.texto);
+    if (guardada) borrarFrase(localStorage, guardada.id);
+    else {
+        anotarFrase(localStorage, temaActual.texto);
+        usarTemaActual();
+    }
+    pintarTema(false);
 });
 // Colores, renglones y sílabas se prenden y apagan, y se recuerda la elección.
 function aplicarAlternables() {
@@ -3451,7 +3459,7 @@ refrescarPalabras(false);
 // Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
 setTimeout(() => { indiceRimas(); corregir(''); }, 300);
 
-// La versión es el nombre de la caché del service worker ("metrica-0.2" -> "0.2").
+// La versión es el nombre de la caché del service worker ("metrica-1.0.9" -> "1.0.9").
 async function mostrarVersion() {
     const claves = await caches.keys();
     const version = claves.find(c => c.startsWith('metrica-'))?.slice('metrica-'.length);
