@@ -2086,9 +2086,16 @@ document.querySelectorAll('[data-rec]').forEach(boton => boton.addEventListener(
 let audioGrabaciones = null;
 let escuchando = null; // { id, parar(), volumenes(), segundos() }
 let generacionEscucha = 0; // si se cerró la hoja mientras se preparaba, no suena
+let linkCargado = null; // el link que tiene el reproductor, para no volver a cargarlo
 let vozConLink = null; // la voz que sigue a un tema de YouTube o SoundCloud
 const decodificadas = new Map(); // id -> { voz, pista } ya decodificadas
-const contextoGrabaciones = () => (audioGrabaciones ??= new AudioContext());
+const contextoGrabaciones = () => {
+    if (!audioGrabaciones) {
+        audioGrabaciones = new AudioContext();
+        aplicarSalida(audioGrabaciones);
+    }
+    return audioGrabaciones;
+};
 const ICONO_DESCARGAR = '<svg viewBox="0 0 24 24" class="icono"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
 const ICONO_TACHO = '<svg viewBox="0 0 24 24" class="icono"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>';
 const NOMBRE_FUENTE = { youtube: 'YouTube', soundcloud: 'SoundCloud' };
@@ -2200,9 +2207,19 @@ async function escucharConTema(g, fila, desde) {
     const ctx = contextoGrabaciones();
     ctx.resume();
     document.body.classList.toggle('tema-de-grabacion', g.fuente === 'youtube');
-    const cargando = escucharMusica(g.link);
+    // Si el tema ya está en el reproductor, salta y le da play acá mismo, adentro del toque
+    // (así el iPhone lo deja sonar); si no, se carga y arranca solo cuando puede.
+    let cargando;
+    if (musica?.reproducir && linkCargado === g.link) {
+        musica.ir?.(Math.max(0, g.inicio + desde));
+        musica.reproducir();
+    } else cargando = escucharMusica(g.link);
     const segundos = () => Math.min(g.duracion, Math.max(0, actual - g.inicio));
-    const reloj = setInterval(() => pintarTiempoGrabacion(fila, g, segundos()), 250);
+    // El botón de la caja sigue al reproductor: si el tema queda en pausa, muestra play.
+    const reloj = setInterval(() => {
+        pintarTiempoGrabacion(fila, g, segundos());
+        marcarBotonPlay(fila, sonando);
+    }, 250);
     const limpiar = () => {
         clearInterval(reloj);
         marcarBotonPlay(fila, false);
@@ -2220,7 +2237,8 @@ async function escucharConTema(g, fila, desde) {
             if (vozConLink) vozConLink.ganancia.gain.value = voz / 10;
             musica?.volumen?.(beat * 10);
         },
-        parar: () => { limpiar(); cerrarMusica(); },
+        // Pausar la caja pausa el tema y lo deja cargado: el próximo play arranca al toque.
+        parar: () => { limpiar(); pararVozConLink(); musica?.pausar?.(); },
     };
     const voz = await decodificar(g).then(b => b.voz, () => null);
     if (!voz || generacion !== generacionEscucha) return;
@@ -2370,7 +2388,12 @@ function filaGrabacion(g) {
     fila.querySelector('.titulo-grabacion').textContent = titulo;
     fila.querySelector('.detalle-grabacion').textContent = detalle;
     fila.querySelector('.boton-play').addEventListener('click', () => {
-        if (escuchando?.id === g.id) return pararEscucha();
+        if (escuchando?.id === g.id) {
+            // Con un tema en pausa (el iPhone no deja que arranque solo), el play de la caja
+            // es el del reproductor.
+            if (escuchando.link && musica?.reproducir && !sonando) return musica.reproducir();
+            return pararEscucha();
+        }
         escucharGrabacion(g, fila);
     });
     fila.querySelector('.descargar-grabacion').addEventListener('click', () => descargarGrabacion(g, fila));
@@ -2447,7 +2470,42 @@ async function renderizarMicrofonos() {
     $('microfono').value = lista.some(d => d.deviceId === elegido) ? elegido : '';
 }
 $('microfono').addEventListener('change', () => localStorage.setItem(CLAVE_MICROFONO, $('microfono').value));
-navigator.mediaDevices?.addEventListener?.('devicechange', () => { if (!$('grabaciones').hidden) renderizarMicrofonos(); });
+
+// La salida (pedido de Swa): donde el navegador deja elegirla (AudioContext.setSinkId), un
+// selector; en el iPhone, el menú del sistema (el de AirPlay) para elegir auriculares o parlante.
+// En SwiftUI: AVRoutePickerView.
+const CLAVE_SALIDA = 'metrica.grabaciones.salida';
+let elegidorSalida = null;
+async function renderizarSalidas() {
+    const conSelector = 'setSinkId' in AudioContext.prototype;
+    const lista = conSelector ? (await navigator.mediaDevices?.enumerateDevices?.().catch(() => []) ?? []).filter(d => d.kind === 'audiooutput' && d.deviceId && d.deviceId !== 'default') : [];
+    const conMenu = !lista.length && 'webkitShowPlaybackTargetPicker' in HTMLMediaElement.prototype;
+    $('salida-grabaciones').hidden = !lista.length && !conMenu;
+    $('salida').hidden = !lista.length;
+    $('elegir-salida').hidden = !conMenu;
+    if (!lista.length) return;
+    const elegida = localStorage.getItem(CLAVE_SALIDA) ?? '';
+    $('salida').replaceChildren(new Option('La del teléfono, automática', ''), ...lista.map((d, i) => new Option(d.label || `Salida ${i + 1}`, d.deviceId)));
+    $('salida').value = lista.some(d => d.deviceId === elegida) ? elegida : '';
+}
+function aplicarSalida(ctx) {
+    const id = localStorage.getItem(CLAVE_SALIDA);
+    if (id != null && ctx.setSinkId) ctx.setSinkId(id).catch(() => {});
+}
+$('salida').addEventListener('change', () => {
+    localStorage.setItem(CLAVE_SALIDA, $('salida').value);
+    aplicarSalida(contextoGrabaciones());
+});
+$('elegir-salida').addEventListener('click', () => {
+    // El menú necesita un <audio> con algo cargado: medio segundo de silencio.
+    if (!elegidorSalida) {
+        elegidorSalida = document.createElement('audio');
+        elegidorSalida.setAttribute('x-webkit-airplay', 'allow');
+        elegidorSalida.src = URL.createObjectURL(new Blob([codificarWav([new Float32Array(4000)], 8000)], { type: 'audio/wav' }));
+    }
+    elegidorSalida.webkitShowPlaybackTargetPicker();
+});
+navigator.mediaDevices?.addEventListener?.('devicechange', () => { if (!$('grabaciones').hidden) { renderizarMicrofonos(); renderizarSalidas(); } });
 
 async function renderizarGrabaciones() {
     const lista = await leerGrabaciones();
@@ -2459,13 +2517,16 @@ async function renderizarGrabaciones() {
 
 // Cerrar la hoja corta lo que suena (pedido de Swa).
 function cerrarGrabaciones() {
+    const conTema = escuchando?.link;
     pararEscucha();
+    if (conTema) cerrarMusica();
     $('grabaciones').hidden = true;
 }
 document.querySelectorAll('[data-grabaciones]').forEach(boton => boton.addEventListener('click', () => {
     $('grabaciones').hidden = false;
     renderizarVolumenes();
     renderizarMicrofonos();
+    renderizarSalidas();
     renderizarGrabaciones();
 }));
 $('cerrar-grabaciones').addEventListener('click', cerrarGrabaciones);
@@ -2714,6 +2775,7 @@ async function escucharMusica(texto) {
     avisoFs('');
     soltarLoQueSuena(false);
     cerrarMusica();
+    linkCargado = texto;
     // SoundCloud arranca achicado (pedido de Swa): la flechita lo agranda.
     plegado = link.fuente === 'soundcloud';
     const generacion = generacionMusica;
@@ -2932,6 +2994,7 @@ function reproductorVisible() {
 
 function cerrarMusica() {
     generacionMusica++;
+    linkCargado = null;
     if (grabacion?.fuente) pararGrabacion();
     pararVozConLink();
     pausadoPorTeclado = false;
