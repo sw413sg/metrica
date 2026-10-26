@@ -1217,6 +1217,72 @@ body.tema-de-grabacion .reproductor [data-rec] { display: none; }
 /* Mientras suena, el reproductor chico esconde las flechas y el título gana ese lugar (pedido
    de Swa). La de adelante deja su hueco, así el play no se mueve. */
 .sonando-fs.sonando #fs-beat-anterior, .reproductor.sonando:not(.grande) #musica-anterior { display: none; }
+
+/* Dame un tema: botón de vidrio arriba del teclado, y la hoja que sube desde abajo. */
+#dame-tema {
+    position: absolute; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6;
+    height: 44px; padding: 0 16px; border-radius: 22px; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 15px; font-weight: 600; color: var(--destacado); white-space: nowrap;
+}
+#dame-tema[hidden] { display: none; }
+body.teclado-abierto #dame-tema { bottom: 12px; }
+body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px + env(safe-area-inset-bottom)); }
+#hoja-tema { padding: 0 8px 8px; background: rgba(0, 0, 0, 0.3); }
+.hoja-tema {
+    width: 100%; max-width: 430px; max-height: calc(100% - 8px); overflow: auto;
+    border-radius: 38px; padding: 8px 20px calc(16px + env(safe-area-inset-bottom)); text-align: left;
+    background: var(--libreta); color: var(--texto); border: 1px solid var(--vidrio-borde);
+    box-shadow: var(--sombra-vidrio); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    animation: subir .28s ease-out;
+}
+.agarre-tema { width: 36px; height: 5px; margin: 6px auto 14px; border-radius: 3px; background: var(--texto-3); }
+.chips-tema {
+    display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px 22px; padding: 0 20px; scrollbar-width: none;
+}
+.chips-tema::-webkit-scrollbar { display: none; }
+.chip-tema {
+    flex: none; height: 32px; padding: 0 14px; border-radius: 16px; background: var(--relleno);
+    font-size: 15px; color: var(--texto);
+}
+.chip-tema[aria-pressed="true"] { background: var(--destacado); color: #fff; font-weight: 600; }
+.cat-tema {
+    display: block; padding: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--destacado); text-align: left;
+}
+.texto-tema { margin: 8px 0 12px; font-size: 30px; font-weight: 700; line-height: 1.15; letter-spacing: -0.4px; overflow-wrap: anywhere; }
+.empujon-tema {
+    display: inline-block; margin: 0; padding: 8px 12px; border-radius: 12px;
+    background: var(--destacado-suave); font-size: 15px;
+}
+.empujon-tema[hidden] { display: none; }
+.fila-tema { display: flex; gap: 10px; margin-top: 26px; }
+.boton-tema { flex: 1; height: 50px; border-radius: 25px; background: var(--relleno); font-size: 15px; font-weight: 600; }
+.pie-tema { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.baul-tema {
+    height: 44px; padding: 0 4px; display: inline-flex; align-items: center; gap: 6px;
+    color: var(--texto-2); font-size: 15px; font-weight: 600;
+}
+.baul-tema .icono { width: 20px; height: 20px; }
+.baul-tema.guardado { color: var(--destacado); }
+.otra-tema {
+    height: 50px; padding: 0 22px; border-radius: 25px; background: var(--destacado); color: #fff;
+    font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
+}
+.otra-tema .icono { width: 18px; height: 18px; }
+.cabeza-tema { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: 8px; }
+.cabeza-tema b { text-align: center; font-size: 17px; }
+.volver-tema {
+    width: 44px; height: 44px; border-radius: 50%; background: var(--celda);
+    font-size: 24px; line-height: 1; display: grid; place-items: center;
+}
+.lista-tema { margin: 0; border-radius: 14px; border: 0.5px solid var(--separador); }
+.fila-cat { width: 100%; min-height: 44px; padding: 0 16px; justify-content: flex-start; font-size: 17px; text-align: left; }
+.fila-cat.todas { font-weight: 600; }
+.marca-cat { width: 28px; flex: none; color: var(--texto-2); text-align: center; }
+.cuenta-cat { margin-left: auto; color: var(--texto-3); font-size: 15px; }
+.tilde-cat { margin-left: 4px; color: var(--destacado); font-weight: 700; }
+.cuenta-cat:empty + .tilde-cat { margin-left: auto; }
+.nota-tema { margin: 8px 12px 0; font-size: 13px; color: var(--texto-2); }
 .sonando-fs.sonando #fs-beat-siguiente, .reproductor.sonando:not(.grande) #musica-siguiente { visibility: hidden; }
 /* Con un reproductor abierto (aunque esté en pausa), el REC es el suyo: el de la bandeja no va. */
 body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { display: none; }

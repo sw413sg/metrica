@@ -72,6 +72,26 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#nueva-letra').click();
         assert.equal(await page.locator('#vista-editor').isVisible(), true);
         assert.equal(await page.locator('#barra-pestanas').isVisible(), false);
+        // Dame un tema: la hoja abre, Otra cambia, el filtro se queda y Como título aplica.
+        assert.equal(await page.locator('#dame-tema').isVisible(), true);
+        await page.locator('#dame-tema').click();
+        assert.equal(await page.locator('#hoja-tema').isVisible(), true);
+        await page.locator('#chips-tema button[data-categoria="nostalgia"]').click();
+        assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
+        for (let i = 0; i < 20 && !(await page.locator('#tema-empujon').isVisible()); i++) await page.locator('#tema-otra').click();
+        await page.screenshot({path: `capturas/tema-${tema}.png`});
+        const antes = await page.locator('#tema-texto').textContent();
+        await page.locator('#tema-otra').click();
+        const consigna = await page.locator('#tema-texto').textContent();
+        assert.notEqual(consigna, antes);
+        assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
+        await page.locator('#tema-baul').click();
+        assert.equal(await page.locator('#tema-baul-texto').textContent(), 'En el baúl');
+        assert.ok(await page.evaluate(t => JSON.parse(localStorage.getItem('metrica.frases')).some(f => f.texto === t), consigna));
+        await page.locator('#tema-titulo').click();
+        assert.equal(await page.locator('#hoja-tema').isVisible(), false);
+        assert.equal(await page.locator('#editor-titulo').inputValue(), consigna);
+        assert.equal(await page.locator('#dame-tema').isVisible(), false);
         await page.locator('#editor-titulo').fill('Sacred Geometry');
         // Lo que va entre paréntesis no rima: riman "fin" y "seguir", no "(al)".
         await page.locator('#editor-texto').fill('Llegamos al fin (al)\nno pude seguir');

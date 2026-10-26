@@ -9,6 +9,8 @@ import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inic
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
+import { CATEGORIAS, TEMAS } from '../temas/temas.js';
+import { elegirTema, listarUsados, marcarUsado } from './logica/temas.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
@@ -446,6 +448,7 @@ function abrirEditor(letra) {
     // Al entrar a una letra empezada no se abre el teclado (se lee primero, pedido de Swa);
     // en una nueva sí, en el título.
     if (!letra.texto) $('editor-titulo').focus();
+    actualizarDameTema();
 }
 
 // Desplaza la libreta para que el cursor (la palabra tocada) quede a la vista, arriba del teclado.
@@ -758,8 +761,149 @@ $('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, 
     mostrarVista('vista-lista-letras');
     renderizarLetras();
 }));
-editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); });
-$('editor-titulo').addEventListener('input', guardarActual);
+editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); actualizarDameTema(); });
+$('editor-titulo').addEventListener('input', () => { guardarActual(); actualizarDameTema(); });
+
+// ---------- Dame un tema ----------
+// El botón solo está en una letra vacía (sin título ni texto).
+function actualizarDameTema() {
+    $('dame-tema').hidden = Boolean($('editor-titulo').value.trim() || editorTexto.value.trim());
+}
+
+let temaActual = null;
+let filtroTema = 'todas';
+
+function sincronizarChips() {
+    for (const boton of $('chips-tema').querySelectorAll('button')) {
+        const activo = boton.dataset.categoria === filtroTema;
+        boton.setAttribute('aria-pressed', activo);
+        if (activo) boton.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+}
+
+function pintarTema() {
+    const categoria = CATEGORIAS.find(c => c.id === temaActual.categoria);
+    $('tema-categoria').textContent = categoria ? categoria.nombre : '';
+    $('tema-texto').textContent = temaActual.texto;
+    const empujon = $('tema-empujon');
+    empujon.hidden = !temaActual.empujon;
+    if (temaActual.empujon) empujon.textContent = `+ ${temaActual.empujon}`;
+    const guardada = listarFrases(localStorage).some(f => f.texto === temaActual.texto);
+    $('tema-baul-texto').textContent = guardada ? 'En el baúl' : 'Al baúl';
+    $('tema-baul').classList.toggle('guardado', guardada);
+}
+
+function otraTema() {
+    temaActual = elegirTema(TEMAS, { categoria: filtroTema, usados: listarUsados(localStorage), evitar: temaActual?.id });
+    pintarTema();
+}
+
+function mostrarFichaTema() {
+    $('tema-lista').hidden = true;
+    $('tema-ficha').hidden = false;
+}
+
+function cerrarHojaTema() {
+    $('hoja-tema').hidden = true;
+    mostrarFichaTema();
+}
+
+function usarTemaActual() {
+    marcarUsado(localStorage, temaActual.id);
+}
+
+$('chips-tema').append(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS].map(categoria => {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'chip-tema';
+    boton.dataset.categoria = categoria.id;
+    boton.textContent = categoria.nombre;
+    boton.addEventListener('click', () => {
+        filtroTema = categoria.id;
+        sincronizarChips();
+        otraTema();
+    });
+    return boton;
+}));
+
+function renderListaTema() {
+    $('tema-filas').replaceChildren(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS].map(categoria => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'celda fila-cat' + (categoria.id === 'todas' ? ' todas' : '');
+        boton.setAttribute('aria-selected', categoria.id === filtroTema);
+        if (categoria.icono) {
+            const icono = document.createElement('span');
+            icono.className = 'marca-cat';
+            icono.textContent = categoria.icono;
+            boton.append(icono);
+        }
+        const nombre = document.createElement('span');
+        nombre.textContent = categoria.nombre;
+        boton.append(nombre);
+        const cuenta = document.createElement('span');
+        cuenta.className = 'cuenta-cat';
+        if (categoria.id !== 'todas') cuenta.textContent = String(TEMAS.filter(t => t.categoria === categoria.id).length);
+        boton.append(cuenta);
+        if (categoria.id === filtroTema) {
+            const tilde = document.createElement('span');
+            tilde.className = 'tilde-cat';
+            tilde.textContent = '✓';
+            boton.append(tilde);
+        }
+        boton.addEventListener('click', () => {
+            filtroTema = categoria.id;
+            sincronizarChips();
+            otraTema();
+            mostrarFichaTema();
+        });
+        return boton;
+    }));
+}
+
+$('dame-tema').addEventListener('click', () => {
+    filtroTema = 'todas';
+    mostrarFichaTema();
+    sincronizarChips();
+    temaActual = null;
+    otraTema();
+    document.activeElement?.blur();
+    $('hoja-tema').hidden = false;
+});
+$('tema-otra').addEventListener('click', otraTema);
+$('tema-categoria').addEventListener('click', () => {
+    renderListaTema();
+    $('tema-ficha').hidden = true;
+    $('tema-lista').hidden = false;
+});
+$('tema-volver').addEventListener('click', mostrarFichaTema);
+$('hoja-tema').addEventListener('click', e => { if (e.target === $('hoja-tema')) cerrarHojaTema(); });
+$('tema-titulo').addEventListener('click', () => {
+    if (!temaActual) return;
+    $('editor-titulo').value = temaActual.texto;
+    usarTemaActual();
+    actualizarEditor();
+    guardarActual();
+    actualizarDameTema();
+    cerrarHojaTema();
+});
+$('tema-nota').addEventListener('click', () => {
+    if (!temaActual) return;
+    const linea = temaActual.empujon ? `${temaActual.texto}\n(${temaActual.empujon})` : temaActual.texto;
+    const actual = editorTexto.value.replace(/\s+$/, '');
+    editorTexto.value = actual ? `${actual}\n${linea}` : linea;
+    usarTemaActual();
+    actualizarEditor();
+    guardarActual();
+    actualizarDameTema();
+    cerrarHojaTema();
+});
+$('tema-baul').addEventListener('click', () => {
+    if (!temaActual) return;
+    if (!listarFrases(localStorage).some(f => f.texto === temaActual.texto)) anotarFrase(localStorage, temaActual.texto);
+    usarTemaActual();
+    pintarTema();
+});
 // Colores, renglones y sílabas se prenden y apagan, y se recuerda la elección.
 function aplicarAlternables() {
     $('silabas').classList.toggle('oculto', !$('mostrar-silabas').checked);
