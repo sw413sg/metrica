@@ -1189,9 +1189,14 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/freestyle-beats-${tema}.png`});
         await elegirBeatFs('trap-clasico');
         // Sin link, el cajón del link va abajo de todo, pegado a la barra de pestañas. Sin recientes es solo el campo.
+        // Los beats y el cajón van en una sola caja de vidrio (pedido de Swa).
         const cajonFs = await page.locator('#fs-cajon').boundingBox();
+        const cajaFs = await page.locator('#fs-instrumental').boundingBox();
+        const beatsFs = await page.locator('#fs-beats').boundingBox();
+        assert.ok(beatsFs.y > cajaFs.y && cajonFs.y + cajonFs.height < cajaFs.y + cajaFs.height, JSON.stringify({cajaFs, beatsFs, cajonFs}));
+        assert.equal((await page.locator('.separador-fs').textContent()).trim(), 'o usá el tuyo');
         const barraPestanas = await page.locator('#barra-pestanas').boundingBox();
-        const aireLink = barraPestanas.y - (cajonFs.y + cajonFs.height);
+        const aireLink = barraPestanas.y - (cajaFs.y + cajaFs.height);
         assert.ok(aireLink >= 4 && aireLink <= 14, `aire entre el cajón y la barra: ${aireLink}`);
         assert.ok(cajonFs.height <= 64, `sin recientes el cajón se achica: ${cajonFs.height}`);
         const campoLink = await page.locator('#fs-link').boundingBox();
@@ -1443,7 +1448,14 @@ const servidor = http.createServer((req, res) => {
         // El play de la bandeja sigue (y no vuelve a pausar).
         await page.locator('#fs-play').click();
         assert.equal(await page.locator('#pantalla-freestyle').evaluate(e => e.classList.contains('jugando')), true);
-        await pararFs();
+        // Cambiar de sección con Acapella andando lo detiene: no queda el REC suelto (pedido de Swa).
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        assert.equal(await page.evaluate(() => document.body.classList.contains('acapella-sonando')), false);
+        assert.equal(await page.locator('.rec-acapella').isVisible(), false);
+        await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
+        assert.equal(await page.locator('#fs-play').getAttribute('aria-label'), 'Seguir');
+        await page.waitForTimeout(400);
+        await page.locator('#fs-reiniciar').click();
         assert.equal(await page.locator('#fs-elegir').isVisible(), true);
         await elegirBeatFs('boom-bap-jazz');
         // Un link que no sirve avisa y no abre el reproductor.
@@ -1653,8 +1665,10 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), false);
         await page.locator('#fs-recientes-caja summary').click();
         const cajonLleno = await page.locator('#fs-cajon').boundingBox();
-        assert.ok(cajonLleno.height > 150 && cajonLleno.height <= 252, `alto del cajón con 3 recientes: ${cajonLleno.height}`);
-        assert.ok(Math.abs(cajonLleno.y + cajonLleno.height - (844 - 86)) <= 2, 'pegado arriba de la barra');
+        assert.ok(cajonLleno.height > 120 && cajonLleno.height <= 196, `alto del cajón con 3 recientes: ${cajonLleno.height}`);
+        const cajaLlena = await page.locator('#fs-instrumental').boundingBox();
+        assert.ok(Math.abs(cajaLlena.y + cajaLlena.height - (844 - 86)) <= 2, 'pegado arriba de la barra');
+        await page.screenshot({path: `capturas/freestyle-instrumental-${tema}.png`});
         assert.deepEqual(await page.locator('#fs-recientes .usar-reciente').allTextContents(), [
             'Beat nube RAGE (SCLOUD)', 'Beat de prueba sad 88bpm (YT)', 'Beat de prueba sad 88bpm (YT)',
         ]);
@@ -1691,7 +1705,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal((await page.locator('#fs-recientes .usar-reciente').first().textContent()), 'boom-bap-jazz (CELULAR)');
         // Ya no se cae ninguno: entran hasta 10, y la lista se desliza sin agrandar el cajón.
         assert.equal(await page.locator('#fs-recientes .usar-reciente').count(), 4);
-        assert.ok((await page.locator('#fs-cajon').boundingBox()).height <= 252);
+        assert.ok((await page.locator('#fs-cajon').boundingBox()).height <= 196);
         assert.equal(await page.locator('#fs-recientes').evaluate(e => getComputedStyle(e).overflowY), 'auto');
         // Tocar el reciente del teléfono lo vuelve a sacar de lo guardado.
         await page.locator('#fs-recientes .usar-reciente').first().click();
@@ -1701,9 +1715,9 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-cerrar').click();
         await page.locator('#fs-recientes-caja summary').click();
         // Plegar «Recientes» achica el cajón, que sigue pegado a la barra.
-        const cajonAbierto = await page.locator('#fs-cajon').boundingBox();
+        const cajonAbierto = await page.locator('#fs-instrumental').boundingBox();
         await page.locator('#fs-recientes-caja summary').click();
-        const cajonPlegado = await page.locator('#fs-cajon').boundingBox();
+        const cajonPlegado = await page.locator('#fs-instrumental').boundingBox();
         assert.ok(cajonPlegado.height < cajonAbierto.height - 80, `${cajonAbierto.height} -> ${cajonPlegado.height}`);
         assert.ok(Math.abs(cajonPlegado.y + cajonPlegado.height - (844 - 86)) <= 2, 'plegado sigue pegado a la barra');
         await page.locator('#fs-recientes-caja summary').click();
