@@ -41,13 +41,22 @@ function tocar(sonido, cuando) {
     fuente.stop(cuando + dura);
 }
 
+let salidaElegida = null; // la salida de Ajustes, donde el navegador deja elegirla
+
 function asegurarContexto() {
     if (!contexto) {
         contexto = new AudioContext();
         salida = contexto.createGain();
         salida.connect(contexto.destination);
+        if (salidaElegida != null) usarSalida(salidaElegida);
     }
     return contexto;
+}
+
+// Dónde suenan los beats (Ajustes > Grabar > Salida), con AudioContext.setSinkId.
+export function usarSalida(id) {
+    salidaElegida = id;
+    contexto?.setSinkId?.(id).catch(() => {});
 }
 
 // Lo que suena, para grabarlo aparte de la voz (en silencio mientras no hay beat), y
