@@ -1044,6 +1044,7 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor.grande #musica-bucle { grid-column: 2; grid-row: 2; justify-self: center; }
 .reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
 .reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 3; justify-self: end; }
+.reproductor.grande .rec-reproductor { grid-column: 2; grid-row: 3; justify-self: center; }
 #musica-marca[aria-pressed="false"], #musica-bucle[aria-pressed="false"] { color: var(--texto-2); }
 /* En chico, en la libreta van la marca y el bucle sin las flechas, y en las otras secciones
    las flechas sin la marca ni el bucle. Agrandado va todo (pedido de Swa). */
@@ -1139,11 +1140,15 @@ body.eligiendo-musica #reproductor { visibility: hidden; }
 }
 .punto-rec { width: 16px; height: 16px; border-radius: 50%; background: #ff3b30; }
 /* Apagado: el punto rojo con una X encima, así se entiende que es REC (pedido de Swa). */
-.rec-fs[aria-pressed="false"]::before, .rec-fs[aria-pressed="false"]::after {
-    content: ""; position: absolute; width: 22px; height: 2.5px; border-radius: 2px; background: var(--texto);
-    transform: rotate(45deg); box-shadow: 0 0 0 1.5px var(--celda);
+/* Sin usar (el de la bandeja apagado y el del reproductor sin grabar): el punto rojo con una
+   raya fina encima, que deja ver que es REC (pedidos de Swa). */
+.rec-fs[aria-pressed="false"]::after, .rec-reproductor:not(.grabando) .punto-rec::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 22px; height: 1.5px; border-radius: 1px;
+    background: var(--texto); transform: translate(-50%, -50%) rotate(-45deg); box-shadow: 0 0 0 1px var(--celda);
 }
-.rec-fs[aria-pressed="false"]::after { transform: rotate(-45deg); }
+.rec-reproductor:not(.grabando) .punto-rec { position: relative; }
+.rec-reproductor:not(.grabando) .punto-rec::after { width: 15px; }
+.rec-fs:disabled { opacity: 0.4; }
 .rec-fs[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
 .rec-reproductor {
     display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 16px; flex-shrink: 0;
@@ -1157,12 +1162,17 @@ body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { displ
 #pantalla-freestyle .boton-grabaciones { transition: opacity .3s; }
 #pantalla-freestyle.jugando .boton-grabaciones { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
 /* Grabaciones: arriba los volúmenes; cada grabación en una caja compacta. */
-/* Los dos volúmenes en un renglón, mitad y mitad (pedido de Swa). */
-.volumenes-grabaciones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 10px 14px 4px; }
-.volumenes-grabaciones .ajuste-libreta + .ajuste-libreta { margin-top: 0; }
-.volumenes-grabaciones .nombre-ajuste { font-size: 14px; padding: 0 2px; }
-.volumenes-grabaciones .puntos-deslizador { padding: 0 8px; }
-.volumenes-grabaciones .puntos-deslizador span { width: 3px; height: 3px; }
+/* Los dos volúmenes en un renglón, mitad y mitad, con el nombre adentro de la barra (pedidos de Swa). */
+.volumenes-grabaciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+.volumen-grabacion {
+    position: relative; height: 36px; border-radius: 18px; overflow: hidden; background: var(--relleno);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 14px;
+    font-size: 14px; font-weight: 600; color: var(--texto);
+}
+.relleno-volumen { position: absolute; inset: 0 auto 0 0; width: var(--progreso, 0%); background: color-mix(in srgb, var(--destacado) 55%, transparent); }
+.nombre-volumen, .valor-volumen { position: relative; pointer-events: none; }
+.valor-volumen { font-variant-numeric: tabular-nums; }
+.volumen-grabacion input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .lista-grabaciones { list-style: none; margin: 0; padding: 0; }
 .grabacion { margin-top: 10px; border-radius: 30px; padding: 10px 12px 8px; }
 .cabecera-grabacion { display: flex; align-items: center; gap: 10px; }
@@ -1176,6 +1186,7 @@ body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { displ
 .grabacion .borrar-grabacion { color: #ff3b30; }
 .grabacion .reproductor-barra { margin: -6px 0 -10px; }
 .grabacion .reproductor-pista { cursor: pointer; }
+.grabacion.arrastrando .reproductor-llenado { height: 8px; border-radius: 4px; }
 /* Descargar: mientras se prepara, un círculo violeta se llena alrededor del ícono. */
 .descargar-grabacion { position: relative; }
 .descargar-grabacion.procesando::before {
@@ -1185,7 +1196,7 @@ body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { displ
     mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
 }
 .grabacion .descargar-grabacion.procesando:disabled { opacity: 1; }
-/* Escuchando una de YouTube o SoundCloud, el reproductor va arriba de la hoja de Grabaciones. */
+/* Escuchando una de YouTube, el reproductor va arriba de la hoja de Grabaciones (el video tiene que verse). */
 body.tema-de-grabacion .reproductor { display: block; z-index: 25; top: calc(env(safe-area-inset-top) + 8px); bottom: auto !important; }
 body.tema-de-grabacion #grabaciones .hoja { max-height: calc(100% - var(--alto-tarjeta-musica, 0px) - env(safe-area-inset-top) - 24px); }
 .aviso-grabaciones { margin: 14px 8px 0; font-size: 12px; color: var(--texto-2); text-align: center; }
@@ -1196,3 +1207,7 @@ body.tema-de-grabacion #grabaciones .hoja { max-height: calc(100% - var(--alto-t
 .duraciones-fs { gap: 3px; }
 .duraciones-fs .chip-fs { padding: 0 4px; font-size: 14px; }
 body.tema-de-grabacion .reproductor [data-rec] { display: none; }
+/* Elegir el micrófono: un renglón con el selector del sistema. */
+.microfono-grabaciones { display: flex; align-items: center; gap: 10px; margin: 10px 6px 0; font-size: 14px; color: var(--texto-2); }
+.microfono-grabaciones[hidden] { display: none; }
+.microfono-grabaciones select { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 0; border-radius: 18px; background: var(--relleno); color: var(--texto); font: inherit; font-weight: 600; }
