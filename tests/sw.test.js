@@ -40,6 +40,6 @@ test('los fondos de los temas de la libreta están en la caché', () => {
     for (const [, archivo] of css.matchAll(/url\("(fondos\/[^"]+)"\)/g)) assert.ok(enCache.has(archivo), `falta ${archivo} en sw.js`);
 });
 
-test('la versión es un número con un decimal, como se ve en Ajustes', () => {
-    assert.match(sw.match(/const VERSION = '([^']+)'/)[1], /^metrica-\d+\.\d+$/);
+test('la versión tiene tres números, como se ve en Ajustes (1.0.9)', () => {
+    assert.match(sw.match(/const VERSION = '([^']+)'/)[1], /^metrica-\d+\.\d+\.\d+$/);
 });

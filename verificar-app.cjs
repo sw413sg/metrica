@@ -90,18 +90,25 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#hoja-tema').isVisible(), true);
         assert.deepEqual((await page.locator('#chips-tema button').allTextContents()).slice(0, 5), ['Amor', 'Nostalgia', 'Superación', 'Fiesta', 'Calle']);
         assert.equal(await page.locator('#chips-tema button').last().textContent(), 'Todas');
+        assert.equal(await page.locator('#chips-tema button[aria-pressed="true"]').textContent(), 'Amor');
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 150$/);
         await page.locator('#chips-tema button[data-categoria="nostalgia"]').click();
-        assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 150$/);
         for (let i = 0; i < 20 && !(await page.locator('#tema-empujon').isVisible()); i++) await page.locator('#tema-otra').click();
         await page.screenshot({path: `capturas/tema-${tema}.png`});
         const temaAntes = await page.locator('#tema-frase').textContent();
         await page.locator('#tema-otra').click();
         const consigna = await page.locator('#tema-frase').textContent();
         assert.notEqual(consigna, temaAntes);
-        assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 150$/);
         await page.locator('#tema-baul').click();
         assert.equal(await page.locator('#tema-baul-texto').textContent(), 'En el baúl');
         assert.ok(await page.evaluate(t => JSON.parse(localStorage.getItem('metrica.frases')).some(f => f.texto === t), consigna));
+        // Tocarlo de nuevo la saca del baúl.
+        await page.locator('#tema-baul').click();
+        assert.equal(await page.locator('#tema-baul-texto').textContent(), 'Al baúl');
+        assert.ok(!(await page.evaluate(t => JSON.parse(localStorage.getItem('metrica.frases')).some(f => f.texto === t), consigna)));
+        await page.locator('#tema-baul').click();
         await page.locator('#tema-nota').click();
         assert.equal(await page.locator('#hoja-tema').isVisible(), false);
         assert.equal((await page.locator('#editor-texto').inputValue()).split('\n')[0], consigna);

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { CATEGORIAS, TEMAS } from '../temas/temas.js';
-import { elegirTema, listarUsados, marcarUsado } from '../js/logica/temas.js';
+import { elegirTema, listarUsados, marcarUsado, siguienteTema, listarVistos, numeroEnCategoria } from '../js/logica/temas.js';
 
 function almacenDePrueba() {
     const datos = new Map();
@@ -23,15 +23,15 @@ function jaccard(a, b) {
     return union ? inter / union : 0;
 }
 
-test('hay 650 consignas, con id y texto únicos', () => {
-    assert.equal(TEMAS.length, 650);
-    assert.equal(new Set(TEMAS.map(t => t.id)).size, 650);
+test('hay 900 consignas, con id y texto únicos', () => {
+    assert.equal(TEMAS.length, 900);
+    assert.equal(new Set(TEMAS.map(t => t.id)).size, 900);
     const textos = TEMAS.map(t => normalizar(t.texto));
     assert.ok(textos.every(t => t.length >= 8));
-    assert.equal(new Set(textos).size, 650);
+    assert.equal(new Set(textos).size, 900);
 });
 
-test('cada consigna tiene una categoría válida: 100 en amor, nostalgia y fiesta, y 50 en el resto', () => {
+test('cada consigna tiene una categoría válida: 200 en fiesta, 150 en amor y nostalgia, 100 en superación y 50 en el resto', () => {
     const validas = new Set(CATEGORIAS.map(c => c.id));
     assert.ok(validas.size >= 8 && validas.size <= 12);
     const cuentas = {};
@@ -43,7 +43,7 @@ test('cada consigna tiene una categoría válida: 100 en amor, nostalgia y fiest
     }
     assert.deepEqual(Object.keys(cuentas).sort(), [...validas].sort());
     for (const [id, cuenta] of Object.entries(cuentas)) {
-        assert.equal(cuenta, ['amor', 'nostalgia', 'fiesta'].includes(id) ? 100 : 50, id);
+        assert.equal(cuenta, { fiesta: 200, amor: 150, nostalgia: 150, superacion: 100 }[id] ?? 50, id);
     }
 });
 
@@ -97,4 +97,28 @@ test('las consignas entran en la caché del service worker', () => {
     const sw = fs.readFileSync('sw.js', 'utf8');
     assert.match(sw, /temas\/temas\.js/);
     assert.match(sw, /js\/logica\/temas\.js/);
+});
+
+test('siguienteTema no repite hasta ver todas las del filtro, y después arranca otra vuelta', () => {
+    const almacen = almacenDePrueba();
+    const temas = ['a', 'b', 'c', 'd'].map(id => ({ id, texto: id, categoria: id === 'd' ? 'noche' : 'amor' }));
+    let azarIndice = 0;
+    const azar = () => [0.9, 0.1, 0.5, 0.3][azarIndice++ % 4];
+    const vuelta = [];
+    let actual = null;
+    for (let i = 0; i < 3; i++) {
+        actual = siguienteTema(temas, almacen, { categoria: 'amor', evitar: actual?.id, azar });
+        vuelta.push(actual.id);
+    }
+    assert.deepEqual([...vuelta].sort(), ['a', 'b', 'c']);
+    const otra = siguienteTema(temas, almacen, { categoria: 'amor', evitar: actual.id, azar });
+    assert.notEqual(otra.id, actual.id);
+    assert.equal(siguienteTema(temas, almacen, { categoria: 'noche', azar }).id, 'd');
+    assert.ok(listarVistos(almacen).includes('d'));
+});
+
+test('numeroEnCategoria cuenta dentro de la categoría', () => {
+    const amor = TEMAS.filter(t => t.categoria === 'amor');
+    assert.deepEqual(numeroEnCategoria(TEMAS, amor[36]), { numero: 37, total: amor.length });
+    assert.deepEqual(numeroEnCategoria(TEMAS, amor[0]), { numero: 1, total: 150 });
 });

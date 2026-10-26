@@ -34,3 +34,39 @@ export function elegirTema(temas, { categoria = 'todas', usados = [], evitar = n
     const i = Math.min(bolsa.length - 1, Math.floor(azar() * bolsa.length));
     return bolsa[i];
 }
+
+const CLAVE_VISTOS = 'metrica.temas-vistos';
+
+export function listarVistos(almacen) {
+    try {
+        const valor = JSON.parse(almacen.getItem(CLAVE_VISTOS));
+        return Array.isArray(valor) ? valor.filter(id => typeof id === 'string') : [];
+    } catch {
+        return [];
+    }
+}
+
+// Una al azar del filtro que todavía no se vio, y la anota como vista. Cuando se vieron
+// todas las del filtro, esas se olvidan y arranca otra vuelta (pedido de Swa).
+// `evitar` es la que está en pantalla: no sale dos veces seguidas.
+export function siguienteTema(temas, almacen, { categoria = 'todas', evitar = null, azar = Math.random } = {}) {
+    const delFiltro = !categoria || categoria === 'todas' ? temas : temas.filter(t => t.categoria === categoria);
+    const pool = delFiltro.length ? delFiltro : temas;
+    if (!pool.length) return null;
+    let vistos = listarVistos(almacen);
+    let bolsa = pool.filter(t => !vistos.includes(t.id) && t.id !== evitar);
+    if (!bolsa.length) {
+        const delPool = new Set(pool.map(t => t.id));
+        vistos = vistos.filter(id => !delPool.has(id));
+        bolsa = pool.length > 1 ? pool.filter(t => t.id !== evitar) : pool;
+    }
+    const tema = bolsa[Math.min(bolsa.length - 1, Math.floor(azar() * bolsa.length))];
+    almacen.setItem(CLAVE_VISTOS, JSON.stringify([...vistos, tema.id]));
+    return tema;
+}
+
+// El número de la consigna dentro de su categoría: «Amor 37 de 150».
+export function numeroEnCategoria(temas, tema) {
+    const deLaCategoria = temas.filter(t => t.categoria === tema.categoria);
+    return { numero: deLaCategoria.findIndex(t => t.id === tema.id) + 1, total: deLaCategoria.length };
+}

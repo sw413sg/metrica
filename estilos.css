@@ -1300,8 +1300,9 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 }
 .agarre-tema { width: 36px; height: 5px; margin: 6px auto 12px; border-radius: 3px; background: var(--texto-3); }
 /* Categorías en pastillas: la elegida con la pastilla violeta suave de «Palabras simples». */
+/* Al deslizarlas, se cortan al ancho de la caja de abajo, no en el borde de la hoja (pedido de Swa). */
 .chips-tema {
-    display: flex; gap: 6px; overflow-x: auto; margin: 0 -14px; padding: 0 14px; scrollbar-width: none;
+    display: flex; gap: 6px; overflow-x: auto; border-radius: 17px; scrollbar-width: none;
 }
 .chips-tema::-webkit-scrollbar { display: none; }
 .chip-tema {
@@ -1340,7 +1341,10 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 .final-tema { white-space: nowrap; }
 .empujon-tema { margin: 10px 6px 0; font-size: 15px; color: var(--texto-2); }
 .empujon-tema[hidden] { display: none; }
-#caja-tema .controles-azar { margin-top: 16px; }
+#caja-tema .controles-azar { margin-top: 16px; justify-content: flex-end; }
+/* El refrescar va a la derecha de «Al baúl», un poco más grande (pedido de Swa). */
+#tema-otra { width: 46px; height: 46px; }
+#tema-otra .icono { width: 23px; height: 23px; }
 .baul-tema { display: inline-flex; align-items: center; gap: 6px; }
 .baul-tema .icono { width: 18px; height: 18px; }
 #tema-otra.gira .icono { animation: girar .5s ease; }
