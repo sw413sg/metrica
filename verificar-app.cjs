@@ -460,12 +460,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-anterior').isVisible(), false);
         assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
         const marcaBoton = await page.locator('#musica-marca').boundingBox();
-        // Entre todos los botones de la fila queda el mismo aire (pedido de Swa).
+        // Entre todos los botones de la fila queda el mismo aire, y la cruz un poco más lejos (pedido de Swa).
         const huecos = await page.evaluate(() => {
             const cajas = [...document.querySelectorAll('#reproductor .reproductor-acciones > *')].filter(b => b.offsetWidth).map(b => b.getBoundingClientRect());
             return cajas.slice(1).map((c, i) => Math.round(c.left - cajas[i].right));
         });
-        assert.ok(huecos.length >= 5 && huecos.every(h => h === 7), JSON.stringify(huecos));
+        assert.ok(huecos.length >= 5 && huecos.slice(0, -1).every(h => h === 7) && huecos.at(-1) === 15, JSON.stringify(huecos));
         assert.ok((await page.locator('#musica-bucle').boundingBox()).x > marcaBoton.x);
         assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
         await page.locator('#musica-marca').click();
