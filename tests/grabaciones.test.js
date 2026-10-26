@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nombreDeGrabacion, inicioDeMuestras, pedidoMicrofono, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import { codificarMp3, nombreDeGrabacion, inicioDeMuestras, pedidoMicrofono, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
 
 test('grabaciones: qué se guarda con la voz según lo que suena', () => {
     assert.equal(tipoDeGrabacion({ beat: true }), 'beat');
@@ -25,6 +27,7 @@ test('grabaciones: nombre y extensión del archivo', () => {
     assert.equal(extensionDeAudio('audio/mp4'), 'm4a');
     assert.equal(extensionDeAudio('audio/webm;codecs=opus'), 'webm');
     assert.equal(extensionDeAudio('audio/wav'), 'wav');
+    assert.equal(extensionDeAudio('audio/mpeg'), 'mp3');
     assert.equal(nombreDeArchivo({ fecha: new Date(2026, 9, 5, 9, 3).getTime() }, 'wav'), 'Métrica freestyle 2026-10-05 09-03.wav');
 });
 
@@ -78,4 +81,19 @@ test('grabaciones: nombre con la letra (o Freestyle N) y el beat', () => {
     assert.equal(nombreDeGrabacion({ beat: 'Trap 2', nombres: ['Freestyle 1 - Boombap 1', 'Checkpoint - Trap 1', 'Freestyle 3'] }), 'Freestyle 4 - Trap 2');
     assert.equal(nombreDeGrabacion({ beat: 'Un tema de YouTube larguísimo' }), 'Freestyle 1 - Un tema de You…');
     assert.equal(nombreDeGrabacion({}), 'Freestyle 1', 'en Acapella no suena nada');
+});
+
+test('grabaciones: la descarga en MP3, con lamejs', async () => {
+    const entorno = {};
+    vm.runInNewContext(fs.readFileSync('js/vendor/lame.min.js', 'utf8') + ';this.lamejs = lamejs;', entorno);
+    const frecuencia = 44100;
+    const tono = Float32Array.from({ length: frecuencia * 2 }, (_, i) => 0.5 * Math.sin(2 * Math.PI * 440 * i / frecuencia));
+    const avances = [];
+    const pedazos = await codificarMp3([tono, tono], frecuencia, entorno.lamejs.Mp3Encoder, a => avances.push(a));
+    const bytes = Buffer.concat(pedazos.map(p => Buffer.from(p)));
+    assert.equal(bytes[0], 0xff, 'arranca con un cuadro MP3');
+    assert.equal(bytes[1] & 0xe0, 0xe0);
+    // 2 s a 128 kbps: unos 32 KB (el WAV serían 350 KB).
+    assert.ok(bytes.length > 25000 && bytes.length < 40000, `pesa ${bytes.length}`);
+    assert.equal(avances.at(-1), 1);
 });

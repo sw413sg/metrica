@@ -250,7 +250,8 @@
                         <button type="button" class="boton-pegar" id="fs-pegar">OK</button>
                         <button type="button" class="boton-pegar boton-buscar" id="fs-buscar">Buscar</button>
                     </div>
-                    <input type="file" id="fs-archivo" accept="audio/*" hidden>
+                    <!-- Con extensiones además de audio/*: el iPhone dejaba en gris algunos MP3 en Archivos. -->
+                    <input type="file" id="fs-archivo" accept="audio/*,audio/mpeg,audio/mp3,.mp3,.m4a,.aac,.wav,.ogg,.flac" hidden>
                     <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
                     <details class="recientes-fs" id="fs-recientes-caja">
                         <summary>Recientes</summary>
