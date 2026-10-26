@@ -1068,9 +1068,19 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* En la fila del reproductor chico todos los botones miden lo mismo que el play (y el REC),
    así quedan con la misma separación (pedido de Swa). */
 .reproductor:not(.grande) .reproductor-principal .boton-musica, .sonando-fs .boton-musica { width: 40px; height: 40px; }
-/* El pin y la flecha no tienen fondo: entre sus dibujos se veía más aire que entre los
-   círculos del REC y el play. Juntos, quedan a la misma distancia a la vista (pedido de Swa). */
-.reproductor:not(.grande) #musica-marca { margin-right: -10px; }
+/* Los íconos sin fondo (pin, flecha que gira, flecha y cruz) miden lo que su dibujo, así
+   entre todos (también los círculos del REC y el play) queda el mismo aire a la vista
+   (pedido de Swa). La zona para tocarlos se estira a los costados. */
+.reproductor:not(.grande):not(.mini) .reproductor-principal { gap: 7px; }
+.reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica { position: relative; display: flex; justify-content: center; align-items: center; }
+.reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica .icono { flex-shrink: 0; }
+.reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica::after { content: ''; position: absolute; inset: 0 -4px; }
+.reproductor:not(.grande):not(.mini) #musica-marca { width: 14px; }
+.reproductor:not(.grande):not(.mini) #musica-bucle { width: 17px; }
+.reproductor:not(.grande):not(.mini) #musica-plegar,
+.reproductor:not(.grande):not(.mini) #musica-agrandar,
+.reproductor:not(.grande):not(.mini) #musica-cerrar { width: 13px; }
+.reproductor:not(.grande):not(.mini) #musica-cerrar { margin-right: 10px; }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
 /* Sin playlist las flechas de canción se ven apagadas. */
@@ -1112,16 +1122,25 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 .reproductor-nota { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--texto-2); text-align: center; }
 .reproductor-nota[hidden] { display: none; }
 /* Mini (SoundCloud y archivos, pedido de Swa): una sola fila con lo que falta, la barra,
-   el play y la flecha para agrandarlo. Grabando, el REC sigue a la vista. */
-.reproductor.mini:not(.grande) .reproductor-cuerpo { flex-direction: row; align-items: center; gap: 6px; padding: 8px 12px; }
-.reproductor.mini:not(.grande) .reproductor-barra { order: -1; flex: 1; min-width: 0; margin: -2px 0; }
-.reproductor.mini:not(.grande) .reproductor-principal { flex-shrink: 0; }
+   el REC, el play y la flecha para agrandarlo. */
+/* Mide 34 en total (pedido de Swa): botones de 28 y la barra con su zona táctil de 44,
+   que se pasa por arriba y por abajo sin agrandar la tarjeta. */
+.reproductor.mini:not(.grande) .reproductor-cuerpo { flex-direction: row; align-items: center; gap: 4px; padding: 2px 3px 2px 14px; }
+.reproductor.mini:not(.grande) .reproductor-barra { order: -1; flex: 1; min-width: 0; margin: -8px 0; }
+.reproductor.mini:not(.grande) .reproductor-principal { flex-shrink: 0; height: 28px; gap: 2px; }
+.reproductor.mini:not(.grande) .reproductor-principal .boton-musica,
+.reproductor.mini .boton-play { width: 28px; height: 28px; }
+.reproductor.mini .rec-reproductor { height: 28px; }
+/* En mini, el REC va a la izquierda del play (pedido de Swa). */
+.reproductor.mini .rec-reproductor:not(.grabando) { width: 28px; }
+.reproductor.mini .rec-reproductor:not(.grabando) .punto-rec { width: 12px; height: 12px; }
+.reproductor.mini .rec-reproductor:not(.grabando) .punto-rec::after { width: 16px; }
+.reproductor.mini .boton-musica .icono, .reproductor.mini .boton-play .icono { width: 16px; height: 16px; }
 .reproductor.mini .reproductor-datos,
 .reproductor.mini #musica-marca,
 .reproductor.mini #musica-bucle,
 .reproductor.mini #musica-cerrar,
-.reproductor.mini #musica-duracion,
-.reproductor.mini .rec-reproductor:not(.grabando) { display: none; }
+.reproductor.mini #musica-duracion { display: none; }
 .reproductor.mini #musica-tiempo { width: auto; min-width: 36px; }
 /* Un archivo del teléfono no tiene portada: en el cuadro grande va una nota musical. */
 .reproductor-sin-portada { width: 100%; height: 100%; display: grid; place-items: center; color: var(--texto-3); background: var(--relleno); }
