@@ -20,29 +20,23 @@ export function guardarVolumen(almacen, clave, valor) {
     almacen.setItem(CLAVE_VOLUMEN + clave, String(Math.max(0, Math.min(10, Math.round(Number(valor) || 0)))));
 }
 
-// Sincronizar la voz con el beat en cada grabación: de a 20 ms, hasta medio segundo para
-// cada lado. Positivo es la voz más tarde.
-export const PASO_SINCRONIA = 20;
-export const SINCRONIA_MAXIMA = 500;
-export function moverSincronia(ms, pasos) {
-    return Math.max(-SINCRONIA_MAXIMA, Math.min(SINCRONIA_MAXIMA, (ms || 0) + pasos * PASO_SINCRONIA));
-}
-export const textoSincronia = ms => (ms > 0 ? `+${ms} ms` : `${ms || 0} ms`);
-
 // Desde dónde suena la voz para escuchar desde el segundo pedido: se saltea lo que llegó
-// tarde (el desfase) y se corre lo que diga la sincronía. Si queda antes del principio,
-// la voz espera.
-export function inicioDeVoz(desfase, sincroniaMs, desde) {
-    const en = desfase - (sincroniaMs || 0) / 1000 + desde;
+// tarde (el desfase, calculado solo). Si queda antes del principio, la voz espera.
+export function inicioDeVoz(desfase, desde) {
+    const en = desfase + desde;
     return en >= 0 ? { espera: 0, desde: en } : { espera: -en, desde: 0 };
 }
 
-// Qué se guarda junto con la voz, según lo que suena al tocar REC.
-export function tipoDeGrabacion({ link, acapella }) {
-    if (link?.fuente === 'archivo') return 'archivo';
-    if (link) return 'link';
-    return acapella ? 'voz' : 'beat';
+// Qué se guarda junto con la voz, según lo que suena al tocar REC: el tema del reproductor
+// (un archivo del teléfono, o YouTube o SoundCloud), un beat de la app o nada.
+export function tipoDeGrabacion({ fuente, beat }) {
+    if (fuente === 'archivo') return 'archivo';
+    if (fuente) return 'link';
+    return beat ? 'beat' : 'voz';
 }
+
+// Dónde se tocó REC: en Freestyle o con el reproductor de otra sección.
+const ORIGENES = { freestyle: 'Freestyle', letras: 'Desde letras', rimas: 'Desde rimas' };
 
 // La voz llega tarde: lo que tarda el beat en salir por el parlante más lo que tarda el
 // micrófono en entrar. Si el navegador no lo dice, se estima (unos 100 ms en el iPhone).
@@ -55,10 +49,10 @@ const FUENTES = { youtube: 'YouTube', soundcloud: 'SoundCloud', archivo: 'Del te
 const dos = n => String(n).padStart(2, '0');
 const minutos = segundos => `${Math.floor(segundos / 60)}:${dos(Math.floor(segundos % 60))}`;
 
-// «Boombap 1» y abajo «25/10 · 23:51 · 1:12 · YouTube».
-export function describirGrabacion({ titulo, fecha, duracion, fuente }) {
+// «Boombap 1» y abajo «Freestyle · 25/10 · 23:51 · 1:12 · YouTube».
+export function describirGrabacion({ titulo, fecha, duracion, fuente, origen }) {
     const f = new Date(fecha);
-    const partes = [`${dos(f.getDate())}/${dos(f.getMonth() + 1)}`, `${dos(f.getHours())}:${dos(f.getMinutes())}`, minutos(duracion || 0)];
+    const partes = [ORIGENES[origen] ?? ORIGENES.freestyle, `${dos(f.getDate())}/${dos(f.getMonth() + 1)}`, `${dos(f.getHours())}:${dos(f.getMinutes())}`, minutos(duracion || 0)];
     if (FUENTES[fuente]) partes.push(FUENTES[fuente]);
     return { titulo: titulo || 'Freestyle', detalle: partes.join(' · ') };
 }

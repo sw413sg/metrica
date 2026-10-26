@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerVolumenes, guardarVolumen, moverSincronia, textoSincronia, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
+import { leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
 
 test('grabaciones: qué se guarda con la voz según lo que suena', () => {
-    assert.equal(tipoDeGrabacion({ link: null, acapella: false }), 'beat');
-    assert.equal(tipoDeGrabacion({ link: null, acapella: true }), 'voz');
-    assert.equal(tipoDeGrabacion({ link: { fuente: 'archivo' } }), 'archivo');
-    assert.equal(tipoDeGrabacion({ link: { fuente: 'youtube' } }), 'link');
-    assert.equal(tipoDeGrabacion({ link: { fuente: 'soundcloud' } }), 'link');
+    assert.equal(tipoDeGrabacion({ beat: true }), 'beat');
+    assert.equal(tipoDeGrabacion({ beat: false }), 'voz');
+    assert.equal(tipoDeGrabacion({ fuente: 'archivo' }), 'archivo');
+    assert.equal(tipoDeGrabacion({ fuente: 'youtube' }), 'link');
+    assert.equal(tipoDeGrabacion({ fuente: 'soundcloud', beat: true }), 'link', 'suena una cosa a la vez: manda el reproductor');
 });
 
 test('grabaciones: la voz se adelanta lo que tardan el parlante y el micrófono', () => {
@@ -17,8 +17,8 @@ test('grabaciones: la voz se adelanta lo que tardan el parlante y el micrófono'
 
 test('grabaciones: título y detalle', () => {
     const fecha = new Date(2026, 9, 25, 23, 51).getTime();
-    assert.deepEqual(describirGrabacion({ titulo: 'Boombap 1', fecha, duracion: 72 }), { titulo: 'Boombap 1', detalle: '25/10 · 23:51 · 1:12' });
-    assert.deepEqual(describirGrabacion({ titulo: '', fecha, duracion: 5, fuente: 'youtube' }), { titulo: 'Freestyle', detalle: '25/10 · 23:51 · 0:05 · YouTube' });
+    assert.deepEqual(describirGrabacion({ titulo: 'Boombap 1', fecha, duracion: 72 }), { titulo: 'Boombap 1', detalle: 'Freestyle · 25/10 · 23:51 · 1:12' });
+    assert.deepEqual(describirGrabacion({ titulo: '', fecha, duracion: 5, fuente: 'youtube', origen: 'letras' }), { titulo: 'Freestyle', detalle: 'Desde letras · 25/10 · 23:51 · 0:05 · YouTube' });
 });
 
 test('grabaciones: nombre y extensión del archivo', () => {
@@ -51,19 +51,10 @@ test('grabaciones: volumen de la voz y del beat, para todas', () => {
     assert.deepEqual(leerVolumenes(almacen), { voz: 10, beat: 0 });
 });
 
-test('grabaciones: sincronía de a 20 ms, hasta medio segundo', () => {
-    assert.equal(moverSincronia(0, 1), 20);
-    assert.equal(moverSincronia(undefined, -2), -40);
-    assert.equal(moverSincronia(500, 1), 500);
-    assert.equal(textoSincronia(40), '+40 ms');
-    assert.equal(textoSincronia(-20), '-20 ms');
-    assert.equal(textoSincronia(0), '0 ms');
-});
-
 test('grabaciones: desde dónde suena la voz', () => {
-    assert.deepEqual(inicioDeVoz(0.1, 0, 0), { espera: 0, desde: 0.1 });
-    assert.deepEqual(inicioDeVoz(0.1, 40, 2), { espera: 0, desde: 2.06 });
-    const tarde = inicioDeVoz(0.1, 300, 0);
-    assert.equal(tarde.desde, 0);
-    assert.ok(Math.abs(tarde.espera - 0.2) < 1e-9, 'la voz espera');
+    assert.deepEqual(inicioDeVoz(0.1, 0), { espera: 0, desde: 0.1 });
+    assert.deepEqual(inicioDeVoz(0.1, 2), { espera: 0, desde: 2.1 });
+    const antes = inicioDeVoz(0.1, -0.3);
+    assert.equal(antes.desde, 0);
+    assert.ok(Math.abs(antes.espera - 0.2) < 1e-9, 'antes de que empiece, la voz espera');
 });
