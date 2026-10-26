@@ -2622,7 +2622,7 @@ async function compartirArchivo(archivo, fila, g) {
         setTimeout(() => URL.revokeObjectURL(enlace.href), 10000);
     }
     boton.classList.remove('listo');
-    fila.querySelector('.detalle-grabacion').textContent = describirGrabacion(g).detalle;
+    fila.querySelector('.detalle-grabacion').textContent = '';
 }
 
 // Lo preparado para descargar ya no sirve si cambian los volúmenes.
@@ -2634,21 +2634,25 @@ function filaGrabacion(g) {
     const fila = document.createElement('li');
     fila.className = 'grabacion vidrio';
     fila.dataset.id = g.id;
-    const { titulo, detalle } = describirGrabacion(g);
+    const { titulo } = describirGrabacion(g);
+    // Una fila: el play, el título con la barra abajo (comienzo y final, sin la fecha ni la
+    // hora) y descargar y borrar (pedido de Swa). El detalle solo aparece con un aviso.
     fila.innerHTML = `
         <div class="cabecera-grabacion">
             <button type="button" class="boton-play" aria-label="Reproducir">${ICONO_PLAY}</button>
-            <div class="datos-grabacion"><span class="titulo-grabacion"></span><span class="detalle-grabacion"></span></div>
+            <div class="datos-grabacion">
+                <span class="titulo-grabacion"></span>
+                <div class="reproductor-barra">
+                    <span class="reproductor-tiempo tiempo-grabacion">0:00</span>
+                    <div class="reproductor-pista"><div class="reproductor-riel"><div class="reproductor-llenado"></div></div></div>
+                    <span class="reproductor-tiempo">${formatoTiempo(g.duracion)}</span>
+                </div>
+                <span class="detalle-grabacion"></span>
+            </div>
             <button type="button" class="boton-musica descargar-grabacion" aria-label="${g.tipo === 'link' ? 'Descargar la voz' : 'Descargar'}">${ICONO_DESCARGAR}</button>
             <button type="button" class="boton-musica borrar-grabacion" aria-label="Borrar">${ICONO_TACHO}</button>
-        </div>
-        <div class="reproductor-barra">
-            <span class="reproductor-tiempo tiempo-grabacion">0:00</span>
-            <div class="reproductor-pista"><div class="reproductor-riel"><div class="reproductor-llenado"></div></div></div>
-            <span class="reproductor-tiempo">${formatoTiempo(g.duracion)}</span>
         </div>`;
     fila.querySelector('.titulo-grabacion').textContent = titulo;
-    fila.querySelector('.detalle-grabacion').textContent = detalle;
     fila.querySelector('.boton-play').addEventListener('click', () => {
         if (escuchando?.id === g.id) {
             // Con un tema en pausa (el iPhone no deja que arranque solo), el play de la caja
