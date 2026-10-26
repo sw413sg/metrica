@@ -1283,6 +1283,10 @@ const servidor = http.createServer((req, res) => {
         assert.ok(Math.abs(sonandoCaja.y + sonandoCaja.height - (844 - 86)) <= 1, `pegado a las pestañas: ${JSON.stringify(sonandoCaja)}`);
         const tituloBeat = await page.locator('#fs-sonando-titulo').textContent();
         assert.match(await page.locator('#fs-sonando-fuente').textContent(), /^Métrica · \d+ BPM$/);
+        // Igual al reproductor chico de un archivo: el título solo, 80 de alto y el mismo aire (pedido de Swa).
+        assert.equal(await page.locator('#fs-sonando-fuente').isVisible(), false);
+        assert.ok(Math.abs(sonandoCaja.height - 80) <= 2, JSON.stringify(sonandoCaja));
+        await page.screenshot({path: `capturas/freestyle-beat-reproductor-${tema}.png`});
         // Al cambiar de sección el beat sigue y su reproductor queda igual, arriba de la barra;
         // en Ajustes no se ve. La ronda sigue andando: el reloj corre en las otras secciones.
         const cuentaAntes = await page.locator('#fs-cuenta').textContent();

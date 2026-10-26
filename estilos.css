@@ -646,6 +646,16 @@ body.acapella-sonando #fs-instrumental { display: none; }
 body.con-musica #fs-instrumental { display: none; }
 .sonando-fs .reproductor-principal { height: 40px; }
 .sonando-fs .reproductor-pista { pointer-events: none; }
+/* El de los beats, igual al reproductor chico de un archivo del celular (pedido de Swa): el
+   título solo, la barra pegada, 80 de alto y el mismo aire entre los botones. */
+.sonando-fs .reproductor-fuente { display: none; }
+.sonando-fs .reproductor-cuerpo { padding-top: 8px; padding-bottom: 8px; }
+.sonando-fs .reproductor-barra { margin: -8px 0 -14px; }
+.sonando-fs .reproductor-principal { gap: 10px; }
+.sonando-fs .reproductor-principal .boton-musica { position: relative; display: flex; justify-content: center; align-items: center; width: 13px; }
+.sonando-fs .reproductor-principal .boton-musica .icono { flex-shrink: 0; }
+.sonando-fs .reproductor-principal .boton-musica::after { content: ''; position: absolute; inset: 0 -4px; }
+.sonando-fs #fs-beat-cerrar { margin-left: 5px; margin-right: 4px; }
 #fs-beat-anterior[aria-disabled="true"], #fs-beat-siguiente[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
 .pegar-fs { display: flex; align-items: center; gap: 3px; }
 .pegar-fs textarea {
@@ -1088,6 +1098,7 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* En la fila del reproductor chico todos los botones miden lo mismo que el play (y el REC),
    así quedan con la misma separación (pedido de Swa). */
 .reproductor:not(.grande) .reproductor-principal .boton-musica, .sonando-fs .boton-musica { width: 40px; height: 40px; }
+.sonando-fs .reproductor-principal .boton-musica { width: 13px; }
 /* Los íconos sin fondo (pin, flecha que gira, flecha y cruz) miden lo que su dibujo, así
    entre todos (también los círculos del REC y el play) queda el mismo aire a la vista
    (pedido de Swa). La zona para tocarlos se estira a los costados. */
