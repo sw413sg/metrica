@@ -23,15 +23,15 @@ function jaccard(a, b) {
     return union ? inter / union : 0;
 }
 
-test('hay 500 consignas, con id y texto únicos', () => {
-    assert.equal(TEMAS.length, 500);
-    assert.equal(new Set(TEMAS.map(t => t.id)).size, 500);
+test('hay 650 consignas, con id y texto únicos', () => {
+    assert.equal(TEMAS.length, 650);
+    assert.equal(new Set(TEMAS.map(t => t.id)).size, 650);
     const textos = TEMAS.map(t => normalizar(t.texto));
     assert.ok(textos.every(t => t.length >= 8));
-    assert.equal(new Set(textos).size, 500);
+    assert.equal(new Set(textos).size, 650);
 });
 
-test('cada consigna tiene una categoría válida y están repartidas parejo', () => {
+test('cada consigna tiene una categoría válida: 100 en amor, nostalgia y fiesta, y 50 en el resto', () => {
     const validas = new Set(CATEGORIAS.map(c => c.id));
     assert.ok(validas.size >= 8 && validas.size <= 12);
     const cuentas = {};
@@ -42,8 +42,13 @@ test('cada consigna tiene una categoría válida y están repartidas parejo', ()
         cuentas[tema.categoria] = (cuentas[tema.categoria] ?? 0) + 1;
     }
     assert.deepEqual(Object.keys(cuentas).sort(), [...validas].sort());
-    const valores = Object.values(cuentas);
-    assert.ok(Math.max(...valores) - Math.min(...valores) <= 5, valores.join(','));
+    for (const [id, cuenta] of Object.entries(cuentas)) {
+        assert.equal(cuenta, ['amor', 'nostalgia', 'fiesta'].includes(id) ? 100 : 50, id);
+    }
+});
+
+test('las categorías van en el orden de Swa: Amor, Nostalgia, Superación, Fiesta, Calle y el resto', () => {
+    assert.deepEqual(CATEGORIAS.slice(0, 5).map(c => c.id), ['amor', 'nostalgia', 'superacion', 'fiesta', 'calle']);
 });
 
 test('no hay dos consignas casi iguales', () => {
