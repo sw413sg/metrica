@@ -23,15 +23,15 @@ function jaccard(a, b) {
     return union ? inter / union : 0;
 }
 
-test('hay 900 consignas, con id y texto únicos', () => {
-    assert.equal(TEMAS.length, 900);
-    assert.equal(new Set(TEMAS.map(t => t.id)).size, 900);
+test('hay 1500 consignas, con id y texto únicos', () => {
+    assert.equal(TEMAS.length, 1500);
+    assert.equal(new Set(TEMAS.map(t => t.id)).size, 1500);
     const textos = TEMAS.map(t => normalizar(t.texto));
     assert.ok(textos.every(t => t.length >= 8));
-    assert.equal(new Set(textos).size, 900);
+    assert.equal(new Set(textos).size, 1500);
 });
 
-test('cada consigna tiene una categoría válida: 200 en fiesta, 150 en amor y nostalgia, 100 en superación y 50 en el resto', () => {
+test('cada consigna tiene una categoría válida: 350 en amor, 300 en fiesta y superación, 150 en nostalgia y bronca, 100 en calle (con noche) y 50 en el resto', () => {
     const validas = new Set(CATEGORIAS.map(c => c.id));
     assert.ok(validas.size >= 8 && validas.size <= 12);
     const cuentas = {};
@@ -43,12 +43,13 @@ test('cada consigna tiene una categoría válida: 200 en fiesta, 150 en amor y n
     }
     assert.deepEqual(Object.keys(cuentas).sort(), [...validas].sort());
     for (const [id, cuenta] of Object.entries(cuentas)) {
-        assert.equal(cuenta, { fiesta: 200, amor: 150, nostalgia: 150, superacion: 100 }[id] ?? 50, id);
+        assert.equal(cuenta, { amor: 350, fiesta: 300, superacion: 300, nostalgia: 150, bronca: 150, calle: 100 }[id] ?? 50, id);
     }
 });
 
-test('las categorías van en el orden de Swa: Amor, Nostalgia, Superación, Fiesta, Calle y el resto', () => {
-    assert.deepEqual(CATEGORIAS.slice(0, 5).map(c => c.id), ['amor', 'nostalgia', 'superacion', 'fiesta', 'calle']);
+test('las categorías van en el orden de Swa: Amor, Fiesta, Superación, Calle, Nostalgia y el resto', () => {
+    assert.deepEqual(CATEGORIAS.slice(0, 5).map(c => c.id), ['amor', 'fiesta', 'superacion', 'calle', 'nostalgia']);
+    assert.ok(!CATEGORIAS.some(c => c.id === 'noche'));
 });
 
 test('no hay dos consignas casi iguales', () => {
@@ -120,5 +121,5 @@ test('siguienteTema no repite hasta ver todas las del filtro, y después arranca
 test('numeroEnCategoria cuenta dentro de la categoría', () => {
     const amor = TEMAS.filter(t => t.categoria === 'amor');
     assert.deepEqual(numeroEnCategoria(TEMAS, amor[36]), { numero: 37, total: amor.length });
-    assert.deepEqual(numeroEnCategoria(TEMAS, amor[0]), { numero: 1, total: 150 });
+    assert.deepEqual(numeroEnCategoria(TEMAS, amor[0]), { numero: 1, total: 350 });
 });
