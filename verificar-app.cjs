@@ -88,10 +88,10 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#dame-tema').isVisible(), true);
         await page.locator('#dame-tema').click();
         assert.equal(await page.locator('#hoja-tema').isVisible(), true);
-        assert.deepEqual((await page.locator('#chips-tema button').allTextContents()).slice(0, 5), ['Amor', 'Fiesta', 'Superación', 'Calle', 'Nostalgia']);
+        assert.deepEqual((await page.locator('#chips-tema button').allTextContents()).slice(0, 5), ['Amor', 'Superación', 'Fiesta', 'Nostalgia', 'Calle']);
         assert.equal(await page.locator('#chips-tema button').last().textContent(), 'Todas');
         assert.equal(await page.locator('#chips-tema button[aria-pressed="true"]').textContent(), 'Amor');
-        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 350$/);
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 400$/);
         await page.locator('#chips-tema button[data-categoria="nostalgia"]').click();
         assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 150$/);
         for (let i = 0; i < 20 && !(await page.locator('#tema-empujon').isVisible()); i++) await page.locator('#tema-otra').click();
