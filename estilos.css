@@ -1128,7 +1128,7 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* YouTube achicado: abajo del botón, por qué no puede seguir sonando así. */
 .reproductor-nota { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--texto-2); text-align: center; }
 .reproductor-nota[hidden] { display: none; }
-/* Mini (SoundCloud y archivos, pedido de Swa): una sola fila con lo que falta, la barra,
+/* Mini (SoundCloud y archivos, pedido de Swa): una sola fila con el tiempo, la barra,
    el REC, el play y la flecha para agrandarlo. */
 /* Mide 34 en total (pedido de Swa): botones de 28 y la barra con su zona táctil de 44,
    que se pasa por arriba y por abajo sin agrandar la tarjeta. */
@@ -1173,6 +1173,8 @@ body.con-musica.editando:not(.teclado-abierto) .editor-cuerpo {
 #hoja-musica { background: none; }
 /* Como el editor: ocupa solo lo que se ve, así el teclado no tapa el cajón (pedido de Swa). */
 #hoja-musica { bottom: auto; top: var(--arriba-visible, 0px); height: var(--alto-visible, 100%); }
+/* Desde Letras, el cajón queda arriba de la barra de pestañas, donde va la tarjeta. */
+body:not(.editando) #hoja-musica .hoja { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
 body.teclado-abierto #hoja-musica .hoja { padding-bottom: 8px; }
 #hoja-musica .hoja {
     max-width: calc(430px - 32px); margin: 0 16px; padding: 0 0 calc(8px + env(safe-area-inset-bottom));

@@ -39,6 +39,18 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#pantalla-letras').isVisible(), true);
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
         await page.screenshot({path: `capturas/letras-${tema}.png`});
+        // La nota musical, a la izquierda de Grabaciones, abre el cajón arriba de la barra de pestañas.
+        const notaLetras = await page.locator('#abrir-musica-letras').boundingBox();
+        assert.ok(notaLetras.x < (await page.locator('#pantalla-letras [data-grabaciones]').boundingBox()).x);
+        await page.locator('#abrir-musica-letras').click();
+        assert.equal(await page.locator('#hoja-musica').isVisible(), true);
+        await page.waitForTimeout(300);
+        const cajonLetras = await page.locator('#fs-cajon').boundingBox();
+        const barraLetras = await page.locator('#barra-pestanas').boundingBox();
+        assert.ok(cajonLetras.y + cajonLetras.height <= barraLetras.y, JSON.stringify({cajonLetras, barraLetras}));
+        await page.screenshot({path: `capturas/letras-musica-${tema}.png`});
+        await page.mouse.click(200, 150);
+        assert.equal(await page.locator('#hoja-musica').isVisible(), false);
 
         // Baúl de frases: anotar, editar en la tarjeta, marcar como usada desde el menú y buscar.
         await page.locator('#abrir-baul').click();
@@ -427,7 +439,7 @@ const servidor = http.createServer((req, res) => {
         const recMini = await page.locator('#reproductor [data-rec]').boundingBox();
         assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).x - (recMini.x + recMini.width)), 8, 'el REC va a la izquierda del play, a 8');
         assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
-        assert.match(await page.locator('#musica-tiempo').textContent(), /^-\d+:\d\d$/);
+        assert.match(await page.locator('#musica-tiempo').textContent(), /^\d+:\d\d$/);
         const miniCaja = await page.locator('#reproductor').boundingBox();
         assert.ok(Math.abs(miniCaja.height - 34) <= 1, JSON.stringify(miniCaja));
         const miniPista = await page.locator('#musica-pista').boundingBox();
