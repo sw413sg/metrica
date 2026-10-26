@@ -251,8 +251,12 @@
                 </div>
                 <!-- Jugando, la bandeja se esconde y queda este resplandor chico: tocarlo pausa. -->
                 <div class="pausar-fs" id="fs-resplandor" aria-hidden="true"></div>
+                <!-- El instrumental en una sola caja de vidrio: los beats, «o usá el tuyo» y el cajón del
+                     link, así se lee como una sola sección y no como botones sueltos (pedido de Swa). -->
+                <div class="instrumental-fs vidrio" id="fs-instrumental">
                 <div id="fs-elegir">
                     <div class="beats-fs" id="fs-beats" role="radiogroup" aria-label="Beat"></div>
+                    <p class="separador-fs" aria-hidden="true">o usá el tuyo</p>
                 </div>
                 <!-- Cajón del link, abajo de todo y del alto del reproductor de YouTube: link, un
                      beat del teléfono y los recientes. En SwiftUI: TextField + .fileImporter + DisclosureGroup. -->
@@ -269,6 +273,7 @@
                         <summary>Recientes</summary>
                         <ul class="lista-recientes" id="fs-recientes"></ul>
                     </details>
+                </div>
                 </div>
             </div>
         </section>

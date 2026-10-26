@@ -549,7 +549,7 @@ a { color: var(--acento); text-decoration: none; }
 }
 #pantalla-freestyle.jugando .pausar-fs { opacity: 1; visibility: visible; transition: opacity .35s ease .2s; }
 /* Lo de abajo del resplandor va por encima, y sin sombra oscura hacia arriba que lo tape. */
-#fs-elegir { position: relative; z-index: 1; }
+#fs-instrumental { position: relative; z-index: 1; }
 /* El reproductor en Freestyle: el mismo vidrio que la bandeja y la barra de pestañas,
    sin sombra oscura hacia arriba que tape el resplandor. */
 body:not(.editando) .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo), 0 12px 24px -10px rgba(0, 0, 0, 0.35); }
@@ -613,12 +613,20 @@ body:not(.editando) .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
     display: flex; align-items: center; justify-content: center;
 }
 #pantalla-freestyle { --aro: min(100cqw, 100cqh, 320px); --fs-palabra: calc(var(--aro) * 0.17); --fs-cuenta: calc(var(--aro) * 0.075); }
-#fs-elegir { margin-top: 10px; }
+/* El instrumental: una sola caja de vidrio con los beats, «o usá el tuyo» y el cajón del link
+   (pedido de Swa). Adentro, el cajón no lleva su propio vidrio; en la libreta sí. */
+.instrumental-fs { flex-shrink: 0; margin-top: 10px; border-radius: 30px; padding: 8px; display: flex; flex-direction: column; }
+.instrumental-fs .cajon-fs { margin-top: 0; padding: 0; border-radius: 0; max-height: 196px; background: none; border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.separador-fs {
+    display: flex; align-items: center; gap: 10px; margin: 8px 6px;
+    font-size: 12px; line-height: 16px; color: var(--texto-2);
+}
+.separador-fs::before, .separador-fs::after { content: ''; flex: 1; height: 1px; background: var(--separador); }
 .cajon-fs {
     flex-shrink: 0; max-height: 252px; margin-top: 10px; border-radius: 30px; padding: 8px;
     display: flex; flex-direction: column; overflow: hidden;
 }
-#pantalla-freestyle.con-link .cajon-fs { display: none; }
+#pantalla-freestyle.con-link .instrumental-fs { display: none; }
 /* Mientras suena un beat de la app, el reproductor chico ocupa el lugar de los botones de
    beats y del cajón (pedido de Swa); al pausar vuelven. Va donde va la tarjeta de los links:
    arriba de la barra en todas las secciones, abajo de todo en el editor y escondido en Ajustes. */
@@ -630,15 +638,12 @@ body:not(.editando) .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
 body.beat-sonando .sonando-fs { display: block; }
 body.editando .sonando-fs { bottom: calc(8px + env(safe-area-inset-bottom)); }
 body.en-ajustes .sonando-fs, body.teclado-abierto .sonando-fs { display: none; }
-body.beat-sonando #fs-elegir,
-body.beat-sonando #pantalla-freestyle .cajon-fs { display: none; }
+body.beat-sonando #fs-instrumental { display: none; }
 /* Lo mismo si viene sonando (o en pausa) una canción de la libreta: los beats y el cajón
    vuelven solo al cerrarla con la cruz (pedido de Swa). */
 /* En Acapella no hay reproductor: abajo de la bandeja no va nada (pedido de Swa). */
-body.acapella-sonando #fs-elegir,
-body.acapella-sonando #pantalla-freestyle .cajon-fs { display: none; }
-body.con-musica #fs-elegir,
-body.con-musica #pantalla-freestyle .cajon-fs { display: none; }
+body.acapella-sonando #fs-instrumental { display: none; }
+body.con-musica #fs-instrumental { display: none; }
 .sonando-fs .reproductor-principal { height: 40px; }
 .sonando-fs .reproductor-pista { pointer-events: none; }
 #fs-beat-anterior[aria-disabled="true"], #fs-beat-siguiente[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }

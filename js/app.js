@@ -51,6 +51,8 @@ function mostrarPestana(nombre) {
     document.body.classList.toggle('en-ajustes', nombre === 'ajustes');
     // Los nombres de los micrófonos y salidas aparecen recién después del primer permiso.
     if (nombre === 'ajustes') renderizarAudio();
+    // Acapella no sigue en otra sección: se detiene (con su grabación), pedido de Swa.
+    if (nombre !== 'freestyle' && ronda && !ronda.pausa && esAcapella()) pausarRonda();
     // «Recientes» se pliega al cambiar de sección (pedido de Swa).
     $('fs-recientes-caja').open = false;
     sincronizarLinkFreestyle();
@@ -3358,7 +3360,7 @@ $('abrir-musica-letras').addEventListener('click', abrirHojaMusica);
 function cerrarHojaMusica() {
     $('hoja-musica').hidden = true;
     document.body.classList.remove('eligiendo-musica');
-    $('pantalla-freestyle').querySelector('.contenido').append($('fs-cajon'));
+    $('fs-instrumental').append($('fs-cajon'));
 }
 // Con el camino del toque y no con contains: la cruz de un reciente ya no está en la página
 // cuando el toque llega acá (la lista se vuelve a armar) y cerraba la hoja.
