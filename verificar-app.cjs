@@ -80,10 +80,10 @@ const servidor = http.createServer((req, res) => {
         assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
         for (let i = 0; i < 20 && !(await page.locator('#tema-empujon').isVisible()); i++) await page.locator('#tema-otra').click();
         await page.screenshot({path: `capturas/tema-${tema}.png`});
-        const antes = await page.locator('#tema-texto').textContent();
+        const temaAntes = await page.locator('#tema-texto').textContent();
         await page.locator('#tema-otra').click();
         const consigna = await page.locator('#tema-texto').textContent();
-        assert.notEqual(consigna, antes);
+        assert.notEqual(consigna, temaAntes);
         assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
         await page.locator('#tema-baul').click();
         assert.equal(await page.locator('#tema-baul-texto').textContent(), 'En el baúl');
