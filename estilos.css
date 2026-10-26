@@ -1345,6 +1345,17 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 /* El refrescar va a la derecha de «Al baúl», un poco más grande (pedido de Swa). */
 #tema-otra { width: 46px; height: 46px; }
 #tema-desamor[hidden] { display: none; }
+/* «Desamor» con el borde de la palabra tocada, semi apagado como el «Guardar» del baúl sin texto;
+   prendido, el borde entero y con resplandor (pedido de Swa). */
+#tema-desamor { position: relative; }
+#tema-desamor::before {
+    content: ""; position: absolute; inset: 0; padding: 2px; border-radius: inherit; opacity: .45; pointer-events: none;
+    background: var(--degrade-tocada); animation: brillo-tocada 2.2s linear infinite;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+#tema-desamor[aria-pressed="true"]::before { opacity: 1; }
+#tema-desamor[aria-pressed="true"] { box-shadow: 0 0 10px color-mix(in srgb, var(--destacado) 45%, transparent); }
 #tema-desamor:not([hidden]) + #tema-baul { margin-left: 0; }
 #tema-otra .icono { width: 23px; height: 23px; }
 .baul-tema { display: inline-flex; align-items: center; gap: 6px; }
