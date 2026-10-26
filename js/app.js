@@ -2705,8 +2705,7 @@ const ICONO_PLAY = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d
 
 function pintarProgreso() {
     const fraccion = fraccionDe(actual, duracion);
-    // En mini, el tiempo que falta («-1:44»), como en la referencia de Swa.
-    $('musica-tiempo').textContent = $('reproductor').classList.contains('mini') ? `-${formatoTiempo(Math.max(0, duracion - actual))}` : formatoTiempo(actual);
+    $('musica-tiempo').textContent = formatoTiempo(actual);
     $('musica-duracion').textContent = formatoTiempo(duracion);
     $('musica-llenado').style.width = `${fraccion * 100}%`;
     $('musica-punto').style.left = `${fraccion * 100}%`;
@@ -3126,13 +3125,16 @@ addEventListener('resize', ubicarReproductor);
 
 // La nota musical de la libreta abre una hoja con el mismo cajón de Freestyle (el
 // elemento se muda a la hoja y vuelve al cerrarla).
-$('abrir-musica').addEventListener('click', () => {
+// También desde Letras, a la izquierda de Grabaciones (pedido de Swa).
+function abrirHojaMusica() {
     avisoFs(navigator.onLine ? '' : 'Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
     $('hoja-musica-cajon').append($('fs-cajon'));
     $('hoja-musica').hidden = false;
     document.body.classList.add('eligiendo-musica');
     $('fs-link').focus();
-});
+}
+$('abrir-musica').addEventListener('click', abrirHojaMusica);
+$('abrir-musica-letras').addEventListener('click', abrirHojaMusica);
 function cerrarHojaMusica() {
     $('hoja-musica').hidden = true;
     document.body.classList.remove('eligiendo-musica');
