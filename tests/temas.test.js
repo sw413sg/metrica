@@ -23,15 +23,15 @@ function jaccard(a, b) {
     return union ? inter / union : 0;
 }
 
-test('hay 1538 consignas, con id y texto únicos', () => {
-    assert.equal(TEMAS.length, 1538);
-    assert.equal(new Set(TEMAS.map(t => t.id)).size, 1538);
+test('hay 1738 consignas, con id y texto únicos', () => {
+    assert.equal(TEMAS.length, 1738);
+    assert.equal(new Set(TEMAS.map(t => t.id)).size, 1738);
     const textos = TEMAS.map(t => normalizar(t.texto));
     assert.ok(textos.every(t => t.length >= 8));
-    assert.equal(new Set(textos).size, 1538);
+    assert.equal(new Set(textos).size, 1738);
 });
 
-test('cada consigna tiene una categoría válida: 400 en amor, 300 en fiesta, 288 en superación, 150 en nostalgia y bronca, 100 en calle (con noche) y 50 en el resto', () => {
+test('cada consigna tiene una categoría válida: 600 en amor, 300 en fiesta, 288 en superación, 150 en nostalgia y bronca, 100 en calle (con noche) y 50 en el resto', () => {
     const validas = new Set(CATEGORIAS.map(c => c.id));
     assert.ok(validas.size >= 8 && validas.size <= 12);
     const cuentas = {};
@@ -43,7 +43,7 @@ test('cada consigna tiene una categoría válida: 400 en amor, 300 en fiesta, 28
     }
     assert.deepEqual(Object.keys(cuentas).sort(), [...validas].sort());
     for (const [id, cuenta] of Object.entries(cuentas)) {
-        assert.equal(cuenta, { amor: 400, fiesta: 300, superacion: 288, nostalgia: 150, bronca: 150, calle: 100 }[id] ?? 50, id);
+        assert.equal(cuenta, { amor: 600, fiesta: 300, superacion: 288, nostalgia: 150, bronca: 150, calle: 100 }[id] ?? 50, id);
     }
 });
 
@@ -123,7 +123,7 @@ test('numeroEnCategoria cuenta dentro de la categoría', () => {
     const desamor = TEMAS.filter(t => t.sub === 'desamor');
     assert.deepEqual(numeroEnCategoria(TEMAS, amor[36]), { numero: 37, total: amor.length });
     assert.deepEqual(numeroEnCategoria(TEMAS, desamor[11]), { numero: 12, total: desamor.length });
-    assert.equal(amor.length + desamor.length, 400);
+    assert.equal(amor.length + desamor.length, 600);
 });
 
 test('Desamor es una subsección de Amor: prendida salen solo esas, apagada no sale ninguna', () => {
