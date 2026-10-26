@@ -1071,7 +1071,13 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* Los íconos sin fondo (pin, flecha que gira, flecha y cruz) miden lo que su dibujo, así
    entre todos (también los círculos del REC y el play) queda el mismo aire a la vista
    (pedido de Swa). La zona para tocarlos se estira a los costados. */
-.reproductor:not(.grande):not(.mini) .reproductor-principal { gap: 7px; }
+.reproductor:not(.grande):not(.mini) .reproductor-principal { gap: 10px; }
+/* Más aire, medido de la imagen de Swa: 18 entre el pin, la flecha que gira y el REC, 10 entre
+   el REC y el play, 12 hasta la flecha y 15 hasta la cruz. */
+.reproductor:not(.grande):not(.mini) #musica-marca,
+.reproductor:not(.grande):not(.mini) #musica-bucle { margin-right: 8px; }
+.reproductor:not(.grande):not(.mini) #musica-plegar,
+.reproductor:not(.grande):not(.mini) #musica-agrandar { margin-left: 2px; }
 .reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica { position: relative; display: flex; justify-content: center; align-items: center; }
 .reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica .icono { flex-shrink: 0; }
 .reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica::after { content: ''; position: absolute; inset: 0 -4px; }
@@ -1081,7 +1087,7 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 .reproductor:not(.grande):not(.mini) #musica-agrandar,
 .reproductor:not(.grande):not(.mini) #musica-cerrar { width: 13px; }
 /* La cruz, un poco más lejos de la flecha y más cerca del borde (pedido de Swa). */
-.reproductor:not(.grande):not(.mini) #musica-cerrar { margin-left: 8px; margin-right: 4px; }
+.reproductor:not(.grande):not(.mini) #musica-cerrar { margin-left: 5px; margin-right: 4px; }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
 /* Sin playlist las flechas de canción se ven apagadas. */
@@ -1126,9 +1132,11 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
    el REC, el play y la flecha para agrandarlo. */
 /* Mide 34 en total (pedido de Swa): botones de 28 y la barra con su zona táctil de 44,
    que se pasa por arriba y por abajo sin agrandar la tarjeta. */
-.reproductor.mini:not(.grande) .reproductor-cuerpo { flex-direction: row; align-items: center; gap: 4px; padding: 2px 3px 2px 14px; }
+.reproductor.mini:not(.grande) .reproductor-cuerpo { flex-direction: row; align-items: center; gap: 10px; padding: 2px 3px 2px 14px; }
 .reproductor.mini:not(.grande) .reproductor-barra { order: -1; flex: 1; min-width: 0; margin: -8px 0; }
-.reproductor.mini:not(.grande) .reproductor-principal { flex-shrink: 0; height: 28px; gap: 2px; }
+.reproductor.mini:not(.grande) .reproductor-principal { flex-shrink: 0; height: 28px; gap: 8px; }
+/* La flecha: su dibujo es angosto, así queda a la vista con el mismo aire que el REC y el play. */
+.reproductor.mini #musica-agrandar { margin-left: -2px; }
 .reproductor.mini:not(.grande) .reproductor-principal .boton-musica,
 .reproductor.mini .boton-play { width: 28px; height: 28px; }
 .reproductor.mini .rec-reproductor { height: 28px; }
