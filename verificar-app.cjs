@@ -408,16 +408,31 @@ const servidor = http.createServer((req, res) => {
         await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
         await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
-        assert.equal(await page.locator('#musica-plegar').isVisible(), false);
+        // Chico: la flecha apunta abajo y lo deja en mini (pedido de Swa).
+        assert.equal(await page.locator('#musica-plegar').isVisible(), true);
         assert.equal(await page.locator('#musica-mostrar').isVisible(), false);
         assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'SoundCloud');
         // Chico: una fila con el título (sin la fuente) y la barra; la flecha lo agranda (pedido de Swa).
         assert.equal(await page.locator('#reproductor-fuente').isVisible(), false);
-        assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
+        assert.equal(await page.locator('#musica-agrandar').isVisible(), false);
         const nube = await page.locator('#reproductor').boundingBox();
         assert.ok(Math.abs(nube.height - 80) <= 2, JSON.stringify(nube));
         await page.screenshot({path: `capturas/reproductor-chico-libreta-${tema}.png`});
-        // En la libreta también se agranda (el formato alto) y se vuelve a achicar sin cortarse.
+        // Mini: una fila con lo que falta, la barra, el play y la flecha para arriba, sin cortarse.
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#reproductor').evaluate(e => e.classList.contains('mini')), true);
+        assert.equal(await page.locator('#reproductor-titulo').isVisible(), false);
+        assert.equal(await page.locator('#musica-cerrar').isVisible(), false);
+        assert.equal(await page.locator('#musica-plegar').isVisible(), false);
+        assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
+        assert.match(await page.locator('#musica-tiempo').textContent(), /^-\d+:\d\d$/);
+        const miniCaja = await page.locator('#reproductor').boundingBox();
+        assert.ok(miniCaja.height <= 60, JSON.stringify(miniCaja));
+        const miniPista = await page.locator('#musica-pista').boundingBox();
+        assert.ok(miniPista.width > 150, JSON.stringify(miniPista));
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        await page.screenshot({path: `capturas/reproductor-mini-libreta-${tema}.png`});
+        // Desde mini, la flecha lo agranda (el formato alto) y abajo vuelve a chico sin cortarse.
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
         assert.equal(await page.locator('#musica-plegar').isVisible(), true);
@@ -1530,6 +1545,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-play').click();
         assert.equal(await page.locator('#musica-marca').isVisible(), false);
         assert.equal(await page.locator('#musica-bucle').isVisible(), false);
+        await page.locator('#musica-plegar').click();
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#musica-marca').isVisible(), true);
         assert.equal(await page.locator('#musica-bucle').isVisible(), true);
@@ -1555,6 +1571,7 @@ const servidor = http.createServer((req, res) => {
         assert.ok(chica.y - (bandejaChica.y + bandejaChica.height) <= 16, 'la bandeja baja con la tarjeta chica');
         assert.ok(Math.abs(chica.height - 80) <= 2, JSON.stringify(chica));
         await page.screenshot({path: `capturas/freestyle-nube-chico-${tema}.png`});
+        await page.locator('#musica-plegar').click();
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
         assert.equal(await page.evaluate(() => window.__scFs.paused), false);
@@ -1591,6 +1608,16 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-play').isVisible(), false);
         await page.waitForFunction(() => !['1:00', '0:00'].includes(document.getElementById('fs-cuenta').textContent));
         assert.equal(await page.evaluate(() => document.body.classList.contains('beat-sonando')), false);
+        // Un archivo también tiene 3 tamaños: chico → mini → grande (con una nota en el cuadro) → chico.
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        await page.locator('#musica-plegar').click();
+        assert.ok((await page.locator('#reproductor').boundingBox()).height <= 60);
+        await page.locator('#musica-agrandar').click();
+        assert.equal(await page.locator('#reproductor-marco .reproductor-sin-portada').isVisible(), true);
+        await page.screenshot({path: `capturas/freestyle-archivo-grande-${tema}.png`});
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        assert.equal(await page.evaluate(() => document.querySelector('#reproductor-oculto audio').paused), false);
         await page.locator('#musica-cerrar').click();
         assert.equal((await page.locator('#fs-recientes .usar-reciente').first().textContent()), 'boom-bap-jazz (CELULAR)');
         // Ya no se cae ninguno: entran hasta 10, y la lista se desliza sin agrandar el cajón.

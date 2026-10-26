@@ -727,6 +727,8 @@ $('sugerencias').addEventListener('click', e => {
 // Estado del reproductor. Vive arriba porque el teclado, al abrirse, pregunta si hay que pausar.
 let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
 let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = false;
+// SoundCloud y los archivos tienen 3 tamaños: grande, chico (plegado) y mini (plegado y mini).
+let mini = false;
 let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null, momentoActual = 0;
 // La marca imantada del tema que suena (en segundos) y si al terminar vuelve a ella.
@@ -2703,7 +2705,8 @@ const ICONO_PLAY = '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d
 
 function pintarProgreso() {
     const fraccion = fraccionDe(actual, duracion);
-    $('musica-tiempo').textContent = formatoTiempo(actual);
+    // En mini, el tiempo que falta («-1:44»), como en la referencia de Swa.
+    $('musica-tiempo').textContent = $('reproductor').classList.contains('mini') ? `-${formatoTiempo(Math.max(0, duracion - actual))}` : formatoTiempo(actual);
     $('musica-duracion').textContent = formatoTiempo(duracion);
     $('musica-llenado').style.width = `${fraccion * 100}%`;
     $('musica-punto').style.left = `${fraccion * 100}%`;
@@ -2759,12 +2762,16 @@ function aplicarVideo() {
     card.classList.toggle('youtube', Boolean(esYouTube));
     card.classList.toggle('plegado', Boolean(esYouTube && plegado));
     card.classList.toggle('grande', grande);
-    $('musica-plegar').hidden = !grande;
+    // Grande → chico → mini → grande (pedido de Swa). YouTube no: plegado no puede sonar.
+    const conTamanos = Boolean(musica && !esYouTube && plegado);
+    card.classList.toggle('mini', conTamanos && mini);
+    $('musica-plegar').hidden = !(grande || (conTamanos && !mini));
     $('musica-mostrar').hidden = !(esYouTube && plegado);
     $('musica-nota-youtube').hidden = !(esYouTube && plegado);
-    // SoundCloud chico, en la libreta o arriba de la barra: la flechita lo agranda.
-    $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && plegado);
+    // En mini, la flechita para arriba lo agranda.
+    $('musica-agrandar').hidden = !(conTamanos && mini);
     mostrarEstadoMusica();
+    pintarProgreso();
     ubicarReproductor();
 }
 
@@ -3029,6 +3036,9 @@ function escucharArchivo(archivo, titulo) {
     $('reproductor').hidden = false;
     document.body.classList.add('con-musica');
     musica = { fuente: 'archivo', lista: false };
+    // Arranca chico, como SoundCloud. Grande, en el cuadro va una nota musical.
+    plegado = true;
+    $('reproductor-marco').innerHTML = '<div class="reproductor-sin-portada"><svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>';
     aplicarVideo();
     archivoSonando = archivo;
     const audio = new Audio(URL.createObjectURL(archivo));
@@ -3080,6 +3090,7 @@ function cerrarMusica() {
     cancionActual = null;
     sonando = false;
     plegado = false;
+    mini = false;
     plegarAlPausar = false;
     falloMusica = false;
     arrastrando = false;
@@ -3145,12 +3156,15 @@ $('musica-mostrar').addEventListener('click', () => {
     if (decision.accion === 'reproducir') musica.reproducir();
 });
 $('musica-plegar').addEventListener('click', () => {
-    if (!musica || plegado) return;
-    // SoundCloud se achica y sigue sonando: no hay video que tenga que verse.
-    if (musica.fuente === 'soundcloud') {
+    if (!musica) return;
+    // SoundCloud y los archivos se achican y siguen sonando: no hay video que tenga que verse.
+    // Desde chico, la flecha para abajo lo deja en mini.
+    if (musica.fuente !== 'youtube') {
+        mini = plegado;
         plegado = true;
         return aplicarVideo();
     }
+    if (plegado) return;
     const decision = plegarVideo(sonando);
     plegado = true;
     if (decision.pausar) {
@@ -3159,8 +3173,9 @@ $('musica-plegar').addEventListener('click', () => {
     } else aplicarVideo();
 });
 $('musica-agrandar').addEventListener('click', () => {
-    if (musica?.fuente !== 'soundcloud') return;
+    if (!musica || musica.fuente === 'youtube') return;
     plegado = false;
+    mini = false;
     aplicarVideo();
 });
 // Las flechas cambian de canción en una playlist. Para moverse en el tema está la barra.

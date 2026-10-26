@@ -136,11 +136,11 @@ export function pausarAlOcultar({ fuente, sonando, visible }) {
 }
 
 // Formato grande (cuadro de 200 al lado de los controles): YouTube siempre que no esté
-// plegado; SoundCloud, con la portada, cuando se agranda con la flecha (también en la
-// libreta, pedido de Swa). Plegado, SoundCloud sigue sonando.
+// plegado; SoundCloud (con la portada) y los archivos (con una nota musical), cuando se
+// agrandan con la flecha (también en la libreta, pedido de Swa). Plegados siguen sonando.
 export function tarjetaGrande({ fuente, plegado }) {
     if (plegado) return false;
-    return fuente === 'youtube' || fuente === 'soundcloud';
+    return fuente === 'youtube' || fuente === 'soundcloud' || fuente === 'archivo';
 }
 
 // Portada de una canción de SoundCloud (getCurrentSound), en 500×500. Si el tema no
