@@ -485,6 +485,8 @@ a { color: var(--acento); text-decoration: none; }
 /* En Rimas, con música sonando, el polvo que sube del Boombap 1 (sin resplandor). */
 #pantalla-rimas { overflow-x: hidden; }
 #pantalla-rimas > .barra-nav, #pantalla-rimas > .titulo-grande, #pantalla-rimas > .contenido { position: relative; z-index: 1; }
+/* Y en Letras, detrás de las tarjetas: la «+» no tiene relleno, así se ve a través. */
+#vista-lista-letras > .barra-nav, #vista-lista-letras > .fila-titulo, #vista-lista-letras > .contenido { position: relative; z-index: 1; }
 
 /* Luces al ritmo del beat (js/efectos.js): las partículas vuelan por toda la pantalla,
    detrás de todo, y se desvanecen antes del 20% de abajo (pedido de Swa). El resplandor
@@ -883,6 +885,8 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 .icono-extras .icono { fill: currentColor; }
 /* Botones de una sola acción, centrados. */
 .celda-centrada { align-items: center; }
+/* Claro / oscuro / sistema: el tilde a la derecha, en el mismo renglón. */
+.celda-tema { flex-direction: row; align-items: center; }
 .marca-apariencia { margin-left: auto; display: flex; color: var(--destacado); }
 .marca-apariencia .icono { width: 20px; height: 20px; }
 

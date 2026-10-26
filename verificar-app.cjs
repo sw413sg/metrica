@@ -1248,6 +1248,11 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#rimas-efecto').getAttribute('data-mood'), 'boombap');
         assert.ok(await page.locator('#rimas-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 50, 'en Rimas hay partículas con música');
         await page.screenshot({path: `capturas/rimas-particulas-${tema}.png`});
+        // Y en Letras, detrás de las tarjetas.
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+        await page.waitForTimeout(1200);
+        assert.ok(await page.locator('#letras-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 50, 'en Letras hay partículas con música');
+        await page.screenshot({path: `capturas/letras-particulas-${tema}.png`});
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         await pararFs();
         // La cruz del reproductor termina la ronda y vuelven los botones de beats y el cajón.
