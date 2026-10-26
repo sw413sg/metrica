@@ -776,6 +776,7 @@ function actualizarDameTema() {
 
 let temaActual = null;
 let filtroTema = 'todas';
+let desamor = false; // la subsección de Amor (pedido de Swa)
 // Las categorías en el orden de Swa, y «Todas» al final.
 const FILTROS_TEMA = [...CATEGORIAS_TEMA, { id: 'todas', nombre: 'Todas' }];
 
@@ -791,7 +792,8 @@ function pintarTema(animar = true) {
     const categoria = CATEGORIAS_TEMA.find(c => c.id === temaActual.categoria);
     // «Amor 37 de 150»: qué número tocó dentro de su categoría (pedido de Swa).
     const { numero, total } = numeroEnCategoria(CONSIGNAS, temaActual);
-    $('tema-categoria').textContent = categoria ? `${categoria.nombre} ${numero} de ${total}` : '';
+    const nombre = temaActual.sub === 'desamor' ? 'Desamor' : categoria?.nombre;
+    $('tema-categoria').textContent = nombre ? `${nombre} ${numero} de ${total}` : '';
     // La última palabra va pegada al ícono de mandar a la nota, así nunca queda solo en un renglón.
     const palabras = temaActual.texto.split(' ');
     $('tema-ultima').textContent = palabras.pop();
@@ -811,7 +813,10 @@ function pintarTema(animar = true) {
 }
 
 function otraTema() {
-    temaActual = siguienteTema(CONSIGNAS, localStorage, { categoria: filtroTema, evitar: temaActual?.id });
+    $('tema-desamor').hidden = filtroTema !== 'amor';
+    $('tema-desamor').setAttribute('aria-pressed', desamor);
+    const sub = filtroTema === 'amor' && desamor ? 'desamor' : null;
+    temaActual = siguienteTema(CONSIGNAS, localStorage, { categoria: filtroTema, sub, evitar: temaActual?.id });
     pintarTema();
 }
 
@@ -860,7 +865,7 @@ function renderListaTema() {
         boton.append(nombre);
         const cuenta = document.createElement('span');
         cuenta.className = 'cuenta-cat';
-        cuenta.textContent = String(categoria.id === 'todas' ? CONSIGNAS.length : CONSIGNAS.filter(t => t.categoria === categoria.id).length);
+        cuenta.textContent = String(categoria.id === 'todas' ? CONSIGNAS.length : CONSIGNAS.filter(t => t.categoria === categoria.id && !t.sub).length);
         boton.append(cuenta);
         if (categoria.id === filtroTema) {
             const tilde = document.createElement('span');
@@ -879,8 +884,9 @@ function renderListaTema() {
 }
 
 $('dame-tema').addEventListener('click', () => {
-    // Arranca en Amor (pedido de Swa).
+    // Arranca en Amor, con Desamor apagado (pedido de Swa).
     filtroTema = 'amor';
+    desamor = false;
     mostrarFichaTema();
     $('hoja-tema').hidden = false;
     sincronizarChips();
@@ -888,6 +894,10 @@ $('dame-tema').addEventListener('click', () => {
     temaActual = null;
     otraTema();
     document.activeElement?.blur();
+});
+$('tema-desamor').addEventListener('click', () => {
+    desamor = !desamor;
+    otraTema();
 });
 $('tema-otra').addEventListener('click', () => {
     $('tema-otra').classList.remove('gira');

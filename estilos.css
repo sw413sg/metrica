@@ -1344,6 +1344,8 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 #caja-tema .controles-azar { margin-top: 16px; justify-content: flex-end; }
 /* El refrescar va a la derecha de «Al baúl», un poco más grande (pedido de Swa). */
 #tema-otra { width: 46px; height: 46px; }
+#tema-desamor[hidden] { display: none; }
+#tema-desamor:not([hidden]) + #tema-baul { margin-left: 0; }
 #tema-otra .icono { width: 23px; height: 23px; }
 .baul-tema { display: inline-flex; align-items: center; gap: 6px; }
 .baul-tema .icono { width: 18px; height: 18px; }
