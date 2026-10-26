@@ -1064,6 +1064,9 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* En la fila del reproductor chico todos los botones miden lo mismo que el play (y el REC),
    así quedan con la misma separación (pedido de Swa). */
 .reproductor:not(.grande) .reproductor-principal .boton-musica, .sonando-fs .boton-musica { width: 40px; height: 40px; }
+/* El pin y la flecha no tienen fondo: entre sus dibujos se veía más aire que entre los
+   círculos del REC y el play. Juntos, quedan a la misma distancia a la vista (pedido de Swa). */
+.reproductor:not(.grande) #musica-marca { margin-right: -10px; }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
 /* Sin playlist las flechas de canción se ven apagadas. */
