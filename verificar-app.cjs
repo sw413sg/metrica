@@ -68,6 +68,9 @@ const servidor = http.createServer((req, res) => {
         const tachoGrab = await filaGrab.locator('.borrar-grabacion').boundingBox();
         assert.ok(barraGrab.y > tituloGrab.y && barraGrab.x >= tituloGrab.x - 1 && barraGrab.x > playGrab.x + playGrab.width, JSON.stringify({tituloGrab, barraGrab, playGrab}));
         assert.ok(barraGrab.x + barraGrab.width < tachoGrab.x, 'la barra no pasa por abajo de descargar y borrar');
+        // Como la foto de Swa: las cajas y los volúmenes, grises y sin el borde de vidrio.
+        for (const sel of ['#lista-grabaciones .grabacion', '#volumenes-grabaciones', '#cerrar-grabaciones'])
+            assert.equal(await page.locator(sel).first().evaluate(e => getComputedStyle(e).borderTopWidth), '0px', sel);
         await page.waitForTimeout(500);
         await page.screenshot({path: `capturas/grabaciones-${tema}.png`});
         await page.locator('#cerrar-grabaciones').click();

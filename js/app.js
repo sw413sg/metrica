@@ -2632,7 +2632,7 @@ function olvidarDescargas() {
 
 function filaGrabacion(g) {
     const fila = document.createElement('li');
-    fila.className = 'grabacion vidrio';
+    fila.className = 'grabacion';
     fila.dataset.id = g.id;
     const { titulo } = describirGrabacion(g);
     // Una fila: el play, el título con la barra abajo (comienzo y final, sin la fecha ni la

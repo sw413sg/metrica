@@ -249,7 +249,7 @@ a { color: var(--acento); text-decoration: none; }
     margin: 0; font-size: 15px; line-height: 1.35; color: var(--texto); white-space: pre-wrap; overflow-wrap: anywhere; outline: none;
     display: -webkit-box; -webkit-line-clamp: 9; -webkit-box-orient: vertical; overflow: hidden;
 }
-.tarjeta-frase.editando { box-shadow: 0 0 0 2px color-mix(in srgb, var(--destacado) 55%, transparent); }
+.tarjeta-frase.editando { box-shadow: 0 0 0 2px color-mix(in srgb, var(--destacado) 45%, transparent); }
 .tarjeta-frase.editando .texto-frase { display: block; -webkit-user-select: text; user-select: text; }
 /* Las usadas llevan un circulito con un check abajo a la derecha, con poca opacidad. */
 .check-usada {
@@ -1265,20 +1265,24 @@ body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { displ
 #pantalla-freestyle.jugando .boton-grabaciones { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
 /* Grabaciones: arriba los volúmenes; cada grabación en una caja compacta. */
 /* Los dos volúmenes en un renglón, mitad y mitad, con el nombre adentro de la barra (pedidos de Swa). */
-.volumenes-grabaciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
+.volumenes-grabaciones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
 .volumen-grabacion {
-    position: relative; height: 36px; border-radius: 18px; overflow: hidden; background: var(--relleno);
+    position: relative; height: 44px; border-radius: 22px; overflow: hidden; background: var(--tarjeta);
     display: flex; align-items: center; justify-content: space-between; padding: 0 14px;
     font-size: 14px; font-weight: 600; color: var(--texto);
 }
-.relleno-volumen { position: absolute; inset: 0 auto 0 0; width: var(--progreso, 0%); background: color-mix(in srgb, var(--destacado) 55%, transparent); }
+.relleno-volumen { position: absolute; inset: 0 auto 0 0; width: var(--progreso, 0%); background: color-mix(in srgb, var(--destacado) 45%, transparent); }
 .nombre-volumen, .valor-volumen { position: relative; pointer-events: none; }
 .valor-volumen { font-variant-numeric: tabular-nums; }
 .volumen-grabacion input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+/* Como la foto de Swa: hoja lisa y cajas grises sin el borde de vidrio. */
+#grabaciones .hoja { background: var(--fondo); }
+#cerrar-grabaciones { width: 36px; height: 36px; background: var(--tarjeta); border: 0; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; color: var(--texto-2); }
+#cerrar-grabaciones .icono { width: 18px; height: 18px; }
 /* Se ven 4 como mucho; las demás, deslizando adentro de la lista (pedido de Swa). */
-.lista-grabaciones { list-style: none; margin: 0; padding: 0; max-height: calc(4 * (var(--alto-grabacion) + 10px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; --alto-grabacion: 70px; }
+.lista-grabaciones { list-style: none; margin: 0; padding: 0; max-height: calc(4 * (var(--alto-grabacion) + 10px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; --alto-grabacion: 68px; }
 .lista-grabaciones::-webkit-scrollbar { display: none; }
-.grabacion { margin-top: 10px; border-radius: 30px; padding: 12px 10px 12px 14px; }
+.grabacion { margin-top: 10px; border-radius: 22px; padding: 12px 10px 12px 14px; background: var(--tarjeta); }
 /* Como la referencia de Swa: el play gris a la izquierda, el título con la barra abajo y
    descargar y borrar a la derecha, todo en una fila. */
 .cabecera-grabacion { display: flex; align-items: center; gap: 12px; }
