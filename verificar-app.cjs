@@ -450,6 +450,16 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
         assert.equal(await page.locator('#musica-plegar').isVisible(), true);
+        // En grande, la cruz va en la fila de la marca; abajo, la doble flecha, el REC y la flecha.
+        const cajaBoton = id => page.locator(id).boundingBox();
+        const [cruzG, marcaG, miniG, recG, plegarG] = await Promise.all(['#musica-cerrar', '#musica-marca', '#musica-mini', '#reproductor [data-rec]', '#musica-plegar'].map(cajaBoton));
+        assert.ok(Math.abs(cruzG.y + cruzG.height / 2 - (marcaG.y + marcaG.height / 2)) <= 2, JSON.stringify({cruzG, marcaG}));
+        assert.ok(miniG.x < recG.x && recG.x < plegarG.x, JSON.stringify({miniG, recG, plegarG}));
+        await page.screenshot({path: `capturas/reproductor-grande-libreta-${tema}.png`});
+        // La doble flecha lo deja en mini de una.
+        await page.locator('#musica-mini').click();
+        assert.equal(await page.locator('#reproductor').evaluate(e => e.classList.contains('mini')), true);
+        await page.locator('#musica-agrandar').click();
         await page.locator('#musica-plegar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
