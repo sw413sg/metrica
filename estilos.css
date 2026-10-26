@@ -485,6 +485,8 @@ a { color: var(--acento); text-decoration: none; }
 /* En Rimas, con música sonando, el polvo que sube del Boombap 1 (sin resplandor). */
 #pantalla-rimas { overflow-x: hidden; }
 #pantalla-rimas > .barra-nav, #pantalla-rimas > .titulo-grande, #pantalla-rimas > .contenido { position: relative; z-index: 1; }
+/* Y en Letras, detrás de las tarjetas: la «+» no tiene relleno, así se ve a través. */
+#vista-lista-letras > .barra-nav, #vista-lista-letras > .fila-titulo, #vista-lista-letras > .contenido { position: relative; z-index: 1; }
 
 /* Luces al ritmo del beat (js/efectos.js): las partículas vuelan por toda la pantalla,
    detrás de todo, y se desvanecen antes del 20% de abajo (pedido de Swa). El resplandor
@@ -883,6 +885,8 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 .icono-extras .icono { fill: currentColor; }
 /* Botones de una sola acción, centrados. */
 .celda-centrada { align-items: center; }
+/* Claro / oscuro / sistema: el tilde a la derecha, en el mismo renglón. */
+.celda-tema { flex-direction: row; align-items: center; }
 .marca-apariencia { margin-left: auto; display: flex; color: var(--destacado); }
 .marca-apariencia .icono { width: 20px; height: 20px; }
 
@@ -1042,10 +1046,12 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor.grande #musica-siguiente { grid-column: 3; grid-row: 1; justify-self: end; }
 .reproductor.grande #musica-marca { grid-column: 1; grid-row: 2; justify-self: start; }
 .reproductor.grande #musica-bucle { grid-column: 2; grid-row: 2; justify-self: center; }
-.reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
-.reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 3; justify-self: end; }
+.reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 2; justify-self: end; }
+/* Abajo: la doble flecha (a mini), el REC y la flecha (a chico), pedido de Swa. */
+.reproductor.grande #musica-mini { grid-column: 1; grid-row: 3; justify-self: start; }
+.reproductor.grande #musica-plegar { grid-column: 3; grid-row: 3; justify-self: end; }
 .reproductor.grande .rec-reproductor { grid-column: 2; grid-row: 3; justify-self: center; }
-#musica-marca[aria-pressed="false"], #musica-bucle[aria-pressed="false"] { color: var(--texto-2); }
+#musica-marca[aria-pressed="false"] { color: var(--texto-2); }
 /* En chico, en la libreta van la marca y el bucle sin las flechas, y en las otras secciones
    las flechas sin la marca ni el bucle. Agrandado va todo (pedido de Swa). */
 body.editando .reproductor:not(.grande) #musica-anterior,
@@ -1056,11 +1062,34 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 #musica-bucle .icono-relleno { fill: currentColor; stroke: none; }
 .reproductor.plegado #musica-anterior,
 .reproductor.plegado #musica-siguiente,
-#musica-plegar[hidden], #musica-agrandar[hidden] { display: none; }
+#musica-plegar[hidden], #musica-agrandar[hidden], #musica-mini[hidden] { display: none; }
 .boton-musica, .boton-play { border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
 .boton-musica { width: 36px; height: 36px; color: var(--texto); }
 .boton-cerrar { color: var(--texto-2); }
 .boton-play { width: 40px; height: 40px; background: var(--texto); color: var(--libreta); }
+/* En la fila del reproductor chico todos los botones miden lo mismo que el play (y el REC),
+   así quedan con la misma separación (pedido de Swa). */
+.reproductor:not(.grande) .reproductor-principal .boton-musica, .sonando-fs .boton-musica { width: 40px; height: 40px; }
+/* Los íconos sin fondo (pin, flecha que gira, flecha y cruz) miden lo que su dibujo, así
+   entre todos (también los círculos del REC y el play) queda el mismo aire a la vista
+   (pedido de Swa). La zona para tocarlos se estira a los costados. */
+.reproductor:not(.grande):not(.mini) .reproductor-principal { gap: 10px; }
+/* Más aire, medido de la imagen de Swa: 18 entre el pin, la flecha que gira y el REC, 10 entre
+   el REC y el play, 12 hasta la flecha y 15 hasta la cruz. */
+.reproductor:not(.grande):not(.mini) #musica-marca,
+.reproductor:not(.grande):not(.mini) #musica-bucle { margin-right: 8px; }
+.reproductor:not(.grande):not(.mini) #musica-plegar,
+.reproductor:not(.grande):not(.mini) #musica-agrandar { margin-left: 2px; }
+.reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica { position: relative; display: flex; justify-content: center; align-items: center; }
+.reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica .icono { flex-shrink: 0; }
+.reproductor:not(.grande):not(.mini) .reproductor-principal .boton-musica::after { content: ''; position: absolute; inset: 0 -4px; }
+.reproductor:not(.grande):not(.mini) #musica-marca { width: 14px; }
+.reproductor:not(.grande):not(.mini) #musica-bucle { width: 17px; }
+.reproductor:not(.grande):not(.mini) #musica-plegar,
+.reproductor:not(.grande):not(.mini) #musica-agrandar,
+.reproductor:not(.grande):not(.mini) #musica-cerrar { width: 13px; }
+/* La cruz, un poco más lejos de la flecha y más cerca del borde (pedido de Swa). */
+.reproductor:not(.grande):not(.mini) #musica-cerrar { margin-left: 5px; margin-right: 4px; }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
 /* Sin playlist las flechas de canción se ven apagadas. */
@@ -1101,6 +1130,32 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* YouTube achicado: abajo del botón, por qué no puede seguir sonando así. */
 .reproductor-nota { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--texto-2); text-align: center; }
 .reproductor-nota[hidden] { display: none; }
+/* Mini (SoundCloud y archivos, pedido de Swa): una sola fila con el tiempo, la barra,
+   el REC, el play y la flecha para agrandarlo. */
+/* Mide 34 en total (pedido de Swa): botones de 28 y la barra con su zona táctil de 44,
+   que se pasa por arriba y por abajo sin agrandar la tarjeta. */
+.reproductor.mini:not(.grande) .reproductor-cuerpo { flex-direction: row; align-items: center; gap: 10px; padding: 2px 3px 2px 14px; }
+.reproductor.mini:not(.grande) .reproductor-barra { order: -1; flex: 1; min-width: 0; margin: -8px 0; }
+.reproductor.mini:not(.grande) .reproductor-principal { flex-shrink: 0; height: 28px; gap: 8px; }
+/* La flecha: su dibujo es angosto, así queda a la vista con el mismo aire que el REC y el play. */
+.reproductor.mini #musica-agrandar { margin-left: -2px; }
+.reproductor.mini:not(.grande) .reproductor-principal .boton-musica,
+.reproductor.mini .boton-play { width: 28px; height: 28px; }
+.reproductor.mini .rec-reproductor { height: 28px; }
+/* En mini, el REC va a la izquierda del play (pedido de Swa). */
+.reproductor.mini .rec-reproductor:not(.grabando) { width: 28px; }
+.reproductor.mini .rec-reproductor:not(.grabando) .punto-rec { width: 12px; height: 12px; }
+.reproductor.mini .rec-reproductor:not(.grabando) .punto-rec::after { width: 16px; }
+.reproductor.mini .boton-musica .icono, .reproductor.mini .boton-play .icono { width: 16px; height: 16px; }
+.reproductor.mini .reproductor-datos,
+.reproductor.mini #musica-marca,
+.reproductor.mini #musica-bucle,
+.reproductor.mini #musica-cerrar,
+.reproductor.mini #musica-duracion { display: none; }
+.reproductor.mini #musica-tiempo { width: auto; min-width: 36px; }
+/* Un archivo del teléfono no tiene portada: en el cuadro grande va una nota musical. */
+.reproductor-sin-portada { width: 100%; height: 100%; display: grid; place-items: center; color: var(--texto-3); background: var(--relleno); }
+.reproductor-sin-portada .icono { width: 64px; height: 64px; }
 /* SoundCloud: fuera de la pantalla, y fuera de la tarjeta para que el teclado no lo corte. */
 /* El iframe de SoundCloud no se ve, pero queda adentro de la pantalla (invisible y detrás
    de todo): fuera de pantalla el navegador frena los iframes de otro sitio, y al saltar en
@@ -1120,6 +1175,8 @@ body.con-musica.editando:not(.teclado-abierto) .editor-cuerpo {
 #hoja-musica { background: none; }
 /* Como el editor: ocupa solo lo que se ve, así el teclado no tapa el cajón (pedido de Swa). */
 #hoja-musica { bottom: auto; top: var(--arriba-visible, 0px); height: var(--alto-visible, 100%); }
+/* Desde Letras, el cajón queda arriba de la barra de pestañas, donde va la tarjeta. */
+body:not(.editando) #hoja-musica .hoja { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
 body.teclado-abierto #hoja-musica .hoja { padding-bottom: 8px; }
 #hoja-musica .hoja {
     max-width: calc(430px - 32px); margin: 0 16px; padding: 0 0 calc(8px + env(safe-area-inset-bottom));
@@ -1148,17 +1205,19 @@ body.eligiendo-musica #reproductor { visibility: hidden; }
     background: var(--texto); transform: translate(-50%, -50%) rotate(-45deg); box-shadow: 0 0 0 1px var(--celda);
 }
 .rec-reproductor:not(.grabando) .punto-rec { position: relative; }
-.rec-reproductor:not(.grabando) .punto-rec::after { width: 20px; }
+.rec-reproductor:not(.grabando) .punto-rec::after { width: 22px; }
 /* Sin grabar, el REC del reproductor es solo el punto rojo cruzado, más grande (sin el texto
    «REC», pedido de Swa); grabando muestra los segundos al lado. */
-.rec-reproductor:not(.grabando) { width: 32px; padding: 0; justify-content: center; }
-.rec-reproductor:not(.grabando) .punto-rec { width: 14px; height: 14px; }
+.rec-reproductor:not(.grabando) { width: 40px; padding: 0; justify-content: center; }
+.rec-reproductor:not(.grabando) .punto-rec { width: 16px; height: 16px; }
 .rec-reproductor:not(.grabando) .tiempo-rec { display: none; }
-.rec-acapella:not(.grabando) { width: 40px; }
+/* Prendido sin sonar nada: el punto sin la raya y con brillo, esperando el play. */
+.rec-reproductor[aria-pressed="true"] .punto-rec::after { display: none; }
+.rec-reproductor[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
 .rec-fs:disabled { opacity: 0.4; }
 .rec-fs[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
 .rec-reproductor {
-    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 16px; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border-radius: 20px; flex-shrink: 0;
     font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); background: var(--celda);
 }
 .rec-reproductor .punto-rec { width: 10px; height: 10px; }
@@ -1216,7 +1275,11 @@ body.tema-de-grabacion #grabaciones .hoja { max-height: calc(100% - var(--alto-t
 body.tema-de-grabacion .reproductor [data-rec] { display: none; }
 /* Mientras suena, el reproductor chico esconde las flechas y el título gana ese lugar (pedido
    de Swa). La de adelante deja su hueco, así el play no se mueve. */
-.sonando-fs.sonando #fs-beat-anterior, .reproductor.sonando:not(.grande) #musica-anterior { display: none; }
+.sonando-fs.sonando #fs-beat-anterior { display: none; }
+.sonando-fs.sonando #fs-beat-siguiente { visibility: hidden; }
+/* El reproductor de links, en chico, nunca lleva flechas (tampoco con playlist): aparecen
+   al agrandarlo, y así el play queda al lado de la cruz (pedido de Swa). */
+.reproductor:not(.grande) #musica-anterior, .reproductor:not(.grande) #musica-siguiente { display: none; }
 
 /* Dame un tema: botón de vidrio arriba del teclado, y la hoja que sube desde abajo. */
 #dame-tema {
@@ -1283,7 +1346,6 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 .tilde-cat { margin-left: 4px; color: var(--destacado); font-weight: 700; }
 .cuenta-cat:empty + .tilde-cat { margin-left: auto; }
 .nota-tema { margin: 8px 12px 0; font-size: 13px; color: var(--texto-2); }
-.sonando-fs.sonando #fs-beat-siguiente, .reproductor.sonando:not(.grande) #musica-siguiente { visibility: hidden; }
 /* Con un reproductor abierto (aunque esté en pausa), el REC es el suyo: el de la bandeja no va. */
 body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { display: none; }
 /* Micrófono y salida, en Ajustes: el selector a la derecha, como un Picker de iOS. */

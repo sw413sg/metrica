@@ -26,11 +26,17 @@
         <!-- Letras (NavigationStack: lista -> editor) -->
         <section class="pantalla activa" id="pantalla-letras" data-pestana="letras">
             <div class="vista activa" id="vista-lista-letras">
+                <!-- Con música sonando, el mismo polvo de Rimas detrás de las tarjetas (js/efectos.js). -->
+                <canvas class="efecto-fs" id="letras-efecto" aria-hidden="true"></canvas>
                 <header class="barra-nav"></header>
                 <!-- El título y, en la misma línea, el cofre del baúl de frases. -->
                 <div class="fila-titulo">
                     <h1 class="titulo-grande">Letras</h1>
                     <div class="acciones-barra">
+                        <!-- La nota musical, también desde Letras: el mismo cajón que en la libreta (pedido de Swa). -->
+                        <button class="boton-barra" id="abrir-musica-letras" aria-label="Escuchar música">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
+                        </button>
                         <!-- Las grabaciones, también desde Letras (la misma hoja que en Freestyle). -->
                         <button class="boton-barra boton-grabaciones" data-grabaciones aria-label="Grabaciones">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>
@@ -278,13 +284,11 @@
                         <span class="chevron">›</span>
                     </li>
                 </ul>
-                <!-- Apariencia de la app (Picker .inline): aparte de los temas de cada libreta. -->
+                <!-- Apariencia de la app (Picker .inline): aparte de los temas de cada libreta. Abajo,
+                     cuántas luces hay en Freestyle, Rimas y Letras (Slider con step en SwiftUI; pedido de Swa). -->
                 <h2 class="encabezado-grupo">Apariencia</h2>
-                <ul class="lista-agrupada" id="apariencia"></ul>
-                <!-- Freestyle: cuántas luces hay alrededor del aro (Slider con step en SwiftUI). -->
-                <h2 class="encabezado-grupo">Freestyle</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda celda-deslizador">
+                <ul class="lista-agrupada" id="apariencia">
+                    <li class="celda celda-deslizador" id="celda-efectos">
                         <label for="cantidad-efectos">Efectos</label>
                         <span class="valor" id="valor-efectos">5</span>
                         <div class="fila-deslizador">
@@ -292,6 +296,10 @@
                             <div class="puntos-deslizador" id="puntos-efectos"></div>
                         </div>
                     </li>
+                </ul>
+                <!-- Freestyle: cada cuánto cambia la palabra. -->
+                <h2 class="encabezado-grupo">Freestyle</h2>
+                <ul class="lista-agrupada">
                     <li class="celda celda-deslizador">
                         <label for="velocidad-palabras">Velocidad cambio palabras</label>
                         <span class="valor" id="valor-velocidad">5</span>
@@ -385,8 +393,8 @@
                         <button class="boton-musica" id="musica-marca" aria-label="Marcar este momento" aria-pressed="false">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>
                         </button>
-                        <button class="boton-musica" id="musica-bucle" aria-label="Al terminar, volver a la marca" aria-pressed="false" aria-disabled="true">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><path class="icono-relleno" d="M12 16.5s-3-2.8-3-5.1a3 3 0 0 1 6 0c0 2.3-3 5.1-3 5.1zm0-4.1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill-rule="evenodd"/></svg>
+                        <button class="boton-musica" id="musica-bucle" aria-label="Volver a la marca" aria-disabled="true">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><path class="icono-relleno" d="M12 17.5s-3.8-3.5-3.8-6.5a3.8 3.8 0 0 1 7.6 0c0 3-3.8 6.5-3.8 6.5zm0-5.2a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6z" fill-rule="evenodd"/></svg>
                         </button>
                         <button type="button" class="rec-reproductor" data-rec aria-label="Grabar desde acá"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
                         <button class="boton-musica" id="musica-anterior" aria-label="Canción anterior">
@@ -400,6 +408,10 @@
                         </button>
                         <button class="boton-musica" id="musica-plegar" hidden aria-label="Achicar el reproductor">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        <!-- Grande: la doble flecha lo deja en mini de una (pedido de Swa). -->
+                        <button class="boton-musica" id="musica-mini" hidden aria-label="Minimizar el reproductor">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l6 6 6-6M6 13l6 6 6-6"/></svg>
                         </button>
                         <button class="boton-musica" id="musica-agrandar" hidden aria-label="Ver la portada">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M6 15l6-6 6 6"/></svg>

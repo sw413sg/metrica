@@ -39,6 +39,18 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#pantalla-letras').isVisible(), true);
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
         await page.screenshot({path: `capturas/letras-${tema}.png`});
+        // La nota musical, a la izquierda de Grabaciones, abre el cajón arriba de la barra de pestañas.
+        const notaLetras = await page.locator('#abrir-musica-letras').boundingBox();
+        assert.ok(notaLetras.x < (await page.locator('#pantalla-letras [data-grabaciones]').boundingBox()).x);
+        await page.locator('#abrir-musica-letras').click();
+        assert.equal(await page.locator('#hoja-musica').isVisible(), true);
+        await page.waitForTimeout(300);
+        const cajonLetras = await page.locator('#fs-cajon').boundingBox();
+        const barraLetras = await page.locator('#barra-pestanas').boundingBox();
+        assert.ok(cajonLetras.y + cajonLetras.height <= barraLetras.y, JSON.stringify({cajonLetras, barraLetras}));
+        await page.screenshot({path: `capturas/letras-musica-${tema}.png`});
+        await page.mouse.click(200, 150);
+        assert.equal(await page.locator('#hoja-musica').isVisible(), false);
 
         // Baúl de frases: anotar, editar en la tarjeta, marcar como usada desde el menú y buscar.
         await page.locator('#abrir-baul').click();
@@ -428,19 +440,46 @@ const servidor = http.createServer((req, res) => {
         await page.evaluate(() => document.body.classList.remove('teclado-abierto'));
         await page.locator('#reproductor-titulo', {hasText: 'Tema nube'}).waitFor();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
-        assert.equal(await page.locator('#musica-plegar').isVisible(), false);
+        // Chico: la flecha apunta abajo y lo deja en mini (pedido de Swa).
+        assert.equal(await page.locator('#musica-plegar').isVisible(), true);
         assert.equal(await page.locator('#musica-mostrar').isVisible(), false);
         assert.equal((await page.locator('#reproductor-fuente').textContent()).trim(), 'SoundCloud');
         // Chico: una fila con el título (sin la fuente) y la barra; la flecha lo agranda (pedido de Swa).
         assert.equal(await page.locator('#reproductor-fuente').isVisible(), false);
-        assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
+        assert.equal(await page.locator('#musica-agrandar').isVisible(), false);
         const nube = await page.locator('#reproductor').boundingBox();
         assert.ok(Math.abs(nube.height - 80) <= 2, JSON.stringify(nube));
         await page.screenshot({path: `capturas/reproductor-chico-libreta-${tema}.png`});
-        // En la libreta también se agranda (el formato alto) y se vuelve a achicar sin cortarse.
+        // Mini: una fila con lo que falta, la barra, el play y la flecha para arriba, sin cortarse.
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#reproductor').evaluate(e => e.classList.contains('mini')), true);
+        assert.equal(await page.locator('#reproductor-titulo').isVisible(), false);
+        assert.equal(await page.locator('#musica-cerrar').isVisible(), false);
+        assert.equal(await page.locator('#musica-plegar').isVisible(), false);
+        const recMini = await page.locator('#reproductor [data-rec]').boundingBox();
+        assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).x - (recMini.x + recMini.width)), 8, 'el REC va a la izquierda del play, a 8');
+        assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
+        assert.match(await page.locator('#musica-tiempo').textContent(), /^\d+:\d\d$/);
+        const miniCaja = await page.locator('#reproductor').boundingBox();
+        assert.ok(Math.abs(miniCaja.height - 34) <= 1, JSON.stringify(miniCaja));
+        const miniPista = await page.locator('#musica-pista').boundingBox();
+        assert.ok(miniPista.width > 150, JSON.stringify(miniPista));
+        assert.equal(await page.evaluate(() => window.__sc.paused), false);
+        await page.screenshot({path: `capturas/reproductor-mini-libreta-${tema}.png`});
+        // Desde mini, la flecha lo agranda (el formato alto) y abajo vuelve a chico sin cortarse.
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
         assert.equal(await page.locator('#musica-plegar').isVisible(), true);
+        // En grande, la cruz va en la fila de la marca; abajo, la doble flecha, el REC y la flecha.
+        const cajaBoton = id => page.locator(id).boundingBox();
+        const [cruzG, marcaG, miniG, recG, plegarG] = await Promise.all(['#musica-cerrar', '#musica-marca', '#musica-mini', '#reproductor [data-rec]', '#musica-plegar'].map(cajaBoton));
+        assert.ok(Math.abs(cruzG.y + cruzG.height / 2 - (marcaG.y + marcaG.height / 2)) <= 2, JSON.stringify({cruzG, marcaG}));
+        assert.ok(miniG.x < recG.x && recG.x < plegarG.x, JSON.stringify({miniG, recG, plegarG}));
+        await page.screenshot({path: `capturas/reproductor-grande-libreta-${tema}.png`});
+        // La doble flecha lo deja en mini de una.
+        await page.locator('#musica-mini').click();
+        assert.equal(await page.locator('#reproductor').evaluate(e => e.classList.contains('mini')), true);
+        await page.locator('#musica-agrandar').click();
         await page.locator('#musica-plegar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
@@ -463,7 +502,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-anterior').isVisible(), false);
         assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
         const marcaBoton = await page.locator('#musica-marca').boundingBox();
-        assert.equal(Math.round(marcaBoton.width), 36);
+        // Entre todos los botones de la fila queda el mismo aire, y la cruz un poco más lejos (pedido de Swa).
+        const huecos = await page.evaluate(() => {
+            const cajas = [...document.querySelectorAll('#reproductor .reproductor-acciones > *')].filter(b => b.offsetWidth).map(b => b.getBoundingClientRect());
+            return cajas.slice(1).map((c, i) => Math.round(c.left - cajas[i].right));
+        });
+        assert.deepEqual(huecos, [18, 18, 10, 12, 15]);
         assert.ok((await page.locator('#musica-bucle').boundingBox()).x > marcaBoton.x);
         assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
         await page.locator('#musica-marca').click();
@@ -473,13 +517,17 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
         await page.mouse.click(pistaNube.x + pistaNube.width * 0.8, pistaNube.y + pistaNube.height / 2);
         assert.ok(await page.evaluate(() => window.__sc.pos) > enLaMarca + 30000);
-        // El bucle: al terminar el tema vuelve a la marca y sigue sonando.
+        // El botón de al lado de la marca vuelve a ella y sigue sonando (pedido de Swa).
         await page.locator('#musica-bucle').click();
-        assert.equal(await page.locator('#musica-bucle').getAttribute('aria-pressed'), 'true');
-        await page.evaluate(() => { window.__sc.pos = 179000; window.__sc.paused = true; window.__sc.onFINISH(); });
         assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         await page.screenshot({path: `capturas/reproductor-marca-${tema}.png`});
+        // Con la barra en la marca, tocar el pin la borra (y otro toque la vuelve a poner).
+        await page.locator('#musica-marca').click();
+        assert.equal(await page.locator('#musica-marca-punto').isVisible(), false);
+        assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
+        await page.locator('#musica-marca').click();
+        assert.equal(await page.locator('#musica-marca-punto').isVisible(), true);
         await page.evaluate(() => document.body.classList.add('teclado-abierto'));
         assert.equal(await page.locator('#reproductor').isVisible(), false);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
@@ -1270,6 +1318,11 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#rimas-efecto').getAttribute('data-mood'), 'boombap');
         assert.ok(await page.locator('#rimas-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 50, 'en Rimas hay partículas con música');
         await page.screenshot({path: `capturas/rimas-particulas-${tema}.png`});
+        // Y en Letras, detrás de las tarjetas.
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+        await page.waitForTimeout(1200);
+        assert.ok(await page.locator('#letras-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }) > 50, 'en Letras hay partículas con música');
+        await page.screenshot({path: `capturas/letras-particulas-${tema}.png`});
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         await pararFs();
         // La cruz del reproductor termina la ronda y vuelven los botones de beats y el cajón.
@@ -1541,6 +1594,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-play').click();
         assert.equal(await page.locator('#musica-marca').isVisible(), false);
         assert.equal(await page.locator('#musica-bucle').isVisible(), false);
+        await page.locator('#musica-plegar').click();
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#musica-marca').isVisible(), true);
         assert.equal(await page.locator('#musica-bucle').isVisible(), true);
@@ -1566,6 +1620,7 @@ const servidor = http.createServer((req, res) => {
         assert.ok(chica.y - (bandejaChica.y + bandejaChica.height) <= 16, 'la bandeja baja con la tarjeta chica');
         assert.ok(Math.abs(chica.height - 80) <= 2, JSON.stringify(chica));
         await page.screenshot({path: `capturas/freestyle-nube-chico-${tema}.png`});
+        await page.locator('#musica-plegar').click();
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#reproductor-marco').isVisible(), true);
         assert.equal(await page.evaluate(() => window.__scFs.paused), false);
@@ -1602,6 +1657,16 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-play').isVisible(), false);
         await page.waitForFunction(() => !['1:00', '0:00'].includes(document.getElementById('fs-cuenta').textContent));
         assert.equal(await page.evaluate(() => document.body.classList.contains('beat-sonando')), false);
+        // Un archivo también tiene 3 tamaños: chico → mini → grande (con una nota en el cuadro) → chico.
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        await page.locator('#musica-plegar').click();
+        assert.ok(Math.abs((await page.locator('#reproductor').boundingBox()).height - 34) <= 1);
+        await page.locator('#musica-agrandar').click();
+        assert.equal(await page.locator('#reproductor-marco .reproductor-sin-portada').isVisible(), true);
+        await page.screenshot({path: `capturas/freestyle-archivo-grande-${tema}.png`});
+        await page.locator('#musica-plegar').click();
+        assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
+        assert.equal(await page.evaluate(() => document.querySelector('#reproductor-oculto audio').paused), false);
         await page.locator('#musica-cerrar').click();
         assert.equal((await page.locator('#fs-recientes .usar-reciente').first().textContent()), 'boom-bap-jazz (CELULAR)');
         // Ya no se cae ninguno: entran hasta 10, y la lista se desliza sin agrandar el cajón.

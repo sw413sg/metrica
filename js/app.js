@@ -46,6 +46,7 @@ function mostrarPestana(nombre) {
     document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
     document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
+    vigilarMusica();
     // En Ajustes el reproductor no se ve, pero lo que suena sigue (salvo YouTube).
     document.body.classList.toggle('en-ajustes', nombre === 'ajustes');
     // Los nombres de los micrófonos y salidas aparecen recién después del primer permiso.
@@ -72,6 +73,7 @@ function mostrarVista(id) {
     ocultarMusicaSiHaceFalta();
     if (musica) aplicarVideo();
     ubicarReproductor();
+    vigilarMusica();
 }
 
 // Las tarjetas en el orden en que se ven (cambia mientras se arrastra una).
@@ -728,10 +730,12 @@ $('sugerencias').addEventListener('click', e => {
 // Estado del reproductor. Vive arriba porque el teclado, al abrirse, pregunta si hay que pausar.
 let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
 let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = false;
+// SoundCloud y los archivos tienen 3 tamaños: grande, chico (plegado) y mini (plegado y mini).
+let mini = false;
 let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null, momentoActual = 0;
 // La marca imantada del tema que suena (en segundos) y si al terminar vuelve a ella.
-let marca = null, volverAMarca = false, cancionActual = null;
+let marca = null, cancionActual = null;
 
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
 if (window.visualViewport) {
@@ -1364,19 +1368,25 @@ $('caja-azar').addEventListener('click', e => {
     e.preventDefault();
 }, true);
 
-// Con música sonando (un link, un archivo o un beat de la app), detrás de Rimas sube el
-// polvo del Boombap 1, sin resplandor (pedido de Swa).
+// Con música sonando (un link, un archivo o un beat de la app), detrás de Rimas y de las
+// tarjetas de Letras sube el polvo del Boombap 1, sin resplandor (pedidos de Swa).
 const efectoRimas = crearEfecto($('rimas-efecto'));
 efectoRimas.configurar({ mood: 'boombap' });
+const efectoLetras = crearEfecto($('letras-efecto'));
+efectoLetras.configurar({ mood: 'boombap' });
 const hayMusica = () => sonando || Boolean(ronda && !linkFreestyle && !esAcapella() && (!ronda.pausa || ronda.sigueSonando));
+const letrasALaVista = () => $('pantalla-letras').classList.contains('activa') && $('vista-lista-letras').classList.contains('activa');
 let vigiaMusica = null;
 function vigilarMusica() {
     clearInterval(vigiaMusica);
     vigiaMusica = null;
-    if (!rimasALaVista) return efectoRimas.apagar();
-    const mirar = () => (hayMusica() ? efectoRimas.prender() : efectoRimas.apagar());
+    const mirar = () => {
+        const hay = hayMusica();
+        if (hay && rimasALaVista) efectoRimas.prender(); else efectoRimas.apagar();
+        if (hay && letrasALaVista()) efectoLetras.prender(); else efectoLetras.apagar();
+    };
     mirar();
-    vigiaMusica = setInterval(mirar, 500);
+    if (rimasALaVista || letrasALaVista()) vigiaMusica = setInterval(mirar, 500);
 }
 $('palabras-simples').addEventListener('click', () => {
     const boton = $('palabras-simples');
@@ -1509,6 +1519,7 @@ function aplicarCantidadEfectos() {
     $('valor-efectos').textContent = String(cantidad);
     efecto.cantidad(cantidad / EFECTOS_MAXIMO);
     efectoRimas.cantidad(cantidad / EFECTOS_MAXIMO);
+    efectoLetras.cantidad(cantidad / EFECTOS_MAXIMO);
 }
 $('puntos-efectos').append(...Array.from({ length: EFECTOS_MAXIMO + 1 }, () => document.createElement('span')));
 $('cantidad-efectos').addEventListener('input', () => {
@@ -2193,7 +2204,8 @@ function pintarGrabacion() {
     document.querySelectorAll('[data-rec]').forEach(boton => {
         boton.disabled = !grabando && sinVideo;
         boton.classList.toggle('grabando', grabando);
-        boton.setAttribute('aria-label', grabando ? 'Dejar de grabar' : 'Grabar desde acá');
+        boton.setAttribute('aria-pressed', String(!grabando && recPrendido));
+        boton.setAttribute('aria-label', grabando ? 'Dejar de grabar' : recPrendido ? 'Apagar la grabación' : 'Grabar');
         boton.querySelector('.tiempo-rec').textContent = texto;
     });
 }
@@ -2245,10 +2257,17 @@ document.querySelectorAll('[data-rec]').forEach(boton => boton.addEventListener(
         pararGrabacion();
         return;
     }
-    recPrendido = true;
+    // Si no suena nada, se prende y se apaga como el de la bandeja: graba al dar play
+    // (pedido de Swa). Si algo suena, graba desde acá.
+    recPrendido = suenaAlgo() || !recPrendido;
     pintarGrabacion();
-    empezarGrabacion();
+    if (suenaAlgo()) empezarGrabacion();
 }));
+// Lo que suena ahora: el tema del reproductor, o el beat de la ronda (Acapella cuenta si corre).
+function suenaAlgo() {
+    if (musica) return sonando;
+    return Boolean(ronda && (!ronda.pausa || ronda.sigueSonando));
+}
 
 // ---------- Grabaciones (hoja) ----------
 // Arriba, el volumen de la voz y del beat (para todas). Cada grabación, compacta: play,
@@ -2846,10 +2865,6 @@ function pintarMarca() {
     if (hay) $('musica-marca-punto').style.left = `${fraccionDe(marca, duracion) * 100}%`;
     $('musica-marca').setAttribute('aria-pressed', String(marca != null));
     $('musica-bucle').setAttribute('aria-disabled', String(marca == null));
-    $('musica-bucle').setAttribute('aria-pressed', String(volverAMarca && marca != null));
-    // El archivo del teléfono va en loop desde el principio; con el bucle, vuelve a la marca.
-    const audio = $('reproductor-oculto').querySelector('audio');
-    if (audio) audio.loop = !(volverAMarca && marca != null);
 }
 
 // La marca es del tema: si la playlist pasa a otro, se borra (cambiar de sección no la toca).
@@ -2859,17 +2874,9 @@ function anotarCancion(id) {
     cancionActual = id;
     if (!habia || marca == null) return;
     marca = null;
-    volverAMarca = false;
     pintarMarca();
 }
 
-// Cuando el tema termina: con el bucle prendido, sigue desde la marca.
-function volverALaMarca() {
-    if (!volverAMarca || marca == null || !musica?.ir) return false;
-    musica.ir(marca);
-    musica.reproducir?.();
-    return true;
-}
 
 function mostrarEstadoMusica() {
     const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud', archivo: 'Del teléfono' }[musica?.fuente] ?? '';
@@ -2898,12 +2905,17 @@ function aplicarVideo() {
     card.classList.toggle('youtube', Boolean(esYouTube));
     card.classList.toggle('plegado', Boolean(esYouTube && plegado));
     card.classList.toggle('grande', grande);
-    $('musica-plegar').hidden = !grande;
+    // Grande → chico → mini → grande (pedido de Swa). YouTube no: plegado no puede sonar.
+    const conTamanos = Boolean(musica && !esYouTube && plegado);
+    card.classList.toggle('mini', conTamanos && mini);
+    $('musica-plegar').hidden = !(grande || (conTamanos && !mini));
+    $('musica-mini').hidden = !(grande && !esYouTube);
     $('musica-mostrar').hidden = !(esYouTube && plegado);
     $('musica-nota-youtube').hidden = !(esYouTube && plegado);
-    // SoundCloud chico, en la libreta o arriba de la barra: la flechita lo agranda.
-    $('musica-agrandar').hidden = !(musica?.fuente === 'soundcloud' && plegado);
+    // En mini, la flechita para arriba lo agranda.
+    $('musica-agrandar').hidden = !(conTamanos && mini);
     mostrarEstadoMusica();
+    pintarProgreso();
     ubicarReproductor();
 }
 
@@ -2923,8 +2935,8 @@ function alCambiarEstado(activo) {
     }
     // Grabando con un link o un archivo: si el tema se pausa, la grabación para.
     if (!activo && grabacion?.fuente) pararGrabacion();
-    // Con el REC de Freestyle prendido, el play del tema también graba.
-    if (activo && recPrendido && $('pantalla-freestyle').classList.contains('activa')) empezarGrabacion();
+    // Con el REC prendido (el de la bandeja o el del reproductor), el play del tema graba.
+    if (activo && recPrendido) empezarGrabacion();
     if (plegarAlPausar && !sonando) {
         plegarAlPausar = false;
         aplicarVideo();
@@ -3044,7 +3056,6 @@ async function escucharMusica(texto) {
                         if (titulo) $('reproductor-titulo').textContent = titulo;
                         leerYouTube();
                         alCambiarEstado(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
-                        if (e.data === YT.PlayerState.ENDED) volverALaMarca();
                     },
                     onAutoplayBlocked: () => { if (!falloMusica) alCambiarEstado(false); },
                     onError: () => {
@@ -3133,7 +3144,7 @@ async function escucharMusica(texto) {
             });
             widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); mostrarCancion(); });
             widget.bind(Events.PAUSE, () => { alCambiarEstado(false); leerPosicion(); });
-            widget.bind(Events.FINISH, () => { alCambiarEstado(false); volverALaMarca(); });
+            widget.bind(Events.FINISH, () => alCambiarEstado(false));
             widget.bind(Events.PLAY_PROGRESS, data => {
                 const ms = typeof data === 'number' ? data : Number(data?.currentPosition);
                 if (!Number.isFinite(ms)) return;
@@ -3157,6 +3168,7 @@ async function escucharMusica(texto) {
         $('musica-mostrar').hidden = true;
         $('musica-nota-youtube').hidden = true;
         $('musica-agrandar').hidden = true;
+        $('musica-mini').hidden = true;
     }
 }
 
@@ -3169,6 +3181,9 @@ function escucharArchivo(archivo, titulo) {
     $('reproductor').hidden = false;
     document.body.classList.add('con-musica');
     musica = { fuente: 'archivo', lista: false };
+    // Arranca chico, como SoundCloud. Grande, en el cuadro va una nota musical.
+    plegado = true;
+    $('reproductor-marco').innerHTML = '<div class="reproductor-sin-portada"><svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>';
     aplicarVideo();
     archivoSonando = archivo;
     const audio = new Audio(URL.createObjectURL(archivo));
@@ -3180,7 +3195,6 @@ function escucharArchivo(archivo, titulo) {
     audio.addEventListener('timeupdate', () => anotarTiempo(audio.currentTime, audio.duration));
     audio.addEventListener('play', () => alCambiarEstado(true));
     audio.addEventListener('pause', () => alCambiarEstado(false));
-    audio.addEventListener('ended', volverALaMarca);
     audio.addEventListener('error', () => {
         falloMusica = true;
         sonando = false;
@@ -3218,10 +3232,10 @@ function cerrarMusica() {
     musica?.cerrar?.();
     musica = null;
     marca = null;
-    volverAMarca = false;
     cancionActual = null;
     sonando = false;
     plegado = false;
+    mini = false;
     plegarAlPausar = false;
     falloMusica = false;
     arrastrando = false;
@@ -3257,13 +3271,16 @@ addEventListener('resize', ubicarReproductor);
 
 // La nota musical de la libreta abre una hoja con el mismo cajón de Freestyle (el
 // elemento se muda a la hoja y vuelve al cerrarla).
-$('abrir-musica').addEventListener('click', () => {
+// También desde Letras, a la izquierda de Grabaciones (pedido de Swa).
+function abrirHojaMusica() {
     avisoFs(navigator.onLine ? '' : 'Sin internet no se puede escuchar música. Lo demás de Métrica anda igual.');
     $('hoja-musica-cajon').append($('fs-cajon'));
     $('hoja-musica').hidden = false;
     document.body.classList.add('eligiendo-musica');
     $('fs-link').focus();
-});
+}
+$('abrir-musica').addEventListener('click', abrirHojaMusica);
+$('abrir-musica-letras').addEventListener('click', abrirHojaMusica);
 function cerrarHojaMusica() {
     $('hoja-musica').hidden = true;
     document.body.classList.remove('eligiendo-musica');
@@ -3287,12 +3304,15 @@ $('musica-mostrar').addEventListener('click', () => {
     if (decision.accion === 'reproducir') musica.reproducir();
 });
 $('musica-plegar').addEventListener('click', () => {
-    if (!musica || plegado) return;
-    // SoundCloud se achica y sigue sonando: no hay video que tenga que verse.
-    if (musica.fuente === 'soundcloud') {
+    if (!musica) return;
+    // SoundCloud y los archivos se achican y siguen sonando: no hay video que tenga que verse.
+    // Desde chico, la flecha para abajo lo deja en mini.
+    if (musica.fuente !== 'youtube') {
+        mini = plegado;
         plegado = true;
         return aplicarVideo();
     }
+    if (plegado) return;
     const decision = plegarVideo(sonando);
     plegado = true;
     if (decision.pausar) {
@@ -3300,9 +3320,17 @@ $('musica-plegar').addEventListener('click', () => {
         musica.pausar();
     } else aplicarVideo();
 });
+// Desde grande, la doble flecha lo deja en mini de una (YouTube no tiene mini).
+$('musica-mini').addEventListener('click', () => {
+    if (!musica || musica.fuente === 'youtube') return;
+    plegado = true;
+    mini = true;
+    aplicarVideo();
+});
 $('musica-agrandar').addEventListener('click', () => {
-    if (musica?.fuente !== 'soundcloud') return;
+    if (!musica || musica.fuente === 'youtube') return;
     plegado = false;
+    mini = false;
     aplicarVideo();
 });
 // Las flechas cambian de canción en una playlist. Para moverse en el tema está la barra.
@@ -3323,16 +3351,21 @@ function segundosDesdePuntero(clientX) {
     const r = $('musica-pista').getBoundingClientRect();
     return imantar(segundosEn(clientX - r.left, r.width, duracion), marca, duracion, r.width);
 }
-// La marca: tocarla (sonando o en pausa) marca este momento; el bucle vuelve ahí al terminar.
+// La marca: tocarla (sonando o en pausa) marca este momento; el botón de al lado vuelve ahí
+// y sigue sonando desde la marca (pedido de Swa). Sin marca, no se puede tocar.
 $('musica-marca').addEventListener('click', () => {
     if (!musica || !duracion) return;
-    marca = actual;
+    // Con la barra encima de la marca (a menos de 12 px), tocarla la borra (pedido de Swa).
+    const ancho = $('musica-pista').getBoundingClientRect().width;
+    const encima = marca != null && Math.abs(actual - marca) / duracion * ancho < 12;
+    marca = encima ? null : actual;
     pintarMarca();
 });
 $('musica-bucle').addEventListener('click', () => {
-    if (marca == null) return;
-    volverAMarca = !volverAMarca;
-    pintarMarca();
+    if (marca == null || !musica?.ir) return;
+    musica.ir(marca);
+    anotarTiempo(marca);
+    if (!sonando) musica.reproducir?.();
 });
 $('musica-pista').addEventListener('pointerdown', e => {
     if (!duracion || !musica?.ir) return;
@@ -3383,7 +3416,7 @@ function renderizarApariencia() {
         boton.addEventListener('click', () => { elegirApariencia(localStorage, clave); renderizarApariencia(); });
         celda.append(boton);
         return celda;
-    }));
+    }), $('celda-efectos'));
 }
 
 // ---------- Inicio ----------
