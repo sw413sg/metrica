@@ -86,6 +86,8 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#barra-pestanas').isVisible(), false);
         // Dame un tema: la hoja abre, Otra cambia, el filtro se queda y el ícono del final la manda a la nota.
         assert.equal(await page.locator('#dame-tema').isVisible(), true);
+        assert.equal(await page.locator('#dame-tema').textContent(), '✦ ¿Por dónde empiezo?');
+        assert.equal(await page.locator('#abrir-tema-libreta').isVisible(), false);
         await page.locator('#dame-tema').click();
         assert.equal(await page.locator('#hoja-tema').isVisible(), true);
         assert.deepEqual((await page.locator('#chips-tema button').allTextContents()).slice(0, 5), ['Amor', 'Superación', 'Fiesta', 'Nostalgia', 'Calle']);
@@ -124,6 +126,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#hoja-tema').isVisible(), false);
         assert.equal((await page.locator('#editor-texto').inputValue()).split('\n')[0], consigna);
         assert.equal(await page.locator('#dame-tema').isVisible(), false);
+        // Con algo escrito, la estrella de arriba abre la misma hoja.
+        assert.equal(await page.locator('#abrir-tema-libreta').isVisible(), true);
+        await page.locator('#abrir-tema-libreta').click();
+        assert.equal(await page.locator('#hoja-tema').isVisible(), true);
+        await page.locator('#hoja-tema').click({ position: { x: 20, y: 20 } });
+        assert.equal(await page.locator('#hoja-tema').isVisible(), false);
         await page.locator('#editor-titulo').fill('Sacred Geometry');
         // Lo que va entre paréntesis no rima: riman "fin" y "seguir", no "(al)".
         await page.locator('#editor-texto').fill('Llegamos al fin (al)\nno pude seguir');
@@ -728,22 +736,38 @@ const servidor = http.createServer((req, res) => {
         if (antes > 1) assert.equal(await page.locator('#fs-recientes-caja').evaluate(d => d.open), true);
         await page.mouse.click(195, 100);
         assert.equal(await page.locator('#hoja-musica').isVisible(), false);
-        // Los renglones arrancan prendidos y se apagan.
+        // En pantalla chica (iPhone 16) los renglones arrancan apagados, sin botón arriba: se prenden
+        // desde «Funciones» en la ruedita.
+        assert.equal(await page.locator('#alternar-renglones').isVisible(), false);
+        assert.equal(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
+        await page.locator('#abrir-ajustes-libreta').click();
+        assert.deepEqual(await page.locator('.funciones-libreta label').allTextContents(), ['Renglones', 'Sílabas por verso']);
+        assert.equal(await page.locator('#mostrar-renglones').isChecked(), false);
+        await page.locator('#mostrar-renglones').click();
+        await page.locator('#cerrar-ajustes-libreta').click();
         assert.match(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), /repeating-linear-gradient/);
-        // De borde a borde, como un cuaderno, y el texto a 16px del borde, como en Keep.
-        assert.deepEqual(await page.locator('.editor-cuerpo').evaluate(e => [e.getBoundingClientRect().left, e.getBoundingClientRect().right]), [0, 390]);
-        assert.equal(await page.locator('#editor-titulo').evaluate(e => e.getBoundingClientRect().left), 16);
+        // En pantalla grande (Pro Max) el botón de renglones sigue arriba y el interruptor no está.
+        await page.setViewportSize({width: 440, height: 956});
+        assert.equal(await page.locator('#alternar-renglones').isVisible(), true);
+        assert.equal(await page.locator('#alternar-renglones').getAttribute('aria-pressed'), 'true');
         await page.locator('#alternar-renglones').click();
         assert.equal(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
         await page.locator('#alternar-renglones').click();
+        await page.locator('#abrir-ajustes-libreta').click();
+        assert.equal(await page.locator('#mostrar-renglones').isVisible(), false);
+        await page.locator('#cerrar-ajustes-libreta').click();
+        await page.setViewportSize({width: 390, height: 844});
+        // De borde a borde, como un cuaderno, y el texto a 16px del borde, como en Keep.
+        assert.deepEqual(await page.locator('.editor-cuerpo').evaluate(e => [e.getBoundingClientRect().left, e.getBoundingClientRect().right]), [0, 390]);
+        assert.equal(await page.locator('#editor-titulo').evaluate(e => e.getBoundingClientRect().left), 16);
         // Rimas internas: se pintan las palabras del medio que riman consonante con otras cercanas.
         const textoAntes = await page.locator('#editor-texto').inputValue();
         const escribir = texto => page.locator('#editor-texto').evaluate((t, v) => { t.value = v; t.dispatchEvent(new Event('input')); }, texto);
         const marcas = () => page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent));
         // Arrancan en 2 versos: se pasa a 4 para este ejemplo.
         await page.locator('#abrir-ajustes-libreta').click();
-        assert.equal(await page.locator('[data-ajuste="internas"] [aria-selected="true"]').textContent(), '2 versos');
-        await page.locator('[data-ajuste="internas"] [data-opcion="cuatro"]').click();
+        assert.equal(await page.locator('input[data-ajuste="internas"]').inputValue(), '1', 'arranca en 2 versos');
+        await page.locator('input[data-ajuste="internas"]').fill('2');
         await page.locator('#cerrar-ajustes-libreta').click();
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo', 'rima-0 suave:lejos']);
@@ -758,36 +782,38 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/editor-colores-${tema}.png`});
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         await page.locator('#abrir-ajustes-libreta').click();
-        await page.locator('[data-ajuste="internas"] [data-opcion="dos"]').click();
+        await page.locator('input[data-ajuste="internas"]').fill('1');
         assert.deepEqual(await marcas(), ['rima-0:mino', 'rima-0:tino', 'rima-1 suave:vengo', 'rima-1 suave:lejos'], 'a 2 versos, tengo y vengo quedan lejos');
-        await page.locator('[data-ajuste="internas"] [data-opcion="no"]').click();
+        await page.locator('input[data-ajuste="internas"]').fill('0');
         assert.deepEqual(await marcas(), []);
-        await page.locator('[data-ajuste="internas"] [data-opcion="cuatro"]').click();
+        await page.locator('input[data-ajuste="internas"]').fill('2');
         await page.locator('#cerrar-ajustes-libreta').click();
         await escribir(textoAntes);
         // La ruedita abre los ajustes de la libreta: sílabas, tamaño, separación y fuente.
         await page.locator('#abrir-ajustes-libreta').click();
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), true);
         await page.locator('#mostrar-silabas').click();
-        // Tamaño y separaciones: barras de 10 puntos imantados.
-        assert.equal(await page.locator('#ajustes-libreta .fila-deslizador').count(), 3);
-        assert.equal(await page.locator('#ajustes-libreta .fila-deslizador').first().locator('.puntos-deslizador span').count(), 10);
+        // Tamaño, separaciones y rimas internas: barras compactas con el nombre adentro, imantadas.
+        assert.deepEqual(await page.locator('#ajustes-libreta .deslizador-libreta').evaluateAll(fs => fs.map(f => f.innerText.replace(/\s+/g, ' ').trim())),
+            ['Tamaño de letra 4', 'Separación de renglones 4', 'Separación de letras 5', 'Distancia 4 versos']);
+        assert.equal(await page.locator('#ajustes-libreta .deslizador-libreta').first().evaluate(f => f.getBoundingClientRect().height), 36);
+        assert.deepEqual(await page.locator('[data-ajuste="fuente"] button').allTextContents(), ['Sistema', 'Avenir', 'Máquina', 'A mano']);
         assert.equal(await page.locator('input[data-ajuste="tamano"]').inputValue(), '3', 'el tamaño arranca en el punto 4');
         await page.locator('input[data-ajuste="tamano"]').fill('7');
         await page.locator('input[data-ajuste="separacion"]').fill('7');
-        await page.locator('[data-ajuste="fuente"] [data-opcion="serif"]').click();
+        await page.locator('[data-ajuste="fuente"] [data-opcion="maquina"]').click();
         await page.locator('input[data-ajuste="letras"]').fill('1');
         await page.screenshot({path: `capturas/ajustes-libreta-${tema}.png`});
         await page.locator('#cerrar-ajustes-libreta').click();
         const estiloTexto = () => page.locator('#editor-texto').evaluate(t => [getComputedStyle(t).fontSize, getComputedStyle(t).lineHeight, getComputedStyle(t).fontFamily]);
         assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '35px']);
-        assert.match((await estiloTexto())[2], /serif/);
+        assert.match((await estiloTexto())[2], /American Typewriter/);
         // Letras más juntas, igual en el texto y en la copia que pinta las rimas.
         const espaciado = await page.evaluate(() => ['editor-texto', 'editor-fondo'].map(id => getComputedStyle(document.getElementById(id)).letterSpacing));
         assert.equal(espaciado[0], espaciado[1]);
         assert.ok(parseFloat(espaciado[0]) < 0, espaciado[0]);
         assert.equal(await page.locator('#silabas').isVisible(), false);
-        await page.screenshot({path: `capturas/editor-grande-serif-${tema}.png`});
+        await page.screenshot({path: `capturas/editor-grande-maquina-${tema}.png`});
         // Todo se recuerda después de recargar.
         await page.locator('#editor-atras').click();
         assert.equal(await page.locator('#barra-pestanas').isVisible(), true);
@@ -796,7 +822,7 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual((await estiloTexto()).slice(0, 2), ['20px', '35px']);
         assert.equal(await page.locator('#silabas').isVisible(), false);
         await page.locator('#abrir-ajustes-libreta').click();
-        assert.equal(await page.locator('[data-ajuste="fuente"] [aria-selected="true"]').textContent(), 'Serif');
+        assert.equal(await page.locator('[data-ajuste="fuente"] [aria-selected="true"]').textContent(), 'Máquina');
         await page.locator('#mostrar-silabas').click();
         await page.locator('input[data-ajuste="tamano"]').fill('4');
         await page.locator('input[data-ajuste="separacion"]').fill('3');
