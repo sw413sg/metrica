@@ -425,7 +425,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-cerrar').isVisible(), false);
         assert.equal(await page.locator('#musica-plegar').isVisible(), false);
         const recMini = await page.locator('#reproductor [data-rec]').boundingBox();
-        assert.ok(recMini.x + recMini.width <= (await page.locator('#musica-play').boundingBox()).x, 'el REC va a la izquierda del play');
+        assert.equal(Math.round((await page.locator('#musica-play').boundingBox()).x - (recMini.x + recMini.width)), 8, 'el REC va a la izquierda del play, a 8');
         assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
         assert.match(await page.locator('#musica-tiempo').textContent(), /^-\d+:\d\d$/);
         const miniCaja = await page.locator('#reproductor').boundingBox();
@@ -465,7 +465,7 @@ const servidor = http.createServer((req, res) => {
             const cajas = [...document.querySelectorAll('#reproductor .reproductor-acciones > *')].filter(b => b.offsetWidth).map(b => b.getBoundingClientRect());
             return cajas.slice(1).map((c, i) => Math.round(c.left - cajas[i].right));
         });
-        assert.ok(huecos.length >= 5 && huecos.slice(0, -1).every(h => h === 7) && huecos.at(-1) === 15, JSON.stringify(huecos));
+        assert.deepEqual(huecos, [18, 18, 10, 12, 15]);
         assert.ok((await page.locator('#musica-bucle').boundingBox()).x > marcaBoton.x);
         assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
         await page.locator('#musica-marca').click();
