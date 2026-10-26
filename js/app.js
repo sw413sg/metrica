@@ -776,25 +776,35 @@ function actualizarDameTema() {
 
 let temaActual = null;
 let filtroTema = 'todas';
+// Las categorías en el orden de Swa, y «Todas» al final.
+const FILTROS_TEMA = [...CATEGORIAS_TEMA, { id: 'todas', nombre: 'Todas' }];
 
 function sincronizarChips() {
     for (const boton of $('chips-tema').querySelectorAll('button')) {
         const activo = boton.dataset.categoria === filtroTema;
         boton.setAttribute('aria-pressed', activo);
-        if (activo) boton.scrollIntoView({ inline: 'center', block: 'nearest' });
+        if (activo && filtroTema !== 'todas') boton.scrollIntoView({ inline: 'center', block: 'nearest' });
     }
 }
 
 function pintarTema() {
     const categoria = CATEGORIAS_TEMA.find(c => c.id === temaActual.categoria);
     $('tema-categoria').textContent = categoria ? categoria.nombre : '';
-    $('tema-texto').textContent = temaActual.texto;
+    // La última palabra va pegada al ícono de mandar a la nota, así nunca queda solo en un renglón.
+    const palabras = temaActual.texto.split(' ');
+    $('tema-ultima').textContent = palabras.pop();
+    $('tema-texto').textContent = palabras.length ? `${palabras.join(' ')} ` : '';
     const empujon = $('tema-empujon');
     empujon.hidden = !temaActual.empujon;
     if (temaActual.empujon) empujon.textContent = `+ ${temaActual.empujon}`;
     const guardada = listarFrases(localStorage).some(f => f.texto === temaActual.texto);
     $('tema-baul-texto').textContent = guardada ? 'En el baúl' : 'Al baúl';
-    $('tema-baul').classList.toggle('guardado', guardada);
+    $('tema-baul').setAttribute('aria-pressed', guardada);
+    // La frase nueva entra borroneada y el resplandor de atrás se enciende, como en Rimas.
+    const caja = $('caja-tema');
+    caja.classList.remove('cambio');
+    void caja.offsetWidth;
+    caja.classList.add('cambio');
 }
 
 function otraTema() {
@@ -816,7 +826,7 @@ function usarTemaActual() {
     marcarUsado(localStorage, temaActual.id);
 }
 
-$('chips-tema').append(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS_TEMA].map(categoria => {
+$('chips-tema').append(...FILTROS_TEMA.map(categoria => {
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'chip-tema';
@@ -831,7 +841,7 @@ $('chips-tema').append(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS_TEMA]
 }));
 
 function renderListaTema() {
-    $('tema-filas').replaceChildren(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS_TEMA].map(categoria => {
+    $('tema-filas').replaceChildren(...FILTROS_TEMA.map(categoria => {
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'celda fila-cat' + (categoria.id === 'todas' ? ' todas' : '');
@@ -847,7 +857,7 @@ function renderListaTema() {
         boton.append(nombre);
         const cuenta = document.createElement('span');
         cuenta.className = 'cuenta-cat';
-        if (categoria.id !== 'todas') cuenta.textContent = String(CONSIGNAS.filter(t => t.categoria === categoria.id).length);
+        cuenta.textContent = String(categoria.id === 'todas' ? CONSIGNAS.length : CONSIGNAS.filter(t => t.categoria === categoria.id).length);
         boton.append(cuenta);
         if (categoria.id === filtroTema) {
             const tilde = document.createElement('span');
@@ -868,13 +878,33 @@ function renderListaTema() {
 $('dame-tema').addEventListener('click', () => {
     filtroTema = 'todas';
     mostrarFichaTema();
+    $('hoja-tema').hidden = false;
     sincronizarChips();
+    // Arranca mostrando el orden desde Amor (Todas queda elegida, al final).
+    $('chips-tema').scrollLeft = 0;
     temaActual = null;
     otraTema();
     document.activeElement?.blur();
-    $('hoja-tema').hidden = false;
 });
-$('tema-otra').addEventListener('click', otraTema);
+$('tema-otra').addEventListener('click', () => {
+    $('tema-otra').classList.remove('gira');
+    void $('tema-otra').offsetWidth;
+    $('tema-otra').classList.add('gira');
+    otraTema();
+});
+// Deslizar la caja a un costado trae otra, como la de Rimas.
+{
+    let inicio = null;
+    $('caja-tema').addEventListener('pointerdown', e => { inicio = { x: e.clientX, y: e.clientY }; });
+    $('caja-tema').addEventListener('pointerup', e => {
+        if (!inicio) return;
+        const dx = e.clientX - inicio.x;
+        const dy = e.clientY - inicio.y;
+        inicio = null;
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) otraTema();
+    });
+    $('caja-tema').addEventListener('pointercancel', () => { inicio = null; });
+}
 $('tema-categoria').addEventListener('click', () => {
     renderListaTema();
     $('tema-ficha').hidden = true;
@@ -882,15 +912,7 @@ $('tema-categoria').addEventListener('click', () => {
 });
 $('tema-volver').addEventListener('click', mostrarFichaTema);
 $('hoja-tema').addEventListener('click', e => { if (e.target === $('hoja-tema')) cerrarHojaTema(); });
-$('tema-titulo').addEventListener('click', () => {
-    if (!temaActual) return;
-    $('editor-titulo').value = temaActual.texto;
-    usarTemaActual();
-    actualizarEditor();
-    guardarActual();
-    actualizarDameTema();
-    cerrarHojaTema();
-});
+// El ícono del final de la frase la manda a la nota (y el empujón, si tiene, entre paréntesis).
 $('tema-nota').addEventListener('click', () => {
     if (!temaActual) return;
     const linea = temaActual.empujon ? `${temaActual.texto}\n(${temaActual.empujon})` : temaActual.texto;

@@ -84,25 +84,27 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#nueva-letra').click();
         assert.equal(await page.locator('#vista-editor').isVisible(), true);
         assert.equal(await page.locator('#barra-pestanas').isVisible(), false);
-        // Dame un tema: la hoja abre, Otra cambia, el filtro se queda y Como título aplica.
+        // Dame un tema: la hoja abre, Otra cambia, el filtro se queda y el ícono del final la manda a la nota.
         assert.equal(await page.locator('#dame-tema').isVisible(), true);
         await page.locator('#dame-tema').click();
         assert.equal(await page.locator('#hoja-tema').isVisible(), true);
+        assert.deepEqual((await page.locator('#chips-tema button').allTextContents()).slice(0, 5), ['Amor', 'Nostalgia', 'Superación', 'Fiesta', 'Calle']);
+        assert.equal(await page.locator('#chips-tema button').last().textContent(), 'Todas');
         await page.locator('#chips-tema button[data-categoria="nostalgia"]').click();
         assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
         for (let i = 0; i < 20 && !(await page.locator('#tema-empujon').isVisible()); i++) await page.locator('#tema-otra').click();
         await page.screenshot({path: `capturas/tema-${tema}.png`});
-        const temaAntes = await page.locator('#tema-texto').textContent();
+        const temaAntes = await page.locator('#tema-frase').textContent();
         await page.locator('#tema-otra').click();
-        const consigna = await page.locator('#tema-texto').textContent();
+        const consigna = await page.locator('#tema-frase').textContent();
         assert.notEqual(consigna, temaAntes);
         assert.equal((await page.locator('#tema-categoria').textContent()).toLowerCase(), 'nostalgia');
         await page.locator('#tema-baul').click();
         assert.equal(await page.locator('#tema-baul-texto').textContent(), 'En el baúl');
         assert.ok(await page.evaluate(t => JSON.parse(localStorage.getItem('metrica.frases')).some(f => f.texto === t), consigna));
-        await page.locator('#tema-titulo').click();
+        await page.locator('#tema-nota').click();
         assert.equal(await page.locator('#hoja-tema').isVisible(), false);
-        assert.equal(await page.locator('#editor-titulo').inputValue(), consigna);
+        assert.equal((await page.locator('#editor-texto').inputValue()).split('\n')[0], consigna);
         assert.equal(await page.locator('#dame-tema').isVisible(), false);
         await page.locator('#editor-titulo').fill('Sacred Geometry');
         // Lo que va entre paréntesis no rima: riman "fin" y "seguir", no "(al)".

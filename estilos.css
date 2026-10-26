@@ -1291,61 +1291,78 @@ body.tema-de-grabacion .reproductor [data-rec] { display: none; }
 body.teclado-abierto #dame-tema { bottom: 12px; }
 body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px + env(safe-area-inset-bottom)); }
 #hoja-tema { padding: 0 8px 8px; background: rgba(0, 0, 0, 0.3); }
+/* La hoja, como la pantalla de Rimas: el fondo de la app y adentro las cajas de vidrio. */
 .hoja-tema {
     width: 100%; max-width: 430px; max-height: calc(100% - 8px); overflow: auto;
-    border-radius: 38px; padding: 8px 20px calc(16px + env(safe-area-inset-bottom)); text-align: left;
-    background: var(--libreta); color: var(--texto); border: 1px solid var(--vidrio-borde);
-    box-shadow: var(--sombra-vidrio); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-    animation: subir .28s ease-out;
+    border-radius: 38px; padding: 8px 14px calc(14px + env(safe-area-inset-bottom)); text-align: left;
+    background: var(--fondo); color: var(--texto); border: 1px solid var(--vidrio-borde);
+    box-shadow: var(--sombra-vidrio); animation: subir .28s ease-out;
 }
-.agarre-tema { width: 36px; height: 5px; margin: 6px auto 14px; border-radius: 3px; background: var(--texto-3); }
+.agarre-tema { width: 36px; height: 5px; margin: 6px auto 12px; border-radius: 3px; background: var(--texto-3); }
+/* Categorías en pastillas: la elegida con la pastilla violeta suave de «Palabras simples». */
 .chips-tema {
-    display: flex; gap: 8px; overflow-x: auto; margin: 0 -20px 22px; padding: 0 20px; scrollbar-width: none;
+    display: flex; gap: 6px; overflow-x: auto; margin: 0 -14px; padding: 0 14px; scrollbar-width: none;
 }
 .chips-tema::-webkit-scrollbar { display: none; }
 .chip-tema {
-    flex: none; height: 32px; padding: 0 14px; border-radius: 16px; background: var(--relleno);
-    font-size: 15px; color: var(--texto);
+    flex: none; height: 34px; padding: 0 14px; border-radius: 17px; background: var(--tarjeta);
+    font-size: 14px; font-weight: 500; color: var(--texto-2);
 }
-.chip-tema[aria-pressed="true"] { background: var(--destacado); color: #fff; font-weight: 600; }
-.cat-tema {
-    display: block; padding: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.6px;
-    text-transform: uppercase; color: var(--destacado); text-align: left;
+.chip-tema[aria-pressed="true"] { background: var(--destacado-suave); color: var(--destacado); font-weight: 600; }
+/* La caja de la consigna, como la de «Terminaciones al azar»: bordes de 30 y resplandor violeta
+   atrás, que se enciende en cada cambio. Se desliza a un costado para pasar a otra. */
+.caja-tema { position: relative; margin-top: 14px; border-radius: 30px; padding: 16px 14px 14px; touch-action: pan-y; }
+#caja-tema::before {
+    content: ""; position: absolute; inset: 10% 4% -6%; z-index: -1; border-radius: 40px; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--destacado) 30%, transparent), transparent 70%);
+    filter: blur(18px); opacity: 0.35;
 }
-.texto-tema { margin: 8px 0 12px; font-size: 30px; font-weight: 700; line-height: 1.15; letter-spacing: -0.4px; overflow-wrap: anywhere; }
-.empujon-tema {
-    display: inline-block; margin: 0; padding: 8px 12px; border-radius: 12px;
-    background: var(--destacado-suave); font-size: 15px;
+#caja-tema.cambio::before { animation: resplandor-azar .9s ease-out; }
+.cat-tema { display: flex; align-items: center; gap: 4px; padding: 0 6px; text-align: left; }
+.cat-tema::after { content: "›"; font-size: 17px; line-height: 1; translate: 0 -1px; }
+.texto-tema {
+    margin: 10px 6px 0; font-size: 28px; font-weight: 700; line-height: 1.18; letter-spacing: -0.4px; overflow-wrap: anywhere;
 }
+/* Al cambiar, la frase entra borroneada, como las palabras de Rimas. */
+#caja-tema.cambio .texto-tema, #caja-tema.cambio .empujon-tema { animation: entrar-palabra .5s cubic-bezier(.2, .8, .2, 1) both; }
+#caja-tema.cambio .empujon-tema { animation-delay: 70ms; }
+/* Mandar a la nota: una flecha que sale de una hoja, con el degradé violeta y el brillo de la
+   palabra tocada, pegada a la última palabra (no queda sola en un renglón). */
+.enviar-tema {
+    display: inline-grid; place-items: center; width: 40px; height: 34px; margin: -6px -6px -6px 0; vertical-align: -4px;
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--destacado) 55%, transparent));
+}
+.enviar-tema span {
+    display: block; width: 24px; height: 24px; background: var(--degrade-tocada); animation: brillo-tocada 2.2s linear infinite;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12'/%3E%3Cpath d='M8.5 15.5 20 4M14 4h6v6'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12'/%3E%3Cpath d='M8.5 15.5 20 4M14 4h6v6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.final-tema { white-space: nowrap; }
+.empujon-tema { margin: 10px 6px 0; font-size: 15px; color: var(--texto-2); }
 .empujon-tema[hidden] { display: none; }
-.fila-tema { display: flex; gap: 10px; margin-top: 26px; }
-.boton-tema { flex: 1; height: 50px; border-radius: 25px; background: var(--relleno); font-size: 15px; font-weight: 600; }
-.pie-tema { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
-.baul-tema {
-    height: 44px; padding: 0 4px; display: inline-flex; align-items: center; gap: 6px;
-    color: var(--texto-2); font-size: 15px; font-weight: 600;
-}
-.baul-tema .icono { width: 20px; height: 20px; }
-.baul-tema.guardado { color: var(--destacado); }
-.otra-tema {
-    height: 50px; padding: 0 22px; border-radius: 25px; background: var(--destacado); color: #fff;
-    font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
-}
-.otra-tema .icono { width: 18px; height: 18px; }
-.cabeza-tema { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: 8px; }
+#caja-tema .controles-azar { margin-top: 16px; }
+.baul-tema { display: inline-flex; align-items: center; gap: 6px; }
+.baul-tema .icono { width: 18px; height: 18px; }
+#tema-otra.gira .icono { animation: girar .5s ease; }
+.cabeza-tema { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: 2px; }
 .cabeza-tema b { text-align: center; font-size: 17px; }
 .volver-tema {
-    width: 44px; height: 44px; border-radius: 50%; background: var(--celda);
+    width: 44px; height: 44px; border-radius: 50%; background: var(--tarjeta);
     font-size: 24px; line-height: 1; display: grid; place-items: center;
 }
-.lista-tema { margin: 0; border-radius: 14px; border: 0.5px solid var(--separador); }
-.fila-cat { width: 100%; min-height: 44px; padding: 0 16px; justify-content: flex-start; font-size: 17px; text-align: left; }
+.lista-tema { padding: 6px 0; }
+.fila-cat { width: 100%; min-height: 46px; padding: 0 18px; justify-content: flex-start; font-size: 17px; text-align: left; }
 .fila-cat.todas { font-weight: 600; }
+.fila-cat[aria-selected="true"] { color: var(--destacado); font-weight: 600; }
 .marca-cat { width: 28px; flex: none; color: var(--texto-2); text-align: center; }
+.fila-cat[aria-selected="true"] .marca-cat { color: var(--destacado); }
 .cuenta-cat { margin-left: auto; color: var(--texto-3); font-size: 15px; }
 .tilde-cat { margin-left: 4px; color: var(--destacado); font-weight: 700; }
 .cuenta-cat:empty + .tilde-cat { margin-left: auto; }
-.nota-tema { margin: 8px 12px 0; font-size: 13px; color: var(--texto-2); }
+.nota-tema { margin: 10px 12px 0; font-size: 13px; color: var(--texto-2); }
+@media (prefers-reduced-motion: reduce) {
+    .enviar-tema span, #caja-tema.cambio .texto-tema, #caja-tema.cambio .empujon-tema { animation: none; }
+}
 /* Con un reproductor abierto (aunque esté en pausa), el REC es el suyo: el de la bandeja no va. */
 body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { display: none; }
 /* Micrófono y salida, en Ajustes: el selector a la derecha, como un Picker de iOS. */
