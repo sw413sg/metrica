@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
+import { nombreDeGrabacion, inicioDeMuestras, pedidoMicrofono, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
 
 test('grabaciones: qué se guarda con la voz según lo que suena', () => {
     assert.equal(tipoDeGrabacion({ beat: true }), 'beat');
@@ -17,8 +17,8 @@ test('grabaciones: la voz se adelanta lo que tardan el parlante y el micrófono'
 
 test('grabaciones: título y detalle', () => {
     const fecha = new Date(2026, 9, 25, 23, 51).getTime();
-    assert.deepEqual(describirGrabacion({ titulo: 'Boombap 1', fecha, duracion: 72 }), { titulo: 'Boombap 1', detalle: 'Freestyle · 25/10 · 23:51 · 1:12' });
-    assert.deepEqual(describirGrabacion({ titulo: '', fecha, duracion: 5, fuente: 'youtube', origen: 'letras' }), { titulo: 'Freestyle', detalle: 'Desde letras · 25/10 · 23:51 · 0:05 · YouTube' });
+    assert.deepEqual(describirGrabacion({ titulo: 'Boombap 1', fecha, duracion: 72 }), { titulo: 'Boombap 1', detalle: '25/10 · 23:51 · 1:12' });
+    assert.deepEqual(describirGrabacion({ nombre: 'Freestyle 2 - Trap 1', titulo: 'Trap 1', fecha, duracion: 5, fuente: 'youtube' }), { titulo: 'Freestyle 2 - Trap 1', detalle: '25/10 · 23:51 · 0:05 · YouTube' });
 });
 
 test('grabaciones: nombre y extensión del archivo', () => {
@@ -57,4 +57,25 @@ test('grabaciones: desde dónde suena la voz', () => {
     const antes = inicioDeVoz(0.1, -0.3);
     assert.equal(antes.desde, 0);
     assert.ok(Math.abs(antes.espera - 0.2) < 1e-9, 'antes de que empiece, la voz espera');
+});
+
+test('grabaciones: el segundo del tema sale de la mediana, aunque el tema se trabe al principio', () => {
+    assert.equal(inicioDeMuestras([]), null);
+    // El tema se trabó el primer segundo y medio (las primeras tres muestras se corren).
+    assert.equal(inicioDeMuestras([30, 29.5, 29, 28.5, 28.5, 28.5, 28.5, 28.5]), 28.5);
+    assert.equal(inicioDeMuestras([10, 12]), 11);
+});
+
+test('grabaciones: el micrófono elegido, solo si hay uno', () => {
+    assert.deepEqual(pedidoMicrofono(''), { audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+    assert.deepEqual(pedidoMicrofono('abc').audio.deviceId, { ideal: 'abc' });
+});
+
+test('grabaciones: nombre con la letra (o Freestyle N) y el beat', () => {
+    assert.equal(nombreDeGrabacion({ letra: 'Checkpoint de la noche larga', beat: 'Boombap 1' }), 'Checkpoint de…- Boombap 1'.replace('…-', '… -'));
+    assert.equal(nombreDeGrabacion({ letra: '', beat: 'Trap 1' }), 'Sin título - Trap 1');
+    assert.equal(nombreDeGrabacion({ beat: 'Boombap 1' }), 'Freestyle 1 - Boombap 1');
+    assert.equal(nombreDeGrabacion({ beat: 'Trap 2', nombres: ['Freestyle 1 - Boombap 1', 'Checkpoint - Trap 1', 'Freestyle 3'] }), 'Freestyle 4 - Trap 2');
+    assert.equal(nombreDeGrabacion({ beat: 'Un tema de YouTube larguísimo' }), 'Freestyle 1 - Un tema de You…');
+    assert.equal(nombreDeGrabacion({}), 'Freestyle 1', 'en Acapella no suena nada');
 });

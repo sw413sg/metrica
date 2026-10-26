@@ -7,6 +7,13 @@
 // Los volúmenes de la voz y del beat se eligen arriba de Grabaciones, para todas (0 a 10).
 export const VOLUMENES_INICIALES = { voz: 10, beat: 5 };
 const CLAVE_VOLUMEN = 'metrica.grabaciones.volumen-';
+// El micrófono elegido en Grabaciones (vacío: el que elija el teléfono).
+export const CLAVE_MICROFONO = 'metrica.grabaciones.microfono';
+export function pedidoMicrofono(deviceId) {
+    const audio = { echoCancellation: true, noiseSuppression: false, autoGainControl: false };
+    if (deviceId) audio.deviceId = { ideal: deviceId };
+    return { audio };
+}
 
 export function leerVolumenes(almacen) {
     const leer = clave => {
@@ -27,6 +34,17 @@ export function inicioDeVoz(desfase, desde) {
     return en >= 0 ? { espera: 0, desde: en } : { espera: -en, desde: 0 };
 }
 
+// Desde qué segundo del tema arrancó la voz. Mientras se graba se anota cada medio segundo
+// «segundo del tema − segundo de la grabación»: si el tema se traba un rato (al abrir el
+// micrófono, el iPhone frena el video), esos valores se corren, pero la mediana se queda
+// con el que vale mientras el tema anda.
+export function inicioDeMuestras(muestras) {
+    if (!muestras.length) return null;
+    const orden = [...muestras].sort((a, b) => a - b);
+    const medio = Math.floor(orden.length / 2);
+    return orden.length % 2 ? orden[medio] : (orden[medio - 1] + orden[medio]) / 2;
+}
+
 // Qué se guarda junto con la voz, según lo que suena al tocar REC: el tema del reproductor
 // (un archivo del teléfono, o YouTube o SoundCloud), un beat de la app o nada.
 export function tipoDeGrabacion({ fuente, beat }) {
@@ -35,8 +53,21 @@ export function tipoDeGrabacion({ fuente, beat }) {
     return beat ? 'beat' : 'voz';
 }
 
-// Dónde se tocó REC: en Freestyle o con el reproductor de otra sección.
-const ORIGENES = { freestyle: 'Freestyle', letras: 'Desde letras', rimas: 'Desde rimas' };
+// Nombre de la grabación: la letra abierta al tocar REC y lo que sonaba, cortos
+// («Checkpoint… - Boombap 1»). Fuera de una letra, «Freestyle N», con el número que sigue.
+const corto = (texto, maximo = 14) => {
+    texto = (texto || '').trim().replace(/\s+/g, ' ');
+    return texto.length <= maximo ? texto : `${texto.slice(0, maximo).trim()}…`;
+};
+export function nombreDeGrabacion({ letra, beat, nombres = [] }) {
+    let primero = corto(letra);
+    if (letra != null && !primero) primero = 'Sin título';
+    if (!primero) {
+        const usados = nombres.map(n => Number(/^Freestyle (\d+)/.exec(n)?.[1]) || 0);
+        primero = `Freestyle ${Math.max(0, ...usados) + 1}`;
+    }
+    return beat ? `${primero} - ${corto(beat)}` : primero;
+}
 
 // La voz llega tarde: lo que tarda el beat en salir por el parlante más lo que tarda el
 // micrófono en entrar. Si el navegador no lo dice, se estima (unos 100 ms en el iPhone).
@@ -49,12 +80,12 @@ const FUENTES = { youtube: 'YouTube', soundcloud: 'SoundCloud', archivo: 'Del te
 const dos = n => String(n).padStart(2, '0');
 const minutos = segundos => `${Math.floor(segundos / 60)}:${dos(Math.floor(segundos % 60))}`;
 
-// «Boombap 1» y abajo «Freestyle · 25/10 · 23:51 · 1:12 · YouTube».
-export function describirGrabacion({ titulo, fecha, duracion, fuente, origen }) {
+// «Checkpoint… - Boombap 1» y abajo «25/10 · 23:51 · 1:12 · YouTube».
+export function describirGrabacion({ nombre, titulo, fecha, duracion, fuente }) {
     const f = new Date(fecha);
-    const partes = [ORIGENES[origen] ?? ORIGENES.freestyle, `${dos(f.getDate())}/${dos(f.getMonth() + 1)}`, `${dos(f.getHours())}:${dos(f.getMinutes())}`, minutos(duracion || 0)];
+    const partes = [`${dos(f.getDate())}/${dos(f.getMonth() + 1)}`, `${dos(f.getHours())}:${dos(f.getMinutes())}`, minutos(duracion || 0)];
     if (FUENTES[fuente]) partes.push(FUENTES[fuente]);
-    return { titulo: titulo || 'Freestyle', detalle: partes.join(' · ') };
+    return { titulo: nombre || titulo || 'Freestyle', detalle: partes.join(' · ') };
 }
 
 export function extensionDeAudio(tipo = '') {
