@@ -741,7 +741,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#alternar-renglones').isVisible(), false);
         assert.equal(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
         await page.locator('#abrir-ajustes-libreta').click();
-        assert.deepEqual(await page.locator('.funciones-libreta label').allTextContents(), ['Renglones', 'Sílabas por verso']);
+        assert.deepEqual(await page.locator('.funciones-libreta label').allTextContents(), ['Renglones', 'Sílabas por verso', 'Rimas internas']);
         assert.equal(await page.locator('#mostrar-renglones').isChecked(), false);
         await page.locator('#mostrar-renglones').click();
         await page.locator('#cerrar-ajustes-libreta').click();
@@ -766,8 +766,9 @@ const servidor = http.createServer((req, res) => {
         const marcas = () => page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent));
         // Arrancan en 2 versos: se pasa a 4 para este ejemplo.
         await page.locator('#abrir-ajustes-libreta').click();
-        assert.equal(await page.locator('input[data-ajuste="internas"]').inputValue(), '1', 'arranca en 2 versos');
-        await page.locator('input[data-ajuste="internas"]').fill('2');
+        assert.equal(await page.locator('#rimas-internas').inputValue(), 'dos', 'arranca en 2 versos');
+        assert.equal(await page.locator('#valor-internas').textContent(), 'Distancia: 2 versos');
+        await page.locator('#rimas-internas').selectOption('cuatro');
         await page.locator('#cerrar-ajustes-libreta').click();
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo', 'rima-0 suave:lejos']);
@@ -782,11 +783,11 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/editor-colores-${tema}.png`});
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         await page.locator('#abrir-ajustes-libreta').click();
-        await page.locator('input[data-ajuste="internas"]').fill('1');
+        await page.locator('#rimas-internas').selectOption('dos');
         assert.deepEqual(await marcas(), ['rima-0:mino', 'rima-0:tino', 'rima-1 suave:vengo', 'rima-1 suave:lejos'], 'a 2 versos, tengo y vengo quedan lejos');
-        await page.locator('input[data-ajuste="internas"]').fill('0');
+        await page.locator('#rimas-internas').selectOption('no');
         assert.deepEqual(await marcas(), []);
-        await page.locator('input[data-ajuste="internas"]').fill('2');
+        await page.locator('#rimas-internas').selectOption('cuatro');
         await page.locator('#cerrar-ajustes-libreta').click();
         await escribir(textoAntes);
         // La ruedita abre los ajustes de la libreta: sílabas, tamaño, separación y fuente.
@@ -794,15 +795,27 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), true);
         await page.locator('#mostrar-silabas').click();
         // Tamaño, separaciones y rimas internas: barras compactas con el nombre adentro, imantadas.
-        assert.deepEqual(await page.locator('#ajustes-libreta .deslizador-libreta').evaluateAll(fs => fs.map(f => f.innerText.replace(/\s+/g, ' ').trim())),
-            ['Tamaño de letra 4', 'Separación de renglones 4', 'Separación de letras 5', 'Distancia 4 versos']);
-        assert.equal(await page.locator('#ajustes-libreta .deslizador-libreta').first().evaluate(f => f.getBoundingClientRect().height), 36);
+        // Diseño de la referencia de Swa: sin título, grupos con encabezado afuera y pasos de − y +.
+        assert.equal(await page.locator('#ajustes-libreta .hoja-titulo').count(), 0);
+        assert.deepEqual(await page.locator('#ajustes-libreta .encabezado-libreta').allTextContents(), ['Tema de esta letra', 'Texto', 'Funciones']);
+        assert.deepEqual(await page.locator('#opciones-libreta .fila-grupo').evaluateAll(fs => fs.map(f => f.innerText.replace(/\s+/g, ' ').trim())),
+            ['Tamaño de letra − 4 +', 'Separación de renglones − 4 +', 'Separación de letras − 5 +']);
+        // Hasta un punto, con los pasos de − y +; en los extremos el botón se apaga.
+        const fijarPaso = async (clave, punto) => {
+            const pasos = page.locator(`.pasos-libreta[data-ajuste="${clave}"]`);
+            for (let i = 0; i < 10; i++) {
+                const actual = Number(await pasos.locator('.valor-pasos').textContent());
+                if (actual === punto) return;
+                await pasos.locator(`[data-paso="${actual < punto ? 1 : -1}"]`).click();
+            }
+            throw new Error(`no llegó a ${punto}`);
+        };
         assert.deepEqual(await page.locator('[data-ajuste="fuente"] button').allTextContents(), ['Sistema', 'Avenir', 'Máquina', 'A mano']);
-        assert.equal(await page.locator('input[data-ajuste="tamano"]').inputValue(), '3', 'el tamaño arranca en el punto 4');
-        await page.locator('input[data-ajuste="tamano"]').fill('7');
-        await page.locator('input[data-ajuste="separacion"]').fill('7');
+        await fijarPaso('tamano', 8);
+        await fijarPaso('separacion', 8);
         await page.locator('[data-ajuste="fuente"] [data-opcion="maquina"]').click();
-        await page.locator('input[data-ajuste="letras"]').fill('1');
+        await fijarPaso('letras', 1);
+        assert.equal(await page.locator('.pasos-libreta[data-ajuste="letras"] [data-paso="-1"]').isDisabled(), true);
         await page.screenshot({path: `capturas/ajustes-libreta-${tema}.png`});
         await page.locator('#cerrar-ajustes-libreta').click();
         const estiloTexto = () => page.locator('#editor-texto').evaluate(t => [getComputedStyle(t).fontSize, getComputedStyle(t).lineHeight, getComputedStyle(t).fontFamily]);
@@ -824,10 +837,10 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#abrir-ajustes-libreta').click();
         assert.equal(await page.locator('[data-ajuste="fuente"] [aria-selected="true"]').textContent(), 'Máquina');
         await page.locator('#mostrar-silabas').click();
-        await page.locator('input[data-ajuste="tamano"]').fill('4');
-        await page.locator('input[data-ajuste="separacion"]').fill('3');
+        await fijarPaso('tamano', 5);
+        await fijarPaso('separacion', 4);
         await page.locator('[data-ajuste="fuente"] [data-opcion="sistema"]').click();
-        await page.locator('input[data-ajuste="letras"]').fill('5');
+        await fijarPaso('letras', 5);
         await page.locator('#ajustes-libreta').click({position: {x: 10, y: 10}});
         assert.equal(await page.locator('#ajustes-libreta').isVisible(), false);
         assert.deepEqual((await estiloTexto()).slice(0, 2), ['17px', '23px']);

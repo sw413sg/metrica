@@ -27,7 +27,6 @@ export const AJUSTES_LIBRETA = {
     internas: {
         nombre: 'Rimas internas',
         etiqueta: 'Distancia',
-        deslizador: true,
         porDefecto: 'dos',
         opciones: { no: { nombre: 'No', valor: 0 }, dos: { nombre: '2 versos', valor: 2 }, cuatro: { nombre: '4 versos', valor: 4 }, ocho: { nombre: '8 versos', valor: 8 } },
     },

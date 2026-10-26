@@ -1030,38 +1030,32 @@ function aplicarEstiloLibreta() {
     document.documentElement.style.setProperty('--libreta-letras', `${letras}em`);
 }
 
-// Barra compacta, como los volúmenes de Grabaciones: el nombre y el valor adentro, y lo recorrido
-// en violeta (pedido de Swa). Imantada a sus puntos: en SwiftUI, Slider con step.
-function deslizadorLibreta(clave, ajuste, elegida) {
+// Un renglón con pasos de − y + (Stepper en SwiftUI) y el número al medio.
+function pasosLibreta(clave, ajuste, elegida) {
     const opciones = Object.keys(ajuste.opciones);
-    const nombre = ajuste.etiqueta ?? ajuste.nombre;
-    const fila = document.createElement('label');
-    fila.className = 'volumen-grabacion deslizador-libreta';
+    const i = opciones.indexOf(elegida);
+    const fila = document.createElement('div');
+    fila.className = 'fila-grupo';
     fila.innerHTML = `
-        <span class="relleno-volumen"></span>
-        <span class="nombre-volumen">${nombre}</span>
-        <span class="valor-volumen"></span>
-        <input type="range" min="0" max="${opciones.length - 1}" step="1" aria-label="${ajuste.nombre}" data-ajuste="${clave}">`;
-    const barra = fila.querySelector('input');
-    barra.value = opciones.indexOf(elegida);
-    const pintar = () => {
-        fila.style.setProperty('--progreso', `${(barra.value / barra.max) * 100}%`);
-        fila.querySelector('.valor-volumen').textContent = ajuste.opciones[opciones[barra.value]].nombre;
-    };
-    barra.addEventListener('input', () => {
-        pintar();
-        guardarAjusteLibreta(localStorage, clave, opciones[barra.value]);
-        aplicarEstiloLibreta();
-        actualizarEditor();
-    });
-    pintar();
+        <span>${ajuste.nombre}</span>
+        <span class="pasos-libreta" data-ajuste="${clave}">
+            <button type="button" data-paso="-1" aria-label="Menos">−</button>
+            <span class="valor-pasos">${ajuste.opciones[elegida].nombre}</span>
+            <button type="button" data-paso="1" aria-label="Más">+</button>
+        </span>`;
+    for (const boton of fila.querySelectorAll('button')) {
+        const destino = opciones[i + Number(boton.dataset.paso)];
+        boton.disabled = !destino;
+        boton.addEventListener('click', () => {
+            guardarAjusteLibreta(localStorage, clave, destino);
+            aplicarAjustesLibreta();
+            actualizarEditor();
+        });
+    }
     return fila;
 }
 
-// Los ajustes van en cajas de vidrio, como las de Rimas: la letra (barras y fuente) y las rimas internas.
-const CAJAS_LIBRETA = [['Letra', ['tamano', 'separacion', 'letras', 'fuente']], ['Rimas internas', ['internas']]];
-
-// Pastillas para elegir una opción, con la elegida en violeta suave (como consonante/asonante).
+// La fuente, en un selector segmentado al pie del grupo, cada una con su letra.
 function pastillasLibreta(clave, ajuste, elegida) {
     const grupo = document.createElement('div');
     grupo.className = 'pastillas-libreta';
@@ -1087,29 +1081,19 @@ function pastillasLibreta(clave, ajuste, elegida) {
 function aplicarAjustesLibreta() {
     aplicarEstiloLibreta();
     const ajustes = leerAjustesLibreta(localStorage);
-    $('opciones-libreta').replaceChildren(...CAJAS_LIBRETA.map(([titulo, claves]) => {
-        const caja = document.createElement('div');
-        caja.className = 'caja-libreta vidrio';
-        const encabezado = document.createElement('h3');
-        encabezado.className = 'titulo-azar';
-        encabezado.textContent = titulo;
-        caja.append(encabezado, ...claves.map(clave => {
-            const ajuste = AJUSTES_LIBRETA[clave];
-            const fila = document.createElement('div');
-            fila.className = 'ajuste-libreta';
-            // Las barras llevan el nombre adentro; las pastillas, arriba (salvo solas en su caja).
-            if (!ajuste.deslizador && claves.length > 1) {
-                const nombre = document.createElement('div');
-                nombre.className = 'nombre-ajuste';
-                nombre.textContent = ajuste.nombre;
-                fila.append(nombre);
-            }
-            fila.append(ajuste.deslizador ? deslizadorLibreta(clave, ajuste, ajustes[clave]) : pastillasLibreta(clave, ajuste, ajustes[clave]));
-            return fila;
-        }));
-        return caja;
-    }));
+    $('opciones-libreta').replaceChildren(
+        ...['tamano', 'separacion', 'letras'].map(clave => pasosLibreta(clave, AJUSTES_LIBRETA[clave], ajustes[clave])),
+        pastillasLibreta('fuente', AJUSTES_LIBRETA.fuente, ajustes.fuente));
+    const internas = AJUSTES_LIBRETA.internas;
+    $('rimas-internas').replaceChildren(...Object.entries(internas.opciones).map(([opcion, { nombre }]) => new Option(nombre, opcion)));
+    $('rimas-internas').value = ajustes.internas;
+    $('valor-internas').textContent = `${internas.etiqueta}: ${internas.opciones[ajustes.internas].nombre}`;
 }
+$('rimas-internas').addEventListener('change', () => {
+    guardarAjusteLibreta(localStorage, 'internas', $('rimas-internas').value);
+    aplicarAjustesLibreta();
+    actualizarEditor();
+});
 aplicarAjustesLibreta();
 $('abrir-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = false; });
 $('cerrar-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = true; });

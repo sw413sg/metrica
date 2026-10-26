@@ -911,13 +911,9 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 /* Ajustes de la libreta: hoja más baja, sin brillos. */
 .hoja-ajustes { background: var(--fondo); text-align: left; }
 .hoja-titulo { font-size: 20px; font-weight: 600; margin: 0 0 8px; text-align: center; }
-/* Las opciones van en cajas de vidrio, como las de Rimas y Freestyle: bordes de 30, título chico
-   en mayúsculas y lo elegido en violeta (pedido de Swa). */
+/* Cajas de vidrio (Grabaciones): bordes de 30, como las de Rimas y Freestyle. */
 .caja-libreta { margin-top: 12px; border-radius: 30px; padding: 14px; }
 .caja-libreta .titulo-azar { padding: 0 6px 10px; }
-.ajuste-libreta + .ajuste-libreta { margin-top: 14px; }
-.nombre-ajuste { display: flex; justify-content: space-between; align-items: baseline; padding: 0 6px; font-size: 15px; font-weight: 500; }
-.valor-ajuste { font-size: 15px; font-weight: 600; color: var(--destacado); font-variant-numeric: tabular-nums; }
 /* Barras: lo recorrido en violeta y la perilla blanca con un resplandor violeta. */
 #grabaciones .fila-deslizador { margin-top: 4px; padding: 0; }
 #grabaciones .deslizador { -webkit-appearance: none; appearance: none; height: 28px; background: none; }
@@ -937,22 +933,37 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 }
 #grabaciones .puntos-deslizador { padding: 0 10px; }
 #grabaciones .puntos-deslizador span.lleno { background: var(--destacado); }
-/* Pastillas: la elegida con la pastilla violeta suave de consonante/asonante. */
-.pastillas-libreta { display: flex; gap: 4px; margin-top: 8px; padding: 3px; border-radius: 20px; background: var(--tarjeta); }
-.pastillas-libreta button {
-    flex: 1; height: 34px; border-radius: 17px; font-size: 14px; font-weight: 500; color: var(--texto-2); white-space: nowrap;
-}
-.pastillas-libreta button[aria-selected="true"] { background: var(--destacado-suave); color: var(--destacado); font-weight: 600; }
-.caja-libreta .titulo-azar + .ajuste-libreta .pastillas-libreta { margin-top: 0; }
 /* Cada fuente se muestra con su letra. */
 #opciones-libreta button[data-opcion="avenir"] { font-family: "Avenir Next", Avenir, "Century Gothic", "Trebuchet MS", sans-serif; }
 #opciones-libreta button[data-opcion="maquina"] { font-family: "American Typewriter", "Courier New", Courier, monospace; }
 #opciones-libreta button[data-opcion="mano"] { font-family: Noteworthy, "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; }
-/* Barras compactas, como los volúmenes de Grabaciones (pedido de Swa). */
-.ajuste-libreta:has(> .deslizador-libreta) + .ajuste-libreta:has(> .deslizador-libreta) { margin-top: 10px; }
-/* Temas: una grilla de muestras con «Aa» en los colores del tema. */
-.temas-libreta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
-.tema-libreta { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+/* Ajustes de la libreta, con el diseño de la referencia de Swa: listas agrupadas como Ajustes de
+   iOS, encabezados chicos en mayúsculas afuera de cada grupo, sin título arriba. */
+.hoja-libreta { padding-top: 16px; }
+.hoja-libreta .cerrar-hoja { top: 10px; right: 14px; width: 36px; height: 36px; }
+.encabezado-libreta { margin: 20px 16px 8px; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--texto-2); }
+.encabezado-libreta:first-of-type { margin-top: 10px; padding-right: 48px; }
+.grupo-libreta { border-radius: 22px; background: var(--tarjeta); overflow: hidden; }
+.fila-grupo { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; padding: 4px 10px 4px 18px; font-size: 17px; }
+.funciones-libreta .fila-grupo + .fila-grupo { border-top: 0.5px solid var(--separador); }
+.fila-grupo .interruptor:checked { background: var(--destacado); }
+/* Pasos de − y +: una pastilla gris con el número al medio. */
+.pasos-libreta { display: flex; align-items: center; height: 36px; border-radius: 18px; background: var(--relleno); }
+.pasos-libreta button { width: 38px; height: 36px; font-size: 20px; font-weight: 500; color: var(--texto); }
+.pasos-libreta button:disabled { opacity: .3; }
+.valor-pasos { min-width: 22px; text-align: center; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* La fuente: selector segmentado al pie del grupo, la elegida en una pastilla más clara. */
+.pastillas-libreta { display: flex; gap: 2px; margin: 6px 10px 10px; padding: 3px; border-radius: 20px; background: var(--relleno); }
+.pastillas-libreta button { flex: 1; height: 34px; border-radius: 17px; font-size: 14px; font-weight: 500; color: var(--texto-2); white-space: nowrap; }
+.pastillas-libreta button[aria-selected="true"] { background: var(--tarjeta); color: var(--texto); font-weight: 700; box-shadow: 0 1px 4px rgba(0, 0, 0, .2); }
+/* Rimas internas: el valor con las dos flechitas, y el menú del sistema encima, invisible. */
+.menu-libreta { position: relative; display: flex; align-items: center; gap: 2px; padding-right: 6px; font-size: 16px; color: var(--texto-2); }
+.menu-libreta .icono { width: 16px; height: 16px; }
+.menu-libreta select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; }
+/* Temas: una fila de muestras con «Aa» que se desliza. */
+.temas-libreta { display: flex; gap: 10px; padding: 14px; overflow-x: auto; scrollbar-width: none; }
+.temas-libreta::-webkit-scrollbar { display: none; }
+.tema-libreta { flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
 .tema-libreta .muestra-tema {
     position: relative; width: 100%; height: 58px; border-radius: 16px; display: grid; place-items: center;
     font-size: 17px; font-weight: 600; color: var(--texto); border: 1px solid var(--separador);
@@ -968,16 +979,12 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 .tema-libreta .marca-tema:empty { display: none; }
 .tema-libreta .marca-tema .icono { width: 14px; height: 14px; }
 .tema-libreta:has(.marca-tema rect) .muestra-tema { opacity: 0.75; }
-/* Sílabas por verso: un renglón con el interruptor, en violeta prendido. */
-.fila-libreta { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px 10px 20px; font-weight: 500; }
-.fila-libreta .interruptor:checked { background: var(--destacado); }
-/* Adentro de «Funciones», los renglones van sin caja propia. */
-.funciones-libreta .fila-libreta { padding: 6px 0 6px 6px; }
-.funciones-libreta .titulo-azar { padding-bottom: 4px; }
+/* Borrar la letra: un renglón aparte, abajo de todo. */
+.boton-borrar-letra { display: block; width: 100%; height: 52px; padding: 0; margin-top: 22px; border-radius: 22px; background: var(--tarjeta); color: #ff3b30; font-size: 17px; font-weight: 600; }
 /* Renglones: en pantallas chicas (iPhone 16) va acá; en las grandes (Pro Max), el botón de arriba. */
 @media (max-width: 419px) { #alternar-renglones { display: none; } }
 @media (min-width: 420px) { .fila-renglones { display: none; } }
-.boton-borrar-letra { display: block; width: 100%; height: 52px; padding: 0; margin-top: 12px; color: #ff3b30; font-weight: 600; }
+
 
 /* Arrastrar una tarjeta al tacho la borra (sin menú de copiar ni selección de iOS). */
 .tarjeta-letra { position: relative; }
