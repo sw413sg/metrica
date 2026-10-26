@@ -1138,25 +1138,31 @@ body.eligiendo-musica #reproductor { visibility: hidden; }
     background: var(--celda);
 }
 .punto-rec { width: 16px; height: 16px; border-radius: 50%; background: #ff3b30; }
-.rec-fs[aria-pressed="false"] .punto-rec { background: var(--texto-3); }
-.rec-fs[aria-pressed="false"]::after {
-    content: ""; position: absolute; width: 24px; height: 2px; border-radius: 1px; background: var(--texto-2);
-    transform: rotate(-45deg); box-shadow: 0 0 0 1.5px var(--celda);
+/* Apagado: el punto rojo con una X encima, así se entiende que es REC (pedido de Swa). */
+.rec-fs[aria-pressed="false"]::before, .rec-fs[aria-pressed="false"]::after {
+    content: ""; position: absolute; width: 22px; height: 2.5px; border-radius: 2px; background: var(--texto);
+    transform: rotate(45deg); box-shadow: 0 0 0 1.5px var(--celda);
 }
+.rec-fs[aria-pressed="false"]::after { transform: rotate(-45deg); }
 .rec-fs[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
 .rec-reproductor {
     display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 16px; flex-shrink: 0;
     font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); background: var(--celda);
 }
-.rec-reproductor[hidden] { display: none; }
-.rec-reproductor .punto-rec { width: 10px; height: 10px; animation: latir-rec 1.2s ease-in-out infinite; }
+.rec-reproductor .punto-rec { width: 10px; height: 10px; }
+.rec-reproductor.grabando .punto-rec { animation: latir-rec 1.2s ease-in-out infinite; }
 @keyframes latir-rec { 50% { opacity: 0.3; } }
 .rec-acapella { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 15; height: 40px; padding: 0 16px; border-radius: 20px; }
 body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { display: none; }
 #pantalla-freestyle .boton-grabaciones { transition: opacity .3s; }
 #pantalla-freestyle.jugando .boton-grabaciones { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
 /* Grabaciones: arriba los volúmenes; cada grabación en una caja compacta. */
-.volumenes-grabaciones { padding: 10px 14px 6px; }
+/* Los dos volúmenes en un renglón, mitad y mitad (pedido de Swa). */
+.volumenes-grabaciones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 10px 14px 4px; }
+.volumenes-grabaciones .ajuste-libreta + .ajuste-libreta { margin-top: 0; }
+.volumenes-grabaciones .nombre-ajuste { font-size: 14px; padding: 0 2px; }
+.volumenes-grabaciones .puntos-deslizador { padding: 0 8px; }
+.volumenes-grabaciones .puntos-deslizador span { width: 3px; height: 3px; }
 .lista-grabaciones { list-style: none; margin: 0; padding: 0; }
 .grabacion { margin-top: 10px; border-radius: 30px; padding: 10px 12px 8px; }
 .cabecera-grabacion { display: flex; align-items: center; gap: 10px; }
@@ -1170,12 +1176,18 @@ body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { displ
 .grabacion .borrar-grabacion { color: #ff3b30; }
 .grabacion .reproductor-barra { margin: -6px 0 -10px; }
 .grabacion .reproductor-pista { cursor: pointer; }
-.nota-grabacion { margin: 6px 4px 2px; font-size: 12px; color: var(--texto-2); }
-/* Sincronizar: la voz antes o después del beat, de a 20 ms. */
-.sincronia { display: flex; align-items: center; gap: 4px; padding: 0 2px; font-size: 13px; color: var(--texto-2); }
-.sincronia > span:first-child { flex: 1; }
-.sincronia button { width: 30px; height: 30px; border-radius: 50%; background: var(--celda); color: var(--texto); font-size: 18px; font-weight: 600; line-height: 1; }
-.valor-sincronia { min-width: 58px; text-align: center; font-weight: 600; color: var(--texto); font-variant-numeric: tabular-nums; }
+/* Descargar: mientras se prepara, un círculo violeta se llena alrededor del ícono. */
+.descargar-grabacion { position: relative; }
+.descargar-grabacion.procesando::before {
+    content: ""; position: absolute; inset: 2px; border-radius: 50%;
+    background: conic-gradient(var(--destacado) calc(var(--avance, 0) * 1turn), var(--relleno) 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+}
+.grabacion .descargar-grabacion.procesando:disabled { opacity: 1; }
+/* Escuchando una de YouTube o SoundCloud, el reproductor va arriba de la hoja de Grabaciones. */
+body.tema-de-grabacion .reproductor { display: block; z-index: 25; top: calc(env(safe-area-inset-top) + 8px); bottom: auto !important; }
+body.tema-de-grabacion #grabaciones .hoja { max-height: calc(100% - var(--alto-tarjeta-musica, 0px) - env(safe-area-inset-top) - 24px); }
 .aviso-grabaciones { margin: 14px 8px 0; font-size: 12px; color: var(--texto-2); text-align: center; }
 .aviso-grabaciones[hidden] { display: none; }
 /* Con REC al lado del play, todo sigue entrando en la bandeja sin deslizar. */
@@ -1183,3 +1195,4 @@ body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { displ
 .bandeja-fs .play-fs, .bandeja-fs .rec-fs, .bandeja-fs .reiniciar-fs { width: 38px; height: 38px; }
 .duraciones-fs { gap: 3px; }
 .duraciones-fs .chip-fs { padding: 0 4px; font-size: 14px; }
+body.tema-de-grabacion .reproductor [data-rec] { display: none; }
