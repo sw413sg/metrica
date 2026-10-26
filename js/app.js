@@ -4,8 +4,8 @@ import { palabrasAlAzar } from './logica/generador.js';
 import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
-import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, despertarAudio, grabarBeat } from './beats.js';
-import { VOLUMEN_BEAT_INICIAL, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
+import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat } from './beats.js';
+import { leerVolumenes, guardarVolumen, moverSincronia, textoSincronia, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
@@ -1483,11 +1483,14 @@ function empezarRonda() {
     ronda.modo = arrancarSonido();
     reiniciarBarraPalabra();
     actualizarEfecto();
+    empezarGrabacion();
 }
 
 // Con pararSonido en false se frenan el tiempo y las palabras, pero el beat sigue.
 function pausarRonda(pararSonido = true) {
     if (!ronda || ronda.pausa) return;
+    // Cualquier pausa deja de grabar (pedido de Swa).
+    pararGrabacion();
     ronda.pausa = performance.now();
     ronda.sigueSonando = !pararSonido;
     if (pararSonido) detenerBeat();
@@ -1503,6 +1506,7 @@ function reanudarRonda() {
     ronda.sigueSonando = false;
     marcarSonando(true);
     actualizarEfecto();
+    empezarGrabacion();
 }
 
 // Pausar mientras se juega (tocando el círculo): se frenan el tiempo
@@ -1873,12 +1877,15 @@ asegurarCola();
 mostrarCuentaIdle();
 
 // ---------- Grabar el freestyle ----------
-// REC graba la voz con el micrófono, con cancelación de eco para que no se cuele el beat
-// que sale por el parlante, y guarda aparte lo que suena: así el volumen del beat se elige
-// después, en Grabaciones. El permiso se pide recién al tocar REC (el micrófono para las
-// luces le pareció muy invasivo a Swa). Con YouTube o SoundCloud se guarda solo la voz, con
-// el link y el segundo en que arrancó, y se escucha junto al tema (pedido de Swa).
+// REC se prende y se apaga. Prendido, graba al dar play: la voz con el micrófono, con
+// cancelación de eco para que no se cuele el beat que sale por el parlante, y aparte lo que
+// suena, así los volúmenes se eligen después en Grabaciones. Deja de grabar con el REC del
+// reproductor (el beat sigue) o con cualquier pausa (pedidos de Swa). El permiso se pide al
+// prender REC (el micrófono para las luces le pareció muy invasivo a Swa). Con YouTube o
+// SoundCloud se guarda solo la voz, con el link y el segundo en que arrancó.
 // En SwiftUI: AVAudioSession .playAndRecord, el micrófono de abajo y voiceProcessing.
+const PEDIDO_MICROFONO = { audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } };
+let recPrendido = false;
 let grabacion = null; // lo que se está grabando
 let archivoSonando = null; // el archivo del teléfono que suena, para guardarlo con la grabación
 let relojGrabacion = null;
@@ -1915,29 +1922,42 @@ function grabadora(flujo) {
 
 const posicionMusica = () => musica?.posicion?.() ?? actual;
 
-// REC también arranca: la ronda, la que estaba en pausa o el link.
-function arrancarParaGrabar() {
-    despertarAudio();
-    if (!ronda && musica) empezarConLaMusica();
-    else if (!ronda) empezarRonda();
-    else if (ronda.pausa) reanudarRonda();
-    if (linkFreestyle && musica && !sonando) musica.reproducir?.();
-}
-
-async function empezarGrabacion() {
+// Prender REC pide el micrófono (dentro del toque); si no lo dan, queda apagado.
+async function alternarRec() {
+    if (recPrendido) {
+        recPrendido = false;
+        pararGrabacion();
+        return pintarGrabacion();
+    }
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) return avisoFs('Este navegador no deja grabar.');
-    arrancarParaGrabar();
-    const tipo = tipoDeGrabacion({ link: linkFreestyle, acapella: esAcapella() });
-    const titulo = linkFreestyle ? $('reproductor-titulo').textContent.trim() : etiquetaBeat(CATALOGO_BEATS.find(b => b.id === beatId));
-    let microfono;
     try {
-        // Solo la cancelación de eco: la reducción de ruido y el volumen automático empeoran la voz.
-        microfono = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+        (await navigator.mediaDevices.getUserMedia(PEDIDO_MICROFONO)).getTracks().forEach(t => t.stop());
     } catch {
         return avisoFs('Para grabar, Métrica necesita el micrófono: permitilo en los ajustes del navegador.');
     }
-    if (grabacion) return microfono.getTracks().forEach(t => t.stop());
     avisoFs('');
+    recPrendido = true;
+    pintarGrabacion();
+}
+
+// Se llama al dar play (empezar o seguir la ronda): si REC está prendido, graba.
+async function empezarGrabacion() {
+    if (!recPrendido || grabacion) return;
+    const tipo = tipoDeGrabacion({ link: linkFreestyle, acapella: esAcapella() });
+    const titulo = linkFreestyle ? $('reproductor-titulo').textContent.trim() : etiquetaBeat(CATALOGO_BEATS.find(b => b.id === beatId));
+    const comienzo = performance.now();
+    grabacion = { tipo, titulo, comienzo, fecha: Date.now(), preparando: true };
+    let microfono;
+    try {
+        microfono = await navigator.mediaDevices.getUserMedia(PEDIDO_MICROFONO);
+    } catch {
+        grabacion = null;
+        recPrendido = false;
+        pintarGrabacion();
+        return avisoFs('Para grabar, Métrica necesita el micrófono: permitilo en los ajustes del navegador.');
+    }
+    // Si mientras tanto se pausó o se apagó REC, no se graba.
+    if (!grabacion?.preparando || grabacion.comienzo !== comienzo) return microfono.getTracks().forEach(t => t.stop());
     const voz = grabadora(microfono);
     let beat = null, latencia = {};
     if (tipo === 'beat' || tipo === 'voz') {
@@ -1945,53 +1965,43 @@ async function empezarGrabacion() {
         beat = { ...grabadora(salida.flujo), soltar: salida.soltar };
         latencia = salida.latencia;
     }
-    grabacion = {
-        tipo, titulo, voz, beat, microfono,
-        fecha: Date.now(),
+    Object.assign(grabacion, {
+        preparando: false, voz, beat, microfono,
         comienzo: performance.now(),
         desfase: desfaseDeVoz({ ...latencia, entrada: microfono.getAudioTracks()[0].getSettings().latency }),
         fuente: linkFreestyle?.fuente,
         link: recienteActual?.link,
         archivo: tipo === 'archivo' ? archivoSonando : null,
-        inicio: 0,
+        inicio: tipo === 'link' || tipo === 'archivo' ? posicionMusica() : 0,
         conBeat: tipo === 'beat',
-    };
-    // Si el tema todavía no arrancó, la voz de antes se saltea.
-    if (tipo === 'link' || tipo === 'archivo') {
-        if (sonando) grabacion.inicio = posicionMusica();
-        else grabacion.esperando = performance.now();
-    }
+    });
     voz.grabador.start();
     beat?.grabador.start();
     pintarGrabacion();
     relojGrabacion = setInterval(pintarGrabacion, 500);
 }
 
-// El tema arrancó (o siguió) después de tocar REC.
-function alArrancarMusicaGrabando() {
-    if (!grabacion?.esperando) return;
-    grabacion.desfase += (performance.now() - grabacion.esperando) / 1000;
-    grabacion.inicio = posicionMusica();
-    grabacion.esperando = null;
-}
-
 function pintarGrabacion() {
     // Si en Acapella se pasa a un beat, la grabación lo suma.
     if (grabacion?.beat && ronda && !esAcapella()) grabacion.conBeat = true;
-    $('fs-rec').setAttribute('aria-pressed', String(Boolean(grabacion)));
-    $('fs-rec').setAttribute('aria-label', grabacion ? 'Parar la grabación' : 'Grabar');
-    $('fs-grabando').hidden = !grabacion;
-    if (grabacion) $('fs-grabando-tiempo').textContent = formatoTiempo((performance.now() - grabacion.comienzo) / 1000);
+    $('fs-rec').setAttribute('aria-pressed', String(recPrendido));
+    $('fs-rec').setAttribute('aria-label', recPrendido ? 'Apagar la grabación' : 'Grabar al dar play');
+    const grabando = Boolean(grabacion && !grabacion.preparando);
+    const tiempo = grabando ? formatoTiempo((performance.now() - grabacion.comienzo) / 1000) : '0:00';
+    document.querySelectorAll('[data-rec]').forEach(boton => {
+        boton.hidden = !grabando;
+        boton.querySelector('.tiempo-rec').textContent = tiempo;
+    });
 }
 
-// Para y guarda. Con un link o un archivo también para si el tema se pausa o se cierra,
-// porque después no se podría volver a juntar la voz con el tema.
+// Para y guarda.
 async function pararGrabacion() {
     if (!grabacion) return;
     const g = grabacion;
     grabacion = null;
     clearInterval(relojGrabacion);
     pintarGrabacion();
+    if (g.preparando) return;
     g.voz.grabador.stop();
     g.beat?.grabador.stop();
     g.microfono.getTracks().forEach(t => t.stop());
@@ -2001,7 +2011,7 @@ async function pararGrabacion() {
     if (duracion < 1 || !voz.size) return;
     let tipo = g.tipo;
     if (tipo === 'beat' || tipo === 'voz') tipo = g.conBeat ? 'beat' : 'voz';
-    if ((tipo === 'link' && !g.link) || g.esperando) tipo = 'voz';
+    if (tipo === 'link' && !g.link) tipo = 'voz';
     const conTema = tipo === 'link' || tipo === 'archivo';
     try {
         await guardarGrabacion({
@@ -2011,7 +2021,7 @@ async function pararGrabacion() {
             link: tipo === 'link' ? g.link : null,
             inicio: conTema ? g.inicio : 0,
             desfase: g.desfase,
-            volumen: VOLUMEN_BEAT_INICIAL,
+            sincronia: 0,
         });
         navigator.storage?.persist?.().catch(() => {});
     } catch {
@@ -2020,16 +2030,26 @@ async function pararGrabacion() {
     if (!$('grabaciones').hidden) renderizarGrabaciones();
 }
 
-$('fs-rec').addEventListener('click', () => (grabacion ? pararGrabacion() : empezarGrabacion()));
+$('fs-rec').addEventListener('click', alternarRec);
+// El REC del reproductor deja de grabar y apaga REC; lo que suena sigue.
+document.querySelectorAll('[data-rec]').forEach(boton => boton.addEventListener('click', e => {
+    e.stopPropagation();
+    recPrendido = false;
+    pararGrabacion();
+}));
 
 // ---------- Grabaciones (hoja) ----------
-// Cada una con play, la barra del tiempo, el volumen del beat (si se guardó), descargar y
-// borrar. La voz y el beat se mezclan acá con Web Audio, así el volumen se cambia siempre.
+// Arriba, el volumen de la voz y del beat (para todas). Cada grabación, compacta: play,
+// descargar, borrar, la barra del tiempo y la sincronía de la voz con el beat. La voz y el
+// beat se mezclan acá con Web Audio, así todo se puede cambiar siempre.
 let audioGrabaciones = null;
-let escuchando = null; // { id, parar(), volumen(v) }
+let escuchando = null; // { id, parar(), volumenes(), segundos() }
+let generacionEscucha = 0; // si se cerró la hoja mientras se preparaba, no suena
 let vozConLink = null; // la voz que sigue a un tema de YouTube o SoundCloud
 const decodificadas = new Map(); // id -> { voz, pista } ya decodificadas
 const contextoGrabaciones = () => (audioGrabaciones ??= new AudioContext());
+const ICONO_DESCARGAR = '<svg viewBox="0 0 24 24" class="icono"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>';
+const ICONO_TACHO = '<svg viewBox="0 0 24 24" class="icono"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>';
 
 async function decodificar(g) {
     if (!decodificadas.has(g.id)) {
@@ -2042,43 +2062,47 @@ async function decodificar(g) {
 
 // Arma la mezcla en un contexto (el de escuchar o el de descargar), desde el segundo pedido.
 function conectarMezcla(ctx, g, { voz, pista }, cuando, desde) {
+    const volumenes = leerVolumenes(localStorage);
     const fuentes = [];
     const fuenteVoz = ctx.createBufferSource();
     fuenteVoz.buffer = voz;
-    fuenteVoz.connect(ctx.destination);
-    fuenteVoz.start(cuando, Math.min(voz.duration, g.desfase + desde));
+    const gananciaVoz = ctx.createGain();
+    gananciaVoz.gain.value = volumenes.voz / 10;
+    fuenteVoz.connect(gananciaVoz).connect(ctx.destination);
+    const inicio = inicioDeVoz(g.desfase, g.sincronia, desde);
+    fuenteVoz.start(cuando + inicio.espera, Math.min(voz.duration, inicio.desde));
     fuentes.push(fuenteVoz);
-    let ganancia = null;
+    let gananciaBeat = null;
     if (pista) {
         const fuente = ctx.createBufferSource();
         fuente.buffer = pista;
-        ganancia = ctx.createGain();
-        ganancia.gain.value = g.volumen / 10;
-        fuente.connect(ganancia).connect(ctx.destination);
+        gananciaBeat = ctx.createGain();
+        gananciaBeat.gain.value = volumenes.beat / 10;
+        fuente.connect(gananciaBeat).connect(ctx.destination);
         // El archivo del teléfono da vueltas, como cuando sonaba.
         fuente.loop = g.tipo === 'archivo';
         const en = g.inicio + desde;
         fuente.start(cuando, fuente.loop ? en % pista.duration : Math.min(pista.duration, en));
         fuentes.push(fuente);
     }
-    return { fuentes, ganancia };
+    return { fuentes, gananciaVoz, gananciaBeat };
 }
 
 function pararEscucha() {
+    generacionEscucha++;
     escuchando?.parar();
     escuchando = null;
 }
 
 async function escucharGrabacion(g, fila, desde = 0) {
     pararEscucha();
-    if (grabacion) await pararGrabacion();
+    const generacion = generacionEscucha;
     // Suena una cosa a la vez.
     if (ronda && !ronda.pausa) pausarRonda();
     if (musica && sonando) musica.pausar?.();
     if (g.tipo === 'link') return escucharConTema(g);
     const ctx = contextoGrabaciones();
     ctx.resume();
-    const boton = fila.querySelector('.boton-play');
     let buffers;
     try {
         buffers = await decodificar(g);
@@ -2086,20 +2110,25 @@ async function escucharGrabacion(g, fila, desde = 0) {
         fila.querySelector('.detalle-grabacion').textContent = 'No se pudo abrir esta grabación';
         return;
     }
+    if (generacion !== generacionEscucha) return;
     const cuando = ctx.currentTime + 0.05;
-    const { fuentes, ganancia } = conectarMezcla(ctx, g, buffers, cuando, desde);
+    const { fuentes, gananciaVoz, gananciaBeat } = conectarMezcla(ctx, g, buffers, cuando, desde);
+    const segundos = () => Math.min(g.duracion, desde + Math.max(0, ctx.currentTime - cuando));
     const pintar = () => {
-        const segundos = Math.min(g.duracion, desde + Math.max(0, ctx.currentTime - cuando));
-        pintarTiempoGrabacion(fila, g, segundos);
-        if (segundos >= g.duracion) pararEscucha();
+        pintarTiempoGrabacion(fila, g, segundos());
+        if (segundos() >= g.duracion) pararEscucha();
     };
     const reloj = setInterval(pintar, 200);
+    const boton = fila.querySelector('.boton-play');
     boton.innerHTML = ICONO_PAUSA;
     boton.setAttribute('aria-label', 'Pausar');
     escuchando = {
         id: g.id,
-        segundos: () => Math.min(g.duracion, desde + Math.max(0, ctx.currentTime - cuando)),
-        volumen: v => { if (ganancia) ganancia.gain.value = v / 10; },
+        segundos,
+        volumenes: ({ voz, beat }) => {
+            gananciaVoz.gain.value = voz / 10;
+            if (gananciaBeat) gananciaBeat.gain.value = beat / 10;
+        },
         parar: () => {
             clearInterval(reloj);
             fuentes.forEach(f => { try { f.stop(); } catch { /* ya paró */ } });
@@ -2115,7 +2144,7 @@ function pintarTiempoGrabacion(fila, g, segundos) {
 }
 
 // Con YouTube o SoundCloud: el tema vuelve a sonar en el reproductor de abajo desde el
-// segundo en que se grabó, y la voz lo sigue.
+// segundo en que se grabó, y la voz lo sigue (por eso la hoja se cierra).
 async function escucharConTema(g) {
     cerrarGrabaciones();
     if (ronda) terminarRonda();
@@ -2125,7 +2154,10 @@ async function escucharConTema(g) {
     const cargando = escucharMusica(g.link);
     const voz = await decodificar(g).then(b => b.voz, () => null);
     if (!voz) return;
-    vozConLink = { g, voz, ctx, fuente: null, desde: 0, cuando: 0, salto: false, reloj: setInterval(seguirTema, 250) };
+    const ganancia = ctx.createGain();
+    ganancia.gain.value = leerVolumenes(localStorage).voz / 10;
+    ganancia.connect(ctx.destination);
+    vozConLink = { g, voz, ctx, ganancia, fuente: null, desde: 0, cuando: 0, salto: false, reloj: setInterval(seguirTema, 250) };
     await cargando;
 }
 
@@ -2139,18 +2171,18 @@ function seguirTema() {
         v.salto = true;
         return musica.ir?.(v.g.inicio);
     }
-    const esperada = actual - v.g.inicio + v.g.desfase;
-    if (esperada < 0) return;
-    if (esperada >= v.voz.duration) return pararVozConLink();
+    const { espera, desde } = inicioDeVoz(v.g.desfase, v.g.sincronia, actual - v.g.inicio);
+    if (espera > 0) return;
+    if (desde >= v.voz.duration) return pararVozConLink();
     const suena = v.fuente ? v.desde + v.ctx.currentTime - v.cuando : null;
-    if (suena != null && Math.abs(suena - esperada) < 0.5) return;
+    if (suena != null && Math.abs(suena - desde) < 0.5) return;
     pararVoz();
     v.fuente = v.ctx.createBufferSource();
     v.fuente.buffer = v.voz;
-    v.fuente.connect(v.ctx.destination);
+    v.fuente.connect(v.ganancia);
     v.cuando = v.ctx.currentTime;
-    v.desde = esperada;
-    v.fuente.start(v.cuando, esperada);
+    v.desde = desde;
+    v.fuente.start(v.cuando, desde);
 }
 
 function pararVozConLink() {
@@ -2160,12 +2192,12 @@ function pararVozConLink() {
     vozConLink = null;
 }
 
-// Descargar: la mezcla en WAV con el volumen elegido; con YouTube o SoundCloud, solo la voz.
-// En el iPhone abre el menú de compartir (Guardar en Archivos, WhatsApp...). Si al terminar de
-// preparar ya pasó el toque, el botón queda listo para un segundo toque.
-async function descargarGrabacion(g, boton) {
-    if (boton.archivo) return compartirArchivo(boton.archivo, boton);
-    boton.textContent = 'Preparando…';
+// Descargar: la mezcla en WAV con los volúmenes y la sincronía elegidos; con YouTube o
+// SoundCloud, solo la voz. En el iPhone abre el menú de compartir (Guardar en Archivos,
+// WhatsApp...). Si al terminar de preparar ya pasó el toque, queda listo para otro toque.
+async function descargarGrabacion(g, fila) {
+    const boton = fila.querySelector('.descargar-grabacion');
+    if (boton.archivo) return compartirArchivo(boton.archivo, fila, g);
     boton.disabled = true;
     try {
         let blob = g.voz;
@@ -2178,21 +2210,26 @@ async function descargarGrabacion(g, boton) {
             blob = new Blob([codificarWav([mezcla.getChannelData(0), mezcla.getChannelData(1)], frecuencia)], { type: 'audio/wav' });
         }
         boton.archivo = new File([blob], nombreDeArchivo(g, extensionDeAudio(blob.type)), { type: blob.type });
-        await compartirArchivo(boton.archivo, boton);
+        await compartirArchivo(boton.archivo, fila, g);
     } catch {
-        boton.textContent = 'No se pudo preparar';
+        fila.querySelector('.detalle-grabacion').textContent = 'No se pudo preparar el archivo';
     } finally {
         boton.disabled = false;
     }
 }
 
-async function compartirArchivo(archivo, boton) {
+async function compartirArchivo(archivo, fila, g) {
+    const boton = fila.querySelector('.descargar-grabacion');
     if (navigator.canShare?.({ files: [archivo] })) {
         try {
             await navigator.share({ files: [archivo] });
         } catch (error) {
-            // Sin el toque (tardó en preparar): queda listo para tocar de nuevo.
-            if (error.name === 'NotAllowedError') return (boton.textContent = 'Guardar archivo');
+            // Sin el toque (tardó en preparar): queda listo, en violeta, para tocar de nuevo.
+            if (error.name === 'NotAllowedError') {
+                boton.classList.add('listo');
+                fila.querySelector('.detalle-grabacion').textContent = 'Listo: tocá de nuevo para guardarla';
+                return;
+            }
         }
     } else {
         const enlace = document.createElement('a');
@@ -2203,7 +2240,13 @@ async function compartirArchivo(archivo, boton) {
         enlace.remove();
         setTimeout(() => URL.revokeObjectURL(enlace.href), 10000);
     }
-    boton.textContent = boton.dataset.texto;
+    boton.classList.remove('listo');
+    fila.querySelector('.detalle-grabacion').textContent = describirGrabacion(g).detalle;
+}
+
+// Lo preparado para descargar ya no sirve si cambian los volúmenes o la sincronía.
+function olvidarDescargas(fila = document) {
+    fila.querySelectorAll('.descargar-grabacion').forEach(boton => { boton.archivo = null; boton.classList.remove('listo'); });
 }
 
 function filaGrabacion(g) {
@@ -2211,29 +2254,34 @@ function filaGrabacion(g) {
     fila.className = 'grabacion vidrio';
     fila.dataset.id = g.id;
     const { titulo, detalle } = describirGrabacion(g);
+    const esLink = g.tipo === 'link';
     fila.innerHTML = `
         <div class="cabecera-grabacion">
             <button type="button" class="boton-play" aria-label="Reproducir">${ICONO_PLAY}</button>
             <div class="datos-grabacion"><span class="titulo-grabacion"></span><span class="detalle-grabacion"></span></div>
+            <button type="button" class="boton-musica descargar-grabacion" aria-label="${esLink ? 'Descargar la voz' : 'Descargar'}">${ICONO_DESCARGAR}</button>
+            <button type="button" class="boton-musica borrar-grabacion" aria-label="Borrar">${ICONO_TACHO}</button>
         </div>
+        ${esLink ? `<p class="nota-grabacion">Suena con el tema de ${g.fuente === 'youtube' ? 'YouTube' : 'SoundCloud'} desde donde arrancaste. Se descarga solo la voz.</p>` : `
         <div class="reproductor-barra">
             <span class="reproductor-tiempo tiempo-grabacion">0:00</span>
             <div class="reproductor-pista"><div class="reproductor-riel"><div class="reproductor-llenado"></div></div></div>
             <span class="reproductor-tiempo">${formatoTiempo(g.duracion)}</span>
-        </div>
-        <div class="acciones-grabacion">
-            <button type="button" class="descargar-grabacion"></button>
-            <button type="button" class="texto-rojo borrar-grabacion">Borrar</button>
-        </div>`;
+        </div>`}
+        ${g.tipo === 'voz' ? '' : `
+        <div class="sincronia">
+            <span>Sincronizar voz</span>
+            <button type="button" class="menos" aria-label="Adelantar la voz">−</button>
+            <span class="valor-sincronia"></span>
+            <button type="button" class="mas" aria-label="Atrasar la voz">+</button>
+        </div>`}`;
     fila.querySelector('.titulo-grabacion').textContent = titulo;
     fila.querySelector('.detalle-grabacion').textContent = detalle;
     fila.querySelector('.boton-play').addEventListener('click', () => {
         if (escuchando?.id === g.id) return pararEscucha();
         escucharGrabacion(g, fila);
     });
-    const descargar = fila.querySelector('.descargar-grabacion');
-    descargar.textContent = descargar.dataset.texto = g.tipo === 'link' ? 'Descargar la voz' : 'Descargar';
-    descargar.addEventListener('click', () => descargarGrabacion(g, descargar));
+    fila.querySelector('.descargar-grabacion').addEventListener('click', () => descargarGrabacion(g, fila));
     fila.querySelector('.borrar-grabacion').addEventListener('click', () => confirmarBorrado({ titulo }, async ok => {
         if (!ok) return;
         if (escuchando?.id === g.id) pararEscucha();
@@ -2241,65 +2289,74 @@ function filaGrabacion(g) {
         await borrarGrabacion(g.id);
         renderizarGrabaciones();
     }, '¿Borrar la grabación?'));
-    if (g.tipo === 'link') {
-        const nota = document.createElement('p');
-        nota.className = 'nota';
-        nota.textContent = `Suena con el tema de ${g.fuente === 'youtube' ? 'YouTube' : 'SoundCloud'}, desde donde arrancaste.`;
-        fila.querySelector('.reproductor-barra').replaceWith(nota);
-        return fila;
-    }
     // Tocar la barra salta a ese momento.
     const pista = fila.querySelector('.reproductor-pista');
-    pista.addEventListener('pointerdown', e => {
+    pista?.addEventListener('pointerdown', e => {
         const caja = pista.getBoundingClientRect();
         escucharGrabacion(g, fila, Math.max(0, Math.min(1, (e.clientX - caja.left) / caja.width)) * g.duracion);
     });
-    if (g.pista) fila.querySelector('.reproductor-barra').after(volumenGrabacion(g));
+    // Sincronía: se escucha al momento, desde donde iba.
+    const valor = fila.querySelector('.valor-sincronia');
+    const pintarSincronia = () => { if (valor) valor.textContent = textoSincronia(g.sincronia); };
+    for (const [clase, pasos] of [['menos', -1], ['mas', 1]]) {
+        fila.querySelector(`.${clase}`)?.addEventListener('click', () => {
+            g.sincronia = moverSincronia(g.sincronia, pasos);
+            pintarSincronia();
+            olvidarDescargas(fila);
+            guardarGrabacion(g).catch(() => {});
+            if (escuchando?.id === g.id) escucharGrabacion(g, fila, escuchando.segundos());
+        });
+    }
+    pintarSincronia();
     return fila;
 }
 
-// El volumen del beat: barra de 10 puntos imantados, como las de la libreta.
-function volumenGrabacion(g) {
-    const ajuste = document.createElement('div');
-    ajuste.className = 'ajuste-libreta';
-    ajuste.innerHTML = `
-        <div class="nombre-ajuste"><span>Volumen del beat</span><span class="valor-ajuste"></span></div>
-        <div class="fila-deslizador">
-            <input type="range" class="deslizador" min="0" max="10" step="1" aria-label="Volumen del beat">
-            <div class="puntos-deslizador">${'<span></span>'.repeat(11)}</div>
-        </div>`;
-    const barra = ajuste.querySelector('input');
-    barra.value = g.volumen;
-    const pintar = () => {
-        barra.style.setProperty('--progreso', `${barra.value * 10}%`);
-        ajuste.querySelectorAll('.puntos-deslizador span').forEach((punto, i) => punto.classList.toggle('lleno', i <= barra.value));
-        ajuste.querySelector('.valor-ajuste').textContent = String(barra.value);
-    };
-    barra.addEventListener('input', () => {
-        g.volumen = Number(barra.value);
+// Arriba de la hoja: el volumen de la voz y del beat, en barras de 10 puntos imantados.
+function renderizarVolumenes() {
+    const volumenes = leerVolumenes(localStorage);
+    $('volumenes-grabaciones').replaceChildren(...[['voz', 'Volumen de la voz'], ['beat', 'Volumen del beat']].map(([clave, nombre]) => {
+        const ajuste = document.createElement('div');
+        ajuste.className = 'ajuste-libreta';
+        ajuste.innerHTML = `
+            <div class="nombre-ajuste"><span>${nombre}</span><span class="valor-ajuste"></span></div>
+            <div class="fila-deslizador">
+                <input type="range" class="deslizador" min="0" max="10" step="1" aria-label="${nombre}" data-volumen="${clave}">
+                <div class="puntos-deslizador">${'<span></span>'.repeat(11)}</div>
+            </div>`;
+        const barra = ajuste.querySelector('input');
+        barra.value = volumenes[clave];
+        const pintar = () => {
+            barra.style.setProperty('--progreso', `${barra.value * 10}%`);
+            ajuste.querySelectorAll('.puntos-deslizador span').forEach((punto, i) => punto.classList.toggle('lleno', i <= barra.value));
+            ajuste.querySelector('.valor-ajuste').textContent = String(barra.value);
+        };
+        barra.addEventListener('input', () => {
+            guardarVolumen(localStorage, clave, barra.value);
+            pintar();
+            escuchando?.volumenes(leerVolumenes(localStorage));
+            olvidarDescargas();
+        });
         pintar();
-        if (escuchando?.id === g.id) escuchando.volumen(g.volumen);
-        const boton = ajuste.parentElement?.querySelector('.descargar-grabacion');
-        if (boton) { boton.archivo = null; boton.textContent = boton.dataset.texto; }
-    });
-    barra.addEventListener('change', () => guardarGrabacion(g).catch(() => {}));
-    pintar();
-    return ajuste;
+        return ajuste;
+    }));
 }
 
 async function renderizarGrabaciones() {
     const lista = await leerGrabaciones();
     pararEscucha();
     $('grabaciones-vacio').hidden = lista.length > 0;
+    $('grabaciones-aviso').hidden = !lista.length;
     $('lista-grabaciones').replaceChildren(...lista.map(filaGrabacion));
 }
 
+// Cerrar la hoja corta lo que suena (pedido de Swa).
 function cerrarGrabaciones() {
     pararEscucha();
     $('grabaciones').hidden = true;
 }
 $('abrir-grabaciones').addEventListener('click', () => {
     $('grabaciones').hidden = false;
+    renderizarVolumenes();
     renderizarGrabaciones();
 });
 $('cerrar-grabaciones').addEventListener('click', cerrarGrabaciones);
@@ -2478,8 +2535,7 @@ function aplicarVideo() {
 function alCambiarEstado(activo) {
     sonando = activo;
     // Grabando con un link o un archivo: si el tema se pausa, la grabación para.
-    if (activo) alArrancarMusicaGrabando();
-    else if (grabacion?.fuente && !grabacion.esperando) pararGrabacion();
+    if (!activo && grabacion?.fuente) pararGrabacion();
     if (plegarAlPausar && !sonando) {
         plegarAlPausar = false;
         aplicarVideo();

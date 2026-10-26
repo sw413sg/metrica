@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
+import { leerVolumenes, guardarVolumen, moverSincronia, textoSincronia, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from '../js/logica/grabaciones.js';
 
 test('grabaciones: qué se guarda con la voz según lo que suena', () => {
     assert.equal(tipoDeGrabacion({ link: null, acapella: false }), 'beat');
@@ -40,4 +40,30 @@ test('grabaciones: WAV de 16 bits', () => {
     assert.equal(wav.getInt16(46, true), 16383, 'medio volumen');
     assert.equal(wav.getInt16(48, true), 32767, 'se recorta en 1');
     assert.equal(wav.getInt16(52, true), -32768);
+});
+
+test('grabaciones: volumen de la voz y del beat, para todas', () => {
+    const datos = new Map();
+    const almacen = { getItem: k => datos.get(k) ?? null, setItem: (k, v) => datos.set(k, v) };
+    assert.deepEqual(leerVolumenes(almacen), { voz: 10, beat: 5 });
+    guardarVolumen(almacen, 'beat', 0);
+    guardarVolumen(almacen, 'voz', 14);
+    assert.deepEqual(leerVolumenes(almacen), { voz: 10, beat: 0 });
+});
+
+test('grabaciones: sincronía de a 20 ms, hasta medio segundo', () => {
+    assert.equal(moverSincronia(0, 1), 20);
+    assert.equal(moverSincronia(undefined, -2), -40);
+    assert.equal(moverSincronia(500, 1), 500);
+    assert.equal(textoSincronia(40), '+40 ms');
+    assert.equal(textoSincronia(-20), '-20 ms');
+    assert.equal(textoSincronia(0), '0 ms');
+});
+
+test('grabaciones: desde dónde suena la voz', () => {
+    assert.deepEqual(inicioDeVoz(0.1, 0, 0), { espera: 0, desde: 0.1 });
+    assert.deepEqual(inicioDeVoz(0.1, 40, 2), { espera: 0, desde: 2.06 });
+    const tarde = inicioDeVoz(0.1, 300, 0);
+    assert.equal(tarde.desde, 0);
+    assert.ok(Math.abs(tarde.espera - 0.2) < 1e-9, 'la voz espera');
 });
