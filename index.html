@@ -350,35 +350,43 @@
         </section>
     </main>
 
-    <!-- Ajustes de la libreta (en SwiftUI: .sheet con .presentationDetents([.medium])). -->
+    <!-- Ajustes de la libreta (en SwiftUI: .sheet con un Form de secciones agrupadas). Sin título,
+         con el diseño de la referencia de Swa: listas agrupadas, pasos de − y + y menú. -->
     <div class="hoja-fondo" id="ajustes-libreta" hidden>
-        <div class="hoja hoja-ajustes" role="dialog" aria-modal="true" aria-labelledby="ajustes-libreta-titulo">
+        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-label="Ajustes de la libreta">
             <button class="boton-barra cerrar-hoja" id="cerrar-ajustes-libreta" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
-            <h2 class="hoja-titulo" id="ajustes-libreta-titulo">Libreta</h2>
-            <!-- Cajas de vidrio como las de Rimas y Freestyle (pedido de Swa). -->
-            <div class="caja-libreta vidrio">
-                <h3 class="titulo-azar">Tema de esta letra</h3>
+            <h3 class="encabezado-libreta">Tema de esta letra</h3>
+            <div class="grupo-libreta">
                 <div class="temas-libreta" id="temas-libreta"></div>
             </div>
-            <!-- Funciones: renglones (solo en pantallas chicas, donde su botón no entra arriba) y
-                 sílabas, juntas (pedido de Swa). -->
-            <div class="caja-libreta vidrio funciones-libreta">
-                <h3 class="titulo-azar">Funciones</h3>
-                <div class="fila-libreta fila-renglones">
+            <h3 class="encabezado-libreta">Texto</h3>
+            <!-- Tamaño, separaciones y fuente: lo arma js/app.js -->
+            <div class="grupo-libreta" id="opciones-libreta"></div>
+            <h3 class="encabezado-libreta">Funciones</h3>
+            <!-- Renglones solo en pantallas chicas, donde su botón no entra arriba (pedido de Swa). -->
+            <div class="grupo-libreta funciones-libreta">
+                <div class="fila-grupo fila-renglones">
                     <label for="mostrar-renglones">Renglones</label>
                     <input type="checkbox" class="interruptor" id="mostrar-renglones">
                 </div>
-                <div class="fila-libreta">
+                <div class="fila-grupo">
                     <label for="mostrar-silabas">Sílabas por verso</label>
                     <input type="checkbox" class="interruptor" id="mostrar-silabas">
                 </div>
+                <div class="fila-grupo">
+                    <label for="rimas-internas">Rimas internas</label>
+                    <!-- Un menú (Picker con .menu en SwiftUI): el select va invisible encima del texto. -->
+                    <span class="menu-libreta">
+                        <span id="valor-internas"></span>
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M8 10l4-4 4 4M8 14l4 4 4-4"/></svg>
+                        <select id="rimas-internas" data-ajuste="internas"></select>
+                    </span>
+                </div>
             </div>
-            <!-- Tamaño, separaciones, fuente y rimas internas: lo arma js/app.js -->
-            <div id="opciones-libreta"></div>
             <!-- Abajo de todo, borrar la letra (pide confirmación). -->
-            <button type="button" class="caja-libreta vidrio boton-borrar-letra" id="borrar-letra">Borrar letra</button>
+            <button type="button" class="boton-borrar-letra" id="borrar-letra">Borrar letra</button>
         </div>
     </div>
 
