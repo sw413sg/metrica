@@ -424,10 +424,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#reproductor-titulo').isVisible(), false);
         assert.equal(await page.locator('#musica-cerrar').isVisible(), false);
         assert.equal(await page.locator('#musica-plegar').isVisible(), false);
+        const recMini = await page.locator('#reproductor [data-rec]').boundingBox();
+        assert.ok(recMini.x + recMini.width <= (await page.locator('#musica-play').boundingBox()).x, 'el REC va a la izquierda del play');
         assert.equal(await page.locator('#musica-agrandar').isVisible(), true);
         assert.match(await page.locator('#musica-tiempo').textContent(), /^-\d+:\d\d$/);
         const miniCaja = await page.locator('#reproductor').boundingBox();
-        assert.ok(miniCaja.height <= 60, JSON.stringify(miniCaja));
+        assert.ok(Math.abs(miniCaja.height - 34) <= 1, JSON.stringify(miniCaja));
         const miniPista = await page.locator('#musica-pista').boundingBox();
         assert.ok(miniPista.width > 150, JSON.stringify(miniPista));
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
@@ -458,7 +460,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-anterior').isVisible(), false);
         assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
         const marcaBoton = await page.locator('#musica-marca').boundingBox();
-        assert.equal(Math.round(marcaBoton.width), 40);
+        // Entre todos los botones de la fila queda el mismo aire (pedido de Swa).
+        const huecos = await page.evaluate(() => {
+            const cajas = [...document.querySelectorAll('#reproductor .reproductor-acciones > *')].filter(b => b.offsetWidth).map(b => b.getBoundingClientRect());
+            return cajas.slice(1).map((c, i) => Math.round(c.left - cajas[i].right));
+        });
+        assert.ok(huecos.length >= 5 && huecos.every(h => h === 7), JSON.stringify(huecos));
         assert.ok((await page.locator('#musica-bucle').boundingBox()).x > marcaBoton.x);
         assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
         await page.locator('#musica-marca').click();
@@ -1611,7 +1618,7 @@ const servidor = http.createServer((req, res) => {
         // Un archivo también tiene 3 tamaños: chico → mini → grande (con una nota en el cuadro) → chico.
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false);
         await page.locator('#musica-plegar').click();
-        assert.ok((await page.locator('#reproductor').boundingBox()).height <= 60);
+        assert.ok(Math.abs((await page.locator('#reproductor').boundingBox()).height - 34) <= 1);
         await page.locator('#musica-agrandar').click();
         assert.equal(await page.locator('#reproductor-marco .reproductor-sin-portada').isVisible(), true);
         await page.screenshot({path: `capturas/freestyle-archivo-grande-${tema}.png`});
