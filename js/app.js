@@ -3176,7 +3176,10 @@ function segundosDesdePuntero(clientX) {
 // y sigue sonando desde la marca (pedido de Swa). Sin marca, no se puede tocar.
 $('musica-marca').addEventListener('click', () => {
     if (!musica || !duracion) return;
-    marca = actual;
+    // Con la barra encima de la marca (a menos de 12 px), tocarla la borra (pedido de Swa).
+    const ancho = $('musica-pista').getBoundingClientRect().width;
+    const encima = marca != null && Math.abs(actual - marca) / duracion * ancho < 12;
+    marca = encima ? null : actual;
     pintarMarca();
 });
 $('musica-bucle').addEventListener('click', () => {
