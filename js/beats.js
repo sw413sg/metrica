@@ -5,6 +5,7 @@ import { msPorPaso, sonidosDelPaso } from './logica/freestyle.js';
 import { pasosDeBombo } from './logica/ambiente.js';
 
 let contexto = null;
+let salida = null; // todo lo que suena pasa por acá, para poder grabarlo
 let ruido = null;
 let temporizador = null;
 let corrida = 0; // para ignorar avisos que quedaron de un beat anterior
@@ -14,7 +15,7 @@ const bombos = new Map(); // url -> Set de pasos del loop donde suena el kick
 
 function tocar(sonido, cuando) {
     const volumen = contexto.createGain();
-    volumen.connect(contexto.destination);
+    volumen.connect(salida);
     if (sonido === 'bombo') {
         const osc = contexto.createOscillator();
         osc.frequency.setValueAtTime(150, cuando);
@@ -41,8 +42,26 @@ function tocar(sonido, cuando) {
 }
 
 function asegurarContexto() {
-    contexto ??= new AudioContext();
+    if (!contexto) {
+        contexto = new AudioContext();
+        salida = contexto.createGain();
+        salida.connect(contexto.destination);
+    }
     return contexto;
+}
+
+// Despierta el audio dentro del toque (iOS no deja hacerlo después).
+export function despertarAudio() {
+    asegurarContexto().resume();
+}
+
+// Lo que suena, para grabarlo aparte de la voz (en silencio mientras no hay beat), y
+// cuánto tarda en salir por el parlante.
+export function grabarBeat() {
+    const ctx = asegurarContexto();
+    const destino = ctx.createMediaStreamDestination();
+    salida.connect(destino);
+    return { flujo: destino.stream, latencia: { salida: ctx.outputLatency, base: ctx.baseLatency }, soltar: () => salida.disconnect(destino) };
 }
 
 function cargarBuffer(url) {
@@ -112,7 +131,7 @@ export function iniciarArchivo(url, bpm, alPaso, alFallar) {
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         source.loop = true;
-        source.connect(ctx.destination);
+        source.connect(salida);
         fuenteLoop = source;
         const cuando = ctx.currentTime + 0.05;
         source.start(cuando);

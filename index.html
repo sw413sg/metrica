@@ -191,8 +191,17 @@
         <section class="pantalla" id="pantalla-freestyle" data-pestana="freestyle">
             <!-- Luces: ocupan toda la pantalla, detrás de todo, y se desvanecen antes de llegar abajo. -->
             <canvas class="efecto-fs" id="fs-efecto" aria-hidden="true"></canvas>
-            <header class="barra-nav"></header>
-            <h1 class="titulo-grande">Freestyle</h1>
+            <header class="barra-nav">
+                <!-- Mientras se graba: el punto rojo y el tiempo, aunque el título se vaya. -->
+                <span class="grabando-fs" id="fs-grabando" hidden><span class="punto-rec"></span><span id="fs-grabando-tiempo">0:00</span></span>
+            </header>
+            <!-- El título y, en la misma línea, las grabaciones (en SwiftUI: .toolbar). -->
+            <div class="fila-titulo">
+                <h1 class="titulo-grande">Freestyle</h1>
+                <button class="boton-barra boton-grabaciones" id="abrir-grabaciones" aria-label="Grabaciones">
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>
+                </button>
+            </div>
             <div class="contenido">
                 <div class="escenario-fs">
                     <!-- El aro se llena de violeta (en SwiftUI: Circle().trim) y adentro va lo que queda. -->
@@ -218,6 +227,8 @@
                     <button type="button" class="play-fs" id="fs-play" aria-label="Empezar">
                         <svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>
                     </button>
+                    <!-- REC: graba la voz con el micrófono; el beat se guarda aparte. -->
+                    <button type="button" class="rec-fs" id="fs-rec" aria-label="Grabar" aria-pressed="false"><span class="punto-rec"></span></button>
                     <button type="button" class="reiniciar-fs" id="fs-reiniciar" aria-label="Reiniciar el cronómetro">
                         <svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
                     </button>
@@ -451,6 +462,18 @@
                 <button id="cancelar-borrado">Cancelar</button>
                 <button class="texto-rojo" id="aceptar-borrado">Borrar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Grabaciones de Freestyle (en SwiftUI: .sheet con una List). -->
+    <div class="hoja-fondo" id="grabaciones" hidden>
+        <div class="hoja hoja-ajustes" role="dialog" aria-modal="true" aria-labelledby="grabaciones-titulo">
+            <button class="boton-barra cerrar-hoja" id="cerrar-grabaciones" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <h2 class="hoja-titulo" id="grabaciones-titulo">Grabaciones</h2>
+            <ul class="lista-grabaciones" id="lista-grabaciones"></ul>
+            <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Tocá el botón rojo al lado del play.</p>
         </div>
     </div>
 

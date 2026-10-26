@@ -897,24 +897,24 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 .nombre-ajuste { display: flex; justify-content: space-between; align-items: baseline; padding: 0 6px; font-size: 15px; font-weight: 500; }
 .valor-ajuste { font-size: 15px; font-weight: 600; color: var(--destacado); font-variant-numeric: tabular-nums; }
 /* Barras: lo recorrido en violeta y la perilla blanca con un resplandor violeta. */
-#ajustes-libreta .fila-deslizador { margin-top: 4px; padding: 0; }
-#ajustes-libreta .deslizador { -webkit-appearance: none; appearance: none; height: 28px; background: none; }
-#ajustes-libreta .deslizador::-webkit-slider-runnable-track {
+#ajustes-libreta .fila-deslizador, #grabaciones .fila-deslizador { margin-top: 4px; padding: 0; }
+#ajustes-libreta .deslizador, #grabaciones .deslizador { -webkit-appearance: none; appearance: none; height: 28px; background: none; }
+#ajustes-libreta .deslizador::-webkit-slider-runnable-track, #grabaciones .deslizador::-webkit-slider-runnable-track {
     height: 6px; border-radius: 3px;
     background: linear-gradient(to right, var(--destacado) var(--progreso, 0%), var(--relleno) var(--progreso, 0%));
 }
-#ajustes-libreta .deslizador::-moz-range-track { height: 6px; border-radius: 3px; background: var(--relleno); }
-#ajustes-libreta .deslizador::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--destacado); }
-#ajustes-libreta .deslizador::-webkit-slider-thumb {
+#ajustes-libreta .deslizador::-moz-range-track, #grabaciones .deslizador::-moz-range-track { height: 6px; border-radius: 3px; background: var(--relleno); }
+#ajustes-libreta .deslizador::-moz-range-progress, #grabaciones .deslizador::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--destacado); }
+#ajustes-libreta .deslizador::-webkit-slider-thumb, #grabaciones .deslizador::-webkit-slider-thumb {
     -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: #fff; border: 0;
     box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 0 12px color-mix(in srgb, var(--destacado) 55%, transparent);
 }
-#ajustes-libreta .deslizador::-moz-range-thumb {
+#ajustes-libreta .deslizador::-moz-range-thumb, #grabaciones .deslizador::-moz-range-thumb {
     width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 0;
     box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 0 12px color-mix(in srgb, var(--destacado) 55%, transparent);
 }
-#ajustes-libreta .puntos-deslizador { padding: 0 10px; }
-#ajustes-libreta .puntos-deslizador span.lleno { background: var(--destacado); }
+#ajustes-libreta .puntos-deslizador, #grabaciones .puntos-deslizador { padding: 0 10px; }
+#ajustes-libreta .puntos-deslizador span.lleno, #grabaciones .puntos-deslizador span.lleno { background: var(--destacado); }
 /* Pastillas: la elegida con la pastilla violeta suave de consonante/asonante. */
 .pastillas-libreta { display: flex; gap: 4px; margin-top: 8px; padding: 3px; border-radius: 20px; background: var(--tarjeta); }
 .pastillas-libreta button {
@@ -1129,3 +1129,40 @@ body.teclado-abierto #hoja-musica .hoja { padding-bottom: 8px; }
 /* Con el selector de música de la libreta abierto, la tarjeta de lo que suena se esconde
    (sin cortarlo) y vuelve al cerrarlo (pedido de Swa). */
 body.eligiendo-musica #reproductor { visibility: hidden; }
+
+/* Grabar el freestyle: REC al lado del play, rojo como en cualquier grabador. Grabando,
+   el punto se vuelve cuadrado y arriba queda el punto rojo con el tiempo. */
+.rec-fs {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+    background: var(--celda);
+}
+.punto-rec { width: 16px; height: 16px; border-radius: 50%; background: #ff3b30; transition: border-radius .2s, transform .2s; }
+.rec-fs[aria-pressed="true"] .punto-rec { border-radius: 4px; transform: scale(0.85); }
+#pantalla-freestyle .barra-nav { justify-content: center; }
+.grabando-fs {
+    display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 14px;
+    font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); background: var(--celda);
+}
+.grabando-fs[hidden] { display: none; }
+.grabando-fs .punto-rec { width: 10px; height: 10px; animation: latir-rec 1.2s ease-in-out infinite; }
+@keyframes latir-rec { 50% { opacity: 0.3; } }
+#pantalla-freestyle .boton-grabaciones { transition: opacity .3s; }
+#pantalla-freestyle.jugando .boton-grabaciones { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
+/* Cada grabación en una caja de vidrio, como los ajustes de la libreta. */
+.lista-grabaciones { list-style: none; margin: 0; padding: 0; }
+.grabacion { margin-top: 12px; border-radius: 30px; padding: 14px; }
+.cabecera-grabacion { display: flex; align-items: center; gap: 12px; }
+.datos-grabacion { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.titulo-grabacion { font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detalle-grabacion { font-size: 13px; color: var(--texto-2); }
+.grabacion .reproductor-barra { margin-top: 10px; }
+.grabacion .reproductor-pista { cursor: pointer; }
+.grabacion .nota { margin: 8px 6px 0; font-size: 13px; color: var(--texto-2); }
+.acciones-grabacion { display: flex; gap: 8px; margin-top: 12px; }
+.acciones-grabacion button { flex: 1; height: 40px; border-radius: 20px; font-size: 15px; font-weight: 600; background: var(--celda); color: var(--texto); }
+.acciones-grabacion .texto-rojo { color: #ff3b30; }
+/* Con REC al lado del play, todo sigue entrando en la bandeja sin deslizar. */
+.bandeja-fs { gap: 4px; }
+.bandeja-fs .play-fs, .bandeja-fs .rec-fs, .bandeja-fs .reiniciar-fs { width: 38px; height: 38px; }
+.duraciones-fs { gap: 3px; }
+.duraciones-fs .chip-fs { padding: 0 4px; font-size: 14px; }
