@@ -728,7 +728,7 @@ let sonando = false, plegado = false, plegarAlPausar = false, falloMusica = fals
 let generacionMusica = 0;
 let actual = 0, duracion = 0, arrastrando = false, progresoTimer = null, momentoActual = 0;
 // La marca imantada del tema que suena (en segundos) y si al terminar vuelve a ella.
-let marca = null, volverAMarca = false, cancionActual = null;
+let marca = null, cancionActual = null;
 
 // Lo que queda visible de la pantalla con el teclado abierto (ver estilos.css).
 if (window.visualViewport) {
@@ -2049,7 +2049,8 @@ function pintarGrabacion() {
     document.querySelectorAll('[data-rec]').forEach(boton => {
         boton.disabled = !grabando && sinVideo;
         boton.classList.toggle('grabando', grabando);
-        boton.setAttribute('aria-label', grabando ? 'Dejar de grabar' : 'Grabar desde acá');
+        boton.setAttribute('aria-pressed', String(!grabando && recPrendido));
+        boton.setAttribute('aria-label', grabando ? 'Dejar de grabar' : recPrendido ? 'Apagar la grabación' : 'Grabar');
         boton.querySelector('.tiempo-rec').textContent = texto;
     });
 }
@@ -2101,10 +2102,17 @@ document.querySelectorAll('[data-rec]').forEach(boton => boton.addEventListener(
         pararGrabacion();
         return;
     }
-    recPrendido = true;
+    // Si no suena nada, se prende y se apaga como el de la bandeja: graba al dar play
+    // (pedido de Swa). Si algo suena, graba desde acá.
+    recPrendido = suenaAlgo() || !recPrendido;
     pintarGrabacion();
-    empezarGrabacion();
+    if (suenaAlgo()) empezarGrabacion();
 }));
+// Lo que suena ahora: el tema del reproductor, o el beat de la ronda (Acapella cuenta si corre).
+function suenaAlgo() {
+    if (musica) return sonando;
+    return Boolean(ronda && (!ronda.pausa || ronda.sigueSonando));
+}
 
 // ---------- Grabaciones (hoja) ----------
 // Arriba, el volumen de la voz y del beat (para todas). Cada grabación, compacta: play,
@@ -2702,10 +2710,6 @@ function pintarMarca() {
     if (hay) $('musica-marca-punto').style.left = `${fraccionDe(marca, duracion) * 100}%`;
     $('musica-marca').setAttribute('aria-pressed', String(marca != null));
     $('musica-bucle').setAttribute('aria-disabled', String(marca == null));
-    $('musica-bucle').setAttribute('aria-pressed', String(volverAMarca && marca != null));
-    // El archivo del teléfono va en loop desde el principio; con el bucle, vuelve a la marca.
-    const audio = $('reproductor-oculto').querySelector('audio');
-    if (audio) audio.loop = !(volverAMarca && marca != null);
 }
 
 // La marca es del tema: si la playlist pasa a otro, se borra (cambiar de sección no la toca).
@@ -2715,17 +2719,9 @@ function anotarCancion(id) {
     cancionActual = id;
     if (!habia || marca == null) return;
     marca = null;
-    volverAMarca = false;
     pintarMarca();
 }
 
-// Cuando el tema termina: con el bucle prendido, sigue desde la marca.
-function volverALaMarca() {
-    if (!volverAMarca || marca == null || !musica?.ir) return false;
-    musica.ir(marca);
-    musica.reproducir?.();
-    return true;
-}
 
 function mostrarEstadoMusica() {
     const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud', archivo: 'Del teléfono' }[musica?.fuente] ?? '';
@@ -2779,8 +2775,8 @@ function alCambiarEstado(activo) {
     }
     // Grabando con un link o un archivo: si el tema se pausa, la grabación para.
     if (!activo && grabacion?.fuente) pararGrabacion();
-    // Con el REC de Freestyle prendido, el play del tema también graba.
-    if (activo && recPrendido && $('pantalla-freestyle').classList.contains('activa')) empezarGrabacion();
+    // Con el REC prendido (el de la bandeja o el del reproductor), el play del tema graba.
+    if (activo && recPrendido) empezarGrabacion();
     if (plegarAlPausar && !sonando) {
         plegarAlPausar = false;
         aplicarVideo();
@@ -2900,7 +2896,6 @@ async function escucharMusica(texto) {
                         if (titulo) $('reproductor-titulo').textContent = titulo;
                         leerYouTube();
                         alCambiarEstado(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING);
-                        if (e.data === YT.PlayerState.ENDED) volverALaMarca();
                     },
                     onAutoplayBlocked: () => { if (!falloMusica) alCambiarEstado(false); },
                     onError: () => {
@@ -2989,7 +2984,7 @@ async function escucharMusica(texto) {
             });
             widget.bind(Events.PLAY, () => { alCambiarEstado(true); leerPosicion(); mostrarCancion(); });
             widget.bind(Events.PAUSE, () => { alCambiarEstado(false); leerPosicion(); });
-            widget.bind(Events.FINISH, () => { alCambiarEstado(false); volverALaMarca(); });
+            widget.bind(Events.FINISH, () => alCambiarEstado(false));
             widget.bind(Events.PLAY_PROGRESS, data => {
                 const ms = typeof data === 'number' ? data : Number(data?.currentPosition);
                 if (!Number.isFinite(ms)) return;
@@ -3036,7 +3031,6 @@ function escucharArchivo(archivo, titulo) {
     audio.addEventListener('timeupdate', () => anotarTiempo(audio.currentTime, audio.duration));
     audio.addEventListener('play', () => alCambiarEstado(true));
     audio.addEventListener('pause', () => alCambiarEstado(false));
-    audio.addEventListener('ended', volverALaMarca);
     audio.addEventListener('error', () => {
         falloMusica = true;
         sonando = false;
@@ -3074,7 +3068,6 @@ function cerrarMusica() {
     musica?.cerrar?.();
     musica = null;
     marca = null;
-    volverAMarca = false;
     cancionActual = null;
     sonando = false;
     plegado = false;
@@ -3179,16 +3172,18 @@ function segundosDesdePuntero(clientX) {
     const r = $('musica-pista').getBoundingClientRect();
     return imantar(segundosEn(clientX - r.left, r.width, duracion), marca, duracion, r.width);
 }
-// La marca: tocarla (sonando o en pausa) marca este momento; el bucle vuelve ahí al terminar.
+// La marca: tocarla (sonando o en pausa) marca este momento; el botón de al lado vuelve ahí
+// y sigue sonando desde la marca (pedido de Swa). Sin marca, no se puede tocar.
 $('musica-marca').addEventListener('click', () => {
     if (!musica || !duracion) return;
     marca = actual;
     pintarMarca();
 });
 $('musica-bucle').addEventListener('click', () => {
-    if (marca == null) return;
-    volverAMarca = !volverAMarca;
-    pintarMarca();
+    if (marca == null || !musica?.ir) return;
+    musica.ir(marca);
+    anotarTiempo(marca);
+    if (!sonando) musica.reproducir?.();
 });
 $('musica-pista').addEventListener('pointerdown', e => {
     if (!duracion || !musica?.ir) return;
