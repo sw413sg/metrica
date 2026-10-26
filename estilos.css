@@ -1111,6 +1111,21 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* YouTube achicado: abajo del botón, por qué no puede seguir sonando así. */
 .reproductor-nota { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--texto-2); text-align: center; }
 .reproductor-nota[hidden] { display: none; }
+/* Mini (SoundCloud y archivos, pedido de Swa): una sola fila con lo que falta, la barra,
+   el play y la flecha para agrandarlo. Grabando, el REC sigue a la vista. */
+.reproductor.mini:not(.grande) .reproductor-cuerpo { flex-direction: row; align-items: center; gap: 6px; padding: 8px 12px; }
+.reproductor.mini:not(.grande) .reproductor-barra { order: -1; flex: 1; min-width: 0; margin: -2px 0; }
+.reproductor.mini:not(.grande) .reproductor-principal { flex-shrink: 0; }
+.reproductor.mini .reproductor-datos,
+.reproductor.mini #musica-marca,
+.reproductor.mini #musica-bucle,
+.reproductor.mini #musica-cerrar,
+.reproductor.mini #musica-duracion,
+.reproductor.mini .rec-reproductor:not(.grabando) { display: none; }
+.reproductor.mini #musica-tiempo { width: auto; min-width: 36px; }
+/* Un archivo del teléfono no tiene portada: en el cuadro grande va una nota musical. */
+.reproductor-sin-portada { width: 100%; height: 100%; display: grid; place-items: center; color: var(--texto-3); background: var(--relleno); }
+.reproductor-sin-portada .icono { width: 64px; height: 64px; }
 /* SoundCloud: fuera de la pantalla, y fuera de la tarjeta para que el teclado no lo corte. */
 /* El iframe de SoundCloud no se ve, pero queda adentro de la pantalla (invisible y detrás
    de todo): fuera de pantalla el navegador frena los iframes de otro sitio, y al saltar en
