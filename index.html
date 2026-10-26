@@ -191,10 +191,7 @@
         <section class="pantalla" id="pantalla-freestyle" data-pestana="freestyle">
             <!-- Luces: ocupan toda la pantalla, detrás de todo, y se desvanecen antes de llegar abajo. -->
             <canvas class="efecto-fs" id="fs-efecto" aria-hidden="true"></canvas>
-            <header class="barra-nav">
-                <!-- Mientras se graba: el punto rojo y el tiempo, aunque el título se vaya. -->
-                <span class="grabando-fs" id="fs-grabando" hidden><span class="punto-rec"></span><span id="fs-grabando-tiempo">0:00</span></span>
-            </header>
+            <header class="barra-nav"></header>
             <!-- El título y, en la misma línea, las grabaciones (en SwiftUI: .toolbar). -->
             <div class="fila-titulo">
                 <h1 class="titulo-grande">Freestyle</h1>
@@ -227,8 +224,8 @@
                     <button type="button" class="play-fs" id="fs-play" aria-label="Empezar">
                         <svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>
                     </button>
-                    <!-- REC: graba la voz con el micrófono; el beat se guarda aparte. -->
-                    <button type="button" class="rec-fs" id="fs-rec" aria-label="Grabar" aria-pressed="false"><span class="punto-rec"></span></button>
+                    <!-- REC se prende y se apaga (apagado, tachado): prendido, graba al dar play. -->
+                    <button type="button" class="rec-fs" id="fs-rec" aria-label="Grabar al dar play" aria-pressed="false"><span class="punto-rec"></span></button>
                     <button type="button" class="reiniciar-fs" id="fs-reiniciar" aria-label="Reiniciar el cronómetro">
                         <svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
                     </button>
@@ -374,6 +371,7 @@
                         <button class="boton-musica" id="musica-bucle" aria-label="Al terminar, volver a la marca" aria-pressed="false" aria-disabled="true">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><path class="icono-relleno" d="M12 16.5s-3-2.8-3-5.1a3 3 0 0 1 6 0c0 2.3-3 5.1-3 5.1zm0-4.1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z" fill-rule="evenodd"/></svg>
                         </button>
+                        <button type="button" class="rec-reproductor" data-rec hidden aria-label="Dejar de grabar"><span class="punto-rec"></span><span class="tiempo-rec">0:00</span></button>
                         <button class="boton-musica" id="musica-anterior" aria-label="Canción anterior">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
                         </button>
@@ -422,6 +420,8 @@
                     <span class="reproductor-titulo" id="fs-sonando-titulo"></span>
                     <span class="reproductor-fuente" id="fs-sonando-fuente"></span>
                 </div>
+                <!-- Grabando: el punto rojo y los segundos; tocarlo deja de grabar y el beat sigue. -->
+                <button type="button" class="rec-reproductor" data-rec hidden aria-label="Dejar de grabar"><span class="punto-rec"></span><span class="tiempo-rec">0:00</span></button>
                 <button type="button" class="boton-musica" id="fs-beat-anterior" aria-label="Beat anterior">
                     <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
                 </button>
@@ -442,6 +442,9 @@
             </div>
         </div>
     </div>
+
+    <!-- En Acapella no hay reproductor: grabando, el punto rojo y los segundos van solos abajo. -->
+    <button type="button" class="rec-reproductor rec-acapella vidrio" data-rec hidden aria-label="Dejar de grabar"><span class="punto-rec"></span><span class="tiempo-rec">0:00</span></button>
 
     <!-- Confirmar antes de borrar una letra (en SwiftUI: .alert con un botón .destructive). -->
     <!-- Menú de una frase del baúl, al mantenerla apretada (en SwiftUI: .contextMenu). -->
@@ -472,8 +475,11 @@
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
             <h2 class="hoja-titulo" id="grabaciones-titulo">Grabaciones</h2>
+            <!-- Volumen de la voz y del beat, para todas (y para descargar). -->
+            <div class="caja-libreta vidrio volumenes-grabaciones" id="volumenes-grabaciones"></div>
             <ul class="lista-grabaciones" id="lista-grabaciones"></ul>
-            <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Tocá el botón rojo al lado del play.</p>
+            <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Prendé el botón rojo al lado del play y dale play.</p>
+            <p class="nota aviso-grabaciones" id="grabaciones-aviso" hidden>Las grabaciones usan micrófono y parlante del celular al mismo tiempo, lo cual baja la calidad. Usá esta grabación como referencia.</p>
         </div>
     </div>
 

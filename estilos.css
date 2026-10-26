@@ -1024,7 +1024,7 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor-lado { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; }
 .reproductor-datos { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .reproductor-titulo { font-size: 15px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.reproductor-fuente { font-size: 12px; line-height: 1.2; color: var(--texto-2); }
+.reproductor-fuente { font-size: 12px; line-height: 1.2; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 200×200: el viewport mínimo de YouTube. Radio 14, entero, sin nada encima.
    Queda por encima de la zona táctil de la barra, que lo pisa 4 px por el margen.
    Con SoundCloud en Freestyle, en el mismo cuadro va la portada del tema. */
@@ -1130,37 +1130,54 @@ body.teclado-abierto #hoja-musica .hoja { padding-bottom: 8px; }
    (sin cortarlo) y vuelve al cerrarlo (pedido de Swa). */
 body.eligiendo-musica #reproductor { visibility: hidden; }
 
-/* Grabar el freestyle: REC al lado del play, rojo como en cualquier grabador. Grabando,
-   el punto se vuelve cuadrado y arriba queda el punto rojo con el tiempo. */
+/* Grabar el freestyle: REC al lado del play se prende y se apaga. Apagado va gris y tachado;
+   prendido, el punto rojo con un resplandor, y graba al dar play. Grabando, en el reproductor
+   (a la izquierda de volver) va el punto rojo con los segundos (pedidos de Swa). */
 .rec-fs {
-    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+    position: relative; width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
     background: var(--celda);
 }
-.punto-rec { width: 16px; height: 16px; border-radius: 50%; background: #ff3b30; transition: border-radius .2s, transform .2s; }
-.rec-fs[aria-pressed="true"] .punto-rec { border-radius: 4px; transform: scale(0.85); }
-#pantalla-freestyle .barra-nav { justify-content: center; }
-.grabando-fs {
-    display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 14px;
-    font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); background: var(--celda);
+.punto-rec { width: 16px; height: 16px; border-radius: 50%; background: #ff3b30; }
+.rec-fs[aria-pressed="false"] .punto-rec { background: var(--texto-3); }
+.rec-fs[aria-pressed="false"]::after {
+    content: ""; position: absolute; width: 24px; height: 2px; border-radius: 1px; background: var(--texto-2);
+    transform: rotate(-45deg); box-shadow: 0 0 0 1.5px var(--celda);
 }
-.grabando-fs[hidden] { display: none; }
-.grabando-fs .punto-rec { width: 10px; height: 10px; animation: latir-rec 1.2s ease-in-out infinite; }
+.rec-fs[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
+.rec-reproductor {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 16px; flex-shrink: 0;
+    font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); background: var(--celda);
+}
+.rec-reproductor[hidden] { display: none; }
+.rec-reproductor .punto-rec { width: 10px; height: 10px; animation: latir-rec 1.2s ease-in-out infinite; }
 @keyframes latir-rec { 50% { opacity: 0.3; } }
+.rec-acapella { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 15; height: 40px; padding: 0 16px; border-radius: 20px; }
+body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { display: none; }
 #pantalla-freestyle .boton-grabaciones { transition: opacity .3s; }
 #pantalla-freestyle.jugando .boton-grabaciones { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
-/* Cada grabación en una caja de vidrio, como los ajustes de la libreta. */
+/* Grabaciones: arriba los volúmenes; cada grabación en una caja compacta. */
+.volumenes-grabaciones { padding: 10px 14px 6px; }
 .lista-grabaciones { list-style: none; margin: 0; padding: 0; }
-.grabacion { margin-top: 12px; border-radius: 30px; padding: 14px; }
-.cabecera-grabacion { display: flex; align-items: center; gap: 12px; }
-.datos-grabacion { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.titulo-grabacion { font-size: 17px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.detalle-grabacion { font-size: 13px; color: var(--texto-2); }
-.grabacion .reproductor-barra { margin-top: 10px; }
+.grabacion { margin-top: 10px; border-radius: 30px; padding: 10px 12px 8px; }
+.cabecera-grabacion { display: flex; align-items: center; gap: 10px; }
+.cabecera-grabacion .boton-play { width: 36px; height: 36px; }
+.datos-grabacion { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.titulo-grabacion { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detalle-grabacion { font-size: 12px; color: var(--texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grabacion .boton-musica { color: var(--texto-2); }
+.grabacion .boton-musica:disabled { opacity: 0.4; }
+.grabacion .boton-musica.listo { color: var(--destacado); }
+.grabacion .borrar-grabacion { color: #ff3b30; }
+.grabacion .reproductor-barra { margin: -6px 0 -10px; }
 .grabacion .reproductor-pista { cursor: pointer; }
-.grabacion .nota { margin: 8px 6px 0; font-size: 13px; color: var(--texto-2); }
-.acciones-grabacion { display: flex; gap: 8px; margin-top: 12px; }
-.acciones-grabacion button { flex: 1; height: 40px; border-radius: 20px; font-size: 15px; font-weight: 600; background: var(--celda); color: var(--texto); }
-.acciones-grabacion .texto-rojo { color: #ff3b30; }
+.nota-grabacion { margin: 6px 4px 2px; font-size: 12px; color: var(--texto-2); }
+/* Sincronizar: la voz antes o después del beat, de a 20 ms. */
+.sincronia { display: flex; align-items: center; gap: 4px; padding: 0 2px; font-size: 13px; color: var(--texto-2); }
+.sincronia > span:first-child { flex: 1; }
+.sincronia button { width: 30px; height: 30px; border-radius: 50%; background: var(--celda); color: var(--texto); font-size: 18px; font-weight: 600; line-height: 1; }
+.valor-sincronia { min-width: 58px; text-align: center; font-weight: 600; color: var(--texto); font-variant-numeric: tabular-nums; }
+.aviso-grabaciones { margin: 14px 8px 0; font-size: 12px; color: var(--texto-2); text-align: center; }
+.aviso-grabaciones[hidden] { display: none; }
 /* Con REC al lado del play, todo sigue entrando en la bandeja sin deslizar. */
 .bandeja-fs { gap: 4px; }
 .bandeja-fs .play-fs, .bandeja-fs .rec-fs, .bandeja-fs .reiniciar-fs { width: 38px; height: 38px; }

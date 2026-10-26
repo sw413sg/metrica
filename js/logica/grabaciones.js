@@ -4,7 +4,38 @@
 // el link y el segundo (su audio no se puede leer ni descargar).
 // En SwiftUI: AVAudioEngine con voiceProcessing y AVAudioFile.
 
-export const VOLUMEN_BEAT_INICIAL = 50;
+// Los volúmenes de la voz y del beat se eligen arriba de Grabaciones, para todas (0 a 10).
+export const VOLUMENES_INICIALES = { voz: 10, beat: 5 };
+const CLAVE_VOLUMEN = 'metrica.grabaciones.volumen-';
+
+export function leerVolumenes(almacen) {
+    const leer = clave => {
+        const valor = Number(almacen.getItem(CLAVE_VOLUMEN + clave));
+        return almacen.getItem(CLAVE_VOLUMEN + clave) != null && valor >= 0 && valor <= 10 ? valor : VOLUMENES_INICIALES[clave];
+    };
+    return { voz: leer('voz'), beat: leer('beat') };
+}
+
+export function guardarVolumen(almacen, clave, valor) {
+    almacen.setItem(CLAVE_VOLUMEN + clave, String(Math.max(0, Math.min(10, Math.round(Number(valor) || 0)))));
+}
+
+// Sincronizar la voz con el beat en cada grabación: de a 20 ms, hasta medio segundo para
+// cada lado. Positivo es la voz más tarde.
+export const PASO_SINCRONIA = 20;
+export const SINCRONIA_MAXIMA = 500;
+export function moverSincronia(ms, pasos) {
+    return Math.max(-SINCRONIA_MAXIMA, Math.min(SINCRONIA_MAXIMA, (ms || 0) + pasos * PASO_SINCRONIA));
+}
+export const textoSincronia = ms => (ms > 0 ? `+${ms} ms` : `${ms || 0} ms`);
+
+// Desde dónde suena la voz para escuchar desde el segundo pedido: se saltea lo que llegó
+// tarde (el desfase) y se corre lo que diga la sincronía. Si queda antes del principio,
+// la voz espera.
+export function inicioDeVoz(desfase, sincroniaMs, desde) {
+    const en = desfase - (sincroniaMs || 0) / 1000 + desde;
+    return en >= 0 ? { espera: 0, desde: en } : { espera: -en, desde: 0 };
+}
 
 // Qué se guarda junto con la voz, según lo que suena al tocar REC.
 export function tipoDeGrabacion({ link, acapella }) {

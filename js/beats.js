@@ -50,11 +50,6 @@ function asegurarContexto() {
     return contexto;
 }
 
-// Despierta el audio dentro del toque (iOS no deja hacerlo después).
-export function despertarAudio() {
-    asegurarContexto().resume();
-}
-
 // Lo que suena, para grabarlo aparte de la voz (en silencio mientras no hay beat), y
 // cuánto tarda en salir por el parlante.
 export function grabarBeat() {
