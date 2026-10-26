@@ -9,7 +9,7 @@ import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inic
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
-import { CATEGORIAS, TEMAS } from '../temas/temas.js';
+import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
 import { elegirTema, listarUsados, marcarUsado } from './logica/temas.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
@@ -782,7 +782,7 @@ function sincronizarChips() {
 }
 
 function pintarTema() {
-    const categoria = CATEGORIAS.find(c => c.id === temaActual.categoria);
+    const categoria = CATEGORIAS_TEMA.find(c => c.id === temaActual.categoria);
     $('tema-categoria').textContent = categoria ? categoria.nombre : '';
     $('tema-texto').textContent = temaActual.texto;
     const empujon = $('tema-empujon');
@@ -794,7 +794,7 @@ function pintarTema() {
 }
 
 function otraTema() {
-    temaActual = elegirTema(TEMAS, { categoria: filtroTema, usados: listarUsados(localStorage), evitar: temaActual?.id });
+    temaActual = elegirTema(CONSIGNAS, { categoria: filtroTema, usados: listarUsados(localStorage), evitar: temaActual?.id });
     pintarTema();
 }
 
@@ -812,7 +812,7 @@ function usarTemaActual() {
     marcarUsado(localStorage, temaActual.id);
 }
 
-$('chips-tema').append(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS].map(categoria => {
+$('chips-tema').append(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS_TEMA].map(categoria => {
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'chip-tema';
@@ -827,7 +827,7 @@ $('chips-tema').append(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS].map(
 }));
 
 function renderListaTema() {
-    $('tema-filas').replaceChildren(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS].map(categoria => {
+    $('tema-filas').replaceChildren(...[{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS_TEMA].map(categoria => {
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'celda fila-cat' + (categoria.id === 'todas' ? ' todas' : '');
@@ -843,7 +843,7 @@ function renderListaTema() {
         boton.append(nombre);
         const cuenta = document.createElement('span');
         cuenta.className = 'cuenta-cat';
-        if (categoria.id !== 'todas') cuenta.textContent = String(TEMAS.filter(t => t.categoria === categoria.id).length);
+        if (categoria.id !== 'todas') cuenta.textContent = String(CONSIGNAS.filter(t => t.categoria === categoria.id).length);
         boton.append(cuenta);
         if (categoria.id === filtroTema) {
             const tilde = document.createElement('span');
