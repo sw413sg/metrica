@@ -26,16 +26,20 @@ export const AJUSTES_LIBRETA = {
     // Rimas internas: a cuántos versos se buscan las palabras del medio que riman.
     internas: {
         nombre: 'Rimas internas',
+        etiqueta: 'Distancia',
+        deslizador: true,
         porDefecto: 'dos',
         opciones: { no: { nombre: 'No', valor: 0 }, dos: { nombre: '2 versos', valor: 2 }, cuatro: { nombre: '4 versos', valor: 4 }, ocho: { nombre: '8 versos', valor: 8 } },
     },
+    // Fuentes que ya vienen en el iPhone (andan sin internet), con otras parecidas de respaldo.
     fuente: {
         nombre: 'Fuente',
         porDefecto: 'sistema',
         opciones: {
             sistema: { nombre: 'Sistema', valor: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif' },
-            serif: { nombre: 'Serif', valor: 'ui-serif, "New York", Georgia, "Times New Roman", serif' },
-            maquina: { nombre: 'Máquina', valor: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace' },
+            avenir: { nombre: 'Avenir', valor: '"Avenir Next", Avenir, "Century Gothic", "Trebuchet MS", sans-serif' },
+            maquina: { nombre: 'Máquina', valor: '"American Typewriter", "Courier New", Courier, monospace' },
+            mano: { nombre: 'A mano', valor: 'Noteworthy, "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive' },
         },
     },
 };

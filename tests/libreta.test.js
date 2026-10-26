@@ -21,10 +21,11 @@ test('sin nada guardado: mediano, normal y la fuente del sistema', () => {
 test('se guarda y se recuerda cada ajuste', () => {
     const almacen = almacenDePrueba();
     guardarAjusteLibreta(almacen, 'tamano', '8');
-    guardarAjusteLibreta(almacen, 'fuente', 'serif');
+    guardarAjusteLibreta(almacen, 'fuente', 'mano');
     guardarAjusteLibreta(almacen, 'letras', '2');
     const ajustes = leerAjustesLibreta(almacen);
-    assert.deepEqual(ajustes, { tamano: '8', separacion: '4', letras: '2', internas: 'dos', fuente: 'serif' });
+    assert.deepEqual(ajustes, { tamano: '8', separacion: '4', letras: '2', internas: 'dos', fuente: 'mano' });
+    assert.match(estiloLibreta(ajustes).fuente, /Noteworthy/);
     assert.equal(estiloLibreta(ajustes).alto, 27);
     assert.ok(estiloLibreta(ajustes).letras < 0, 'junta: las letras más pegadas');
 });
@@ -34,6 +35,12 @@ test('opciones que no existen o datos rotos no rompen nada', () => {
     assert.deepEqual(leerAjustesLibreta(almacen), { tamano: '4', separacion: '4', letras: '5', internas: 'dos', fuente: 'sistema' });
     assert.equal(guardarAjusteLibreta(almacen, 'tamano', '11').tamano, '4');
     assert.equal(guardarAjusteLibreta(almacen, 'color', 'rojo').tamano, '4');
+});
+
+test('la fuente Serif ya no está: quien la tenía vuelve a la del sistema', () => {
+    const almacen = almacenDePrueba({ 'metrica.libreta': JSON.stringify({ fuente: 'serif' }) });
+    assert.equal(leerAjustesLibreta(almacen).fuente, 'sistema');
+    assert.deepEqual(Object.keys(AJUSTES_LIBRETA.fuente.opciones), ['sistema', 'avenir', 'maquina', 'mano']);
 });
 
 test('tamaño y separaciones: 10 puntos, de menor a mayor', () => {
