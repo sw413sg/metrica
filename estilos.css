@@ -205,6 +205,9 @@ a { color: var(--acento); text-decoration: none; }
 .boton-baul .icono { width: 23px; height: 23px; }
 /* La cerradura, en violeta con resplandor, como el «+» de la letra nueva. */
 .boton-baul .cerrojo { stroke: var(--destacado); fill: var(--destacado-suave); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--destacado) 70%, transparent)); }
+/* La estrella de «¿Por dónde empiezo?», como el cofre: en violeta con resplandor. */
+.boton-tema[hidden] { display: none; }
+.boton-tema .destello { stroke: var(--destacado); fill: var(--destacado-suave); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--destacado) 70%, transparent)); }
 .anotar-frase { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-radius: 22px; }
 /* Crece con lo que se escribe (lo ajusta js/app.js), hasta 200 px; después se desliza adentro. */
 .anotar-frase textarea {
@@ -906,24 +909,24 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 .nombre-ajuste { display: flex; justify-content: space-between; align-items: baseline; padding: 0 6px; font-size: 15px; font-weight: 500; }
 .valor-ajuste { font-size: 15px; font-weight: 600; color: var(--destacado); font-variant-numeric: tabular-nums; }
 /* Barras: lo recorrido en violeta y la perilla blanca con un resplandor violeta. */
-#ajustes-libreta .fila-deslizador, #grabaciones .fila-deslizador { margin-top: 4px; padding: 0; }
-#ajustes-libreta .deslizador, #grabaciones .deslizador { -webkit-appearance: none; appearance: none; height: 28px; background: none; }
-#ajustes-libreta .deslizador::-webkit-slider-runnable-track, #grabaciones .deslizador::-webkit-slider-runnable-track {
+#grabaciones .fila-deslizador { margin-top: 4px; padding: 0; }
+#grabaciones .deslizador { -webkit-appearance: none; appearance: none; height: 28px; background: none; }
+#grabaciones .deslizador::-webkit-slider-runnable-track {
     height: 6px; border-radius: 3px;
     background: linear-gradient(to right, var(--destacado) var(--progreso, 0%), var(--relleno) var(--progreso, 0%));
 }
-#ajustes-libreta .deslizador::-moz-range-track, #grabaciones .deslizador::-moz-range-track { height: 6px; border-radius: 3px; background: var(--relleno); }
-#ajustes-libreta .deslizador::-moz-range-progress, #grabaciones .deslizador::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--destacado); }
-#ajustes-libreta .deslizador::-webkit-slider-thumb, #grabaciones .deslizador::-webkit-slider-thumb {
+#grabaciones .deslizador::-moz-range-track { height: 6px; border-radius: 3px; background: var(--relleno); }
+#grabaciones .deslizador::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--destacado); }
+#grabaciones .deslizador::-webkit-slider-thumb {
     -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border-radius: 50%; background: #fff; border: 0;
     box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 0 12px color-mix(in srgb, var(--destacado) 55%, transparent);
 }
-#ajustes-libreta .deslizador::-moz-range-thumb, #grabaciones .deslizador::-moz-range-thumb {
+#grabaciones .deslizador::-moz-range-thumb {
     width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 0;
     box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 0 12px color-mix(in srgb, var(--destacado) 55%, transparent);
 }
-#ajustes-libreta .puntos-deslizador, #grabaciones .puntos-deslizador { padding: 0 10px; }
-#ajustes-libreta .puntos-deslizador span.lleno, #grabaciones .puntos-deslizador span.lleno { background: var(--destacado); }
+#grabaciones .puntos-deslizador { padding: 0 10px; }
+#grabaciones .puntos-deslizador span.lleno { background: var(--destacado); }
 /* Pastillas: la elegida con la pastilla violeta suave de consonante/asonante. */
 .pastillas-libreta { display: flex; gap: 4px; margin-top: 8px; padding: 3px; border-radius: 20px; background: var(--tarjeta); }
 .pastillas-libreta button {
@@ -931,8 +934,12 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 }
 .pastillas-libreta button[aria-selected="true"] { background: var(--destacado-suave); color: var(--destacado); font-weight: 600; }
 .caja-libreta .titulo-azar + .ajuste-libreta .pastillas-libreta { margin-top: 0; }
-#opciones-libreta button[data-opcion="serif"] { font-family: ui-serif, "New York", Georgia, serif; }
-#opciones-libreta button[data-opcion="maquina"] { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+/* Cada fuente se muestra con su letra. */
+#opciones-libreta button[data-opcion="avenir"] { font-family: "Avenir Next", Avenir, "Century Gothic", "Trebuchet MS", sans-serif; }
+#opciones-libreta button[data-opcion="maquina"] { font-family: "American Typewriter", "Courier New", Courier, monospace; }
+#opciones-libreta button[data-opcion="mano"] { font-family: Noteworthy, "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; }
+/* Barras compactas, como los volúmenes de Grabaciones (pedido de Swa). */
+.ajuste-libreta:has(> .deslizador-libreta) + .ajuste-libreta:has(> .deslizador-libreta) { margin-top: 10px; }
 /* Temas: una grilla de muestras con «Aa» en los colores del tema. */
 .temas-libreta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
 .tema-libreta { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
@@ -954,6 +961,12 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 /* Sílabas por verso: un renglón con el interruptor, en violeta prendido. */
 .fila-libreta { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px 10px 20px; font-weight: 500; }
 .fila-libreta .interruptor:checked { background: var(--destacado); }
+/* Adentro de «Funciones», los renglones van sin caja propia. */
+.funciones-libreta .fila-libreta { padding: 6px 0 6px 6px; }
+.funciones-libreta .titulo-azar { padding-bottom: 4px; }
+/* Renglones: en pantallas chicas (iPhone 16) va acá; en las grandes (Pro Max), el botón de arriba. */
+@media (max-width: 419px) { #alternar-renglones { display: none; } }
+@media (min-width: 420px) { .fila-renglones { display: none; } }
 .boton-borrar-letra { display: block; width: 100%; height: 52px; padding: 0; margin-top: 12px; color: #ff3b30; font-weight: 600; }
 
 /* Arrastrar una tarjeta al tacho la borra (sin menú de copiar ni selección de iOS). */
@@ -1286,7 +1299,7 @@ body.tema-de-grabacion .reproductor [data-rec] { display: none; }
    al agrandarlo, y así el play queda al lado de la cruz (pedido de Swa). */
 .reproductor:not(.grande) #musica-anterior, .reproductor:not(.grande) #musica-siguiente { display: none; }
 
-/* Dame un tema: botón de vidrio arriba del teclado, y la hoja que sube desde abajo. */
+/* ¿Por dónde empiezo? (antes «Dame un tema»): botón de vidrio arriba del teclado, y la hoja que sube desde abajo. */
 #dame-tema {
     position: absolute; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6;
     height: 44px; padding: 0 16px; border-radius: 22px; display: inline-flex; align-items: center; gap: 6px;

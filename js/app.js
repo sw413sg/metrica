@@ -771,9 +771,12 @@ editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(
 $('editor-titulo').addEventListener('input', () => { guardarActual(); actualizarDameTema(); });
 
 // ---------- Dame un tema ----------
-// El botón solo está en una letra vacía (sin título ni texto).
+// «¿Por dónde empiezo?»: en una letra vacía (sin título ni texto) va el botón de abajo, y con
+// algo escrito, la estrella de arriba, al lado del baúl (pedido de Swa).
 function actualizarDameTema() {
-    $('dame-tema').hidden = Boolean($('editor-titulo').value.trim() || editorTexto.value.trim());
+    const vacia = !($('editor-titulo').value.trim() || editorTexto.value.trim());
+    $('dame-tema').hidden = !vacia;
+    $('abrir-tema-libreta').hidden = vacia;
 }
 
 let temaActual = null;
@@ -908,7 +911,7 @@ function renderListaTema() {
     }));
 }
 
-$('dame-tema').addEventListener('click', () => {
+function abrirDameTema() {
     // Arranca en Amor, con Desamor apagado (pedido de Swa).
     filtroTema = 'amor';
     desamor = false;
@@ -921,7 +924,9 @@ $('dame-tema').addEventListener('click', () => {
     posTema = -1;
     otraTema();
     document.activeElement?.blur();
-});
+}
+$('dame-tema').addEventListener('click', abrirDameTema);
+$('abrir-tema-libreta').addEventListener('click', abrirDameTema);
 $('tema-desamor').addEventListener('click', () => {
     desamor = !desamor;
     otraTema();
@@ -979,9 +984,17 @@ $('tema-baul').addEventListener('click', () => {
     pintarTema(false);
 });
 // Colores, renglones y sílabas se prenden y apagan, y se recuerda la elección.
+// En pantallas chicas (iPhone 16) el botón de renglones no entra arriba: pasa a un interruptor
+// en «Funciones» de la ruedita y arranca apagado; en las grandes (Pro Max) sigue arriba y
+// arranca prendido (pedido de Swa).
+const pantallaChica = matchMedia('(max-width: 419px)');
+const renglonesPrendidos = () => (localStorage.getItem('metrica.alternar-renglones') ?? String(!pantallaChica.matches)) === 'true';
 function aplicarAlternables() {
     $('silabas').classList.toggle('oculto', !$('mostrar-silabas').checked);
-    document.querySelector('.editor-capas').classList.toggle('renglones', $('alternar-renglones').getAttribute('aria-pressed') === 'true');
+    const renglones = renglonesPrendidos();
+    $('alternar-renglones').setAttribute('aria-pressed', renglones);
+    $('mostrar-renglones').checked = renglones;
+    document.querySelector('.editor-capas').classList.toggle('renglones', renglones);
 }
 $('mostrar-silabas').checked = localStorage.getItem('metrica.alternar-silabas') === 'true';
 $('mostrar-silabas').addEventListener('change', () => {
@@ -990,16 +1003,22 @@ $('mostrar-silabas').addEventListener('change', () => {
 
     actualizarEditor();
 });
-for (const id of ['alternar-colores', 'alternar-renglones']) {
-    if (localStorage.getItem(`metrica.${id}`) === 'false') $(id).setAttribute('aria-pressed', 'false');
-    $(id).addEventListener('click', e => {
-        const boton = e.currentTarget;
-        boton.setAttribute('aria-pressed', boton.getAttribute('aria-pressed') !== 'true');
-        localStorage.setItem(`metrica.${id}`, boton.getAttribute('aria-pressed'));
-        aplicarAlternables();
-        actualizarEditor();
-    });
+if (localStorage.getItem('metrica.alternar-colores') === 'false') $('alternar-colores').setAttribute('aria-pressed', 'false');
+$('alternar-colores').addEventListener('click', e => {
+    const boton = e.currentTarget;
+    boton.setAttribute('aria-pressed', boton.getAttribute('aria-pressed') !== 'true');
+    localStorage.setItem('metrica.alternar-colores', boton.getAttribute('aria-pressed'));
+    aplicarAlternables();
+    actualizarEditor();
+});
+function cambiarRenglones(prendidos) {
+    localStorage.setItem('metrica.alternar-renglones', prendidos);
+    aplicarAlternables();
+    actualizarEditor();
 }
+$('alternar-renglones').addEventListener('click', () => cambiarRenglones(!renglonesPrendidos()));
+$('mostrar-renglones').addEventListener('change', () => cambiarRenglones($('mostrar-renglones').checked));
+pantallaChica.addEventListener('change', aplicarAlternables);
 aplicarAlternables();
 
 // Ajustes de la libreta (la ruedita): sílabas, tamaño de letra, separaciones, rimas internas y fuente.
@@ -1011,24 +1030,23 @@ function aplicarEstiloLibreta() {
     document.documentElement.style.setProperty('--libreta-letras', `${letras}em`);
 }
 
-// Barra de 10 puntos imantados (Slider con step en SwiftUI): al soltar cae siempre en un punto.
+// Barra compacta, como los volúmenes de Grabaciones: el nombre y el valor adentro, y lo recorrido
+// en violeta (pedido de Swa). Imantada a sus puntos: en SwiftUI, Slider con step.
 function deslizadorLibreta(clave, ajuste, elegida) {
     const opciones = Object.keys(ajuste.opciones);
-    const barra = document.createElement('input');
-    barra.type = 'range';
-    barra.className = 'deslizador';
-    barra.min = 0;
-    barra.max = opciones.length - 1;
-    barra.step = 1;
+    const nombre = ajuste.etiqueta ?? ajuste.nombre;
+    const fila = document.createElement('label');
+    fila.className = 'volumen-grabacion deslizador-libreta';
+    fila.innerHTML = `
+        <span class="relleno-volumen"></span>
+        <span class="nombre-volumen">${nombre}</span>
+        <span class="valor-volumen"></span>
+        <input type="range" min="0" max="${opciones.length - 1}" step="1" aria-label="${ajuste.nombre}" data-ajuste="${clave}">`;
+    const barra = fila.querySelector('input');
     barra.value = opciones.indexOf(elegida);
-    barra.dataset.ajuste = clave;
-    barra.setAttribute('aria-label', ajuste.nombre);
-    // Lo recorrido va en violeta, igual que los puntitos que quedaron atrás.
     const pintar = () => {
-        barra.style.setProperty('--progreso', `${(barra.value / barra.max) * 100}%`);
-        puntos.querySelectorAll('span').forEach((punto, i) => punto.classList.toggle('lleno', i <= barra.value));
-        const valor = fila.parentElement?.querySelector('.valor-ajuste');
-        if (valor) valor.textContent = ajuste.opciones[opciones[barra.value]].nombre;
+        fila.style.setProperty('--progreso', `${(barra.value / barra.max) * 100}%`);
+        fila.querySelector('.valor-volumen').textContent = ajuste.opciones[opciones[barra.value]].nombre;
     };
     barra.addEventListener('input', () => {
         pintar();
@@ -1036,12 +1054,6 @@ function deslizadorLibreta(clave, ajuste, elegida) {
         aplicarEstiloLibreta();
         actualizarEditor();
     });
-    const puntos = document.createElement('div');
-    puntos.className = 'puntos-deslizador';
-    puntos.append(...opciones.map(() => document.createElement('span')));
-    const fila = document.createElement('div');
-    fila.className = 'fila-deslizador';
-    fila.append(barra, puntos);
     pintar();
     return fila;
 }
@@ -1085,17 +1097,11 @@ function aplicarAjustesLibreta() {
             const ajuste = AJUSTES_LIBRETA[clave];
             const fila = document.createElement('div');
             fila.className = 'ajuste-libreta';
-            // Con un solo ajuste en la caja, el título de la caja ya lo nombra.
-            if (claves.length > 1) {
+            // Las barras llevan el nombre adentro; las pastillas, arriba (salvo solas en su caja).
+            if (!ajuste.deslizador && claves.length > 1) {
                 const nombre = document.createElement('div');
                 nombre.className = 'nombre-ajuste';
                 nombre.textContent = ajuste.nombre;
-                if (ajuste.deslizador) {
-                    const valor = document.createElement('span');
-                    valor.className = 'valor-ajuste';
-                    valor.textContent = ajuste.opciones[ajustes[clave]].nombre;
-                    nombre.append(valor);
-                }
                 fila.append(nombre);
             }
             fila.append(ajuste.deslizador ? deslizadorLibreta(clave, ajuste, ajustes[clave]) : pastillasLibreta(clave, ajuste, ajustes[clave]));
