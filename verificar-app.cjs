@@ -443,7 +443,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#musica-anterior').isVisible(), false);
         assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
         const marcaBoton = await page.locator('#musica-marca').boundingBox();
-        assert.equal(Math.round(marcaBoton.width), 36);
+        assert.equal(Math.round(marcaBoton.width), 40);
         assert.ok((await page.locator('#musica-bucle').boundingBox()).x > marcaBoton.x);
         assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
         await page.locator('#musica-marca').click();
@@ -453,10 +453,8 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
         await page.mouse.click(pistaNube.x + pistaNube.width * 0.8, pistaNube.y + pistaNube.height / 2);
         assert.ok(await page.evaluate(() => window.__sc.pos) > enLaMarca + 30000);
-        // El bucle: al terminar el tema vuelve a la marca y sigue sonando.
+        // El botón de al lado de la marca vuelve a ella y sigue sonando (pedido de Swa).
         await page.locator('#musica-bucle').click();
-        assert.equal(await page.locator('#musica-bucle').getAttribute('aria-pressed'), 'true');
-        await page.evaluate(() => { window.__sc.pos = 179000; window.__sc.paused = true; window.__sc.onFINISH(); });
         assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         await page.screenshot({path: `capturas/reproductor-marca-${tema}.png`});

@@ -1045,7 +1045,7 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
 .reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 3; justify-self: end; }
 .reproductor.grande .rec-reproductor { grid-column: 2; grid-row: 3; justify-self: center; }
-#musica-marca[aria-pressed="false"], #musica-bucle[aria-pressed="false"] { color: var(--texto-2); }
+#musica-marca[aria-pressed="false"] { color: var(--texto-2); }
 /* En chico, en la libreta van la marca y el bucle sin las flechas, y en las otras secciones
    las flechas sin la marca ni el bucle. Agrandado va todo (pedido de Swa). */
 body.editando .reproductor:not(.grande) #musica-anterior,
@@ -1061,6 +1061,9 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 .boton-musica { width: 36px; height: 36px; color: var(--texto); }
 .boton-cerrar { color: var(--texto-2); }
 .boton-play { width: 40px; height: 40px; background: var(--texto); color: var(--libreta); }
+/* En la fila del reproductor chico todos los botones miden lo mismo que el play (y el REC),
+   así quedan con la misma separación (pedido de Swa). */
+.reproductor:not(.grande) .reproductor-principal .boton-musica, .sonando-fs .boton-musica { width: 40px; height: 40px; }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
 /* Sin playlist las flechas de canción se ven apagadas. */
@@ -1148,17 +1151,19 @@ body.eligiendo-musica #reproductor { visibility: hidden; }
     background: var(--texto); transform: translate(-50%, -50%) rotate(-45deg); box-shadow: 0 0 0 1px var(--celda);
 }
 .rec-reproductor:not(.grabando) .punto-rec { position: relative; }
-.rec-reproductor:not(.grabando) .punto-rec::after { width: 20px; }
+.rec-reproductor:not(.grabando) .punto-rec::after { width: 22px; }
 /* Sin grabar, el REC del reproductor es solo el punto rojo cruzado, más grande (sin el texto
    «REC», pedido de Swa); grabando muestra los segundos al lado. */
-.rec-reproductor:not(.grabando) { width: 32px; padding: 0; justify-content: center; }
-.rec-reproductor:not(.grabando) .punto-rec { width: 14px; height: 14px; }
+.rec-reproductor:not(.grabando) { width: 40px; padding: 0; justify-content: center; }
+.rec-reproductor:not(.grabando) .punto-rec { width: 16px; height: 16px; }
 .rec-reproductor:not(.grabando) .tiempo-rec { display: none; }
-.rec-acapella:not(.grabando) { width: 40px; }
+/* Prendido sin sonar nada: el punto sin la raya y con brillo, esperando el play. */
+.rec-reproductor[aria-pressed="true"] .punto-rec::after { display: none; }
+.rec-reproductor[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
 .rec-fs:disabled { opacity: 0.4; }
 .rec-fs[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
 .rec-reproductor {
-    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 16px; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px; border-radius: 20px; flex-shrink: 0;
     font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); background: var(--celda);
 }
 .rec-reproductor .punto-rec { width: 10px; height: 10px; }
