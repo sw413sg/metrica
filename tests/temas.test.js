@@ -119,7 +119,18 @@ test('siguienteTema no repite hasta ver todas las del filtro, y después arranca
 });
 
 test('numeroEnCategoria cuenta dentro de la categoría', () => {
-    const amor = TEMAS.filter(t => t.categoria === 'amor');
+    const amor = TEMAS.filter(t => t.categoria === 'amor' && !t.sub);
+    const desamor = TEMAS.filter(t => t.sub === 'desamor');
     assert.deepEqual(numeroEnCategoria(TEMAS, amor[36]), { numero: 37, total: amor.length });
-    assert.deepEqual(numeroEnCategoria(TEMAS, amor[0]), { numero: 1, total: 400 });
+    assert.deepEqual(numeroEnCategoria(TEMAS, desamor[11]), { numero: 12, total: desamor.length });
+    assert.equal(amor.length + desamor.length, 400);
+});
+
+test('Desamor es una subsección de Amor: prendida salen solo esas, apagada no sale ninguna', () => {
+    assert.ok(TEMAS.every(t => !t.sub || (t.sub === 'desamor' && t.categoria === 'amor')));
+    assert.ok(TEMAS.filter(t => t.sub === 'desamor').length >= 100);
+    for (let i = 0; i < 30; i++) {
+        assert.equal(siguienteTema(TEMAS, almacenDePrueba(), { categoria: 'amor', sub: 'desamor' }).sub, 'desamor');
+        assert.equal(siguienteTema(TEMAS, almacenDePrueba(), { categoria: 'amor' }).sub, undefined);
+    }
 });

@@ -91,8 +91,14 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual((await page.locator('#chips-tema button').allTextContents()).slice(0, 5), ['Amor', 'Superación', 'Fiesta', 'Nostalgia', 'Calle']);
         assert.equal(await page.locator('#chips-tema button').last().textContent(), 'Todas');
         assert.equal(await page.locator('#chips-tema button[aria-pressed="true"]').textContent(), 'Amor');
-        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 400$/);
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 104$/);
+        // Desamor: solo en Amor, prendido muestra esas y apagado vuelve a Amor.
+        await page.locator('#tema-desamor').click();
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Desamor \d+ de 296$/);
+        await page.locator('#tema-desamor').click();
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 104$/);
         await page.locator('#chips-tema button[data-categoria="nostalgia"]').click();
+        assert.equal(await page.locator('#tema-desamor').isVisible(), false);
         assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 150$/);
         for (let i = 0; i < 20 && !(await page.locator('#tema-empujon').isVisible()); i++) await page.locator('#tema-otra').click();
         await page.screenshot({path: `capturas/tema-${tema}.png`});

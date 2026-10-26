@@ -49,8 +49,9 @@ export function listarVistos(almacen) {
 // Una al azar del filtro que todavía no se vio, y la anota como vista. Cuando se vieron
 // todas las del filtro, esas se olvidan y arranca otra vuelta (pedido de Swa).
 // `evitar` es la que está en pantalla: no sale dos veces seguidas.
-export function siguienteTema(temas, almacen, { categoria = 'todas', evitar = null, azar = Math.random } = {}) {
-    const delFiltro = !categoria || categoria === 'todas' ? temas : temas.filter(t => t.categoria === categoria);
+// `sub` es la subsección: en Amor, 'desamor' muestra solo esas y sin ella quedan afuera (pedido de Swa).
+export function siguienteTema(temas, almacen, { categoria = 'todas', sub = null, evitar = null, azar = Math.random } = {}) {
+    const delFiltro = !categoria || categoria === 'todas' ? temas : temas.filter(t => t.categoria === categoria && (t.sub ?? null) === sub);
     const pool = delFiltro.length ? delFiltro : temas;
     if (!pool.length) return null;
     let vistos = listarVistos(almacen);
@@ -65,8 +66,8 @@ export function siguienteTema(temas, almacen, { categoria = 'todas', evitar = nu
     return tema;
 }
 
-// El número de la consigna dentro de su categoría: «Amor 37 de 150».
+// El número de la consigna dentro de su categoría (o subsección): «Amor 37 de 150», «Desamor 12 de 296».
 export function numeroEnCategoria(temas, tema) {
-    const deLaCategoria = temas.filter(t => t.categoria === tema.categoria);
+    const deLaCategoria = temas.filter(t => t.categoria === tema.categoria && (t.sub ?? null) === (tema.sub ?? null));
     return { numero: deLaCategoria.findIndex(t => t.id === tema.id) + 1, total: deLaCategoria.length };
 }
