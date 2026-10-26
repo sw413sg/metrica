@@ -2765,6 +2765,7 @@ function aplicarVideo() {
     const conTamanos = Boolean(musica && !esYouTube && plegado);
     card.classList.toggle('mini', conTamanos && mini);
     $('musica-plegar').hidden = !(grande || (conTamanos && !mini));
+    $('musica-mini').hidden = !(grande && !esYouTube);
     $('musica-mostrar').hidden = !(esYouTube && plegado);
     $('musica-nota-youtube').hidden = !(esYouTube && plegado);
     // En mini, la flechita para arriba lo agranda.
@@ -3023,6 +3024,7 @@ async function escucharMusica(texto) {
         $('musica-mostrar').hidden = true;
         $('musica-nota-youtube').hidden = true;
         $('musica-agrandar').hidden = true;
+        $('musica-mini').hidden = true;
     }
 }
 
@@ -3173,6 +3175,13 @@ $('musica-plegar').addEventListener('click', () => {
         plegarAlPausar = true;
         musica.pausar();
     } else aplicarVideo();
+});
+// Desde grande, la doble flecha lo deja en mini de una (YouTube no tiene mini).
+$('musica-mini').addEventListener('click', () => {
+    if (!musica || musica.fuente === 'youtube') return;
+    plegado = true;
+    mini = true;
+    aplicarVideo();
 });
 $('musica-agrandar').addEventListener('click', () => {
     if (!musica || musica.fuente === 'youtube') return;

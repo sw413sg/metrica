@@ -1046,8 +1046,10 @@ body.teclado-abierto .reproductor { display: none; }
 .reproductor.grande #musica-siguiente { grid-column: 3; grid-row: 1; justify-self: end; }
 .reproductor.grande #musica-marca { grid-column: 1; grid-row: 2; justify-self: start; }
 .reproductor.grande #musica-bucle { grid-column: 2; grid-row: 2; justify-self: center; }
-.reproductor.grande #musica-plegar { grid-column: 1; grid-row: 3; justify-self: start; }
-.reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 3; justify-self: end; }
+.reproductor.grande #musica-cerrar { grid-column: 3; grid-row: 2; justify-self: end; }
+/* Abajo: la doble flecha (a mini), el REC y la flecha (a chico), pedido de Swa. */
+.reproductor.grande #musica-mini { grid-column: 1; grid-row: 3; justify-self: start; }
+.reproductor.grande #musica-plegar { grid-column: 3; grid-row: 3; justify-self: end; }
 .reproductor.grande .rec-reproductor { grid-column: 2; grid-row: 3; justify-self: center; }
 #musica-marca[aria-pressed="false"] { color: var(--texto-2); }
 /* En chico, en la libreta van la marca y el bucle sin las flechas, y en las otras secciones
@@ -1060,7 +1062,7 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 #musica-bucle .icono-relleno { fill: currentColor; stroke: none; }
 .reproductor.plegado #musica-anterior,
 .reproductor.plegado #musica-siguiente,
-#musica-plegar[hidden], #musica-agrandar[hidden] { display: none; }
+#musica-plegar[hidden], #musica-agrandar[hidden], #musica-mini[hidden] { display: none; }
 .boton-musica, .boton-play { border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
 .boton-musica { width: 36px; height: 36px; color: var(--texto); }
 .boton-cerrar { color: var(--texto-2); }
