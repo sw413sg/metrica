@@ -39,6 +39,39 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#pantalla-letras').isVisible(), true);
         assert.equal(await page.locator('#letras-vacio').isVisible(), true);
         await page.screenshot({path: `capturas/letras-${tema}.png`});
+        // Grabaciones: cada una en una fila con el play, el título con la barra abajo (comienzo
+        // y final, sin la fecha ni la hora) y descargar y borrar (pedido de Swa).
+        await page.evaluate(() => new Promise((listo, error) => {
+            const pedido = indexedDB.open('metrica-grabaciones', 1);
+            pedido.onupgradeneeded = () => pedido.result.createObjectStore('grabaciones', { keyPath: 'id' });
+            pedido.onsuccess = () => {
+                const t = pedido.result.transaction('grabaciones', 'readwrite');
+                t.objectStore('grabaciones').put({ id: 'prueba-1', nombre: 'Freestyle 4 - PRESSURE 1+1', titulo: 'Boombap 1', fecha: Date.now(), duracion: 7, tipo: 'beat', voz: new Blob() });
+                t.objectStore('grabaciones').put({ id: 'prueba-2', nombre: 'Si sabíamos - skin', titulo: 'Boombap 1', fecha: Date.now() - 1000, duracion: 36, tipo: 'beat', voz: new Blob() });
+                for (let n = 3; n <= 6; n++) t.objectStore('grabaciones').put({ id: `prueba-${n}`, nombre: `Freestyle ${n}`, titulo: 'Trap 1', fecha: Date.now() - n * 1000, duracion: 10, tipo: 'beat', voz: new Blob() });
+                t.oncomplete = () => listo();
+                t.onerror = () => error(t.error);
+            };
+        }));
+        await page.locator('#pantalla-letras [data-grabaciones]').click();
+        await page.locator('#lista-grabaciones .grabacion').first().waitFor();
+        assert.equal(await page.locator('#lista-grabaciones .grabacion').count(), 6);
+        // Se ven 4 como mucho: las demás, deslizando la lista (pedido de Swa).
+        const listaGrab = await page.locator('#lista-grabaciones').evaluate(e => ({ alto: e.clientHeight, total: e.scrollHeight, fila: e.querySelector('.grabacion').offsetHeight }));
+        assert.ok(listaGrab.total > listaGrab.alto && Math.abs(listaGrab.alto - 4 * (listaGrab.fila + 10)) <= 2, JSON.stringify(listaGrab));
+        const filaGrab = page.locator('#lista-grabaciones .grabacion').first();
+        assert.equal(await filaGrab.locator('.detalle-grabacion').isVisible(), false);
+        assert.deepEqual(await filaGrab.locator('.reproductor-tiempo').allTextContents(), ['0:00', '0:07']);
+        const tituloGrab = await filaGrab.locator('.titulo-grabacion').boundingBox();
+        const barraGrab = await filaGrab.locator('.reproductor-barra').boundingBox();
+        const playGrab = await filaGrab.locator('.boton-play').boundingBox();
+        const tachoGrab = await filaGrab.locator('.borrar-grabacion').boundingBox();
+        assert.ok(barraGrab.y > tituloGrab.y && barraGrab.x >= tituloGrab.x - 1 && barraGrab.x > playGrab.x + playGrab.width, JSON.stringify({tituloGrab, barraGrab, playGrab}));
+        assert.ok(barraGrab.x + barraGrab.width < tachoGrab.x, 'la barra no pasa por abajo de descargar y borrar');
+        await page.waitForTimeout(500);
+        await page.screenshot({path: `capturas/grabaciones-${tema}.png`});
+        await page.locator('#cerrar-grabaciones').click();
+        await page.evaluate(() => new Promise(listo => { const b = indexedDB.deleteDatabase('metrica-grabaciones'); b.onsuccess = b.onerror = b.onblocked = () => listo(); }));
         // La nota musical, a la izquierda de Grabaciones, abre el cajón arriba de la barra de pestañas.
         const notaLetras = await page.locator('#abrir-musica-letras').boundingBox();
         assert.ok(notaLetras.x < (await page.locator('#pantalla-letras [data-grabaciones]').boundingBox()).x);

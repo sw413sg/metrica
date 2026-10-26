@@ -1275,18 +1275,25 @@ body:not(.acapella-sonando) .rec-acapella, body.en-ajustes .rec-acapella { displ
 .nombre-volumen, .valor-volumen { position: relative; pointer-events: none; }
 .valor-volumen { font-variant-numeric: tabular-nums; }
 .volumen-grabacion input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.lista-grabaciones { list-style: none; margin: 0; padding: 0; }
-.grabacion { margin-top: 10px; border-radius: 30px; padding: 10px 12px 8px; }
-.cabecera-grabacion { display: flex; align-items: center; gap: 10px; }
-.cabecera-grabacion .boton-play { width: 36px; height: 36px; }
-.datos-grabacion { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+/* Se ven 4 como mucho; las demás, deslizando adentro de la lista (pedido de Swa). */
+.lista-grabaciones { list-style: none; margin: 0; padding: 0; max-height: calc(4 * (var(--alto-grabacion) + 10px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; --alto-grabacion: 70px; }
+.lista-grabaciones::-webkit-scrollbar { display: none; }
+.grabacion { margin-top: 10px; border-radius: 30px; padding: 12px 10px 12px 14px; }
+/* Como la referencia de Swa: el play gris a la izquierda, el título con la barra abajo y
+   descargar y borrar a la derecha, todo en una fila. */
+.cabecera-grabacion { display: flex; align-items: center; gap: 12px; }
+.cabecera-grabacion .boton-play { width: 44px; height: 44px; background: var(--relleno); color: var(--texto); }
+.datos-grabacion { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.detalle-grabacion:empty { display: none; }
 .titulo-grabacion { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .detalle-grabacion { font-size: 12px; color: var(--texto-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .grabacion .boton-musica { color: var(--texto-2); }
 .grabacion .boton-musica:disabled { opacity: 0.4; }
 .grabacion .boton-musica.listo { color: var(--destacado); }
 .grabacion .borrar-grabacion { color: #ff3b30; }
-.grabacion .reproductor-barra { margin: -6px 0 -10px; }
+.grabacion .reproductor-barra { margin: -12px 0 -14px; gap: 6px; }
+.grabacion .reproductor-tiempo { width: auto; min-width: 28px; text-align: left; }
+.grabacion .reproductor-tiempo:last-child { text-align: right; }
 .grabacion .reproductor-pista { cursor: pointer; }
 .grabacion.arrastrando .reproductor-llenado { height: 8px; border-radius: 4px; }
 /* Descargar: mientras se prepara, un círculo violeta se llena alrededor del ícono. */
