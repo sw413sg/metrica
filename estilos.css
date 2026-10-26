@@ -595,8 +595,8 @@ body:not(.editando) .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
 .puntos-beat { display: flex; gap: 5px; }
 .puntos-beat span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.3; }
 .puntos-beat span.activo { opacity: 1; }
-/* Acapella no tiene otros: sin puntitos, pero con su lugar, para que el nombre quede a la altura de los otros. */
-.puntos-beat[hidden] { display: flex; visibility: hidden; }
+/* Acapella no tiene otros: sin puntitos, y el nombre centrado en su botón (pedido de Swa). */
+.puntos-beat[hidden] { display: none; }
 /* Sin link, abajo va el cajón del link, pegado a la barra de pestañas. Crece con los
    recientes hasta el alto del reproductor de YouTube (252); sin recientes es solo el campo. */
 #pantalla-freestyle .contenido {
@@ -1064,7 +1064,8 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
 /* Sin playlist las flechas de canción se ven apagadas. */
-#musica-anterior[aria-disabled="true"], #musica-siguiente[aria-disabled="true"] { opacity: 0.3; pointer-events: none; }
+/* Sin playlist no hay flechas (pedido de Swa): el play queda al lado de la cruz. */
+#musica-anterior[aria-disabled="true"], #musica-siguiente[aria-disabled="true"] { display: none; }
 .boton-musica .icono, .boton-play .icono, .reproductor-mostrar .icono { width: 22px; height: 22px; }
 .boton-play .icono-relleno { fill: currentColor; stroke: none; }
 /* Barra: zona táctil de 44. La pista mide 4 y crece a 8 al agarrarla. */
@@ -1147,7 +1148,13 @@ body.eligiendo-musica #reproductor { visibility: hidden; }
     background: var(--texto); transform: translate(-50%, -50%) rotate(-45deg); box-shadow: 0 0 0 1px var(--celda);
 }
 .rec-reproductor:not(.grabando) .punto-rec { position: relative; }
-.rec-reproductor:not(.grabando) .punto-rec::after { width: 15px; }
+.rec-reproductor:not(.grabando) .punto-rec::after { width: 20px; }
+/* Sin grabar, el REC del reproductor es solo el punto rojo cruzado, más grande (sin el texto
+   «REC», pedido de Swa); grabando muestra los segundos al lado. */
+.rec-reproductor:not(.grabando) { width: 32px; padding: 0; justify-content: center; }
+.rec-reproductor:not(.grabando) .punto-rec { width: 14px; height: 14px; }
+.rec-reproductor:not(.grabando) .tiempo-rec { display: none; }
+.rec-acapella:not(.grabando) { width: 40px; }
 .rec-fs:disabled { opacity: 0.4; }
 .rec-fs[aria-pressed="true"] .punto-rec { box-shadow: 0 0 10px rgba(255, 59, 48, 0.7); }
 .rec-reproductor {

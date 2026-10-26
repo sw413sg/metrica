@@ -299,7 +299,7 @@ const servidor = http.createServer((req, res) => {
             await page.locator('#musica-play').evaluate(e => getComputedStyle(e).backgroundColor),
             await page.locator('#reproductor-titulo').evaluate(e => getComputedStyle(e).color),
         );
-        // Un video suelto no tiene a qué canción pasar: las flechas quedan apagadas.
+        // Un video suelto no tiene a qué canción pasar: las flechas no van.
         assert.equal(await page.locator('#musica-siguiente').getAttribute('aria-disabled'), 'true');
         assert.equal(await page.locator('#musica-anterior').getAttribute('aria-disabled'), 'true');
         // La barra: soltar en la mitad del tema deja el tiempo en 100 s.
@@ -1514,9 +1514,10 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#reproductor-marco').isVisible(), false, 'SoundCloud arranca achicado');
         // Fuera de la libreta, en chico: las flechas sin la marca ni el bucle (sonando, las flechas
         // se esconden para que se lea el título); agrandado, todo.
+        // Un tema suelto, sin playlist: sin flechas (pedido de Swa), tampoco en pausa.
         assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
         await page.locator('#musica-play').click();
-        assert.equal(await page.locator('#musica-siguiente').isVisible(), true);
+        assert.equal(await page.locator('#musica-siguiente').isVisible(), false);
         await page.locator('#musica-play').click();
         assert.equal(await page.locator('#musica-marca').isVisible(), false);
         assert.equal(await page.locator('#musica-bucle').isVisible(), false);

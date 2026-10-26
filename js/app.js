@@ -2043,7 +2043,7 @@ function pintarGrabacion() {
     $('fs-rec').disabled = Boolean(grabacion);
     $('fs-rec').setAttribute('aria-label', recPrendido ? 'Apagar la grabación' : 'Grabar al dar play');
     const grabando = Boolean(grabacion?.voz);
-    const texto = grabando ? formatoTiempo(tiempoGrabado(grabacion)) : 'REC';
+    const texto = grabando ? formatoTiempo(tiempoGrabado(grabacion)) : '';
     // Con YouTube achicado (en pausa por su política) no se puede grabar (pedido de Swa).
     const sinVideo = musica?.fuente === 'youtube' && plegado;
     document.querySelectorAll('[data-rec]').forEach(boton => {
@@ -2731,7 +2731,7 @@ function mostrarEstadoMusica() {
     const nombre = { youtube: 'YouTube', soundcloud: 'SoundCloud', archivo: 'Del teléfono' }[musica?.fuente] ?? '';
     const enPausa = musica?.fuente === 'youtube' && plegado;
     $('reproductor-fuente').textContent = nombre ? (enPausa ? `${nombre} · en pausa` : nombre) : '';
-    // Sin playlist no hay a qué canción pasar: las flechas quedan apagadas.
+    // Sin playlist no hay a qué canción pasar: las flechas no van (ver estilos.css).
     for (const id of ['musica-anterior', 'musica-siguiente']) $(id).setAttribute('aria-disabled', String(!musica?.lista));
     $('reproductor').classList.toggle('sonando', !falloMusica && sonando && !enPausa);
     if (falloMusica) {
