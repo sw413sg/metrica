@@ -458,6 +458,12 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => window.__sc.pos), enLaMarca);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);
         await page.screenshot({path: `capturas/reproductor-marca-${tema}.png`});
+        // Con la barra en la marca, tocar el pin la borra (y otro toque la vuelve a poner).
+        await page.locator('#musica-marca').click();
+        assert.equal(await page.locator('#musica-marca-punto').isVisible(), false);
+        assert.equal(await page.locator('#musica-bucle').getAttribute('aria-disabled'), 'true');
+        await page.locator('#musica-marca').click();
+        assert.equal(await page.locator('#musica-marca-punto').isVisible(), true);
         await page.evaluate(() => document.body.classList.add('teclado-abierto'));
         assert.equal(await page.locator('#reproductor').isVisible(), false);
         assert.equal(await page.evaluate(() => window.__sc.paused), false);

@@ -1068,6 +1068,9 @@ body:not(.editando) .reproductor:not(.grande) #musica-bucle { display: none; }
 /* En la fila del reproductor chico todos los botones miden lo mismo que el play (y el REC),
    así quedan con la misma separación (pedido de Swa). */
 .reproductor:not(.grande) .reproductor-principal .boton-musica, .sonando-fs .boton-musica { width: 40px; height: 40px; }
+/* El pin y la flecha no tienen fondo: entre sus dibujos se veía más aire que entre los
+   círculos del REC y el play. Juntos, quedan a la misma distancia a la vista (pedido de Swa). */
+.reproductor:not(.grande) #musica-marca { margin-right: -10px; }
 .reproductor.plegado .boton-play { background: var(--relleno); color: var(--texto-3); pointer-events: none; }
 #musica-play[aria-disabled="true"] { pointer-events: none; }
 /* Sin playlist las flechas de canción se ven apagadas. */
@@ -1225,8 +1228,11 @@ body.tema-de-grabacion #grabaciones .hoja { max-height: calc(100% - var(--alto-t
 body.tema-de-grabacion .reproductor [data-rec] { display: none; }
 /* Mientras suena, el reproductor chico esconde las flechas y el título gana ese lugar (pedido
    de Swa). La de adelante deja su hueco, así el play no se mueve. */
-.sonando-fs.sonando #fs-beat-anterior, .reproductor.sonando:not(.grande) #musica-anterior { display: none; }
-.sonando-fs.sonando #fs-beat-siguiente, .reproductor.sonando:not(.grande) #musica-siguiente { visibility: hidden; }
+.sonando-fs.sonando #fs-beat-anterior { display: none; }
+.sonando-fs.sonando #fs-beat-siguiente { visibility: hidden; }
+/* El reproductor de links, en chico, nunca lleva flechas (tampoco con playlist): aparecen
+   al agrandarlo, y así el play queda al lado de la cruz (pedido de Swa). */
+.reproductor:not(.grande) #musica-anterior, .reproductor:not(.grande) #musica-siguiente { display: none; }
 /* Con un reproductor abierto (aunque esté en pausa), el REC es el suyo: el de la bandeja no va. */
 body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { display: none; }
 /* Micrófono y salida, en Ajustes: el selector a la derecha, como un Picker de iOS. */
