@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando 0.1: así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-8.8';
+const VERSION = 'metrica-8.9';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -33,6 +33,7 @@ const ARCHIVOS = [
     'js/logica/ambiente.js',
     'js/logica/recientes.js',
     'js/logica/baul.js',
+    'js/logica/grabaciones.js',
     'iconos/icono.svg',
     'iconos/icono-180.png',
     'iconos/icono-192.png',
