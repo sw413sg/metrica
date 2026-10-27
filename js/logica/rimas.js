@@ -267,3 +267,14 @@ export function asignarColores(clavesPorEstrofa, cantidad) {
     }));
     return colores;
 }
+
+// El título de la caja al buscar, armado con los filtros prendidos: «2.072 rimas consonantes con
+// «casa»», «12 rimas asonantes simples con «casa»», «8 sinónimos simples de «casa»».
+export function tituloBusqueda(cantidad, palabra, { tipo = 'consonante', simples = false, sinonimos = false } = {}) {
+    const plural = cantidad === 1 ? '' : 's';
+    const partes = [cantidad.toLocaleString('es-AR'), (sinonimos ? 'sinónimo' : 'rima') + plural];
+    if (!sinonimos) partes.push(tipo + plural);
+    if (simples) partes.push('simple' + plural);
+    partes.push(sinonimos ? 'de' : 'con', `«${palabra}»`);
+    return partes.join(' ');
+}

@@ -315,6 +315,18 @@ a { color: var(--acento); text-decoration: none; }
     flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 17px; color: var(--texto); padding: 0;
 }
 .busqueda-rima input::-webkit-search-cancel-button, .busqueda-rima input::-webkit-search-decoration { display: none; }
+/* La pista del buscador: el efecto de la palabra tocada, apagado, con un cursor que titila al lado. */
+.busqueda-rima { position: relative; }
+.pista-rima { position: absolute; left: 44px; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 17px; white-space: nowrap; overflow: hidden; opacity: 0.5; display: flex; align-items: center; }
+.pista-rima .brillo-violeta {
+    background: var(--degrade-tocada);
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    animation: brillo-tocada 2.2s linear infinite;
+}
+.pista-rima::after { content: ""; width: 2px; height: 20px; margin-left: 1px; border-radius: 1px; background: var(--destacado); animation: titila-pista 1s steps(1) infinite; }
+.busqueda-rima:focus-within .pista-rima::after { display: none; }
+.pista-rima[hidden] { display: none; }
+@keyframes titila-pista { 50% { opacity: 0; } }
 #limpiar-rima { color: var(--texto-2); font-size: 16px; padding: 4px; }
 #tipo-rima { margin-top: 10px; height: 38px; padding: 3px; border-radius: 20px; gap: 3px; }
 /* Cada opción: el texto y el «?» juntos al medio. El texto estira su zona de toque a toda la
@@ -418,6 +430,8 @@ a { color: var(--acento); text-decoration: none; }
 /* Con sinónimos, consonante y asonante se apagan. */
 #tipo-rima.apagado [role="tab"] { opacity: 0.4; pointer-events: none; }
 #tipo-rima.apagado .opcion-tipo:has(> [aria-selected="true"]) { background: none; }
+#tipo-rima.apagado [role="tab"][aria-selected="true"] { font-weight: 500; color: var(--texto-2); }
+#tipo-rima.apagado .ayuda-tipo:not([aria-expanded="true"]) { color: var(--texto-3); }
 /* Se puede deslizar a los costados para refrescar. */
 .caja-azar { touch-action: pan-y; }
 /* Al buscar, el azar se frena: solo queda el filtro de palabras simples. */
@@ -426,7 +440,7 @@ a { color: var(--acento); text-decoration: none; }
 /* La terminación de las rimas buscadas va como la palabra tocada de la libreta: degradé
    violeta con un brillo que la cruza y resplandor (sin destellos). */
 @media (prefers-reduced-motion: reduce) {
-    #pantalla-rimas mark.brillo-violeta, .lupa-violeta span, .icono-guardar span, .palabra-caja.entra, .palabra-caja.entra::after, .grilla-palabras.sale .palabra-caja { animation: none; }
+    #pantalla-rimas mark.brillo-violeta, .pista-rima .brillo-violeta, .pista-rima::after, .lupa-violeta span, .icono-guardar span, .palabra-caja.entra, .palabra-caja.entra::after, .grilla-palabras.sale .palabra-caja { animation: none; }
 }
 /* Todas y guardadas: dos columnas de 5 renglones a la vista (10 palabras) y el resto se desliza adentro. */
 .lista-todas {

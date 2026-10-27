@@ -1002,7 +1002,10 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         assert.equal(await page.locator('.palabra').count(), 4);
         assert.equal(await page.locator('#encabezado-usadas').textContent(), 'Terminaciones al azar');
-        assert.equal(await page.locator('#buscar-rima').getAttribute('placeholder'), 'Escribí una palabra');
+        // La pista, tipeada rápido con el efecto violeta apagado; sin palabra, consonante y asonante apagados.
+        await page.waitForFunction(() => document.querySelector('#pista-rima span').textContent === 'Escribí una palabra');
+        assert.equal(await page.locator('#pista-rima span').evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
+        assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado apagado');
         assert.equal(await page.locator('#rimas-vacio').isVisible(), false, 'sin el texto de abajo');
         assert.equal(await page.getByText(/cambian en/).count(), 0);
         // Todo con el efecto de la palabra tocada: terminaciones, lupa y el tipo elegido.
@@ -1013,7 +1016,8 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#palabras-simples').click();
         const pastillaSimples = await page.locator('#palabras-simples').evaluate(e => getComputedStyle(e).backgroundColor);
         await page.locator('#palabras-simples').click();
-        assert.equal(await page.locator('.opcion-tipo').first().evaluate(e => getComputedStyle(e).backgroundColor), pastillaSimples);
+        // Sin palabra, apagado: sin la pastilla (vuelve al buscar).
+        assert.equal(await page.locator('.opcion-tipo').first().evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
         // El «?» va pegado al texto.
         const textoTipo = await page.locator('#tipo-rima [data-tipo="consonante"]').boundingBox(), signo = await page.locator('[data-ayuda="consonante"]').boundingBox();
         assert.ok(signo.x - (textoTipo.x + textoTipo.width) < 8, JSON.stringify([textoTipo, signo]));
@@ -1073,7 +1077,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#palabras-simples').click();
         // «?» de Consonante y de Asonante: una viñeta corta que se cierra tocando afuera.
         await page.locator('[data-ayuda="asonante"]').click();
-        assert.match(await page.locator('#vineta-tipo').textContent(), /Asonante:.*solo las vocales.*casa y cama/);
+        assert.match(await page.locator('#vineta-tipo').textContent(), /Asonante: coinciden las vocales.*casa y cama \/\/ puerta y suelta/);
         await page.waitForTimeout(300);
         await page.screenshot({path: `capturas/rimas-ayuda-${tema}.png`});
         assert.equal(await page.locator('#vineta-tipo mark.brillo-violeta').first().evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
@@ -1086,10 +1090,13 @@ const servidor = http.createServer((req, res) => {
 
         await page.locator('#buscar-rima').fill('canción');
         await page.waitForTimeout(300);
+        assert.equal(await page.locator('#pista-rima').isVisible(), false);
+        assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado');
+        assert.equal(await page.locator('.opcion-tipo').first().evaluate(e => getComputedStyle(e).backgroundColor), pastillaSimples);
         const tarjetas = await page.locator('.palabra .texto-palabra').allTextContents();
         assert.equal(tarjetas.length, 4);
         assert.ok(tarjetas.every(p => /[oó]n$/.test(p)), tarjetas.join());
-        assert.match(await page.locator('#encabezado-usadas').textContent(), /^[\d.]+ rimas con «canción»$/);
+        assert.match(await page.locator('#encabezado-usadas').textContent(), /^[\d.]+ rimas consonantes con «canción»$/);
         assert.equal(await page.locator('#tiempo-azar').isVisible(), false);
         assert.equal(await page.locator('#pausar-palabras').isVisible(), false);
         // Refrescar, a la izquierda de «Palabras simples», pasa a las 4 rimas siguientes.
@@ -1122,6 +1129,10 @@ const servidor = http.createServer((req, res) => {
         // Sinónimos: las tarjetas y la lista muestran sinónimos, primero los que riman; consonante y asonante se apagan.
         await page.locator('#ver-sinonimos').click();
         assert.match(await page.locator('#encabezado-usadas').textContent(), /^\d+ sinónimos de «canción»$/);
+        await page.locator('#palabras-simples').click();
+        await page.waitForTimeout(300);
+        assert.match(await page.locator('#encabezado-usadas').textContent(), /^\d+ sinónimos? simples? de «canción»$/);
+        await page.locator('#palabras-simples').click();
         assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado apagado');
         assert.ok(Number(await page.locator('#tipo-rima [data-tipo="consonante"]').evaluate(e => getComputedStyle(e).opacity)) < 0.5);
         const deSinonimos = await page.locator('#resultados-rimas li').allTextContents();

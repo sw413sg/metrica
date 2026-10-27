@@ -151,7 +151,9 @@
                 <div class="busqueda-rima">
                     <!-- La lupa va con el efecto de la palabra tocada (degradé violeta con brillo). -->
                     <span class="lupa-violeta" aria-hidden="true"><span></span></span>
-                    <input id="buscar-rima" type="search" placeholder="Escribí una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
+                    <!-- La pista, con el efecto violeta apagado y tipeada rápido (en vez del placeholder). -->
+                    <span class="pista-rima" id="pista-rima" aria-hidden="true"><span class="brillo-violeta"></span></span>
+                    <input id="buscar-rima" type="search" aria-label="Escribí una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
                     <button type="button" id="limpiar-rima" aria-label="Borrar" hidden>✕</button>
                 </div>
                 <!-- Cada opción lleva un «?» que abre una viñeta corta que la explica. -->
