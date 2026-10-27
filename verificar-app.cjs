@@ -1877,8 +1877,9 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
         await cerrarLibreta();
         // Comprar: se va la publicidad, se desbloquean los temas y queda después de recargar.
-        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
-        await page.locator('.celda-extras').click();
+        // Métrica Extras ya no está en Ajustes (por ahora): se abre desde la publicidad de Rimas.
+        await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
+        await page.locator('#pantalla-rimas .publicidad').click();
         await page.locator('#comprar-extras').click();
         assert.equal(await page.locator('#comprar-extras').isDisabled(), true);
         await page.locator('#cerrar-paywall').click();
@@ -1899,8 +1900,21 @@ const servidor = http.createServer((req, res) => {
         await cerrarLibreta();
         await page.reload();
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
-        assert.match(await page.locator('#estado-extras').textContent(), /Comprado/);
-        await page.screenshot({path: `capturas/ajustes-extras-${tema}.png`, fullPage: true});
+        assert.equal(await page.locator('#comprar-extras').isDisabled(), true);
+        // Widgets: primero en Ajustes, con su pantalla; el «+» de la muestra abre el baúl para anotar.
+        assert.equal(await page.locator('#vista-ajustes .encabezado-grupo').first().textContent(), 'Widgets');
+        await page.locator('#abrir-widgets').click();
+        assert.equal(await page.locator('#vista-widgets').isVisible(), true);
+        assert.equal(await page.locator('#widgets-tipos button').count(), 7);
+        for (const tipo of await page.locator('#widgets-tipos button').all()) {
+            await tipo.click();
+            assert.equal(await page.locator('#widgets-inicio .widget').count(), 1);
+        }
+        await page.locator('#widgets-tipos button').first().click();
+        await page.locator('#widgets-inicio .widget-anotar').click();
+        assert.equal(await page.locator('#vista-baul').isVisible(), true);
+        assert.equal(await page.evaluate(() => document.activeElement.id), 'baul-texto');
+        await page.locator('#baul-atras').click();
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         assert.equal(await page.locator('#pantalla-rimas .publicidad').isVisible(), false);
         // Cada letra tiene su tema: una nueva arranca en gris y lo que se elige queda en esa letra.
