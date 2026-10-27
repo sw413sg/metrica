@@ -20,6 +20,7 @@ import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantid
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
+import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, frasesDelWidget, letraDelWidget, consignaDelDia, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
@@ -65,6 +66,7 @@ document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListe
         mostrarVista('vista-lista-letras');
         renderizarLetras();
     }
+    if (b.dataset.pestana === 'ajustes' && $('pantalla-ajustes').classList.contains('activa')) mostrarVistaAjustes('vista-ajustes');
     mostrarPestana(b.dataset.pestana);
 }));
 
@@ -2854,7 +2856,6 @@ function renderizarExtras() {
     const extras = tieneExtras(localStorage);
     renderizarDuraciones();
     document.querySelectorAll('.publicidad').forEach(p => { p.hidden = !mostrarPublicidad(localStorage); });
-    $('estado-extras').textContent = extras ? 'Comprado. ¡Gracias!' : `Sin publicidad, temas y widgets · ${PRODUCTO.precio}`;
     $('comprar-extras').textContent = extras ? 'Ya tenés Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
     $('comprar-extras').disabled = extras;
     renderizarTemas();
@@ -2915,6 +2916,337 @@ $('restaurar-compra').addEventListener('click', () => {
     $('paywall-nota').textContent = tieneExtras(localStorage) ? 'Tu compra ya está activa.' : 'No encontramos compras para restaurar.';
 });
 $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); renderizarExtras(); });
+
+// ---------- Widgets (Ajustes -> Widgets) ----------
+// Se eligen y se configuran viendo cómo quedan en el inicio, en la pantalla bloqueada y en el
+// Centro de control. En la app nativa van con WidgetKit y App Intents; acá cada toque de la muestra
+// hace lo mismo que hará el widget (abrir el baúl para anotar, la letra, las rimas, el freestyle...).
+let widgetElegido = 'baul';
+const ICONOS_WIDGET = {
+    cofre: '<svg viewBox="0 0 24 24" class="icono"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path class="cerrojo" d="M10.5 8.5h3v4.5h-3z"/></svg>',
+    mas: '<svg viewBox="0 0 24 24" class="icono"><path d="M12 5v14M5 12h14"/></svg>',
+    lapiz: '<svg viewBox="0 0 24 24" class="icono"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+    lupa: '<svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>',
+    mic: '<svg viewBox="0 0 24 24" class="icono"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
+    play: '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5.5v13l10.5-6.5z"/></svg>',
+    rec: '<svg viewBox="0 0 24 24" class="icono icono-relleno icono-rec"><circle cx="12" cy="12" r="6"/></svg>',
+    llama: '<svg viewBox="0 0 24 24" class="icono"><path d="M12 3c.5 3.5 5 5.5 5 10.5a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 0 2 1 3.2 2.3 3.5C11.3 9 10.8 6 12 3z"/></svg>',
+    chispa: '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M12 3l1.9 6.1L20 12l-6.1 1.9L12 21l-1.9-7.1L4 12l6.1-2.9z"/></svg>',
+};
+const ICONO_ACCION = { anotar: 'cofre', 'nueva-letra': 'lapiz', rimas: 'lupa', freestyle: 'mic', grabar: 'rec' };
+// Hasta que se anote algo en el baúl, la muestra va con frases de ejemplo.
+const FRASES_EJEMPLO = [
+    { texto: 'el bondi tarda pero siempre llega', creada: 5 },
+    { texto: 'tengo un verso guardado en el bolsillo', creada: 4 },
+    { texto: 'la luna no cobra entrada', creada: 3 },
+    { texto: 'si me caigo, que sea bailando', creada: 2 },
+    { texto: 'mi barrio tiene más flow que tu playlist', creada: 1 },
+];
+
+function mostrarVistaAjustes(id) {
+    document.querySelectorAll('#pantalla-ajustes .vista').forEach(v => v.classList.toggle('activa', v.id === id));
+}
+$('abrir-widgets').addEventListener('click', () => { mostrarVistaAjustes('vista-widgets'); renderizarWidgets(); });
+$('widgets-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
+
+const escapar = texto => String(texto).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const frasesParaWidget = () => { const frases = listarFrases(localStorage); return frases.length ? frases : FRASES_EJEMPLO; };
+const fechasEscritas = () => [...listarFrases(localStorage).map(f => f.creada), ...listarLetras(localStorage).filter(l => l.texto?.trim()).map(l => l.editada)];
+const palabraHoy = () => palabraDelDia(palabrasSimples);
+const rimasDe = (palabra, tipo, cuantas) => buscarRimas(palabra, indiceRimas(), { tipo }).filter(r => !r.includes(' ')).slice(0, cuantas);
+const cabeza = (icono, texto) => `<span class="widget-cabeza">${icono ? ICONOS_WIDGET[icono] : ''}${escapar(texto)}</span>`;
+// Un botón de la muestra: data-accion dice qué abre (y data-dato, con qué).
+const tocable = (accion, dato, clase, html, etiqueta) =>
+    `<button type="button" class="${clase}" data-accion="${accion}"${dato ? ` data-dato="${escapar(dato)}"` : ''}${etiqueta ? ` aria-label="${escapar(etiqueta)}"` : ''}>${html}</button>`;
+const botonMas = (texto = '') => `<span class="widget-mas">${ICONOS_WIDGET.mas}</span>${escapar(texto)}`;
+
+// El contenido de cada widget, con los datos de verdad (frases, letras, racha...).
+const CONTENIDO_WIDGET = {
+    baul({ tamano, ...ajustes }) {
+        const frases = frasesDelWidget(frasesParaWidget(), { tamano, ...ajustes });
+        const titulo = { chico: 'Baúl', mediano: 'Baúl · Últimas', grande: 'Baúl de frases' }[tamano];
+        if (tamano === 'chico') {
+            const medio = frases.length ? `<p class="widget-frase">${escapar(frases[0])}</p>` : `<span class="widget-cofre">${ICONOS_WIDGET.cofre}</span>`;
+            return cabeza('cofre', titulo) + medio + tocable('anotar', '', 'widget-anotar', botonMas('Anotá'));
+        }
+        if (!frases.length) {
+            return cabeza('cofre', titulo) + `<span class="widget-cofre">${ICONOS_WIDGET.cofre}</span>` + tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'));
+        }
+        const lista = frases.map(f => `<li>${escapar(f)}</li>`).join('');
+        const pista = tamano === 'grande' && frases.length < 5 ? '<li class="widget-pista">Tocá + para anotar</li>' : '';
+        const abajo = tamano === 'grande'
+            ? tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'))
+            : tocable('anotar', '', 'widget-anotar widget-anotar-solo', botonMas(), 'Anotá');
+        return cabeza('cofre', titulo) + `<ul class="widget-frases">${lista}${pista}</ul>` + abajo;
+    },
+    palabra({ tamano, tipoRima }) {
+        const palabra = palabraHoy();
+        const rimas = rimasDe(palabra, tipoRima, tamano === 'chico' ? 1 : 6);
+        const silabas = separarSilabas(palabra).join(' · ');
+        if (tamano === 'chico') {
+            return tocable('rimas', palabra, 'widget-todo', cabeza('chispa', 'Palabra') +
+                `<b class="widget-palabra">${escapar(palabra)}</b><span class="widget-silabas">${escapar(silabas)}</span>
+                <span class="widget-pie">${rimas[0] ? `rima con ${escapar(rimas[0])}` : 'Buscá sus rimas'}</span>`);
+        }
+        return cabeza('chispa', 'Palabra del día') + `<div class="widget-dos">
+            ${tocable('rimas', palabra, 'widget-izquierda', `<b class="widget-palabra">${escapar(palabra)}</b><span class="widget-silabas">${escapar(silabas)}</span>`)}
+            <div class="widget-rimas">${rimas.map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div></div>
+            <span class="widget-pie">${tipoRima === 'asonante' ? 'Asonantes' : 'Consonantes'} · tocá una para ver sus rimas</span>`;
+    },
+    consigna({ tamano, categoria: filtro }) {
+        const consigna = consignaDelDia(CONSIGNAS, { categoria: filtro });
+        const categoria = CATEGORIAS_TEMA.find(c => c.id === consigna?.categoria);
+        const empujon = tamano === 'mediano' && consigna?.empujon ? `<p class="widget-empujon">${escapar(consigna.empujon)}</p>` : '';
+        return tocable('consigna', consigna?.id, 'widget-todo', cabeza('chispa', tamano === 'chico' ? 'Consigna' : `Consigna del día${categoria ? ` · ${categoria.nombre}` : ''}`) +
+            `<p class="widget-consigna">${escapar(consigna?.texto ?? '')}</p>${empujon}<span class="widget-pie">Empezá a escribir ›</span>`);
+    },
+    letra({ tamano, letra: elegida }) {
+        const letra = letraDelWidget(listarLetras(localStorage), { letra: elegida, tamano });
+        if (!letra) {
+            return cabeza('lapiz', 'Seguí escribiendo') + '<p class="widget-frase">Todavía no hay letras</p>' + tocable('nueva-letra', '', 'widget-anotar', botonMas('Nueva letra'));
+        }
+        const renglones = letra.renglones.map(r => `<li>${escapar(r)}</li>`).join('') || '<li class="widget-pista">Sin versos todavía</li>';
+        const pie = tamano === 'chico' ? '' : `<span class="widget-pie">${letra.versos} ${letra.versos === 1 ? 'verso' : 'versos'} · Seguí ›</span>`;
+        return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', tamano === 'chico' ? 'Seguí' : 'Seguí escribiendo') +
+            `<b class="widget-titulo-letra">${escapar(letra.titulo)}</b><ul class="widget-renglones">${renglones}</ul>${pie}`);
+    },
+    freestyle({ tamano, beat: beatElegido }) {
+        const beat = CATALOGO_BEATS.find(b => b.id === beatElegido) ?? CATALOGO_BEATS[0];
+        const datos = beat.bpm ? `${beat.bpm} BPM` : beat.silencio ? 'Sin beat' : 'Métrica';
+        const play = tocable('freestyle', beat.id, 'widget-play', `<span class="widget-aro">${ICONOS_WIDGET.play}</span>`, `Arrancar con ${beat.nombre}`);
+        if (tamano === 'chico') {
+            return cabeza('mic', 'Freestyle') + `<div class="widget-centro">${play}</div><span class="widget-pie"><b>${escapar(beat.nombre)}</b> · ${datos}</span>`;
+        }
+        const generos = GENEROS_BEAT.map(genero => {
+            const primero = genero === beat.genero ? beat : CATALOGO_BEATS.find(b => b.genero === genero);
+            return tocable('freestyle', primero.id, `widget-genero${genero === beat.genero ? ' elegido' : ''}`, escapar(genero));
+        }).join('');
+        return cabeza('mic', 'Freestyle') + `<div class="widget-dos">${play}<div class="widget-generos">${generos}</div></div>
+            <span class="widget-pie"><b>${escapar(beat.nombre)}</b> · ${datos} · rondas de 1 min</span>`;
+    },
+    racha({ tamano }) {
+        const fechas = fechasEscritas();
+        const { dias, escribioHoy } = racha(fechas);
+        const numero = `<b class="widget-numero">${dias}</b><span class="widget-dias">${dias === 1 ? 'día escribiendo' : 'días escribiendo'}</span>`;
+        const pie = `<span class="widget-pie">${escribioHoy ? 'Hoy ya escribiste' : 'Seguí hoy: anotá una frase'}</span>`;
+        if (tamano === 'chico') return tocable('anotar', '', 'widget-todo', cabeza('llama', 'Racha') + numero + pie);
+        const semana = ultimaSemana(fechas).map(d =>
+            `<span class="dia-racha${d.escribio ? ' escribio' : ''}${d.hoy ? ' hoy' : ''}"><i></i>${d.inicial}</span>`).join('');
+        return tocable('anotar', '', 'widget-todo', cabeza('llama', 'Racha') + `<div class="widget-dos"><div class="widget-izquierda">${numero}</div><div class="semana-racha">${semana}</div></div>` + pie);
+    },
+    accesos() {
+        const accesos = [['anotar', 'Anotar'], ['nueva-letra', 'Letra'], ['rimas', 'Rimas'], ['freestyle', 'Freestyle']];
+        return cabeza('', 'Métrica') + `<div class="widget-accesos">${accesos.map(([accion, nombre]) =>
+            tocable(accion, '', 'widget-acceso', `<span>${ICONOS_WIDGET[ICONO_ACCION[accion]]}</span>${nombre}`)).join('')}</div>`;
+    },
+};
+
+// Una fila con un menú del sistema encima (como «Rimas internas» en la ruedita de la libreta).
+function filaMenu(etiqueta, opciones, valor, alCambiar) {
+    const fila = document.createElement('div');
+    fila.className = 'fila-grupo';
+    const id = `widgets-menu-${Math.random().toString(36).slice(2, 8)}`;
+    fila.innerHTML = `<label for="${id}">${escapar(etiqueta)}</label><span class="menu-libreta"><span></span>
+        <svg viewBox="0 0 24 24" class="icono"><path d="M8 10l4-4 4 4M8 14l4 4 4-4"/></svg><select id="${id}"></select></span>`;
+    const select = fila.querySelector('select');
+    select.append(...opciones.map(o => new Option(o.nombre, o.id)));
+    select.value = valor;
+    fila.querySelector('.menu-libreta > span').textContent = opciones.find(o => o.id === valor)?.nombre ?? '';
+    select.addEventListener('change', () => { alCambiar(select.value); renderizarWidgets(); });
+    return fila;
+}
+function filaInterruptor(etiqueta, valor, alCambiar, deshabilitado = false) {
+    const fila = document.createElement('div');
+    fila.className = 'fila-grupo';
+    const id = `widgets-int-${Math.random().toString(36).slice(2, 8)}`;
+    fila.innerHTML = `<label for="${id}">${escapar(etiqueta)}</label><input type="checkbox" class="interruptor" id="${id}">`;
+    const interruptor = fila.querySelector('input');
+    interruptor.checked = valor;
+    interruptor.disabled = deshabilitado;
+    interruptor.addEventListener('change', () => { alCambiar(interruptor.checked); renderizarWidgets(); });
+    return fila;
+}
+
+// Las opciones de contenido de cada widget.
+function opcionesWidget(id, ajustes) {
+    const guardar = cambios => guardarAjusteWidget(localStorage, id, cambios);
+    if (id === 'baul') return [
+        filaInterruptor('Mostrar frases', ajustes.mostrarFrases, v => guardar({ mostrarFrases: v })),
+        filaInterruptor('Solo las sin usar', ajustes.soloSinUsar, v => guardar({ soloSinUsar: v }), !ajustes.mostrarFrases),
+    ];
+    if (id === 'palabra') return [filaMenu('Rimas', [{ id: 'consonante', nombre: 'Consonantes' }, { id: 'asonante', nombre: 'Asonantes' }], ajustes.tipoRima, v => guardar({ tipoRima: v }))];
+    if (id === 'consigna') return [filaMenu('Categoría', [{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS_TEMA], ajustes.categoria, v => guardar({ categoria: v }))];
+    if (id === 'letra') {
+        const letras = listarLetras(localStorage).map(l => ({ id: l.id, nombre: l.titulo?.trim() || 'Sin título' }));
+        const valor = letras.some(l => l.id === ajustes.letra) ? ajustes.letra : 'ultima';
+        return [filaMenu('Letra', [{ id: 'ultima', nombre: 'La última editada' }, ...letras], valor, v => guardar({ letra: v }))];
+    }
+    if (id === 'freestyle') return [filaMenu('Beat', CATALOGO_BEATS.map(b => ({ id: b.id, nombre: b.nombre })), ajustes.beat, v => guardar({ beat: v }))];
+    return [];
+}
+
+const PIE_WIDGET = {
+    baul: () => (listarFrases(localStorage).length ? 'Probalo: tocá + y anotá como desde el inicio.' : 'Con frases de ejemplo hasta que anotes en el baúl. Probalo: tocá +.'),
+    palabra: () => 'Una palabra por día con sus rimas. Tocá una para buscar las suyas.',
+    consigna: () => 'Una consigna por día. Tocala y arranca una letra con ella.',
+    letra: () => 'La letra que dejaste a medias, para retomarla en un toque.',
+    freestyle: () => 'El play arranca la ronda con el beat elegido.',
+    racha: () => 'Días seguidos anotando frases o escribiendo letras.',
+    accesos: () => 'Cuatro atajos: anotar, letra nueva, rimas y freestyle.',
+};
+
+// Pantalla bloqueada: accesorios en blanco, como los de iOS.
+function accesorioRedondo(id) {
+    if (id === 'racha') {
+        const { dias } = racha(fechasEscritas());
+        return tocable('anotar', '', 'accesorio-redondo', `<b>${dias}</b><small>días</small>`, 'Racha');
+    }
+    const icono = { anotar: 'cofre', freestyle: 'mic', grabar: 'rec' }[id];
+    const mas = id === 'anotar' ? `<span class="accesorio-mas">${ICONOS_WIDGET.mas}</span>` : '';
+    return tocable(id, '', 'accesorio-redondo', ICONOS_WIDGET[icono] + mas, BLOQUEO.redondo.find(o => o.id === id).nombre);
+}
+function accesorioRectangular(id) {
+    if (id === 'palabra') {
+        const palabra = palabraHoy();
+        return tocable('rimas', palabra, 'accesorio-largo', `<b>${ICONOS_WIDGET.chispa}Palabra</b><span>${escapar(palabra)} · ${escapar(rimasDe(palabra, 'consonante', 1)[0] ?? '')}</span>`);
+    }
+    if (id === 'consigna') {
+        const consigna = consignaDelDia(CONSIGNAS);
+        return tocable('consigna', consigna?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.chispa}Consigna</b><span>${escapar(consigna?.texto ?? '')}</span>`);
+    }
+    if (id === 'letra') {
+        const letra = letraDelWidget(listarLetras(localStorage));
+        return tocable(letra ? 'letra' : 'nueva-letra', letra?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.lapiz}${escapar(letra?.titulo ?? 'Letras')}</b><span>${escapar(letra?.renglones.at(-1) ?? 'Empezá una letra')}</span>`);
+    }
+    const ultima = frasesDelWidget(frasesParaWidget())[0];
+    return tocable('anotar', '', 'accesorio-largo', `<b>${ICONOS_WIDGET.cofre}Baúl</b><span>${escapar(ultima ?? 'Anotá una frase')}</span>`);
+}
+function lineaBloqueo(id) {
+    if (id === 'racha') {
+        const { dias } = racha(fechasEscritas());
+        return `${ICONOS_WIDGET.llama}${dias} ${dias === 1 ? 'día' : 'días'} escribiendo`;
+    }
+    if (id === 'palabra') return `${ICONOS_WIDGET.chispa}${escapar(palabraHoy())}`;
+    return '';
+}
+
+function renderizarWidgets() {
+    const ajustes = ajustesWidget(localStorage, widgetElegido);
+    const widget = WIDGETS.find(w => w.id === widgetElegido);
+
+    $('widgets-tipos').replaceChildren(...WIDGETS.map(w => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'chip-tema';
+        boton.textContent = w.nombre;
+        boton.setAttribute('aria-pressed', w.id === widgetElegido);
+        boton.addEventListener('click', () => { widgetElegido = w.id; renderizarWidgets(); });
+        return boton;
+    }));
+    $('widgets-tipos').querySelector('[aria-pressed="true"]').scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+
+    // El inicio: el widget al tamaño real, entre íconos de muestra (uno es el de Métrica).
+    const muestra = document.createElement('div');
+    muestra.className = `widget widget-tipo-${widgetElegido} tamano-${ajustes.tamano} estilo-${ajustes.estilo}`;
+    muestra.innerHTML = CONTENIDO_WIDGET[widgetElegido](ajustes);
+    const iconos = { chico: 8, mediano: 4, grande: 0 }[ajustes.tamano];
+    $('widgets-inicio').replaceChildren(muestra, ...Array.from({ length: iconos }, (_, i) => {
+        const app = document.createElement('span');
+        app.className = 'app-muestra';
+        if (i === 1) app.innerHTML = '<img src="assets/logo/icono.svg" alt="">';
+        return app;
+    }));
+    $('widgets-pie').textContent = PIE_WIDGET[widgetElegido]();
+
+    $('widgets-tamanos').replaceChildren(...TAMANOS.map(t => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.textContent = t.nombre;
+        boton.setAttribute('role', 'tab');
+        boton.setAttribute('aria-selected', t.id === ajustes.tamano);
+        boton.disabled = !widget.tamanos.includes(t.id);
+        boton.addEventListener('click', () => { guardarAjusteWidget(localStorage, widgetElegido, { tamano: t.id }); renderizarWidgets(); });
+        return boton;
+    }));
+
+    $('widgets-estilos').replaceChildren(...ESTILOS.map(e => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'tema-libreta';
+        boton.setAttribute('aria-pressed', e.id === ajustes.estilo);
+        boton.innerHTML = `<span class="muestra-tema muestra-widget estilo-${e.id}"><span>Aa</span></span><span class="nombre-tema">${e.nombre}</span>`;
+        boton.addEventListener('click', () => { guardarAjusteWidget(localStorage, widgetElegido, { estilo: e.id }); renderizarWidgets(); });
+        return boton;
+    }));
+
+    const opciones = opcionesWidget(widgetElegido, ajustes);
+    $('widgets-opciones').replaceChildren(...opciones);
+    $('widgets-contenido').hidden = !opciones.length;
+
+    // Pantalla bloqueada.
+    const bloqueo = ajustesBloqueo(localStorage);
+    const fecha = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('widgets-bloqueo').innerHTML = `<span class="bloqueo-fecha">${fecha}</span>
+        <span class="bloqueo-linea">${lineaBloqueo(bloqueo.linea)}</span>
+        <span class="bloqueo-hora">9:41</span>
+        <div class="bloqueo-accesorios">${accesorioRedondo(bloqueo.redondo)}${accesorioRectangular(bloqueo.rectangular)}</div>`;
+    const guardarBloqueo = lugar => v => guardarAjusteBloqueo(localStorage, { [lugar]: v });
+    $('widgets-opciones-bloqueo').replaceChildren(
+        filaMenu('Arriba de la hora', BLOQUEO.linea, bloqueo.linea, guardarBloqueo('linea')),
+        filaMenu('Redondo', BLOQUEO.redondo, bloqueo.redondo, guardarBloqueo('redondo')),
+        filaMenu('Rectangular', BLOQUEO.rectangular, bloqueo.rectangular, guardarBloqueo('rectangular')),
+    );
+
+    // Centro de control y Botón de acción: el control de Métrica entre otros de muestra.
+    const accion = ACCIONES.find(a => a.id === bloqueo.accion);
+    $('widgets-control').innerHTML = `<div class="centro-control">
+            <span class="control-muestra"></span><span class="control-muestra"></span>
+            ${tocable(accion.id, '', 'control-metrica', ICONOS_WIDGET[ICONO_ACCION[accion.id]], accion.nombre)}
+            <span class="control-muestra"></span>
+        </div>
+        <span class="control-nombre">${escapar(accion.nombre)}</span>
+        ${tocable(accion.id, '', 'isla-accion', `<span>${ICONOS_WIDGET[ICONO_ACCION[accion.id]]}</span>${escapar(accion.nombre)}`)}
+        <span class="control-nota">Así aparece al apretar el Botón de acción</span>`;
+    $('widgets-opciones-accion').replaceChildren(filaMenu('Acción', ACCIONES, bloqueo.accion, v => guardarAjusteBloqueo(localStorage, { accion: v })));
+}
+
+// Lo que hace cada toque, igual que hará en el iPhone.
+function hacerAccionWidget(accion, dato) {
+    if (accion === 'anotar') {
+        mostrarPestana('letras');
+        abrirBaul(false);
+        return $('baul-texto').focus();
+    }
+    if (accion === 'nueva-letra' || accion === 'letra' || accion === 'consigna') {
+        mostrarPestana('letras');
+        let letra = accion === 'letra' && listarLetras(localStorage).find(l => l.id === dato);
+        if (!letra) {
+            const consigna = accion === 'consigna' && CONSIGNAS.find(c => c.id === dato);
+            letra = nuevaLetra();
+            if (consigna) letra.texto = consigna.empujon ? `${consigna.texto}\n(${consigna.empujon})` : consigna.texto;
+        }
+        abrirEditor(letra);
+        if (accion === 'consigna') { marcarUsado(localStorage, dato); guardarActual(); }
+        return;
+    }
+    if (accion === 'rimas') {
+        mostrarPestana('rimas');
+        return dato ? buscarPalabra(dato) : $('buscar-rima').focus();
+    }
+    // Freestyle: elige el beat y arranca la ronda. Grabar: Acapella con el REC prendido, listo para el play.
+    mostrarPestana('freestyle');
+    if (accion === 'grabar') {
+        elegirBeat('acapella');
+        if ($('fs-rec').getAttribute('aria-pressed') !== 'true') $('fs-rec').click();
+        return;
+    }
+    elegirBeat(dato || ajustesWidget(localStorage, 'freestyle').beat);
+    if (!ronda) $('fs-play').click();
+}
+$('vista-widgets').addEventListener('click', e => {
+    const boton = e.target.closest('[data-accion]');
+    if (boton) hacerAccionWidget(boton.dataset.accion, boton.dataset.dato);
+});
 
 // ---------- Música para escribir encima (YouTube o SoundCloud) ----------
 // Usa los reproductores oficiales, que se bajan recién cuando se pega un link (necesitan internet).

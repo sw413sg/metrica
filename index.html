@@ -281,16 +281,21 @@
         </section>
 
         <!-- Ajustes -->
+        <!-- Ajustes (NavigationStack: Ajustes -> Widgets). -->
         <section class="pantalla" id="pantalla-ajustes" data-pestana="ajustes">
+            <div class="vista activa" id="vista-ajustes">
             <header class="barra-nav"></header>
             <h1 class="titulo-grande">Ajustes</h1>
             <div class="contenido">
+                <!-- Primero, los widgets: la llave para anotar las frases del día sin abrir la app (pedido
+                     de Swa). Métrica Extras sale de acá por ahora; se abre desde los temas y la publicidad. -->
+                <h2 class="encabezado-grupo encabezado-primero">Widgets</h2>
                 <ul class="lista-agrupada">
                     <li class="celda">
-                        <span class="icono-celda icono-extras"><svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg></span>
-                        <button class="celda-boton celda-extras" data-paywall>
-                            <span>Métrica Extras</span>
-                            <span class="subtitulo" id="estado-extras">Sin publicidad, temas y widgets</span>
+                        <span class="icono-celda icono-extras"><svg viewBox="0 0 24 24" class="icono"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></svg></span>
+                        <button class="celda-boton" id="abrir-widgets">
+                            <span>Widgets</span>
+                            <span class="subtitulo">Anotá frases desde el inicio</span>
                         </button>
                         <span class="chevron">›</span>
                     </li>
@@ -348,6 +353,52 @@
                 <ul class="lista-agrupada">
                     <li class="celda"><button class="celda-boton texto-rojo celda-centrada" id="borrar-compra">Volver a la versión gratis</button></li>
                 </ul>
+            </div>
+            </div>
+
+            <!-- Widgets: se eligen y se configuran viendo cómo quedan en el inicio. En la web es una
+                 muestra; en la app nativa van con WidgetKit (en SwiftUI, la vista previa es el mismo View). -->
+            <div class="vista" id="vista-widgets">
+                <header class="barra-nav">
+                    <button class="boton-atras" id="widgets-atras">
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
+                    </button>
+                </header>
+                <h1 class="titulo-grande">Widgets</h1>
+                <div class="contenido">
+                    <p class="bajada-widgets">Las frases se te ocurren en cualquier lado. Con los widgets las anotás en un toque, retomás una letra o arrancás un freestyle sin buscar la app.</p>
+                    <div class="chips-tema chips-widgets" id="widgets-tipos" role="radiogroup" aria-label="Widget"></div>
+                    <!-- El inicio del teléfono, con el widget al tamaño real entre íconos de muestra. -->
+                    <div class="inicio-widgets" id="widgets-inicio" aria-label="Vista previa"></div>
+                    <p class="pie-widgets" id="widgets-pie"></p>
+                    <h3 class="encabezado-libreta">Tamaño</h3>
+                    <div class="grupo-libreta">
+                        <div class="pastillas-libreta" id="widgets-tamanos" role="tablist" aria-label="Tamaño"></div>
+                    </div>
+                    <h3 class="encabezado-libreta">Estilo</h3>
+                    <div class="grupo-libreta">
+                        <div class="temas-libreta" id="widgets-estilos"></div>
+                    </div>
+                    <!-- Lo que se ajusta de cada uno (frases, tipo de rima, categoría, letra, beat). -->
+                    <div id="widgets-contenido">
+                        <h3 class="encabezado-libreta">Contenido</h3>
+                        <div class="grupo-libreta grupo-widgets" id="widgets-opciones"></div>
+                    </div>
+                    <!-- Pantalla bloqueada: la línea de arriba de la hora, el redondo y el rectangular. -->
+                    <h3 class="encabezado-libreta">Pantalla bloqueada</h3>
+                    <div class="bloqueo-widgets" id="widgets-bloqueo"></div>
+                    <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-bloqueo"></div>
+                    <!-- Centro de control y Botón de acción (iPhone 15 Pro en adelante): un toque, una acción. -->
+                    <h3 class="encabezado-libreta">Centro de control y Botón de acción</h3>
+                    <div class="control-widgets" id="widgets-control"></div>
+                    <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-accion"></div>
+                    <h3 class="encabezado-libreta">Cómo agregarlo</h3>
+                    <ol class="pasos-widgets">
+                        <li>Mantené apretado un espacio vacío del inicio.</li>
+                        <li>Tocá <b>Editar</b> y después <b>Agregar widget</b>.</li>
+                        <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
+                    </ol>
+                </div>
             </div>
         </section>
     </main>
