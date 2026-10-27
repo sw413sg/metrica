@@ -1,7 +1,7 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS, tituloBusqueda } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
@@ -1154,6 +1154,27 @@ function itemPalabra(p) {
     return item;
 }
 
+// «Escribí una palabra» con el efecto violeta apagado, tipeado rápido al entrar a Rimas y al borrar
+// la búsqueda: el objetivo de la sección es buscar una palabra.
+const PISTA_RIMA = 'Escribí una palabra';
+let pistaEscrita = 0, pistaTimer = null, pistaVacia = true;
+function tipearPista() {
+    clearTimeout(pistaTimer);
+    const texto = $('pista-rima').firstElementChild;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        texto.textContent = PISTA_RIMA;
+        pistaEscrita = PISTA_RIMA.length;
+        return;
+    }
+    pistaEscrita = 0;
+    const paso = () => {
+        texto.textContent = PISTA_RIMA.slice(0, ++pistaEscrita);
+        if (pistaEscrita < PISTA_RIMA.length) pistaTimer = setTimeout(paso, 35 + Math.random() * 30);
+    };
+    texto.textContent = '';
+    pistaTimer = setTimeout(paso, 250);
+}
+
 function renderizarRimas() {
     const palabra = palabraBuscada();
     const todas = palabra ? resultadosBuscados() : [];
@@ -1170,9 +1191,15 @@ function renderizarRimas() {
     const total = todas.length.toLocaleString('es-AR');
     $('encabezado-resultados').textContent = conSinonimos() ? `Todos los sinónimos · ${total}` : todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
     $('rimas-vacio').textContent = conSinonimos() ? `No encontré sinónimos para «${palabra}».` : `No encontré rimas ${tipoRima}s para «${palabra}».`;
-    $('tipo-rima').classList.toggle('apagado', Boolean(palabra) && conSinonimos());
+    // Consonante y asonante se apagan sin palabra (las terminaciones al azar no riman con nada) y con «Sinónimos».
+    $('tipo-rima').classList.toggle('apagado', !palabra || conSinonimos());
     $('rimas-vacio').hidden = !palabra || lista.length > 0;
     $('limpiar-rima').hidden = !palabra;
+    // La pista se vuelve a tipear al borrar la búsqueda.
+    const vacio = !$('buscar-rima').value;
+    if (vacio && !pistaVacia) tipearPista();
+    pistaVacia = vacio;
+    $('pista-rima').hidden = !vacio;
 }
 
 // Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
@@ -1344,9 +1371,8 @@ function refrescarPalabras(animar = true) {
         setTimeout(poner, 220);
     } else poner();
     $('caja-azar').classList.toggle('buscando', buscando);
-    const total = pool.length.toLocaleString('es-AR');
-    const que = conSinonimos() ? (pool.length === 1 ? 'sinónimo de' : 'sinónimos de') : (pool.length === 1 ? 'rima con' : 'rimas con');
-    $('encabezado-usadas').textContent = buscando ? `${total} ${que} «${palabraBuscada()}»` : 'Terminaciones al azar';
+    const filtros = { tipo: tipoRima, simples: $('palabras-simples').getAttribute('aria-pressed') === 'true', sinonimos: conSinonimos() };
+    $('encabezado-usadas').textContent = buscando ? tituloBusqueda(pool.length, palabraBuscada(), filtros) : 'Terminaciones al azar';
     mostrarTiempo();
 }
 
@@ -1378,6 +1404,7 @@ function frenarReloj() {
 
 function reanudarPalabras() {
     rimasALaVista = true;
+    if (!$('buscar-rima').value) tipearPista();
     ajustarPalabras();
     vigilarMusica();
     if (!palabraBuscada() && !pausadoPorUsuario) refrescarPalabras();
