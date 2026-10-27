@@ -205,9 +205,8 @@ a { color: var(--acento); text-decoration: none; }
 .boton-baul .icono { width: 23px; height: 23px; }
 /* La cerradura, en violeta con resplandor, como el «+» de la letra nueva. */
 .boton-baul .cerrojo { stroke: var(--destacado); fill: var(--destacado-suave); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--destacado) 70%, transparent)); }
-/* La estrella de «¿Por dónde empiezo?», como el cofre: en violeta con resplandor. */
+/* La estrella de «¿Por dónde empiezo?» va del color de la nota musical, sin violeta (pedido de Swa). */
 .boton-tema[hidden] { display: none; }
-.boton-tema .destello { stroke: var(--destacado); fill: var(--destacado-suave); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--destacado) 70%, transparent)); }
 .anotar-frase { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 16px; border-radius: 22px; }
 /* Crece con lo que se escribe (lo ajusta js/app.js), hasta 200 px; después se desliza adentro. */
 .anotar-frase textarea {
