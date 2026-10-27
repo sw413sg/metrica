@@ -431,7 +431,7 @@ a { color: var(--acento); text-decoration: none; }
 #tipo-rima.apagado [role="tab"] { opacity: 0.4; pointer-events: none; }
 #tipo-rima.apagado .opcion-tipo:has(> [aria-selected="true"]) { background: none; }
 #tipo-rima.apagado [role="tab"][aria-selected="true"] { font-weight: 500; color: var(--texto-2); }
-#tipo-rima.apagado .ayuda-tipo { color: var(--texto-3); }
+#tipo-rima.apagado .ayuda-tipo:not([aria-expanded="true"]) { color: var(--texto-3); }
 /* Se puede deslizar a los costados para refrescar. */
 .caja-azar { touch-action: pan-y; }
 /* Al buscar, el azar se frena: solo queda el filtro de palabras simples. */
