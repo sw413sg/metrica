@@ -957,8 +957,8 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
         // Un toque común sigue abriendo la letra (ver arriba): acá ya no queda ninguna.
 
-        // Varias letras: la última editada va primera, de a tres (dos chicas y una larga, después
-        // al revés), y mantener apretada una tarjeta y pasarla por arriba de otra las cambia de lugar.
+        // Varias letras: la última editada va primera, cada una a la columna más corta y chica o
+        // larga según su id (esLarga), y mantener apretada una tarjeta y pasarla por arriba de otra las cambia de lugar.
         await page.evaluate(() => localStorage.setItem('metrica.letras', JSON.stringify(
             ['A', 'B', 'C', 'D', 'E', 'F'].map((t, i) => ({ id: t, titulo: t, texto: 'verso', creada: i, editada: i + 1 })))));
         await page.reload();
@@ -968,9 +968,9 @@ const servidor = http.createServer((req, res) => {
         const tarjetaDe = t => page.locator('#lista-letras .tarjeta-letra').filter({has: page.getByText(t, {exact: true})});
         const cajaDe = t => tarjetaDe(t).boundingBox();
         const [mas, f, e, d, c, b] = [await page.locator('#nueva-letra').boundingBox(), await cajaDe('F'), await cajaDe('E'), await cajaDe('D'), await cajaDe('C'), await cajaDe('B')];
-        // "+" y E chicas a la izquierda, F larga a la derecha; después D larga a la izquierda, C y B chicas a la derecha.
+        // Con estos ids: "+", E, D y B chicas a la izquierda; F y C largas a la derecha.
         assert.ok(mas.x < f.x && e.x === mas.x && f.height > mas.height * 2 && e.y > mas.y);
-        assert.ok(d.x === mas.x && d.height > mas.height * 2 && c.x === f.x && b.x === f.x && b.y > c.y);
+        assert.ok(d.x === mas.x && d.y > e.y && Math.abs(d.height - mas.height) < 2 && c.x === f.x && c.height > mas.height * 2 && b.x === mas.x && b.y > d.y);
         await page.screenshot({path: `capturas/letras-grilla-${tema}.png`});
         // Arrastrar D arriba de F la pone primera, y queda así al volver a entrar.
         const dd = await cajaDe('D');

@@ -6,7 +6,7 @@ import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas }
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
@@ -93,6 +93,7 @@ function renderizarLetras() {
     tarjetasLetras = letras.map(letra => {
         const tarjeta = document.createElement('li');
         tarjeta.className = 'tarjeta-letra';
+        tarjeta.dataset.id = letra.id;
         const boton = document.createElement('button');
         boton.append(parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
         const fueArrastrada = arrastrarTarjeta(tarjeta, boton, letra);
@@ -105,11 +106,11 @@ function renderizarLetras() {
     $('letras-vacio').hidden = letras.length > 0;
 }
 
-// Cada tarjeta va en su lugar de la grilla (la "+" es el lugar 0): de a tres, dos chicas y
-// una larga, y en el grupo siguiente al revés.
+// Cada tarjeta va en su lugar de la grilla, a la columna más corta, chica o larga según la letra.
 function ubicarTarjetas() {
+    const lugares = lugaresEnGrilla(tarjetasLetras.map(t => t.dataset.id));
     tarjetasLetras.forEach((tarjeta, i) => {
-        const { columna, fila, larga } = lugarEnGrilla(i + 1);
+        const { columna, fila, larga } = lugares[i];
         tarjeta.style.gridColumn = columna;
         tarjeta.style.gridRow = `${fila} / span ${larga ? 2 : 1}`;
         tarjeta.classList.toggle('destacada', larga);
