@@ -1,12 +1,12 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS, tituloBusqueda } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
@@ -93,6 +93,7 @@ function renderizarLetras() {
     tarjetasLetras = letras.map(letra => {
         const tarjeta = document.createElement('li');
         tarjeta.className = 'tarjeta-letra';
+        tarjeta.dataset.id = letra.id;
         const boton = document.createElement('button');
         boton.append(parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
         const fueArrastrada = arrastrarTarjeta(tarjeta, boton, letra);
@@ -105,11 +106,11 @@ function renderizarLetras() {
     $('letras-vacio').hidden = letras.length > 0;
 }
 
-// Cada tarjeta va en su lugar de la grilla (la "+" es el lugar 0): de a tres, dos chicas y
-// una larga, y en el grupo siguiente al revés.
+// Cada tarjeta va en su lugar de la grilla, a la columna más corta, chica o larga según la letra.
 function ubicarTarjetas() {
+    const lugares = lugaresEnGrilla(tarjetasLetras.map(t => t.dataset.id));
     tarjetasLetras.forEach((tarjeta, i) => {
-        const { columna, fila, larga } = lugarEnGrilla(i + 1);
+        const { columna, fila, larga } = lugares[i];
         tarjeta.style.gridColumn = columna;
         tarjeta.style.gridRow = `${fila} / span ${larga ? 2 : 1}`;
         tarjeta.classList.toggle('destacada', larga);
@@ -1154,6 +1155,27 @@ function itemPalabra(p) {
     return item;
 }
 
+// «Escribí una palabra» con el efecto violeta apagado, tipeado rápido al entrar a Rimas y al borrar
+// la búsqueda: el objetivo de la sección es buscar una palabra.
+const PISTA_RIMA = 'Escribí una palabra';
+let pistaEscrita = 0, pistaTimer = null, pistaVacia = true;
+function tipearPista() {
+    clearTimeout(pistaTimer);
+    const texto = $('pista-rima').firstElementChild;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        texto.textContent = PISTA_RIMA;
+        pistaEscrita = PISTA_RIMA.length;
+        return;
+    }
+    pistaEscrita = 0;
+    const paso = () => {
+        texto.textContent = PISTA_RIMA.slice(0, ++pistaEscrita);
+        if (pistaEscrita < PISTA_RIMA.length) pistaTimer = setTimeout(paso, 35 + Math.random() * 30);
+    };
+    texto.textContent = '';
+    pistaTimer = setTimeout(paso, 250);
+}
+
 function renderizarRimas() {
     const palabra = palabraBuscada();
     const todas = palabra ? resultadosBuscados() : [];
@@ -1170,9 +1192,15 @@ function renderizarRimas() {
     const total = todas.length.toLocaleString('es-AR');
     $('encabezado-resultados').textContent = conSinonimos() ? `Todos los sinónimos · ${total}` : todas.length > MAXIMO_TODAS ? `Todas · las ${MAXIMO_TODAS} más usadas de ${total}` : `Todas · ${total}`;
     $('rimas-vacio').textContent = conSinonimos() ? `No encontré sinónimos para «${palabra}».` : `No encontré rimas ${tipoRima}s para «${palabra}».`;
-    $('tipo-rima').classList.toggle('apagado', Boolean(palabra) && conSinonimos());
+    // Consonante y asonante se apagan sin palabra (las terminaciones al azar no riman con nada) y con «Sinónimos».
+    $('tipo-rima').classList.toggle('apagado', !palabra || conSinonimos());
     $('rimas-vacio').hidden = !palabra || lista.length > 0;
     $('limpiar-rima').hidden = !palabra;
+    // La pista se vuelve a tipear al borrar la búsqueda.
+    const vacio = !$('buscar-rima').value;
+    if (vacio && !pistaVacia) tipearPista();
+    pistaVacia = vacio;
+    $('pista-rima').hidden = !vacio;
 }
 
 // Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
@@ -1202,8 +1230,8 @@ document.querySelectorAll('#tipo-rima [role="tab"]').forEach(b => b.addEventList
 
 // El «?» de cada opción abre una viñeta corta, con la puntita hacia el «?». Se cierra tocando afuera.
 const AYUDA_TIPO = {
-    consonante: '<strong>Consonante:</strong> el final suena igual, letra por letra. Ej.: c<mark class="brillo-violeta">asa</mark> y p<mark class="brillo-violeta">asa</mark>, canc<mark class="brillo-violeta">ión</mark> y raz<mark class="brillo-violeta">ón</mark>.',
-    asonante: '<strong>Asonante:</strong> el final repite solo las vocales. Ej.: c<mark class="brillo-violeta">a</mark>s<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">a</mark>m<mark class="brillo-violeta">a</mark> (a-a), l<mark class="brillo-violeta">u</mark>n<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">u</mark>r<mark class="brillo-violeta">a</mark> (u-a).',
+    consonante: '<strong>Consonante:</strong> desde la parte que más suena, el final es idéntico. Ej.: canc<mark class="brillo-violeta">ión</mark> y raz<mark class="brillo-violeta">ón</mark>.',
+    asonante: '<strong>Asonante:</strong> coinciden las vocales del final, pero las otras letras cambian. Ej.: c<mark class="brillo-violeta">a</mark>s<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">a</mark>m<mark class="brillo-violeta">a</mark> // pu<mark class="brillo-violeta">e</mark>rt<mark class="brillo-violeta">a</mark> y su<mark class="brillo-violeta">e</mark>lt<mark class="brillo-violeta">a</mark>.',
 };
 function cerrarAyudaTipo() {
     $('vineta-tipo').hidden = true;
@@ -1344,9 +1372,8 @@ function refrescarPalabras(animar = true) {
         setTimeout(poner, 220);
     } else poner();
     $('caja-azar').classList.toggle('buscando', buscando);
-    const total = pool.length.toLocaleString('es-AR');
-    const que = conSinonimos() ? (pool.length === 1 ? 'sinónimo de' : 'sinónimos de') : (pool.length === 1 ? 'rima con' : 'rimas con');
-    $('encabezado-usadas').textContent = buscando ? `${total} ${que} «${palabraBuscada()}»` : 'Terminaciones al azar';
+    const filtros = { tipo: tipoRima, simples: $('palabras-simples').getAttribute('aria-pressed') === 'true', sinonimos: conSinonimos() };
+    $('encabezado-usadas').textContent = buscando ? tituloBusqueda(pool.length, palabraBuscada(), filtros) : 'Terminaciones al azar';
     mostrarTiempo();
 }
 
@@ -1378,6 +1405,7 @@ function frenarReloj() {
 
 function reanudarPalabras() {
     rimasALaVista = true;
+    if (!$('buscar-rima').value) tipearPista();
     ajustarPalabras();
     vigilarMusica();
     if (!palabraBuscada() && !pausadoPorUsuario) refrescarPalabras();

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, asignarColores } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, asignarColores, tituloBusqueda } from '../js/logica/rimas.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
@@ -222,4 +222,13 @@ test('rimasInternas: una asonante del medio se suma a una consonante del medio (
     assert.deepEqual(rimasInternas([['con', 'mi', 'música', 'y', 'solo', 'el', 'mes'], ['te', 'busqué', 'de', 'todos', 'modos', 'otra', 'vez']])[0][4], suave('oo'));
     // Si "todos" no rimara consonante con nada, "solo" quedaría sin pintar.
     assert.deepEqual(rimasInternas([['y', 'solo', 'el', 'mes'], ['de', 'todos', 'otra', 'vez']])[0][1], null);
+});
+
+test('tituloBusqueda: se arma con los filtros prendidos', () => {
+    assert.equal(tituloBusqueda(2072, 'casa', { tipo: 'consonante' }), '2.072 rimas consonantes con «casa»');
+    assert.equal(tituloBusqueda(30, 'casa', { tipo: 'asonante' }), '30 rimas asonantes con «casa»');
+    assert.equal(tituloBusqueda(12, 'casa', { tipo: 'consonante', simples: true }), '12 rimas consonantes simples con «casa»');
+    assert.equal(tituloBusqueda(1, 'casa', { tipo: 'asonante', simples: true }), '1 rima asonante simple con «casa»');
+    assert.equal(tituloBusqueda(8, 'casa', { sinonimos: true, simples: true }), '8 sinónimos simples de «casa»');
+    assert.equal(tituloBusqueda(1, 'casa', { sinonimos: true }), '1 sinónimo de «casa»');
 });

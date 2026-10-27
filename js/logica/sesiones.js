@@ -39,15 +39,25 @@ export function moverLetra(almacen, id, lugar) {
     escribir(almacen, CLAVE_LETRAS, letras.map((l, i) => ({ ...l, orden: puestos[i] })));
 }
 
-// Dónde va cada tarjeta en la grilla de dos columnas (lugar 0 es la tarjeta "+"). De a tres:
-// dos chicas a la izquierda y una larga a la derecha, y en el grupo siguiente al revés
-// (una larga a la izquierda y dos chicas a la derecha). En SwiftUI: un Grid con estos lugares.
-export function lugarEnGrilla(lugar) {
-    const grupo = Math.floor(lugar / 3), cual = lugar % 3, fila = grupo * 2 + 1;
-    if (grupo % 2 === 0) {
-        return [{ columna: 1, fila, larga: false }, { columna: 2, fila, larga: true }, { columna: 1, fila: fila + 1, larga: false }][cual];
-    }
-    return [{ columna: 1, fila, larga: true }, { columna: 2, fila, larga: false }, { columna: 2, fila: fila + 1, larga: false }][cual];
+// Si la tarjeta de una letra es larga (dos filas) o chica. Sale de su id, así es al azar pero
+// siempre la misma para cada letra, aunque cambie de lugar. Más o menos 4 de cada 10 son largas.
+export function esLarga(id) {
+    let h = 2166136261;
+    for (const c of String(id)) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    return (h >>> 0) % 10 < 4;
+}
+
+// Dónde va cada tarjeta en la grilla de dos columnas, en orden. La tarjeta "+" ocupa arriba a
+// la izquierda; cada tarjeta va a la columna más corta (empate: la izquierda), con el alto de
+// esLarga. Así las alturas se mezclan sin un patrón fijo. En SwiftUI: un Grid con estos lugares.
+export function lugaresEnGrilla(ids) {
+    const alto = [1, 0];
+    return ids.map(id => {
+        const columna = alto[1] < alto[0] ? 2 : 1, larga = esLarga(id);
+        const fila = alto[columna - 1] + 1;
+        alto[columna - 1] += larga ? 2 : 1;
+        return { columna, fila, larga };
+    });
 }
 
 // Guarda (o actualiza) la letra y la devuelve con la fecha de edición nueva.

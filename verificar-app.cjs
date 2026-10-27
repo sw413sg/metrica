@@ -957,8 +957,8 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#lista-letras .tarjeta-letra').count(), 0);
         // Un toque común sigue abriendo la letra (ver arriba): acá ya no queda ninguna.
 
-        // Varias letras: la última editada va primera, de a tres (dos chicas y una larga, después
-        // al revés), y mantener apretada una tarjeta y pasarla por arriba de otra las cambia de lugar.
+        // Varias letras: la última editada va primera, cada una a la columna más corta y chica o
+        // larga según su id (esLarga), y mantener apretada una tarjeta y pasarla por arriba de otra las cambia de lugar.
         await page.evaluate(() => localStorage.setItem('metrica.letras', JSON.stringify(
             ['A', 'B', 'C', 'D', 'E', 'F'].map((t, i) => ({ id: t, titulo: t, texto: 'verso', creada: i, editada: i + 1 })))));
         await page.reload();
@@ -968,9 +968,9 @@ const servidor = http.createServer((req, res) => {
         const tarjetaDe = t => page.locator('#lista-letras .tarjeta-letra').filter({has: page.getByText(t, {exact: true})});
         const cajaDe = t => tarjetaDe(t).boundingBox();
         const [mas, f, e, d, c, b] = [await page.locator('#nueva-letra').boundingBox(), await cajaDe('F'), await cajaDe('E'), await cajaDe('D'), await cajaDe('C'), await cajaDe('B')];
-        // "+" y E chicas a la izquierda, F larga a la derecha; después D larga a la izquierda, C y B chicas a la derecha.
+        // Con estos ids: "+", E, D y B chicas a la izquierda; F y C largas a la derecha.
         assert.ok(mas.x < f.x && e.x === mas.x && f.height > mas.height * 2 && e.y > mas.y);
-        assert.ok(d.x === mas.x && d.height > mas.height * 2 && c.x === f.x && b.x === f.x && b.y > c.y);
+        assert.ok(d.x === mas.x && d.y > e.y && Math.abs(d.height - mas.height) < 2 && c.x === f.x && c.height > mas.height * 2 && b.x === mas.x && b.y > d.y);
         await page.screenshot({path: `capturas/letras-grilla-${tema}.png`});
         // Arrastrar D arriba de F la pone primera, y queda así al volver a entrar.
         const dd = await cajaDe('D');
@@ -1002,7 +1002,10 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
         assert.equal(await page.locator('.palabra').count(), 4);
         assert.equal(await page.locator('#encabezado-usadas').textContent(), 'Terminaciones al azar');
-        assert.equal(await page.locator('#buscar-rima').getAttribute('placeholder'), 'Escribí una palabra');
+        // La pista, tipeada rápido con el efecto violeta apagado; sin palabra, consonante y asonante apagados.
+        await page.waitForFunction(() => document.querySelector('#pista-rima span').textContent === 'Escribí una palabra');
+        assert.equal(await page.locator('#pista-rima span').evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
+        assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado apagado');
         assert.equal(await page.locator('#rimas-vacio').isVisible(), false, 'sin el texto de abajo');
         assert.equal(await page.getByText(/cambian en/).count(), 0);
         // Todo con el efecto de la palabra tocada: terminaciones, lupa y el tipo elegido.
@@ -1013,7 +1016,8 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#palabras-simples').click();
         const pastillaSimples = await page.locator('#palabras-simples').evaluate(e => getComputedStyle(e).backgroundColor);
         await page.locator('#palabras-simples').click();
-        assert.equal(await page.locator('.opcion-tipo').first().evaluate(e => getComputedStyle(e).backgroundColor), pastillaSimples);
+        // Sin palabra, apagado: sin la pastilla (vuelve al buscar).
+        assert.equal(await page.locator('.opcion-tipo').first().evaluate(e => getComputedStyle(e).backgroundColor), 'rgba(0, 0, 0, 0)');
         // El «?» va pegado al texto.
         const textoTipo = await page.locator('#tipo-rima [data-tipo="consonante"]').boundingBox(), signo = await page.locator('[data-ayuda="consonante"]').boundingBox();
         assert.ok(signo.x - (textoTipo.x + textoTipo.width) < 8, JSON.stringify([textoTipo, signo]));
@@ -1073,7 +1077,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#palabras-simples').click();
         // «?» de Consonante y de Asonante: una viñeta corta que se cierra tocando afuera.
         await page.locator('[data-ayuda="asonante"]').click();
-        assert.match(await page.locator('#vineta-tipo').textContent(), /Asonante:.*solo las vocales.*casa y cama/);
+        assert.match(await page.locator('#vineta-tipo').textContent(), /Asonante: coinciden las vocales.*casa y cama \/\/ puerta y suelta/);
         await page.waitForTimeout(300);
         await page.screenshot({path: `capturas/rimas-ayuda-${tema}.png`});
         assert.equal(await page.locator('#vineta-tipo mark.brillo-violeta').first().evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
@@ -1086,10 +1090,13 @@ const servidor = http.createServer((req, res) => {
 
         await page.locator('#buscar-rima').fill('canción');
         await page.waitForTimeout(300);
+        assert.equal(await page.locator('#pista-rima').isVisible(), false);
+        assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado');
+        assert.equal(await page.locator('.opcion-tipo').first().evaluate(e => getComputedStyle(e).backgroundColor), pastillaSimples);
         const tarjetas = await page.locator('.palabra .texto-palabra').allTextContents();
         assert.equal(tarjetas.length, 4);
         assert.ok(tarjetas.every(p => /[oó]n$/.test(p)), tarjetas.join());
-        assert.match(await page.locator('#encabezado-usadas').textContent(), /^[\d.]+ rimas con «canción»$/);
+        assert.match(await page.locator('#encabezado-usadas').textContent(), /^[\d.]+ rimas consonantes con «canción»$/);
         assert.equal(await page.locator('#tiempo-azar').isVisible(), false);
         assert.equal(await page.locator('#pausar-palabras').isVisible(), false);
         // Refrescar, a la izquierda de «Palabras simples», pasa a las 4 rimas siguientes.
@@ -1122,6 +1129,10 @@ const servidor = http.createServer((req, res) => {
         // Sinónimos: las tarjetas y la lista muestran sinónimos, primero los que riman; consonante y asonante se apagan.
         await page.locator('#ver-sinonimos').click();
         assert.match(await page.locator('#encabezado-usadas').textContent(), /^\d+ sinónimos de «canción»$/);
+        await page.locator('#palabras-simples').click();
+        await page.waitForTimeout(300);
+        assert.match(await page.locator('#encabezado-usadas').textContent(), /^\d+ sinónimos? simples? de «canción»$/);
+        await page.locator('#palabras-simples').click();
         assert.equal(await page.locator('#tipo-rima').getAttribute('class'), 'segmentado apagado');
         assert.ok(Number(await page.locator('#tipo-rima [data-tipo="consonante"]').evaluate(e => getComputedStyle(e).opacity)) < 0.5);
         const deSinonimos = await page.locator('#resultados-rimas li').allTextContents();
