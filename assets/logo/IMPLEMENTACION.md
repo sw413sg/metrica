@@ -28,3 +28,4 @@
 - `manifest.webmanifest`: `icono-192.png` e `icono-512.png`, y el SVG. `index.html`: apple-touch-icon en `icono-180.png` y favicon en `icono.svg` (a 16 px el PNG queda borroso).
 - El service worker precachea el SVG, el 180, el 192 y el 512. El wordmark no va en la interfaz: el texto sigue vivo y, antes de usarlo en producción, hay que pasarlo a contornos.
 - No están en el repo: `gen.py`, las láminas jpg, `icono_squircle.svg` (solo presentación) ni `capa_glifo_1024.png` (el glifo transparente va en `capa_glifo.svg`).
+- Los PNG de 180, 192 y 512 del paquete salían con el fondo transparente (el generador saca la captura sin fondo y el degradado no queda opaco). En la web se reexportaron opacos desde `icono.svg`, a sangre, para que el apple-touch y el manifest no se vean rotos.
