@@ -1681,7 +1681,7 @@ const servidor = http.createServer((req, res) => {
                 return w;
             } };
             window.SC.Widget.Events = { READY: 'READY', PLAY: 'PLAY', PAUSE: 'PAUSE', FINISH: 'FINISH', ERROR: 'ERROR', PLAY_PROGRESS: 'PLAY_PROGRESS' };`}));
-        await page.route('https://i1.sndcdn.com/**', ruta => ruta.fulfill({path: path.join(__dirname, 'iconos/icono-192.png')}));
+        await page.route('https://i1.sndcdn.com/**', ruta => ruta.fulfill({path: path.join(__dirname, 'assets/logo/icono-192.png')}));
         await page.route('https://soundcloud.com/oembed**', ruta => ruta.fulfill({contentType: 'application/json', body: JSON.stringify({
             html: '<iframe src="https://w.soundcloud.com/player/?visual=true&url=https%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F2416843668&amp;show_artwork=true"></iframe>',
         })}));

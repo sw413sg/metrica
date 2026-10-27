@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando uno al último número (1.0.9 -> 1.1.0): así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-1.2.1';
+const VERSION = 'metrica-1.2.2';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -37,10 +37,10 @@ const ARCHIVOS = [
     'temas/temas.js',
     'js/logica/grabaciones.js',
     'js/vendor/lame.min.js',
-    'iconos/icono.svg',
-    'iconos/icono-180.png',
-    'iconos/icono-192.png',
-    'iconos/icono-512.png',
+    'assets/logo/icono.svg',
+    'assets/logo/icono-180.png',
+    'assets/logo/icono-192.png',
+    'assets/logo/icono-512.png',
     'beats/boom-bap-bateria.mp3',
     'beats/boom-bap-jazz.mp3',
     'beats/trap-grave.mp3',
