@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugarEnGrilla, listarGuardadas, alternarGuardada } from '../js/logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugaresEnGrilla, esLarga, listarGuardadas, alternarGuardada } from '../js/logica/sesiones.js';
 
 // Imita localStorage: guarda texto por clave.
 function almacenDePrueba(inicial = {}) {
@@ -65,10 +65,23 @@ test('letras guardadas antes, sin orden, se listan por la última edición', () 
     assert.deepEqual(listarLetras(almacen).map(l => l.id), ['2', '1']);
 });
 
-test('lugarEnGrilla: dos chicas y una larga, y después al revés', () => {
-    const lugares = Array.from({ length: 9 }, (_, i) => lugarEnGrilla(i));
-    assert.deepEqual(lugares.map(l => `${l.columna}/${l.fila}${l.larga ? 'L' : ''}`),
-        ['1/1', '2/1L', '1/2', '1/3L', '2/3', '2/4', '1/5', '2/5L', '1/6']);
+test('lugaresEnGrilla: cada tarjeta a la columna más corta, con su alto de siempre', () => {
+    const ids = Array.from({ length: 40 }, (_, i) => String(1761000000000 + i * 7919));
+    const lugares = lugaresEnGrilla(ids);
+    // Sin huecos ni encimadas: cada columna se llena de corrido (la "+" ocupa la fila 1 de la izquierda).
+    const alto = [1, 0];
+    lugares.forEach((l, i) => {
+        assert.equal(l.larga, esLarga(ids[i]));
+        assert.equal(l.fila, alto[l.columna - 1] + 1);
+        assert.ok(alto[l.columna - 1] <= alto[2 - l.columna]);
+        alto[l.columna - 1] += l.larga ? 2 : 1;
+    });
+    // Hay de los dos tamaños, y no van alternados uno y uno.
+    const largas = lugares.map(l => l.larga);
+    assert.ok(largas.some(Boolean) && !largas.every(Boolean));
+    assert.ok(largas.some((l, i) => i > 0 && l === largas[i - 1]));
+    // La misma letra tiene siempre el mismo alto, en cualquier lugar.
+    assert.deepEqual(lugaresEnGrilla([...ids].reverse()).map(l => l.larga), [...largas].reverse());
 });
 
 test('palabras guardadas: guardar, sacar y la última primero', () => {
