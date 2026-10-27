@@ -1230,8 +1230,8 @@ document.querySelectorAll('#tipo-rima [role="tab"]').forEach(b => b.addEventList
 
 // El «?» de cada opción abre una viñeta corta, con la puntita hacia el «?». Se cierra tocando afuera.
 const AYUDA_TIPO = {
-    consonante: '<strong>Consonante:</strong> el final suena igual, letra por letra. Ej.: c<mark class="brillo-violeta">asa</mark> y p<mark class="brillo-violeta">asa</mark>, canc<mark class="brillo-violeta">ión</mark> y raz<mark class="brillo-violeta">ón</mark>.',
-    asonante: '<strong>Asonante:</strong> el final repite solo las vocales. Ej.: c<mark class="brillo-violeta">a</mark>s<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">a</mark>m<mark class="brillo-violeta">a</mark> (a-a), l<mark class="brillo-violeta">u</mark>n<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">u</mark>r<mark class="brillo-violeta">a</mark> (u-a).',
+    consonante: '<strong>Consonante:</strong> desde la parte que más suena, el final es idéntico. Ej.: canc<mark class="brillo-violeta">ión</mark> y raz<mark class="brillo-violeta">ón</mark>.',
+    asonante: '<strong>Asonante:</strong> coinciden las vocales del final, pero las otras letras cambian. Ej.: c<mark class="brillo-violeta">a</mark>s<mark class="brillo-violeta">a</mark> y c<mark class="brillo-violeta">a</mark>m<mark class="brillo-violeta">a</mark> // pu<mark class="brillo-violeta">e</mark>rt<mark class="brillo-violeta">a</mark> y su<mark class="brillo-violeta">e</mark>lt<mark class="brillo-violeta">a</mark>.',
 };
 function cerrarAyudaTipo() {
     $('vineta-tipo').hidden = true;

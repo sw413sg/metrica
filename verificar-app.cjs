@@ -1077,7 +1077,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#palabras-simples').click();
         // «?» de Consonante y de Asonante: una viñeta corta que se cierra tocando afuera.
         await page.locator('[data-ayuda="asonante"]').click();
-        assert.match(await page.locator('#vineta-tipo').textContent(), /Asonante:.*solo las vocales.*casa y cama/);
+        assert.match(await page.locator('#vineta-tipo').textContent(), /Asonante: coinciden las vocales.*casa y cama \/\/ puerta y suelta/);
         await page.waitForTimeout(300);
         await page.screenshot({path: `capturas/rimas-ayuda-${tema}.png`});
         assert.equal(await page.locator('#vineta-tipo mark.brillo-violeta').first().evaluate(e => getComputedStyle(e).animationName), 'brillo-tocada');
