@@ -2038,8 +2038,8 @@ const servidor = http.createServer((req, res) => {
         const textoSinInternet = await page.evaluate(() => JSON.parse(localStorage.getItem('metrica.letras'))[0].texto);
         await page.locator('#keep-archivo').setInputFiles({ name: 'takeout-20261027.zip', mimeType: 'application/zip', buffer: armarZip({
             'Takeout/Keep/Después de ese.json': notaKeep('Después de ese', 'la calle me enseñó\na no mirar atrás\ny ahora escribo lo que siento'),
-            'Takeout/Keep/Compras.json': notaKeep('', '', { listContent: [{ text: 'cuerdas' }, { text: 'micrófono' }], labels: [], userEditedTimestampUsec: 1600000000000000, isArchived: true }),
-            'Takeout/Keep/Borrada.json': notaKeep('Borrada', 'chau', { isTrashed: true }),
+            'Takeout/Conservar/Compras.json': notaKeep('', '', { listContent: [{ text: 'cuerdas' }, { text: 'micrófono' }], labels: [], userEditedTimestampUsec: 1600000000000000, isArchived: true }),
+            'Takeout/Conservar/Borrada.json': notaKeep('Borrada', 'chau', { isTrashed: true }),
             'Takeout/Keep/Sin internet.json': notaKeep('Sin internet', textoSinInternet),
             'Takeout/Keep/Después de ese.html': '<p>no</p>',
         }) });

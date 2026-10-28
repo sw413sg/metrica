@@ -67,8 +67,9 @@ export async function leerZip(tamano, leer, inflar = inflarConStream) {
     return archivos;
 }
 
-// Los .json de notas de Keep dentro del zip (Takeout/Keep/Nota.json), sin carpetas de otros servicios.
-export const esNotaDelZip = nombre => /(^|\/)Keep\/[^/]+\.json$/i.test(nombre);
+// Los .json del zip que pueden ser notas. La carpeta cambia con el idioma de la cuenta
+// (Takeout/Keep, Takeout/Conservar...), así que se miran todos y `notaDeKeep` saltea lo que no es nota.
+export const esNotaDelZip = nombre => /\.json$/i.test(nombre);
 
 // --- De nota de Keep a letra ------------------------------------------------------------------
 
@@ -76,7 +77,8 @@ export const esNotaDelZip = nombre => /(^|\/)Keep\/[^/]+\.json$/i.test(nombre);
 // renglón por ítem. Las de la papelera y las vacías no van (null).
 export function notaDeKeep(datos) {
     if (!datos || typeof datos !== 'object' || datos.isTrashed) return null;
-    if (!('textContent' in datos) && !('listContent' in datos) && !('title' in datos)) return null;
+    // Toda nota de Keep trae la fecha de edición y si está en la papelera; con eso se reconoce.
+    if (!('userEditedTimestampUsec' in datos) && !('isTrashed' in datos)) return null;
     const lista = Array.isArray(datos.listContent) ? datos.listContent.map(i => String(i?.text ?? '').trim()).join('\n') : '';
     const texto = String(datos.textContent ?? '').replace(/\r\n?/g, '\n').replace(/\s+$/, '');
     const nota = {

@@ -38,14 +38,18 @@ const abrir = (zip) => leerZip(zip.length, async (desde, hasta) => zip.subarray(
 const NOTA = { title: 'Después de ese', textContent: 'la calle me enseñó\r\na no mirar atrás\n', isTrashed: false, isArchived: false,
     userEditedTimestampUsec: 1700000000000000, createdTimestampUsec: 1690000000000000, labels: [{ name: 'Letras' }] };
 
+// La carpeta cambia con el idioma de la cuenta: en español, Takeout/Conservar (como el zip de Swa).
 for (const zip64 of [false, true]) {
-    test(`leerZip abre el zip de Takeout${zip64 ? ' con zip64' : ''} y trae los .json de Keep`, async () => {
-        const zip = armarZip({ 'Takeout/Keep/Después de ese.json': JSON.stringify(NOTA), 'Takeout/Keep/Después de ese.html': '<p>', 'Takeout/Drive/otra.json': '{}' }, zip64);
+    test(`leerZip abre el zip de Takeout${zip64 ? ' con zip64' : ''} y trae las notas, en cualquier carpeta`, async () => {
+        const zip = armarZip({ 'Takeout/Conservar/Después de ese.json': JSON.stringify(NOTA), 'Takeout/Conservar/Después de ese.html': '<p>',
+            'Takeout/Keep/Otra.json': JSON.stringify({ ...NOTA, title: 'Otra' }), 'Takeout/archivo_navegador.json': '{"x":1}' }, zip64);
         const archivos = await abrir(zip);
-        assert.deepEqual(archivos.map(a => a.nombre), ['Takeout/Keep/Después de ese.json', 'Takeout/Keep/Después de ese.html', 'Takeout/Drive/otra.json']);
-        const notas = archivos.filter(a => esNotaDelZip(a.nombre));
-        assert.equal(notas.length, 1);
-        assert.deepEqual(JSON.parse(new TextDecoder().decode(await notas[0].datos())), NOTA);
+        assert.equal(archivos.length, 4);
+        const jsons = archivos.filter(a => esNotaDelZip(a.nombre));
+        assert.deepEqual(jsons.map(a => a.nombre), ['Takeout/Conservar/Después de ese.json', 'Takeout/Keep/Otra.json', 'Takeout/archivo_navegador.json']);
+        assert.deepEqual(JSON.parse(new TextDecoder().decode(await jsons[0].datos())), NOTA);
+        const textos = await Promise.all(jsons.map(async a => new TextDecoder().decode(await a.datos())));
+        assert.deepEqual(notasDeArchivos(textos).map(n => n.titulo), ['Después de ese', 'Otra']);
     });
 }
 
@@ -63,7 +67,7 @@ test('notaDeKeep pasa las listas a renglones y saltea papelera, vacías y lo que
     assert.equal(lista.texto, 'rimar con sed\ngrabar el coro');
     assert.equal(lista.creada, 5);
     assert.equal(notaDeKeep({ ...NOTA, isTrashed: true }), null);
-    assert.equal(notaDeKeep({ title: ' ', textContent: '\n' }), null);
+    assert.equal(notaDeKeep({ title: ' ', textContent: '\n', isTrashed: false }), null);
     assert.equal(notaDeKeep({ algo: 1 }), null);
 });
 
