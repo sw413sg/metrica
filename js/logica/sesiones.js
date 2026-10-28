@@ -73,6 +73,11 @@ export function guardarLetra(almacen, letra, ahora = Date.now()) {
     return guardada;
 }
 
+// Suma letras que vienen de otro lado (Google Keep) tal como están, con sus fechas.
+export function agregarLetras(almacen, letras) {
+    escribir(almacen, CLAVE_LETRAS, [...leer(almacen, CLAVE_LETRAS), ...letras]);
+}
+
 export function borrarLetra(almacen, id) {
     escribir(almacen, CLAVE_LETRAS, leer(almacen, CLAVE_LETRAS).filter(l => l.id !== id));
 }

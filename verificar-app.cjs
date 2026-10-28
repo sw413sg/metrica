@@ -10,6 +10,23 @@ const tipos = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css
     '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.md': 'text/plain', '.mp3': 'audio/mpeg'};
 // Para simular que se publicó una versión nueva, se le agrega esto al final de sw.js.
 let versionNueva = '';
+// Arma un .zip como el de Google Takeout (deflate), para probar la importación de Keep.
+function armarZip(archivos) {
+    const zlib = require('node:zlib');
+    const u16 = n => { const b = Buffer.alloc(2); b.writeUInt16LE(n); return b; };
+    const u32 = n => { const b = Buffer.alloc(4); b.writeUInt32LE(n); return b; };
+    const partes = [], indice = [];
+    let lugar = 0;
+    for (const [nombre, texto] of Object.entries(archivos)) {
+        const n = Buffer.from(nombre), crudo = Buffer.from(texto), datos = zlib.deflateRawSync(crudo);
+        const local = Buffer.concat([u32(0x04034b50), u16(20), u16(0), u16(8), u32(0), u32(0), u32(datos.length), u32(crudo.length), u16(n.length), u16(0), n]);
+        indice.push(Buffer.concat([u32(0x02014b50), u16(20), u16(20), u16(0), u16(8), u32(0), u32(0), u32(datos.length), u32(crudo.length), u16(n.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(lugar), n]));
+        partes.push(local, datos);
+        lugar += local.length + datos.length;
+    }
+    const i = Buffer.concat(indice);
+    return Buffer.concat([...partes, i, u32(0x06054b50), u16(0), u16(0), u16(indice.length), u16(indice.length), u32(i.length), u32(lugar), u16(0)]);
+}
 const servidor = http.createServer((req, res) => {
     const archivo = path.join(__dirname, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
     fs.readFile(archivo, (err, datos) => {
@@ -2010,6 +2027,35 @@ const servidor = http.createServer((req, res) => {
         versionNueva = '';
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         assert.deepEqual(await page.locator('#lista-letras .titulo-letra').allTextContents(), ['Sin internet']);
+
+        // Google Keep (Ajustes): el .zip de Takeout se lee en el teléfono, se marcan las notas y
+        // pasan a Letras con su fecha; la que ya está arranca sin marcar y la papelera no aparece.
+        await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        await page.locator('#abrir-keep').click();
+        assert.equal(await page.locator('#vista-keep').isVisible(), true);
+        const notaKeep = (title, textContent, extra = {}) => JSON.stringify({ title, textContent, isTrashed: false, isArchived: false,
+            userEditedTimestampUsec: 1700000000000000, createdTimestampUsec: 1690000000000000, labels: [{ name: 'Letras' }], ...extra });
+        const textoSinInternet = await page.evaluate(() => JSON.parse(localStorage.getItem('metrica.letras'))[0].texto);
+        await page.locator('#keep-archivo').setInputFiles({ name: 'takeout-20261027.zip', mimeType: 'application/zip', buffer: armarZip({
+            'Takeout/Keep/Después de ese.json': notaKeep('Después de ese', 'la calle me enseñó\na no mirar atrás\ny ahora escribo lo que siento'),
+            'Takeout/Keep/Compras.json': notaKeep('', '', { listContent: [{ text: 'cuerdas' }, { text: 'micrófono' }], labels: [], userEditedTimestampUsec: 1600000000000000, isArchived: true }),
+            'Takeout/Keep/Borrada.json': notaKeep('Borrada', 'chau', { isTrashed: true }),
+            'Takeout/Keep/Sin internet.json': notaKeep('Sin internet', textoSinInternet),
+            'Takeout/Keep/Después de ese.html': '<p>no</p>',
+        }) });
+        await page.locator('#keep-lista .celda-keep').first().waitFor();
+        assert.deepEqual(await page.locator('#keep-lista .titulo-keep').allTextContents(), ['Después de ese', 'Sin internet', 'cuerdas']);
+        assert.match(await page.locator('#keep-lista .datos-keep').nth(1).textContent(), /Ya está en Letras/);
+        assert.match(await page.locator('#keep-lista .datos-keep').nth(2).textContent(), /Archivada/);
+        assert.equal(await page.locator('#keep-importar').textContent(), 'Pasar 2 a Letras');
+        assert.deepEqual(await page.locator('#keep-etiquetas .chip-tema').allTextContents(), ['Todas', 'Letras']);
+        await page.screenshot({path: `capturas/keep-${tema}.png`});
+        await page.locator('#keep-lista .marca-keep').nth(2).click();
+        assert.equal(await page.locator('#keep-importar').textContent(), 'Pasar 1 a Letras');
+        await page.locator('#keep-importar').click();
+        assert.equal(await page.locator('#keep-estado').textContent(), 'Listo: pasó 1 nota a Letras.');
+        await page.locator('#barra-pestanas [data-pestana="letras"]').click();
+        assert.deepEqual(await page.locator('#lista-letras .titulo-letra').allTextContents(), ['Sin internet', 'Después de ese']);
 
         assert.deepEqual(errores, []);
         await page.close();
