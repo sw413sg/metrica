@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Bosque: pinos en dos filas y una niebla baja entre ellos. -->
+  <defs>
+    <linearGradient id="niebla" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9cc7b0" stop-opacity="0"/>
+      <stop offset="1" stop-color="#9cc7b0" stop-opacity=".12"/>
+    </linearGradient>
+  </defs>
+  <g fill="#2b4a3c" opacity=".7">
+    <path d="M30 400l22-70 22 70z"/><path d="M90 400l18-56 18 56z"/><path d="M150 400l26-84 26 84z"/>
+    <path d="M226 400l20-62 20 62z"/><path d="M290 400l24-76 24 76z"/><path d="M352 400l18-58 18 58z"/>
+  </g>
+  <rect x="0" y="340" width="390" height="70" fill="url(#niebla)"/>
+  <g fill="#0f1c16" opacity=".9">
+    <path d="M-10 460l34-120 34 120z"/><path d="M60 460l26-96 26 96z"/><path d="M118 460l38-138 38 138z"/>
+    <path d="M200 460l28-104 28 104z"/><path d="M262 460l36-128 36 128z"/><path d="M336 460l30-110 30 110z"/>
+  </g>
+</svg>

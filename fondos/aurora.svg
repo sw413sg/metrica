@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Aurora: cintas de luz verde y celeste sobre un lago quieto. -->
+  <defs>
+    <linearGradient id="cinta" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5ee0b0" stop-opacity="0"/>
+      <stop offset=".6" stop-color="#5ee0b0" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#5ee0b0" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cinta2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6fc3ff" stop-opacity="0"/>
+      <stop offset=".6" stop-color="#6fc3ff" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#6fc3ff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#cinta)" d="M0 260c60-60 120-20 190-60s140-30 200-80v120c-60 40-130 30-200 70S60 300 0 340z"/>
+  <path fill="url(#cinta2)" d="M0 300c80-40 150 0 220-30s120-40 170-20v70c-60-10-110 20-170 40S70 360 0 380z"/>
+  <path fill="#0a1418" opacity=".85" d="M0 400l40-24 30 14 46-34 50 30 40-18 50 26 44-30 50 28 40-14v42H0z"/>
+  <rect x="0" y="420" width="390" height="40" fill="#0a1418" opacity=".85"/>
+  <g stroke="#5ee0b0" stroke-width="1" opacity=".12"><path d="M60 432h80M200 440h110M120 450h60"/></g>
+</svg>

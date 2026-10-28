@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Vinilo: medio disco que asoma abajo a la derecha, con sus surcos y la etiqueta. -->
+  <circle cx="300" cy="420" r="150" fill="#0d0b0b" opacity=".75"/>
+  <g fill="none" stroke="#f1e6dc" stroke-width=".8" opacity=".09">
+    <circle cx="300" cy="420" r="140"/><circle cx="300" cy="420" r="128"/><circle cx="300" cy="420" r="116"/>
+    <circle cx="300" cy="420" r="104"/><circle cx="300" cy="420" r="92"/><circle cx="300" cy="420" r="80"/>
+    <circle cx="300" cy="420" r="68"/>
+  </g>
+  <path d="M190 330a150 150 0 0 1 60-38" fill="none" stroke="#f1e6dc" stroke-width="3" stroke-linecap="round" opacity=".08"/>
+  <circle cx="300" cy="420" r="46" fill="#c46a4a" opacity=".45"/>
+  <circle cx="300" cy="420" r="4" fill="#1f1b1a"/>
+</svg>

@@ -55,7 +55,7 @@ test('siempre hay al menos un tema gratis', () => {
     assert.ok(TEMAS.some(t => !t.extra));
 });
 
-test('gris y blanco son los gratis; los otros cinco, de Extras', () => {
+test('gris y blanco son los gratis; los otros quince, de Extras', () => {
     assert.deepEqual(TEMAS.filter(t => !t.extra).map(t => t.clave), ['gris', 'blanco']);
-    assert.equal(TEMAS.filter(t => t.extra).length, 5);
+    assert.equal(TEMAS.filter(t => t.extra).length, 15);
 });

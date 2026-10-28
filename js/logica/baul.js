@@ -3,8 +3,10 @@
 // las letras en sesiones.js.
 
 import { mandarAPapelera } from './papelera.js';
+import { temaDisponible } from './compra.js';
 
 const CLAVE_FRASES = 'metrica.frases';
+const CLAVE_AJUSTES = 'metrica.baul-ajustes';
 
 export const FILTROS = [
     { id: 'todas', nombre: 'Todas' },
@@ -88,3 +90,35 @@ export function filtrarFrases(frases, { filtro = 'todas', busqueda = '' } = {}) 
         (filtro === 'todas' || f.usada === (filtro === 'usadas')) &&
         (!buscada || normalizar(f.texto).includes(buscada)));
 }
+
+// Lo que se elige con el pincel (solo entrando desde Letras): el tema, el tamaño de las tarjetas
+// (chicas en tres columnas, medianas en dos y grandes en una) y si se separan las usadas de las
+// sin usar con Todas / Sin usar / Usadas. Pedido de Swa.
+export const TAMANOS_BAUL = [
+    { id: 'chicas', nombre: 'Chicas', columnas: 3 },
+    { id: 'medianas', nombre: 'Medianas', columnas: 2 },
+    { id: 'grandes', nombre: 'Grandes', columnas: 1 },
+];
+const AJUSTES_INICIALES = { tema: 'gris', tamano: 'medianas', separar: true };
+
+export function ajustesBaul(almacen) {
+    let guardados = {};
+    try {
+        guardados = JSON.parse(almacen.getItem(CLAVE_AJUSTES)) ?? {};
+    } catch {}
+    const ajustes = { ...AJUSTES_INICIALES, ...guardados };
+    if (!TAMANOS_BAUL.some(t => t.id === ajustes.tamano)) ajustes.tamano = AJUSTES_INICIALES.tamano;
+    // Un tema de Extras sin la compra vuelve al inicial, como en las letras.
+    if (!temaDisponible(ajustes.tema, almacen)) ajustes.tema = AJUSTES_INICIALES.tema;
+    ajustes.separar = ajustes.separar !== false;
+    return ajustes;
+}
+
+export function guardarAjusteBaul(almacen, cambios) {
+    const guardados = (() => { try { return JSON.parse(almacen.getItem(CLAVE_AJUSTES)) ?? {}; } catch { return {}; } })();
+    almacen.setItem(CLAVE_AJUSTES, JSON.stringify({ ...guardados, ...cambios }));
+}
+
+// El tema con el que se ve el baúl: entrando desde una letra, el de esa letra (sin guardarlo);
+// desde Letras, el que se eligió con el pincel.
+export const temaDelBaul = (almacen, temaDeLaLetra = null) => temaDeLaLetra ?? ajustesBaul(almacen).tema;

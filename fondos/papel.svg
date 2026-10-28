@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Papel: la esquina de una hoja de cuaderno doblada. -->
+  <path d="M310 460l80-80v80z" fill="#e8dfc8" opacity=".8"/>
+  <path d="M310 460l80-80h-60c-12 0-20 8-20 20z" fill="#f7f1e2"/>
+  <path d="M310 460l80-80" stroke="#cbbf9f" stroke-width="1" opacity=".6"/>
+</svg>
