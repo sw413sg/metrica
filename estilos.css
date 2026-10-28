@@ -233,6 +233,9 @@ a { color: var(--acento); text-decoration: none; }
 #baul-atras-texto { white-space: nowrap; }
 .busqueda-baul[hidden] { display: none; }
 .filtros-baul { display: flex; gap: 8px; margin: 12px 0; }
+.filtros-baul[hidden], #baul-abrir-ajustes[hidden] { display: none; }
+/* Sin filtros, las tarjetas quedan con el mismo aire abajo del campo. */
+.filtros-baul[hidden] + .grilla-frases { margin-top: 12px; }
 .filtros-baul button { height: 34px; padding: 0 14px; border-radius: 17px; font-size: 14px; font-weight: 500; color: var(--texto-2); background: var(--tarjeta); }
 .filtros-baul button[aria-checked="true"] { background: var(--destacado-suave); color: var(--destacado); font-weight: 600; }
 /* Dos columnas: cada tarjeta va a la más corta (como Keep), con el alto de su texto. */
@@ -243,6 +246,13 @@ a { color: var(--acento); text-decoration: none; }
     -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; transition: scale .2s;
 }
 .tarjeta-frase.apretada { scale: .97; }
+/* El tamaño que se elige con el pincel: chicas (tres columnas) y grandes (una). */
+.tarjetas-chicas { gap: 8px; }
+.tarjetas-chicas .columna-frases { gap: 8px; }
+.tarjetas-chicas .tarjeta-frase, .tarjeta-frase.tarjetas-chicas { min-height: 60px; padding: 10px 10px 20px; border-radius: 16px; }
+.tarjetas-chicas .texto-frase { font-size: 13px; -webkit-line-clamp: 7; }
+.tarjetas-grandes .tarjeta-frase, .tarjeta-frase.tarjetas-grandes { min-height: 84px; padding: 16px 18px 26px; border-radius: 22px; }
+.tarjetas-grandes .texto-frase { font-size: 18px; }
 /* Sin editar, hasta 9 renglones; tocándola se agranda con todo el texto. */
 .texto-frase {
     margin: 0; font-size: 15px; line-height: 1.35; color: var(--texto); white-space: pre-wrap; overflow-wrap: anywhere; outline: none;
@@ -817,46 +827,73 @@ body.editando .vista#vista-editor {
     top: var(--arriba-visible, 0px); height: var(--alto-visible, 100%);
 }
 
-/* Temas de la libreta. Gris liso (los colores de arriba) y Blanco son gratis; los otros cinco
+/* Temas de la libreta. Gris liso (los colores de arriba) y Blanco son gratis; los otros quince
    son de Métrica Extras y llevan una ilustración sutil abajo (fondos/*.svg), quieta mientras
-   el texto pasa por encima. Solo cambian la libreta mientras se escribe (no la hoja de ajustes);
-   la muestra usa el mismo color y la misma ilustración. */
-body.editando[data-libreta="blanco"] #vista-editor, .muestra-tema[data-libreta="blanco"],
-body.editando[data-libreta="arena"] #vista-editor, .muestra-tema[data-libreta="arena"],
-body.editando[data-libreta="partitura"] #vista-editor, .muestra-tema[data-libreta="partitura"] {
+   el texto pasa por encima. js/app.js pone data-libreta en la libreta, en el baúl de frases
+   y en cada muestra (no en la hoja de ajustes): todos usan el mismo color y la misma ilustración. */
+[data-libreta="blanco"], [data-libreta="arena"], [data-libreta="partitura"],
+[data-libreta="papel"], [data-libreta="menta"], [data-libreta="cielo"], [data-libreta="durazno"], [data-libreta="cafe"] {
     color-scheme: light;
     --texto: #1c1530; --texto-2: rgba(60, 50, 90, 0.62); --texto-3: rgba(60, 50, 90, 0.32);
     --separador: rgba(60, 50, 90, 0.12); --vidrio: rgba(255, 255, 255, 0.55); --vidrio-borde: rgba(255, 255, 255, 0.85);
+    --vidrio-brillo: rgba(255, 255, 255, 0.9); --relleno: rgba(60, 50, 90, 0.08);
     --acento: #3c4043; --renglon: rgba(60, 60, 67, 0.08); --teclado: #d1d4da;
 }
-body.editando[data-libreta="madrugada"] #vista-editor, .muestra-tema[data-libreta="madrugada"],
-body.editando[data-libreta="sierra"] #vista-editor, .muestra-tema[data-libreta="sierra"],
-body.editando[data-libreta="ondas"] #vista-editor, .muestra-tema[data-libreta="ondas"] {
+[data-libreta="madrugada"], [data-libreta="sierra"], [data-libreta="ondas"],
+[data-libreta="vinilo"], [data-libreta="bosque"], [data-libreta="brasa"], [data-libreta="aurora"], [data-libreta="tinta"] {
     color-scheme: dark;
     --texto: #eef0f4; --texto-2: rgba(238, 240, 244, 0.6); --texto-3: rgba(238, 240, 244, 0.32);
     --separador: rgba(255, 255, 255, 0.1); --vidrio: rgba(255, 255, 255, 0.1); --vidrio-borde: rgba(255, 255, 255, 0.12);
+    --vidrio-brillo: rgba(255, 255, 255, 0.16); --relleno: rgba(255, 255, 255, 0.12);
     --acento: #e8eaed; --renglon: rgba(255, 255, 255, 0.06); --teclado: #2c2c2e;
 }
-body.editando[data-libreta="blanco"] #vista-editor, .muestra-tema[data-libreta="blanco"] { --libreta: #ffffff; }
-body.editando[data-libreta="madrugada"] #vista-editor, .muestra-tema[data-libreta="madrugada"] {
-    --libreta: #1b2034; --texto: #e7eaf6; --teclado: #22283f; --ilustracion: url("fondos/madrugada.svg");
-}
-body.editando[data-libreta="sierra"] #vista-editor, .muestra-tema[data-libreta="sierra"] {
-    --libreta: #26302b; --texto: #eef1ea; --teclado: #2e3a34; --ilustracion: url("fondos/sierra.svg");
-}
-body.editando[data-libreta="ondas"] #vista-editor, .muestra-tema[data-libreta="ondas"] {
-    --libreta: #1e2224; --teclado: #282d30; --ilustracion: url("fondos/ondas.svg");
-}
-body.editando[data-libreta="arena"] #vista-editor, .muestra-tema[data-libreta="arena"] {
+[data-libreta="blanco"] { --libreta: #ffffff; }
+[data-libreta="madrugada"] { --libreta: #1b2034; --texto: #e7eaf6; --teclado: #22283f; --ilustracion: url("fondos/madrugada.svg"); }
+[data-libreta="sierra"] { --libreta: #26302b; --texto: #eef1ea; --teclado: #2e3a34; --ilustracion: url("fondos/sierra.svg"); }
+[data-libreta="ondas"] { --libreta: #1e2224; --teclado: #282d30; --ilustracion: url("fondos/ondas.svg"); }
+[data-libreta="arena"] {
     --libreta: #f4ede1; --texto: #3a2e22; --texto-2: rgba(70, 52, 34, 0.62); --texto-3: rgba(70, 52, 34, 0.32);
     --renglon: rgba(120, 90, 50, 0.1); --teclado: #e6dccb; --ilustracion: url("fondos/arena.svg");
 }
-body.editando[data-libreta="partitura"] #vista-editor, .muestra-tema[data-libreta="partitura"] {
+[data-libreta="partitura"] {
     --libreta: #eef1f4; --texto: #1f2a36; --texto-2: rgba(40, 55, 72, 0.62); --texto-3: rgba(40, 55, 72, 0.32);
     --renglon: rgba(40, 55, 72, 0.08); --teclado: #dde2e8; --ilustracion: url("fondos/partitura.svg");
 }
+/* Los diez nuevos (pedido de Swa). Oscuros: Vinilo, Bosque, Brasa, Aurora y Tinta. */
+[data-libreta="vinilo"] { --libreta: #1f1b1a; --texto: #f1e9e2; --teclado: #2a2523; --ilustracion: url("fondos/vinilo.svg"); }
+[data-libreta="bosque"] { --libreta: #16231d; --texto: #e6efe9; --teclado: #1f2e27; --ilustracion: url("fondos/bosque.svg"); }
+[data-libreta="brasa"] { --libreta: #241917; --texto: #f6e6dc; --teclado: #30221f; --ilustracion: url("fondos/brasa.svg"); }
+[data-libreta="aurora"] { --libreta: #0f1d24; --texto: #e3f2f0; --teclado: #18282f; --ilustracion: url("fondos/aurora.svg"); }
+[data-libreta="tinta"] { --libreta: #15192a; --texto: #e4e8f4; --teclado: #1e2336; --ilustracion: url("fondos/tinta.svg"); }
+/* Claros: Papel, Menta, Cielo, Durazno y Café. */
+[data-libreta="papel"] {
+    --libreta: #fbf7ec; --texto: #2a2620; --texto-2: rgba(60, 52, 40, 0.62); --texto-3: rgba(60, 52, 40, 0.32);
+    --renglon: rgba(70, 110, 170, 0.14); --teclado: #ece6d6; --ilustracion: url("fondos/papel.svg");
+}
+[data-libreta="menta"] {
+    --libreta: #e9f4ee; --texto: #1d3328; --texto-2: rgba(30, 60, 45, 0.62); --texto-3: rgba(30, 60, 45, 0.32);
+    --renglon: rgba(30, 90, 60, 0.09); --teclado: #d6e7dd; --ilustracion: url("fondos/menta.svg");
+}
+[data-libreta="cielo"] {
+    --libreta: #e3eef9; --texto: #1b2c40; --texto-2: rgba(30, 50, 80, 0.62); --texto-3: rgba(30, 50, 80, 0.32);
+    --renglon: rgba(30, 60, 110, 0.09); --teclado: #d2e0ef; --ilustracion: url("fondos/cielo.svg");
+}
+[data-libreta="durazno"] {
+    --libreta: #fcece2; --texto: #3a2219; --texto-2: rgba(80, 45, 30, 0.62); --texto-3: rgba(80, 45, 30, 0.32);
+    --renglon: rgba(160, 80, 50, 0.1); --teclado: #f0d9cb; --ilustracion: url("fondos/durazno.svg");
+}
+[data-libreta="cafe"] {
+    --libreta: #ece0cf; --texto: #33241a; --texto-2: rgba(70, 48, 32, 0.62); --texto-3: rgba(70, 48, 32, 0.32);
+    --renglon: rgba(110, 75, 45, 0.11); --teclado: #ddcfba; --ilustracion: url("fondos/cafe.svg");
+}
 body.editando .vista#vista-editor, .muestra-tema { background-image: var(--ilustracion, none); background-repeat: no-repeat; }
 body.editando .vista#vista-editor { background-position: center bottom; background-size: 100% auto; }
+/* El baúl con tema: el color y la ilustración de la libreta, quieta abajo mientras pasan las
+   frases, y las tarjetas un poco más marcadas que el fondo. Con Gris liso queda como siempre. */
+#vista-baul[data-libreta], .frase-elevada[data-libreta] { --tarjeta: color-mix(in srgb, var(--texto) 8%, var(--libreta)); color: var(--texto); }
+#vista-baul[data-libreta] {
+    background: var(--libreta) var(--ilustracion, none) no-repeat center bottom / 100% auto;
+}
 #vista-editor { color: var(--texto); }
 .texto-rojo { color: #ff3b30; }
 

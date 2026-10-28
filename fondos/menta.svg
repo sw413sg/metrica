@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Menta: ramitas con hojas que suben desde abajo, en verde suave. -->
+  <g fill="none" stroke="#5e9f80" stroke-width="1.6" stroke-linecap="round" opacity=".35">
+    <path d="M40 460c4-50 14-90 34-130"/><path d="M340 460c-6-60-20-100-44-140"/><path d="M190 460c0-30 4-50 12-70"/>
+  </g>
+  <g fill="#8cc7a8" opacity=".35">
+    <path d="M52 400c-22-6-34-22-34-40 20 2 32 16 34 40z"/><path d="M62 360c18-14 36-14 50-4-14 12-32 14-50 4z"/>
+    <path d="M70 340c-8-20-4-38 10-50 8 18 4 36-10 50z"/>
+    <path d="M326 390c22-4 36-18 38-38-20 0-34 14-38 38z"/><path d="M314 360c-18-12-36-12-50 0 14 10 32 12 50 0z"/>
+    <path d="M300 330c8-20 4-38-10-50-8 18-4 36 10 50z"/>
+    <path d="M196 410c-14-4-22-14-22-26 12 2 20 10 22 26z"/><path d="M200 400c12-10 24-10 32-2-8 8-20 10-32 2z"/>
+  </g>
+</svg>

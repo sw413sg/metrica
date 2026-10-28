@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Durazno: un atardecer, el sol que se esconde detrás de dos lomas. -->
+  <circle cx="200" cy="400" r="70" fill="#ff9a6b" opacity=".3"/>
+  <g stroke="#ff9a6b" stroke-width="1.4" stroke-linecap="round" opacity=".25">
+    <path d="M200 310v-24M140 330l-14-18M260 330l14-18M110 370l-22-8M290 370l22-8"/>
+  </g>
+  <path fill="#f3b493" opacity=".55" d="M0 400c60-30 130-34 200-14s130 18 190-8v82H0z"/>
+  <path fill="#eba283" opacity=".55" d="M0 436c80-22 170-24 250-10 50 8 100 6 140-4v38H0z"/>
+</svg>

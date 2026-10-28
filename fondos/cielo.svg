@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Cielo: nubes blancas que pasan bajas y un pájaro lejos. -->
+  <g fill="#ffffff" opacity=".85">
+    <path d="M-10 460v-50c20-20 50-22 70-8 14-24 50-30 72-10 20-14 52-8 62 14 24-6 46 10 46 32v22z"/>
+    <path d="M200 460v-34c14-18 40-20 58-6 14-20 46-24 64-6 22-8 50 6 60 26v20z"/>
+  </g>
+  <g fill="#ffffff" opacity=".55">
+    <path d="M250 330c6-14 26-18 38-8 10-12 34-10 40 6 14-2 24 8 22 18h-104c-6-10 0-16 4-16z"/>
+  </g>
+  <path d="M90 300q8-8 14 0q6-8 14 0" fill="none" stroke="#5a7ea6" stroke-width="1.4" stroke-linecap="round" opacity=".35"/>
+</svg>

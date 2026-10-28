@@ -16,6 +16,17 @@ export const TEMAS = [
     { clave: 'ondas', nombre: 'Ondas', extra: true },
     { clave: 'arena', nombre: 'Arena', extra: true },
     { clave: 'partitura', nombre: 'Partitura', extra: true },
+    // Diez más (pedido de Swa): cinco oscuros y cinco claros.
+    { clave: 'vinilo', nombre: 'Vinilo', extra: true },
+    { clave: 'bosque', nombre: 'Bosque', extra: true },
+    { clave: 'brasa', nombre: 'Brasa', extra: true },
+    { clave: 'aurora', nombre: 'Aurora', extra: true },
+    { clave: 'tinta', nombre: 'Tinta', extra: true },
+    { clave: 'papel', nombre: 'Papel', extra: true },
+    { clave: 'menta', nombre: 'Menta', extra: true },
+    { clave: 'cielo', nombre: 'Cielo', extra: true },
+    { clave: 'durazno', nombre: 'Durazno', extra: true },
+    { clave: 'cafe', nombre: 'Café', extra: true },
 ];
 const TEMA_INICIAL = 'gris';
 

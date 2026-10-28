@@ -64,3 +64,24 @@ test('etiquetaVolver acorta el nombre largo de la letra', () => {
     assert.equal(etiquetaVolver('Desconectadísimamente'), 'Desconectadísima…');
     assert.equal(etiquetaVolver('  '), 'Sin título');
 });
+
+test('ajustes del baúl: arrancan en Gris liso, medianas y separadas, y se guardan', async () => {
+    const { ajustesBaul, guardarAjusteBaul, temaDelBaul } = await import('../js/logica/baul.js');
+    const { comprarExtras } = await import('../js/logica/compra.js');
+    const almacen = almacenDePrueba();
+    assert.deepEqual(ajustesBaul(almacen), { tema: 'gris', tamano: 'medianas', separar: true });
+    guardarAjusteBaul(almacen, { tamano: 'chicas' });
+    guardarAjusteBaul(almacen, { separar: false });
+    guardarAjusteBaul(almacen, { tema: 'blanco' });
+    assert.deepEqual(ajustesBaul(almacen), { tema: 'blanco', tamano: 'chicas', separar: false });
+    // Un tema de Extras sin comprar no se usa; comprado, sí.
+    guardarAjusteBaul(almacen, { tema: 'vinilo' });
+    assert.equal(ajustesBaul(almacen).tema, 'gris');
+    comprarExtras(almacen);
+    assert.equal(ajustesBaul(almacen).tema, 'vinilo');
+    // Desde una letra manda el tema de la letra, y el guardado no cambia.
+    assert.equal(temaDelBaul(almacen, 'papel'), 'papel');
+    assert.equal(temaDelBaul(almacen), 'vinilo');
+    guardarAjusteBaul(almacen, { tamano: 'gigantes' });
+    assert.equal(ajustesBaul(almacen).tamano, 'medianas');
+});

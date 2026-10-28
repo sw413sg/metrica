@@ -9,7 +9,7 @@ import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inic
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
-import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
+import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul, temaDelBaul } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
 import { marcarUsado, siguienteTema, numeroEnCategoria } from './logica/temas.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
@@ -318,8 +318,17 @@ let baulDesdeLetra = false;
 function abrirBaul(desdeLetra) {
     baulDesdeLetra = desdeLetra;
     $('baul-atras-texto').textContent = desdeLetra ? etiquetaVolver($('editor-titulo').value) : 'Letras';
+    // El pincel, solo desde Letras: desde una letra el baúl lleva el tema de esa letra (pedido de Swa).
+    $('baul-abrir-ajustes').hidden = desdeLetra;
+    aplicarTemaBaul();
     mostrarVista('vista-baul');
     renderizarBaul();
+}
+// Gris liso deja el baúl como el resto de la app; los otros le ponen el color y la ilustración.
+function aplicarTemaBaul() {
+    const tema = temaDelBaul(localStorage, baulDesdeLetra ? temaDeLetra(letraActual, localStorage) : null);
+    if (tema === 'gris') delete $('vista-baul').dataset.libreta;
+    else $('vista-baul').dataset.libreta = tema;
 }
 $('abrir-baul').addEventListener('click', () => abrirBaul(false));
 $('abrir-baul-libreta').addEventListener('click', () => { ocultarSugerencias(); document.activeElement?.blur(); abrirBaul(true); });
@@ -376,23 +385,33 @@ $('baul-filtros').append(...FILTROS.map(({ id, nombre }) => {
 }));
 
 function renderizarBaul() {
-    $('baul-filtros').querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b.dataset.filtro === filtroBaul));
+    const { tamano, separar } = ajustesBaul(localStorage);
+    // Sin separar no hay Todas / Sin usar / Usadas: se ven todas.
+    $('baul-filtros').hidden = !separar;
+    const filtro = separar ? filtroBaul : 'todas';
+    $('baul-filtros').querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b.dataset.filtro === filtro));
     const todas = listarFrases(localStorage);
     const busqueda = $('baul-buscar').value;
-    const frases = filtrarFrases(todas, { filtro: filtroBaul, busqueda });
-    const columnas = [...$('baul-frases').children];
-    columnas.forEach(c => c.replaceChildren());
-    // Cada tarjeta va a la columna más corta (en SwiftUI: dos VStack, o un Layout propio).
+    const frases = filtrarFrases(todas, { filtro, busqueda });
+    // Chicas en tres columnas, medianas en dos y grandes en una.
+    const grilla = $('baul-frases');
+    grilla.className = `grilla-frases tarjetas-${tamano}`;
+    const columnas = Array.from({ length: TAMANOS_BAUL.find(t => t.id === tamano).columnas }, () => {
+        const columna = document.createElement('div');
+        columna.className = 'columna-frases';
+        return columna;
+    });
+    grilla.replaceChildren(...columnas);
+    // Cada tarjeta va a la columna más corta (en SwiftUI: un VStack por columna, o un Layout propio).
     for (const frase of frases) {
-        const [a, b] = columnas;
-        const corta = a.offsetHeight === b.offsetHeight ? (a.children.length <= b.children.length ? a : b) : (a.offsetHeight < b.offsetHeight ? a : b);
+        const corta = columnas.reduce((a, b) => (b.offsetHeight < a.offsetHeight || (b.offsetHeight === a.offsetHeight && b.children.length < a.children.length) ? b : a));
         corta.append(tarjetaFrase(frase));
     }
     const vacio = $('baul-vacio');
     vacio.hidden = frases.length > 0;
     vacio.textContent = busqueda.trim() ? `Ninguna frase tiene «${busqueda.trim()}».`
         : !todas.length ? 'Anotá arriba las frases que se te ocurran, para usarlas después en una letra.'
-        : filtroBaul === 'usadas' ? 'Todavía no marcaste ninguna como usada.' : 'Ya usaste todas.';
+        : filtro === 'usadas' ? 'Todavía no marcaste ninguna como usada.' : 'Ya usaste todas.';
 }
 
 // Tocar una tarjeta la edita ahí mismo y se agranda con el texto; al tocar afuera se guarda y
@@ -459,7 +478,10 @@ function abrirMenuFrase(frase, tarjeta) {
     fraseDelMenu = frase;
     const fondo = $('baul-menu'), elevada = $('baul-menu-frase'), opciones = $('baul-menu-opciones');
     elevada.replaceChildren(...[...tarjeta.children].map(n => n.cloneNode(true)));
-    elevada.className = 'tarjeta-frase frase-elevada';
+    elevada.className = `tarjeta-frase frase-elevada tarjetas-${ajustesBaul(localStorage).tamano}`;
+    // Arriba del borroneado, con el mismo tema que el baúl.
+    if ($('vista-baul').dataset.libreta) elevada.dataset.libreta = $('vista-baul').dataset.libreta;
+    else delete elevada.dataset.libreta;
     $('baul-usada-texto').textContent = frase.usada ? 'Desmarcar como usada' : 'Marcar como usada';
     fondo.hidden = false;
     const r = tarjeta.getBoundingClientRect();
@@ -472,6 +494,42 @@ function abrirMenuFrase(frase, tarjeta) {
     opciones.style.top = `${top + elevada.offsetHeight + 12}px`;
     opciones.style.left = `${Math.min(r.left, innerWidth - opciones.offsetWidth - 16)}px`;
 }
+// El pincel: tema del baúl, tamaño de las tarjetas y separar por usadas (pedido de Swa).
+function renderizarAjustesBaul() {
+    const { tema, tamano, separar } = ajustesBaul(localStorage);
+    $('temas-baul').replaceChildren(...muestrasDeTemas(tema, clave => {
+        guardarAjusteBaul(localStorage, { tema: clave });
+        aplicarTemaBaul();
+        renderizarAjustesBaul();
+    }));
+    $('tamanos-baul').replaceChildren(...TAMANOS_BAUL.map(t => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.setAttribute('role', 'tab');
+        boton.setAttribute('aria-selected', t.id === tamano);
+        boton.textContent = t.nombre;
+        boton.addEventListener('click', () => {
+            guardarAjusteBaul(localStorage, { tamano: t.id });
+            renderizarAjustesBaul();
+            renderizarBaul();
+        });
+        return boton;
+    }));
+    $('separar-baul').checked = separar;
+}
+$('separar-baul').addEventListener('change', () => {
+    guardarAjusteBaul(localStorage, { separar: $('separar-baul').checked });
+    renderizarBaul();
+});
+$('baul-abrir-ajustes').addEventListener('click', () => {
+    renderizarAjustesBaul();
+    $('ajustes-baul').hidden = false;
+});
+$('cerrar-ajustes-baul').addEventListener('click', () => { $('ajustes-baul').hidden = true; });
+$('ajustes-baul').addEventListener('click', e => { if (e.target === $('ajustes-baul')) $('ajustes-baul').hidden = true; });
+// La estrella de «¿Por dónde empiezo?», también en el baúl.
+$('baul-abrir-tema').addEventListener('click', () => abrirDameTema());
+
 const cerrarMenuFrase = () => { $('baul-menu').hidden = true; fraseDelMenu = null; };
 $('baul-menu').addEventListener('click', e => { if (e.target === $('baul-menu')) cerrarMenuFrase(); });
 $('baul-copiar').addEventListener('click', () => {
@@ -1018,6 +1076,13 @@ $('hoja-tema').addEventListener('click', e => { if (e.target === $('hoja-tema'))
 $('tema-nota').addEventListener('click', () => {
     if (!temaActual) return;
     const linea = temaActual.empujon ? `${temaActual.texto}\n(${temaActual.empujon})` : temaActual.texto;
+    // Desde el baúl no hay nota abierta: va al campo de anotar, para retocarla y guardarla.
+    if ($('vista-baul').classList.contains('activa')) {
+        $('baul-texto').value = linea;
+        ajustarCampoBaul();
+        usarTemaActual();
+        return cerrarHojaTema();
+    }
     const actual = editorTexto.value.replace(/\s+$/, '');
     editorTexto.value = actual ? `${actual}\n${linea}` : linea;
     usarTemaActual();
@@ -2910,14 +2975,27 @@ function renderizarExtras() {
     $('comprar-extras').textContent = extras ? 'Ya tenés Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
     $('comprar-extras').disabled = extras;
     renderizarTemas();
+    if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
 }
 
 // Temas de la libreta: cada letra tiene el suyo (arranca en Gris liso) y se guarda con ella.
 // Una grilla de muestras: la elegida con borde violeta, las bloqueadas con candado.
 function renderizarTemas() {
     const actual = temaDeLetra(letraActual, localStorage);
-    document.body.dataset.libreta = actual;
-    $('temas-libreta').replaceChildren(...TEMAS.map(tema => {
+    $('vista-editor').dataset.libreta = actual;
+    $('temas-libreta').replaceChildren(...muestrasDeTemas(actual, clave => {
+        letraActual = { ...letraActual, tema: clave };
+        guardarActual();
+        renderizarTemas();
+    }));
+    // Si se vuelve a la versión gratis, el baúl también deja un tema de Extras.
+    aplicarTemaBaul();
+}
+
+// Las muestras con «Aa» de la libreta y del baúl: la elegida con borde violeta, las bloqueadas
+// con candado (tocarlas abre el paywall).
+function muestrasDeTemas(actual, alElegir) {
+    return TEMAS.map(tema => {
         const boton = document.createElement('button');
         boton.type = 'button';
         boton.className = 'tema-libreta';
@@ -2937,12 +3015,10 @@ function renderizarTemas() {
         boton.append(muestra, nombre);
         boton.addEventListener('click', () => {
             if (!temaDisponible(tema.clave, localStorage)) return abrirPaywall();
-            letraActual = { ...letraActual, tema: tema.clave };
-            guardarActual();
-            renderizarTemas();
+            alElegir(tema.clave);
         });
         return boton;
-    }));
+    });
 }
 
 function abrirPaywall() {

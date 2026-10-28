@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Tinta: un trazo de pincel abajo y unas gotas que saltaron. -->
+  <path fill="#aab6d6" opacity=".12" d="M-10 400c50-30 110-26 170-10s120 12 180-12c20-8 40-6 60 2l-6 22c-60-6-110 26-180 28S70 410 -6 430z"/>
+  <path fill="none" stroke="#aab6d6" stroke-width="2" stroke-linecap="round" opacity=".1" d="M30 440c80-14 170-6 250-14 30-3 60-10 90-8"/>
+  <g fill="#aab6d6">
+    <circle cx="300" cy="350" r="5" opacity=".12"/><circle cx="322" cy="336" r="2.5" opacity=".12"/>
+    <circle cx="80" cy="356" r="3.5" opacity=".1"/><circle cx="60" cy="370" r="1.8" opacity=".1"/>
+    <circle cx="200" cy="330" r="1.6" opacity=".1"/>
+  </g>
+</svg>

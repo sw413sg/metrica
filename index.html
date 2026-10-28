@@ -116,9 +116,20 @@
                     <button class="boton-atras" id="baul-atras">
                         <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span id="baul-atras-texto">Letras</span>
                     </button>
-                    <button class="boton-barra" id="baul-abrir-busqueda" aria-label="Buscar" aria-expanded="false">
-                        <svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>
-                    </button>
+                    <div class="acciones-barra">
+                        <!-- «¿Por dónde empiezo?», la misma estrella de la libreta -->
+                        <button class="boton-barra boton-tema" id="baul-abrir-tema" aria-label="¿Por dónde empiezo?">
+                            <svg viewBox="0 0 24 24" class="icono"><path class="destello" d="M12 3c.6 4.6 4.4 8.4 9 9-4.6.6-8.4 4.4-9 9-.6-4.6-4.4-8.4-9-9 4.6-.6 8.4-4.4 9-9z"/></svg>
+                        </button>
+                        <!-- El pincel: tema, tamaño de las tarjetas y separar usadas. Solo entrando desde Letras:
+                             desde una letra, el baúl lleva el tema de esa letra (pedido de Swa). -->
+                        <button class="boton-barra" id="baul-abrir-ajustes" aria-label="Apariencia del baúl">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M19 3.6a1.9 1.9 0 0 1 2.7 2.7l-8.8 8.8-2.7-2.7z"/><path d="M9.3 13.3l2.7 2.7c-.3 2.6-2.3 4.6-5.3 4.6H3c1.3-1 1.4-2 1.5-3.2.2-2.4 2.4-4.4 4.8-4.1z"/></svg>
+                        </button>
+                        <button class="boton-barra" id="baul-abrir-busqueda" aria-label="Buscar" aria-expanded="false">
+                            <svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>
+                        </button>
+                    </div>
                 </header>
                 <h1 class="titulo-grande">Baúl de frases</h1>
                 <div class="contenido">
@@ -517,6 +528,28 @@
             </div>
             <!-- Abajo de todo, borrar la letra (pide confirmación). -->
             <button type="button" class="boton-borrar-letra" id="borrar-letra">Borrar letra</button>
+        </div>
+    </div>
+
+    <!-- El pincel del baúl, con el mismo diseño que la ruedita de la libreta. -->
+    <div class="hoja-fondo" id="ajustes-baul" hidden>
+        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-label="Apariencia del baúl">
+            <button class="boton-barra cerrar-hoja" id="cerrar-ajustes-baul" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <h3 class="encabezado-libreta">Tema del baúl</h3>
+            <div class="grupo-libreta">
+                <div class="temas-libreta" id="temas-baul"></div>
+            </div>
+            <h3 class="encabezado-libreta">Tarjetas</h3>
+            <div class="grupo-libreta funciones-libreta">
+                <div class="fila-grupo"><span>Tamaño</span></div>
+                <div class="pastillas-libreta" id="tamanos-baul" role="tablist"></div>
+                <div class="fila-grupo">
+                    <label for="separar-baul">Separar por usadas/no usadas</label>
+                    <input type="checkbox" class="interruptor" id="separar-baul">
+                </div>
+            </div>
         </div>
     </div>
 

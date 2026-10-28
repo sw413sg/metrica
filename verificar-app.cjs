@@ -131,6 +131,18 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#baul-frases .tarjeta-frase').count(), 1);
         await page.screenshot({path: `capturas/baul-${tema}.png`});
         await page.locator('#baul-abrir-busqueda').click();
+        // La estrella de «¿Por dónde empiezo?» también está en el baúl, a la izquierda del pincel;
+        // mandar la consigna la deja en el campo de anotar.
+        const estrella = await page.locator('#baul-abrir-tema').boundingBox();
+        const pincel = await page.locator('#baul-abrir-ajustes').boundingBox();
+        const lupa = await page.locator('#baul-abrir-busqueda').boundingBox();
+        assert.ok(estrella.x < pincel.x && pincel.x < lupa.x);
+        await page.locator('#baul-abrir-tema').click();
+        assert.equal(await page.locator('#hoja-tema').isVisible(), true);
+        await page.locator('#tema-nota').click();
+        assert.equal(await page.locator('#hoja-tema').isVisible(), false);
+        assert.ok((await page.locator('#baul-texto').inputValue()).length > 0);
+        await page.locator('#baul-texto').fill('');
         await page.locator('#baul-atras').click();
         await page.evaluate(() => localStorage.removeItem('metrica.frases'));
 
@@ -794,7 +806,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#alternar-renglones').isVisible(), false);
         assert.equal(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
         await page.locator('#abrir-ajustes-libreta').click();
-        assert.deepEqual(await page.locator('.funciones-libreta label').allTextContents(), ['Renglones', 'Sílabas por verso', 'Rimas internas']);
+        assert.deepEqual(await page.locator('#ajustes-libreta .funciones-libreta label').allTextContents(), ['Renglones', 'Sílabas por verso', 'Rimas internas']);
         assert.equal(await page.locator('#mostrar-renglones').isChecked(), false);
         await page.locator('#mostrar-renglones').click();
         await page.locator('#cerrar-ajustes-libreta').click();
@@ -1877,8 +1889,8 @@ const servidor = http.createServer((req, res) => {
             await page.locator('#editor-atras').click();
         };
         await abrirTemas();
-        assert.equal(await page.locator('#temas-libreta .tema-libreta').count(), 7);
-        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 5);
+        assert.equal(await page.locator('#temas-libreta .tema-libreta').count(), 17);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 15);
         await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), true);
         assert.match(await page.locator('#comprar-extras').textContent(), /^Desbloquear por USD 4,99$/);
@@ -1891,7 +1903,7 @@ const servidor = http.createServer((req, res) => {
         assert.match(await page.locator('#paywall-nota').textContent(), /No encontramos compras/);
         await page.locator('#cerrar-paywall').click();
         assert.equal(await page.locator('#paywall').isVisible(), false);
-        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        assert.equal(await page.evaluate(() => document.getElementById('vista-editor').dataset.libreta), 'gris');
         await cerrarLibreta();
         // Comprar: se va la publicidad, se desbloquean los temas y queda después de recargar.
         // Métrica Extras ya no está en Ajustes (por ahora): se abre desde la publicidad de Rimas.
@@ -1914,7 +1926,43 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 0);
         await page.screenshot({path: `capturas/ajustes-libreta-temas-${tema}.png`});
-        await cerrarLibreta();
+        // Desde la letra, el baúl lleva su tema y no tiene pincel (pedido de Swa).
+        await page.locator('#cerrar-ajustes-libreta').click();
+        await page.locator('#abrir-baul-libreta').click();
+        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), 'madrugada');
+        assert.equal(await page.locator('#baul-abrir-ajustes').isVisible(), false);
+        assert.equal(await page.locator('#baul-abrir-tema').isVisible(), true);
+        await page.screenshot({path: `capturas/baul-tema-letra-${tema}.png`});
+        await page.locator('#baul-atras').click();
+        await page.locator('#editor-atras').click();
+        // Desde Letras: el pincel elige tema, tamaño y si se separan las usadas; queda guardado.
+        await page.locator('#abrir-baul').click();
+        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), null);
+        await page.locator('#baul-abrir-ajustes').click();
+        assert.equal(await page.locator('#temas-baul .tema-libreta').count(), 17);
+        await page.locator('#temas-baul [data-tema="vinilo"]').click();
+        await page.locator('#tamanos-baul button', { hasText: 'Chicas' }).click();
+        await page.locator('#separar-baul').click();
+        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), 'vinilo');
+        await page.screenshot({path: `capturas/baul-pincel-${tema}.png`});
+        await page.locator('#cerrar-ajustes-baul').click();
+        assert.equal(await page.locator('#baul-frases .columna-frases').count(), 3);
+        assert.equal(await page.locator('#baul-filtros').isVisible(), false);
+        await page.screenshot({path: `capturas/baul-vinilo-${tema}.png`});
+        await page.locator('#baul-abrir-ajustes').click();
+        await page.locator('#temas-baul [data-tema="papel"]').click();
+        await page.locator('#tamanos-baul button', { hasText: 'Grandes' }).click();
+        await page.locator('#cerrar-ajustes-baul').click();
+        assert.equal(await page.locator('#baul-frases .columna-frases').count(), 1);
+        await page.screenshot({path: `capturas/baul-papel-${tema}.png`});
+        await page.locator('#baul-abrir-ajustes').click();
+        await page.locator('#temas-baul [data-tema="gris"]').click();
+        await page.locator('#tamanos-baul button', { hasText: 'Medianas' }).click();
+        await page.locator('#separar-baul').click();
+        await page.locator('#cerrar-ajustes-baul').click();
+        assert.equal(await page.locator('#baul-frases .columna-frases').count(), 2);
+        assert.equal(await page.locator('#baul-filtros').isVisible(), true);
+        await page.locator('#baul-atras').click();
         await page.reload();
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         assert.equal(await page.locator('#comprar-extras').isDisabled(), true);
@@ -1938,7 +1986,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#nueva-letra').click();
         await page.locator('#editor-texto').fill('Me acuerdo porque te fuiste\nno me alcanzaban las manos\nsemana entera pensando\ncomo pude aceptarlo');
-        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        assert.equal(await page.evaluate(() => document.getElementById('vista-editor').dataset.libreta), 'gris');
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('[data-tema="madrugada"]').getAttribute('aria-pressed'), 'true');
@@ -1948,15 +1996,15 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').blur();
         await page.screenshot({path: `capturas/editor-madrugada-${tema}.png`});
         // Los otros temas de Extras, cada uno con su ilustración abajo.
-        for (const otro of ['sierra', 'ondas', 'arena', 'partitura']) {
-            await page.evaluate(clave => { document.body.dataset.libreta = clave; }, otro);
+        for (const otro of ['sierra', 'ondas', 'arena', 'partitura', 'vinilo', 'bosque', 'brasa', 'aurora', 'tinta', 'papel', 'menta', 'cielo', 'durazno', 'cafe']) {
+            await page.evaluate(clave => { document.getElementById('vista-editor').dataset.libreta = clave; }, otro);
             assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), new RegExp(`fondos/${otro}\\.svg`));
             await page.screenshot({path: `capturas/editor-${otro}-${tema}.png`});
         }
         await page.locator('#editor-atras').click();
         // Otra letra no hereda el tema; al volver a la primera, sigue con el suyo (también al recargar).
         await page.locator('#nueva-letra').click();
-        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        assert.equal(await page.evaluate(() => document.getElementById('vista-editor').dataset.libreta), 'gris');
         await page.locator('#editor-texto').fill('Otra letra');
         await page.locator('#editor-atras').click();
         await page.reload();
@@ -1964,7 +2012,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(27, 32, 52)');
         await page.locator('#editor-atras').click();
         await page.locator('#lista-letras .tarjeta-letra', {hasText: 'Otra letra'}).locator('button').first().click();
-        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        assert.equal(await page.evaluate(() => document.getElementById('vista-editor').dataset.libreta), 'gris');
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('#borrar-letra').click();
         await page.locator('#aceptar-borrado').click();
@@ -1973,12 +2021,12 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#borrar-compra').click();
         await page.locator('#barra-pestanas [data-pestana="letras"]').click();
         await page.locator('#lista-letras .tarjeta-letra', {hasText: 'Me acuerdo'}).locator('button').first().click();
-        assert.equal(await page.evaluate(() => document.body.dataset.libreta), 'gris');
+        assert.equal(await page.evaluate(() => document.getElementById('vista-editor').dataset.libreta), 'gris');
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('#borrar-letra').click();
         await page.locator('#aceptar-borrado').click();
         await abrirTemas();
-        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 5);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 15);
         await cerrarLibreta();
 
         // Sin internet: recarga desde el service worker y anda todo.

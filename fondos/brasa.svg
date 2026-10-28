@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Brasa: un fuego que ya bajó, con chispas sueltas que suben. -->
+  <defs>
+    <radialGradient id="calor" cx=".5" cy="1" r=".7">
+      <stop offset="0" stop-color="#ff7a3d" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#ff7a3d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="260" width="390" height="200" fill="url(#calor)"/>
+  <g fill="#ffb27a">
+    <circle cx="150" cy="300" r="1.6" opacity=".5"/><circle cx="210" cy="250" r="1.2" opacity=".4"/>
+    <circle cx="240" cy="330" r="1.8" opacity=".45"/><circle cx="120" cy="210" r="1" opacity=".3"/>
+    <circle cx="270" cy="190" r="1.1" opacity=".28"/><circle cx="180" cy="160" r=".9" opacity=".25"/>
+    <circle cx="300" cy="280" r="1.3" opacity=".35"/><circle cx="90" cy="320" r="1.2" opacity=".35"/>
+  </g>
+  <path fill="#120a08" opacity=".85" d="M0 460v-40c40-14 80-6 120-18 30-9 50-26 80-24s50 22 80 26c40 6 70-6 110 4v52z"/>
+  <path fill="#e2582a" opacity=".22" d="M140 410c20-10 36-26 60-26s40 18 56 26c-38 6-80 6-116 0z"/>
+</svg>
