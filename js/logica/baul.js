@@ -2,6 +2,8 @@
 // pasa como parámetro (localStorage en la web; en SwiftUI será SwiftData o similar), igual que
 // las letras en sesiones.js.
 
+import { mandarAPapelera } from './papelera.js';
+
 const CLAVE_FRASES = 'metrica.frases';
 
 export const FILTROS = [
@@ -38,12 +40,24 @@ export function anotarFrase(almacen, texto, ahora = Date.now()) {
 // Cambia el texto de una frase. Si queda vacía, se borra.
 export function editarFrase(almacen, id, texto) {
     texto = texto.trim();
-    if (!texto) return borrarFrase(almacen, id);
+    if (!texto) return sacarFrase(almacen, id);
     escribir(almacen, leer(almacen).map(f => (f.id === id ? { ...f, texto } : f)));
 }
 
-export function borrarFrase(almacen, id) {
+// Borrar una frase la manda a la papelera (js/logica/papelera.js), donde queda 7 días.
+export function borrarFrase(almacen, id, ahora = Date.now()) {
+    const frase = leer(almacen).find(f => f.id === id);
+    if (frase) mandarAPapelera(almacen, 'frase', frase, ahora);
+    sacarFrase(almacen, id);
+}
+
+// La saca sin pasar por la papelera: vaciada al editarla, o sacada con «Al baúl» de nuevo.
+export function sacarFrase(almacen, id) {
     escribir(almacen, leer(almacen).filter(f => f.id !== id));
+}
+
+export function restaurarFrase(almacen, frase) {
+    escribir(almacen, [...leer(almacen).filter(f => f.id !== frase.id), frase]);
 }
 
 // Marca o desmarca una frase como usada. Devuelve true si quedó usada.

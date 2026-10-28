@@ -1631,3 +1631,29 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .pie-keep { position: sticky; bottom: calc(92px + env(safe-area-inset-bottom)); }
 .boton-relleno:disabled { opacity: 0.5; }
 .chips-keep[hidden] { display: none; }
+
+/* Papelera (Ajustes): cuadrados chicos con el formato de Letras, tres por fila. Un toque la
+   muestra en grande; mantenerla apretada, el menú. «Borrar todo» va arriba a la derecha. */
+.boton-borrar-todo { padding: 0 16px; color: #ff3b30; }
+.boton-borrar-todo:disabled { opacity: .45; }
+.grilla-papelera { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; list-style: none; margin: 0; padding: 0; }
+.grilla-papelera:empty, .encabezado-grupo[hidden] { display: none; }
+.tarjeta-papelera { aspect-ratio: 1; border-radius: 18px; transition: scale .2s; }
+.tarjeta-papelera.apretada { scale: .96; }
+.tarjeta-papelera button, .tarjeta-papelera.frase-elevada { padding: 10px 11px; gap: 3px; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.tarjeta-papelera .titulo-letra { font-size: 14px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; flex-shrink: 0; }
+.tarjeta-papelera .texto-letra { font-size: 12px; display: block; flex: 1; min-height: 0; -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+.tarjeta-papelera .texto-frase-papelera { color: var(--texto); font-size: 13px; }
+.quedan-papelera { font-size: 11px; color: var(--texto-3); flex-shrink: 0; }
+.pie-papelera { margin-top: 24px; }
+/* Elevada sobre el fondo borroneado: con el menú, un poco más grande; con un toque, en grande. */
+.tarjeta-papelera.frase-elevada { position: absolute; display: flex; flex-direction: column; aspect-ratio: auto; min-height: 150px; max-height: 50vh; color: var(--texto); }
+.tarjeta-papelera.frase-elevada .texto-letra { max-height: 9.5em; }
+.tarjeta-papelera.grande {
+    left: 16px; right: 16px; top: 50%; translate: 0 -50%; scale: 1; max-height: 70vh; overflow-y: auto;
+    padding: 18px 18px 14px; gap: 8px; border-radius: 22px; animation: aparecer-vineta .15s ease;
+}
+.tarjeta-papelera.grande .titulo-letra { font-size: 20px; -webkit-line-clamp: unset; }
+.tarjeta-papelera.grande .texto-letra { font-size: 15px; max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; -webkit-user-select: text; user-select: text; }
+.tarjeta-papelera.grande .texto-frase-papelera { font-size: 17px; }
+.menu-frase[hidden] { display: none; }

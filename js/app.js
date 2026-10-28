@@ -6,9 +6,10 @@ import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas }
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
-import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
+import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
+import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
 import { marcarUsado, siguienteTema, numeroEnCategoria } from './logica/temas.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
@@ -68,6 +69,7 @@ document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListe
         renderizarLetras();
     }
     if (b.dataset.pestana === 'ajustes' && $('pantalla-ajustes').classList.contains('activa')) mostrarVistaAjustes('vista-ajustes');
+    if (b.dataset.pestana === 'ajustes') resumirPapelera();
     mostrarPestana(b.dataset.pestana);
 }));
 
@@ -77,7 +79,7 @@ document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListe
 // a la sección de al lado de la barra (pedido de Swa). Solo desde los bordes, así no se mezcla
 // con deslizar la caja de Rimas o la de «¿Por dónde empiezo?». En SwiftUI: el gesto de NavigationStack y
 // un DragGesture en el TabView.
-const VOLVER_DESDE = { 'vista-editor': 'editor-atras', 'vista-baul': 'baul-atras', 'vista-widgets': 'widgets-atras', 'vista-keep': 'keep-atras' };
+const VOLVER_DESDE = { 'vista-editor': 'editor-atras', 'vista-baul': 'baul-atras', 'vista-widgets': 'widgets-atras', 'vista-keep': 'keep-atras', 'vista-papelera': 'papelera-atras' };
 // Lo que tiene su propio gesto de costado o se arrastra: ahí el dedo no cambia de sección.
 const CON_GESTO_PROPIO = 'input, textarea, select, [contenteditable], #reproductor, #caja-azar, #caja-tema, .beat-fs, .reproductor-pista, #barra-pestanas';
 const BORDE = 30;
@@ -259,7 +261,7 @@ function arrastrarTarjeta(tarjeta, boton, letra) {
             soltar();
             tarjeta.classList.add('tirada');
             setTimeout(() => { borrarLetra(localStorage, letra.id); renderizarLetras(); }, 250);
-        });
+        }, undefined, true);
     };
     boton.addEventListener('pointerdown', e => {
         arrastrada = false;
@@ -283,9 +285,11 @@ function arrastrarTarjeta(tarjeta, boton, letra) {
 }
 
 // Pregunta antes de borrar (como .alert de iOS); avisa con true si se confirmó.
-function confirmarBorrado(letra, responder, pregunta = '¿Borrar la letra?') {
+// Una letra borrada va a la papelera; una grabación (o algo de la papelera) se borra para siempre.
+function confirmarBorrado(letra, responder, pregunta = '¿Borrar la letra?', aPapelera = false) {
     const titulo = letra.titulo?.trim() || 'Sin título';
-    preguntar({ titulo: pregunta, texto: `«${titulo}» se va a borrar y no se puede deshacer.`, boton: 'Borrar', rojo: true }, responder);
+    const texto = aPapelera ? `«${titulo}» va a quedar ${DIAS_PAPELERA} días en la papelera, en Ajustes.` : `«${titulo}» se va a borrar y no se puede deshacer.`;
+    preguntar({ titulo: pregunta, texto, boton: 'Borrar', rojo: true }, responder);
 }
 
 // La misma alerta para otras preguntas (por ejemplo, avisar antes de descargar).
@@ -816,7 +820,7 @@ $('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, 
     borrarLetra(localStorage, letraActual.id);
     mostrarVista('vista-lista-letras');
     renderizarLetras();
-}));
+}, undefined, true));
 editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); actualizarDameTema(); });
 $('editor-titulo').addEventListener('input', () => { guardarActual(); actualizarDameTema(); });
 
@@ -1026,7 +1030,7 @@ $('tema-baul').addEventListener('click', () => {
     if (!temaActual) return;
     // Tocarlo de nuevo la saca del baúl (pedido de Swa).
     const guardada = listarFrases(localStorage).find(f => f.texto === temaActual.texto);
-    if (guardada) borrarFrase(localStorage, guardada.id);
+    if (guardada) sacarFrase(localStorage, guardada.id);
     else {
         anotarFrase(localStorage, temaActual.texto);
         usarTemaActual();
@@ -3001,6 +3005,115 @@ $('widgets-atras').addEventListener('click', () => mostrarVistaAjustes('vista-aj
 const keep = { notas: [], elegidas: new Set(), etiqueta: null };
 $('abrir-keep').addEventListener('click', () => mostrarVistaAjustes('vista-keep'));
 $('keep-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
+
+// ---------- Papelera (Ajustes -> Papelera) ----------
+// Las letras y las frases del baúl borradas, en cuadrados chicos con el formato de Letras. Un toque
+// muestra una en grande (como en el baúl); mantenerla apretada, Restaurar y Borrar definitivamente.
+// Lo que lleva 7 días se borra solo, al listarla (pedido de Swa).
+const resumirPapelera = () => {
+    const n = listarPapelera(localStorage).length;
+    $('papelera-resumen').textContent = n ? `${n} ${n === 1 ? 'cosa borrada' : 'cosas borradas'}` : 'Vacía';
+};
+resumirPapelera();
+$('abrir-papelera').addEventListener('click', () => { mostrarVistaAjustes('vista-papelera'); renderizarPapelera(); });
+$('papelera-atras').addEventListener('click', () => { resumirPapelera(); mostrarVistaAjustes('vista-ajustes'); });
+$('papelera-vaciar').addEventListener('click', () => preguntar({
+    titulo: '¿Borrar todo?', texto: 'Se van a borrar para siempre todas las letras y frases de la papelera. No se puede deshacer.', boton: 'Borrar todo', rojo: true,
+}, ok => { if (!ok) return; vaciarPapelera(localStorage); renderizarPapelera(); }));
+
+function renderizarPapelera() {
+    const entradas = listarPapelera(localStorage);
+    for (const tipo of ['letra', 'frase']) {
+        const deTipo = entradas.filter(e => e.tipo === tipo);
+        $(`papelera-titulo-${tipo}s`).hidden = !deTipo.length;
+        $(`papelera-${tipo}s`).replaceChildren(...deTipo.map(tarjetaPapelera));
+    }
+    $('papelera-vacia').hidden = entradas.length > 0;
+    $('papelera-vaciar').disabled = !entradas.length;
+}
+
+// El contenido de una tarjeta: la letra con su título y el principio del texto; la frase, su texto.
+function partesPapelera(entrada) {
+    const parte = (clase, texto) => {
+        const span = document.createElement('span');
+        span.className = clase;
+        span.textContent = texto;
+        return span;
+    };
+    const { cosa } = entrada, dias = diasQuedan(entrada);
+    const partes = entrada.tipo === 'letra'
+        ? [parte('titulo-letra', cosa.titulo || 'Sin título'), parte('texto-letra', cosa.texto.trim())]
+        : [parte('texto-letra texto-frase-papelera', cosa.texto)];
+    return [...partes, parte('quedan-papelera', dias === 1 ? 'Queda 1 día' : `Quedan ${dias} días`)];
+}
+
+function tarjetaPapelera(entrada) {
+    const tarjeta = document.createElement('li');
+    tarjeta.className = 'tarjeta-letra tarjeta-papelera';
+    const boton = document.createElement('button');
+    boton.append(...partesPapelera(entrada));
+    tarjeta.append(boton);
+    let espera = null, inicio = null, abrioMenu = false;
+    const soltar = () => { clearTimeout(espera); inicio = null; tarjeta.classList.remove('apretada'); };
+    boton.addEventListener('pointerdown', e => {
+        abrioMenu = false;
+        inicio = { x: e.clientX, y: e.clientY };
+        tarjeta.classList.add('apretada');
+        espera = setTimeout(() => { soltar(); abrioMenu = true; navigator.vibrate?.(10); abrirPapelera(entrada, tarjeta, true); }, 450);
+    });
+    boton.addEventListener('pointermove', e => {
+        if (inicio && Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y) > 10) soltar();
+    });
+    boton.addEventListener('pointerup', soltar);
+    boton.addEventListener('pointercancel', soltar);
+    boton.addEventListener('contextmenu', e => e.preventDefault());
+    boton.addEventListener('click', () => { if (!abrioMenu) abrirPapelera(entrada, tarjeta, false); });
+    return tarjeta;
+}
+
+// En grande (un toque) va centrada con todo el texto; con el menú (mantenerla apretada) queda
+// sobre su lugar, un poco agrandada, con las opciones abajo. Se cierra tocando afuera.
+let entradaDelMenu = null;
+function abrirPapelera(entrada, tarjeta, conMenu) {
+    entradaDelMenu = entrada;
+    const fondo = $('papelera-menu'), elevada = $('papelera-menu-tarjeta'), opciones = $('papelera-menu-opciones');
+    elevada.replaceChildren(...partesPapelera(entrada));
+    elevada.classList.toggle('grande', !conMenu);
+    opciones.hidden = !conMenu;
+    elevada.style.cssText = '';
+    fondo.hidden = false;
+    if (!conMenu) return;
+    const r = tarjeta.getBoundingClientRect();
+    const ancho = Math.max(r.width * 1.6, 200);
+    const left = Math.max(16, Math.min(r.left - (ancho - r.width) / 2, innerWidth - ancho - 16));
+    elevada.style.left = `${left}px`;
+    elevada.style.width = `${ancho}px`;
+    const alto = elevada.offsetHeight;
+    const top = Math.max(60, Math.min(r.top, innerHeight - alto - opciones.offsetHeight - 40));
+    elevada.style.top = `${top}px`;
+    opciones.style.top = `${top + alto + 12}px`;
+    opciones.style.left = `${Math.max(16, Math.min(left, innerWidth - opciones.offsetWidth - 16))}px`;
+}
+const cerrarMenuPapelera = () => { $('papelera-menu').hidden = true; entradaDelMenu = null; };
+$('papelera-menu').addEventListener('click', e => { if (e.target === $('papelera-menu')) cerrarMenuPapelera(); });
+$('papelera-restaurar').addEventListener('click', () => {
+    const entrada = sacarDePapelera(localStorage, claveDe(entradaDelMenu));
+    if (entrada?.tipo === 'letra') restaurarLetra(localStorage, entrada.cosa);
+    else if (entrada) restaurarFrase(localStorage, entrada.cosa);
+    cerrarMenuPapelera();
+    renderizarPapelera();
+    renderizarLetras();
+});
+$('papelera-borrar').addEventListener('click', () => {
+    const entrada = entradaDelMenu;
+    cerrarMenuPapelera();
+    const titulo = entrada.tipo === 'letra' ? entrada.cosa.titulo : etiquetaVolver(entrada.cosa.texto, 24);
+    confirmarBorrado({ titulo }, ok => {
+        if (!ok) return;
+        sacarDePapelera(localStorage, claveDe(entrada));
+        renderizarPapelera();
+    }, entrada.tipo === 'letra' ? '¿Borrar la letra definitivamente?' : '¿Borrar la frase definitivamente?');
+});
 $('keep-elegir').addEventListener('click', () => $('keep-archivo').click());
 $('keep-archivo').addEventListener('change', async e => {
     const archivos = [...e.target.files];

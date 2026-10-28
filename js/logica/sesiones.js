@@ -2,6 +2,8 @@
 // parámetro (localStorage en la web; en SwiftUI será SwiftData o similar).
 // Solo usa getItem/setItem, así que en los tests alcanza con un objeto simple.
 
+import { mandarAPapelera } from './papelera.js';
+
 const CLAVE_LETRAS = 'metrica.letras';
 const CLAVE_GUARDADAS = 'metrica.guardadas';
 
@@ -78,8 +80,16 @@ export function agregarLetras(almacen, letras) {
     escribir(almacen, CLAVE_LETRAS, [...leer(almacen, CLAVE_LETRAS), ...letras]);
 }
 
-export function borrarLetra(almacen, id) {
-    escribir(almacen, CLAVE_LETRAS, leer(almacen, CLAVE_LETRAS).filter(l => l.id !== id));
+// Borrar una letra la manda a la papelera (js/logica/papelera.js), donde queda 7 días.
+export function borrarLetra(almacen, id, ahora = Date.now()) {
+    const letras = leer(almacen, CLAVE_LETRAS), letra = letras.find(l => l.id === id);
+    if (letra) mandarAPapelera(almacen, 'letra', letra, ahora);
+    escribir(almacen, CLAVE_LETRAS, letras.filter(l => l.id !== id));
+}
+
+// La letra vuelve de la papelera tal como estaba, en su lugar.
+export function restaurarLetra(almacen, letra) {
+    escribir(almacen, CLAVE_LETRAS, [...leer(almacen, CLAVE_LETRAS).filter(l => l.id !== letra.id), letra]);
 }
 
 // Palabras guardadas desde Rimas, de la última guardada a la primera.
