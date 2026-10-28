@@ -69,8 +69,11 @@ test('opacidadDeTema: de 1 a 10, arranca en 10', async () => {
     assert.equal(opacidadDeTema('7'), 7);
 });
 
-test('los temas van ordenados: gratis, claros, oscuros y los del espacio al final', () => {
-    const claves = TEMAS.map(t => t.clave);
-    assert.deepEqual(claves.slice(0, 2), ['gris', 'blanco']);
-    assert.deepEqual(claves.slice(-5), ['galaxia', 'nebulosa', 'saturno', 'eclipse', 'luna']);
+test('los temas van en dos grupos, oscuros (Gris liso primero) y claros (Blanco primero)', () => {
+    const oscuros = TEMAS.filter(t => t.oscuro).map(t => t.clave);
+    const claros = TEMAS.filter(t => !t.oscuro).map(t => t.clave);
+    assert.equal(oscuros[0], 'gris');
+    assert.equal(claros[0], 'blanco');
+    assert.equal(oscuros.length, 13);
+    assert.equal(claros.length, 9);
 });

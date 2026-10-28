@@ -1993,9 +1993,13 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('[data-tema="madrugada"]').getAttribute('aria-pressed'), 'true');
-        // Dos renglones: la primera y la segunda muestra van una arriba de la otra.
-        const [m1, m2] = await Promise.all([0, 1].map(i => page.locator('#temas-libreta .tema-libreta').nth(i).boundingBox()));
+        // Dos renglones: arriba los oscuros (Gris liso primero) y abajo los claros (Blanco primero).
+        await page.locator('#temas-libreta').evaluate(e => { e.scrollLeft = 0; });
+        const [m1, m2] = await Promise.all(['gris', 'blanco'].map(c => page.locator(`#temas-libreta [data-tema="${c}"]`).boundingBox()));
         assert.ok(Math.abs(m1.x - m2.x) < 1 && m2.y > m1.y, JSON.stringify({ m1, m2 }));
+        const filaDe = c => page.locator(`#temas-libreta [data-tema="${c}"]`).evaluate(e => e.getBoundingClientRect().top);
+        assert.equal(await filaDe('galaxia'), m1.y);
+        assert.equal(await filaDe('luna'), m2.y);
         // La barra fina de opacidad, abajo del cajón: arranca en 10 y queda en la letra.
         assert.equal(await page.locator('#opacidad-libreta').inputValue(), '10');
         await page.screenshot({path: `capturas/temas-dos-renglones-${tema}.png`});

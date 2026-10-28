@@ -1029,7 +1029,7 @@ body.editando .vista#vista-editor, #vista-baul[data-libreta] {
 .temas-libreta { display: flex; gap: 10px; padding: 14px; overflow-x: auto; scrollbar-width: none; }
 .temas-libreta::-webkit-scrollbar { display: none; }
 /* En la libreta y el baúl van en dos renglones que se deslizan juntos (pedido de Swa). */
-.temas-libreta.dos-renglones { display: grid; grid-auto-flow: column; grid-template-rows: auto auto; grid-auto-columns: 72px; gap: 12px 10px; padding-bottom: 8px; }
+.temas-libreta.dos-renglones { display: grid; grid-auto-flow: column dense; grid-template-rows: auto auto; grid-auto-columns: 72px; gap: 12px 10px; padding-bottom: 8px; }
 /* La opacidad: una barra fina pegada al borde de abajo del cajón, como parte del marco. */
 .opacidad-tema {
     -webkit-appearance: none; appearance: none; display: block; width: calc(100% - 44px); height: 18px; margin: 0 22px 4px;
