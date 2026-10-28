@@ -3,7 +3,7 @@
 // las letras en sesiones.js.
 
 import { mandarAPapelera } from './papelera.js';
-import { temaDisponible } from './compra.js';
+import { temaDisponible, opacidadDeTema } from './compra.js';
 
 const CLAVE_FRASES = 'metrica.frases';
 const CLAVE_AJUSTES = 'metrica.baul-ajustes';
@@ -99,7 +99,7 @@ export const TAMANOS_BAUL = [
     { id: 'medianas', nombre: 'Medianas', columnas: 2 },
     { id: 'grandes', nombre: 'Grandes', columnas: 1 },
 ];
-const AJUSTES_INICIALES = { tema: 'gris', tamano: 'medianas', separar: true };
+const AJUSTES_INICIALES = { tema: 'gris', opacidad: 10, tamano: 'medianas', separar: true };
 
 export function ajustesBaul(almacen) {
     let guardados = {};
@@ -111,6 +111,7 @@ export function ajustesBaul(almacen) {
     // Un tema de Extras sin la compra vuelve al inicial, como en las letras.
     if (!temaDisponible(ajustes.tema, almacen)) ajustes.tema = AJUSTES_INICIALES.tema;
     ajustes.separar = ajustes.separar !== false;
+    ajustes.opacidad = opacidadDeTema(ajustes.opacidad);
     return ajustes;
 }
 

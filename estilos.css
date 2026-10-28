@@ -896,15 +896,19 @@ body.editando .vista#vista-editor {
     --libreta: #eceef2; --texto: #1e2229; --texto-2: rgba(40, 45, 55, 0.62); --texto-3: rgba(40, 45, 55, 0.32);
     --renglon: rgba(40, 45, 55, 0.08); --teclado: #dcdfe5; --ilustracion: url("fondos/luna.svg");
 }
-body.editando .vista#vista-editor, .muestra-tema { background-image: var(--ilustracion, none); background-repeat: no-repeat; }
-body.editando .vista#vista-editor { background-position: center bottom; background-size: 100% auto; }
+.muestra-tema { background-image: var(--ilustracion, none); background-repeat: no-repeat; }
+/* La opacidad del tema (1 a 10, en la barra del cajón) tapa la ilustración con una capa del color
+   de la libreta: en 10 no tapa nada y en 1 la deja al 10%. */
+body.editando .vista#vista-editor, #vista-baul[data-libreta] {
+    --velo: color-mix(in srgb, var(--libreta) calc((10 - var(--opacidad-tema, 10)) * 10%), transparent);
+    background-image: linear-gradient(var(--velo), var(--velo)), var(--ilustracion, none);
+    background-repeat: no-repeat; background-position: center bottom; background-size: 100% 100%, 100% auto;
+}
 /* El baúl con tema (uno solo, el del pincel): el color y la ilustración de la libreta, quieta
    abajo mientras pasan las frases, y las tarjetas un poco más marcadas que el fondo. Con Gris
    liso queda como siempre. */
 #vista-baul[data-libreta], .frase-elevada[data-libreta] { --tarjeta: color-mix(in srgb, var(--texto) 8%, var(--libreta)); color: var(--texto); }
-#vista-baul[data-libreta] {
-    background: var(--libreta) var(--ilustracion, none) no-repeat center bottom / 100% auto;
-}
+#vista-baul[data-libreta] { background-color: var(--libreta); }
 #vista-editor { color: var(--texto); }
 .texto-rojo { color: #ff3b30; }
 
@@ -1024,6 +1028,24 @@ body.editando .vista#vista-editor { background-position: center bottom; backgrou
 /* Temas: una fila de muestras con «Aa» que se desliza. */
 .temas-libreta { display: flex; gap: 10px; padding: 14px; overflow-x: auto; scrollbar-width: none; }
 .temas-libreta::-webkit-scrollbar { display: none; }
+/* En la libreta y el baúl van en dos renglones que se deslizan juntos (pedido de Swa). */
+.temas-libreta.dos-renglones { display: grid; grid-auto-flow: column; grid-template-rows: auto auto; grid-auto-columns: 72px; gap: 12px 10px; padding-bottom: 8px; }
+/* La opacidad: una barra fina pegada al borde de abajo del cajón, como parte del marco. */
+.opacidad-tema {
+    -webkit-appearance: none; appearance: none; display: block; width: calc(100% - 44px); height: 18px; margin: 0 22px 4px;
+    background: transparent; touch-action: none;
+}
+.opacidad-tema::-webkit-slider-runnable-track {
+    height: 3px; border-radius: 2px;
+    background: linear-gradient(to right, var(--texto-2) var(--valor, 100%), var(--separador) var(--valor, 100%));
+}
+.opacidad-tema::-moz-range-track { height: 3px; border-radius: 2px; background: var(--separador); }
+.opacidad-tema::-moz-range-progress { height: 3px; border-radius: 2px; background: var(--texto-2); }
+.opacidad-tema::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px; border-radius: 50%; border: 0;
+    background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+}
+.opacidad-tema::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; border: 0; background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .3); }
 .tema-libreta { flex: 0 0 72px; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
 .tema-libreta .muestra-tema {
     position: relative; width: 100%; height: 58px; border-radius: 16px; display: grid; place-items: center;

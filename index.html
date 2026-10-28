@@ -499,7 +499,9 @@
             </button>
             <h3 class="encabezado-libreta">Tema de esta letra</h3>
             <div class="grupo-libreta">
-                <div class="temas-libreta" id="temas-libreta"></div>
+                <div class="temas-libreta dos-renglones" id="temas-libreta"></div>
+                <!-- Opacidad de la ilustración, de 1 a 10: una barra fina en el borde de abajo del cajón. -->
+                <input type="range" class="opacidad-tema" id="opacidad-libreta" min="1" max="10" step="1" value="10" aria-label="Opacidad del tema">
             </div>
             <h3 class="encabezado-libreta">Texto</h3>
             <!-- Tamaño, separaciones y fuente: lo arma js/app.js -->
@@ -538,7 +540,9 @@
             </button>
             <h3 class="encabezado-libreta">Tema del baúl</h3>
             <div class="grupo-libreta">
-                <div class="temas-libreta" id="temas-baul"></div>
+                <div class="temas-libreta dos-renglones" id="temas-baul"></div>
+                <!-- Opacidad de la ilustración, de 1 a 10: una barra fina en el borde de abajo del cajón. -->
+                <input type="range" class="opacidad-tema" id="opacidad-baul" min="1" max="10" step="1" value="10" aria-label="Opacidad del tema">
             </div>
             <h3 class="encabezado-libreta">Tarjetas</h3>
             <div class="grupo-libreta funciones-libreta">

@@ -1993,6 +1993,20 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#abrir-ajustes-libreta').click();
         await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('[data-tema="madrugada"]').getAttribute('aria-pressed'), 'true');
+        // Dos renglones: la primera y la segunda muestra van una arriba de la otra.
+        const [m1, m2] = await Promise.all([0, 1].map(i => page.locator('#temas-libreta .tema-libreta').nth(i).boundingBox()));
+        assert.ok(Math.abs(m1.x - m2.x) < 1 && m2.y > m1.y, JSON.stringify({ m1, m2 }));
+        // La barra fina de opacidad, abajo del cajón: arranca en 10 y queda en la letra.
+        assert.equal(await page.locator('#opacidad-libreta').inputValue(), '10');
+        await page.screenshot({path: `capturas/temas-dos-renglones-${tema}.png`});
+        await page.locator('#opacidad-libreta').fill('3');
+        assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).getPropertyValue('--opacidad-tema').trim()), '3');
+        assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), /linear-gradient.*fondos\/madrugada\.svg/);
+        await page.locator('#cerrar-ajustes-libreta').click();
+        await page.screenshot({path: `capturas/editor-madrugada-opacidad-${tema}.png`});
+        assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('metrica.letras')).find(l => l.tema === 'madrugada').opacidadTema), 3);
+        await page.locator('#abrir-ajustes-libreta').click();
+        await page.locator('#opacidad-libreta').fill('10');
         await page.locator('#cerrar-ajustes-libreta').click();
         assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundColor), 'rgb(27, 32, 52)');
         assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), /fondos\/madrugada\.svg/);
