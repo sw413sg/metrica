@@ -3023,6 +3023,8 @@ function muestrasDeTemas(actual, alElegir) {
         boton.className = 'tema-libreta';
         boton.dataset.tema = tema.clave;
         boton.setAttribute('aria-pressed', tema.clave === actual);
+        // Los oscuros en el renglón de arriba y los claros en el de abajo (pedido de Swa).
+        boton.style.gridRow = tema.oscuro ? 1 : 2;
         const muestra = document.createElement('span');
         muestra.className = 'muestra-tema';
         muestra.dataset.libreta = tema.clave;
