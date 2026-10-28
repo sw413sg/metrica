@@ -59,3 +59,18 @@ test('gris y blanco son los gratis; los otros veinte, de Extras', () => {
     assert.deepEqual(TEMAS.filter(t => !t.extra).map(t => t.clave), ['gris', 'blanco']);
     assert.equal(TEMAS.filter(t => t.extra).length, 20);
 });
+
+test('opacidadDeTema: de 1 a 10, arranca en 10', async () => {
+    const { opacidadDeTema } = await import('../js/logica/compra.js');
+    assert.equal(opacidadDeTema(undefined), 10);
+    assert.equal(opacidadDeTema(4), 4);
+    assert.equal(opacidadDeTema(0), 1);
+    assert.equal(opacidadDeTema(15), 10);
+    assert.equal(opacidadDeTema('7'), 7);
+});
+
+test('los temas van ordenados: gratis, claros, oscuros y los del espacio al final', () => {
+    const claves = TEMAS.map(t => t.clave);
+    assert.deepEqual(claves.slice(0, 2), ['gris', 'blanco']);
+    assert.deepEqual(claves.slice(-5), ['galaxia', 'nebulosa', 'saturno', 'eclipse', 'luna']);
+});

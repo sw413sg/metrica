@@ -23,7 +23,7 @@ import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijo
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, frasesDelWidget, letraDelWidget, consignaDelDia, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
-import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra } from './logica/compra.js';
+import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
 const COLORES_RIMA = 12;
@@ -325,9 +325,16 @@ function abrirBaul(desdeLetra) {
 // El baúl tiene un solo tema, el del pincel, se entre de donde se entre (pedido de Swa). Gris liso
 // lo deja como el resto de la app; los otros le ponen el color y la ilustración.
 function aplicarTemaBaul() {
-    const { tema } = ajustesBaul(localStorage);
+    const { tema, opacidad } = ajustesBaul(localStorage);
     if (tema === 'gris') delete $('vista-baul').dataset.libreta;
     else $('vista-baul').dataset.libreta = tema;
+    $('vista-baul').style.setProperty('--opacidad-tema', opacidad);
+}
+
+// La barra fina de opacidad del cajón de temas (de 1 a 10): la parte llena hasta el valor.
+function mostrarOpacidad(barra, valor) {
+    barra.value = valor;
+    barra.style.setProperty('--valor', `${(valor - 1) / 9 * 100}%`);
 }
 $('abrir-baul').addEventListener('click', () => abrirBaul(false));
 $('abrir-baul-libreta').addEventListener('click', () => { ocultarSugerencias(); document.activeElement?.blur(); abrirBaul(true); });
@@ -495,7 +502,8 @@ function abrirMenuFrase(frase, tarjeta) {
 }
 // El pincel: tema del baúl, tamaño de las tarjetas y separar por usadas (pedido de Swa).
 function renderizarAjustesBaul() {
-    const { tema, tamano, separar } = ajustesBaul(localStorage);
+    const { tema, opacidad, tamano, separar } = ajustesBaul(localStorage);
+    mostrarOpacidad($('opacidad-baul'), opacidad);
     $('temas-baul').replaceChildren(...muestrasDeTemas(tema, clave => {
         guardarAjusteBaul(localStorage, { tema: clave });
         aplicarTemaBaul();
@@ -516,6 +524,11 @@ function renderizarAjustesBaul() {
     }));
     $('separar-baul').checked = separar;
 }
+$('opacidad-baul').addEventListener('input', () => {
+    guardarAjusteBaul(localStorage, { opacidad: opacidadDeTema($('opacidad-baul').value) });
+    mostrarOpacidad($('opacidad-baul'), opacidadDeTema($('opacidad-baul').value));
+    aplicarTemaBaul();
+});
 $('separar-baul').addEventListener('change', () => {
     guardarAjusteBaul(localStorage, { separar: $('separar-baul').checked });
     renderizarBaul();
@@ -2982,6 +2995,10 @@ function renderizarExtras() {
 function renderizarTemas() {
     const actual = temaDeLetra(letraActual, localStorage);
     $('vista-editor').dataset.libreta = actual;
+    // La opacidad del tema es de cada letra (pedido de Swa).
+    const opacidad = opacidadDeTema(letraActual?.opacidadTema);
+    $('vista-editor').style.setProperty('--opacidad-tema', opacidad);
+    mostrarOpacidad($('opacidad-libreta'), opacidad);
     $('temas-libreta').replaceChildren(...muestrasDeTemas(actual, clave => {
         letraActual = { ...letraActual, tema: clave };
         guardarActual();
@@ -2990,6 +3007,12 @@ function renderizarTemas() {
     // Si se vuelve a la versión gratis, el baúl también deja un tema de Extras.
     aplicarTemaBaul();
 }
+
+$('opacidad-libreta').addEventListener('input', () => {
+    letraActual = { ...letraActual, opacidadTema: opacidadDeTema($('opacidad-libreta').value) };
+    guardarActual();
+    renderizarTemas();
+});
 
 // Las muestras con «Aa» de la libreta y del baúl: la elegida con borde violeta, las bloqueadas
 // con candado (tocarlas abre el paywall).

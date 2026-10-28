@@ -9,25 +9,24 @@ export const PRODUCTO = { id: 'metrica.extras', nombre: 'Métrica Extras', preci
 
 // Temas de la libreta. Los que tienen extra: true se desbloquean con el pago.
 export const TEMAS = [
+    // Ordenados (pedido de Swa): los gratis, los claros, los oscuros y los del espacio.
     { clave: 'gris', nombre: 'Gris liso', extra: false },
     { clave: 'blanco', nombre: 'Blanco', extra: false },
-    { clave: 'madrugada', nombre: 'Madrugada', extra: true },
-    { clave: 'sierra', nombre: 'Sierra', extra: true },
-    { clave: 'ondas', nombre: 'Ondas', extra: true },
     { clave: 'arena', nombre: 'Arena', extra: true },
     { clave: 'partitura', nombre: 'Partitura', extra: true },
-    // Diez más (pedido de Swa): cinco oscuros y cinco claros.
-    { clave: 'vinilo', nombre: 'Vinilo', extra: true },
-    { clave: 'bosque', nombre: 'Bosque', extra: true },
-    { clave: 'brasa', nombre: 'Brasa', extra: true },
-    { clave: 'aurora', nombre: 'Aurora', extra: true },
-    { clave: 'tinta', nombre: 'Tinta', extra: true },
     { clave: 'papel', nombre: 'Papel', extra: true },
     { clave: 'menta', nombre: 'Menta', extra: true },
     { clave: 'cielo', nombre: 'Cielo', extra: true },
     { clave: 'durazno', nombre: 'Durazno', extra: true },
     { clave: 'cafe', nombre: 'Café', extra: true },
-    // Del espacio (pedido de Swa): cuatro oscuros y uno claro.
+    { clave: 'madrugada', nombre: 'Madrugada', extra: true },
+    { clave: 'sierra', nombre: 'Sierra', extra: true },
+    { clave: 'ondas', nombre: 'Ondas', extra: true },
+    { clave: 'vinilo', nombre: 'Vinilo', extra: true },
+    { clave: 'bosque', nombre: 'Bosque', extra: true },
+    { clave: 'brasa', nombre: 'Brasa', extra: true },
+    { clave: 'aurora', nombre: 'Aurora', extra: true },
+    { clave: 'tinta', nombre: 'Tinta', extra: true },
     { clave: 'galaxia', nombre: 'Galaxia', extra: true },
     { clave: 'nebulosa', nombre: 'Nebulosa', extra: true },
     { clave: 'saturno', nombre: 'Saturno', extra: true },
@@ -63,4 +62,13 @@ export function temaDisponible(clave, almacen) {
 // no está disponible (de Extras sin comprar), va el inicial: Gris liso.
 export function temaDeLetra(letra, almacen) {
     return temaDisponible(letra?.tema, almacen) ? letra.tema : TEMA_INICIAL;
+}
+
+// Qué tan fuerte se ve la ilustración del tema, de 1 a 10 (pedido de Swa). Cada letra tiene la
+// suya (letra.opacidadTema) y arranca en 10, entera.
+export const OPACIDAD_TEMA = { minima: 1, maxima: 10, inicial: 10 };
+export function opacidadDeTema(valor) {
+    const numero = Math.round(Number(valor));
+    if (!Number.isFinite(numero)) return OPACIDAD_TEMA.inicial;
+    return Math.min(OPACIDAD_TEMA.maxima, Math.max(OPACIDAD_TEMA.minima, numero));
 }

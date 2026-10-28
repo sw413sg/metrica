@@ -69,16 +69,18 @@ test('ajustes del baúl: arrancan en Gris liso, medianas y separadas, y se guard
     const { ajustesBaul, guardarAjusteBaul } = await import('../js/logica/baul.js');
     const { comprarExtras } = await import('../js/logica/compra.js');
     const almacen = almacenDePrueba();
-    assert.deepEqual(ajustesBaul(almacen), { tema: 'gris', tamano: 'medianas', separar: true });
+    assert.deepEqual(ajustesBaul(almacen), { tema: 'gris', opacidad: 10, tamano: 'medianas', separar: true });
     guardarAjusteBaul(almacen, { tamano: 'chicas' });
     guardarAjusteBaul(almacen, { separar: false });
     guardarAjusteBaul(almacen, { tema: 'blanco' });
-    assert.deepEqual(ajustesBaul(almacen), { tema: 'blanco', tamano: 'chicas', separar: false });
+    assert.deepEqual(ajustesBaul(almacen), { tema: 'blanco', opacidad: 10, tamano: 'chicas', separar: false });
     // Un tema de Extras sin comprar no se usa; comprado, sí.
     guardarAjusteBaul(almacen, { tema: 'vinilo' });
     assert.equal(ajustesBaul(almacen).tema, 'gris');
     comprarExtras(almacen);
     assert.equal(ajustesBaul(almacen).tema, 'vinilo');
+    guardarAjusteBaul(almacen, { opacidad: 3 });
+    assert.equal(ajustesBaul(almacen).opacidad, 3);
     guardarAjusteBaul(almacen, { tamano: 'gigantes' });
     assert.equal(ajustesBaul(almacen).tamano, 'medianas');
 });
