@@ -6,7 +6,7 @@ import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas }
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { FILTROS, listarFrases, anotarFrase, editarFrase, borrarFrase, alternarUsada, filtrarFrases, etiquetaVolver } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
@@ -21,6 +21,7 @@ import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, frasesDelWidget, letraDelWidget, consignaDelDia, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
+import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
@@ -2948,6 +2949,105 @@ function mostrarVistaAjustes(id) {
 }
 $('abrir-widgets').addEventListener('click', () => { mostrarVistaAjustes('vista-widgets'); renderizarWidgets(); });
 $('widgets-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
+
+// Google Keep: el .zip de Takeout (o los .json sueltos) se lee en el teléfono; se marcan las
+// notas y pasan a Letras. Las que ya están (mismo título y texto) arrancan sin marcar.
+const keep = { notas: [], elegidas: new Set(), etiqueta: null };
+$('abrir-keep').addEventListener('click', () => mostrarVistaAjustes('vista-keep'));
+$('keep-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
+$('keep-elegir').addEventListener('click', () => $('keep-archivo').click());
+$('keep-archivo').addEventListener('change', async e => {
+    const archivos = [...e.target.files];
+    e.target.value = '';
+    if (!archivos.length) return;
+    $('keep-estado').textContent = 'Leyendo…';
+    $('keep-notas').hidden = true;
+    try {
+        const textos = [];
+        for (const archivo of archivos) {
+            if (/\.json$/i.test(archivo.name)) { textos.push(await archivo.text()); continue; }
+            const zip = await leerZip(archivo.size, async (desde, hasta) => new Uint8Array(await archivo.slice(desde, hasta).arrayBuffer()));
+            for (const nota of zip.filter(a => esNotaDelZip(a.nombre))) textos.push(new TextDecoder().decode(await nota.datos()));
+        }
+        keep.notas = marcarRepetidas(notasDeArchivos(textos), listarLetras(localStorage));
+    } catch {
+        keep.notas = [];
+        $('keep-estado').textContent = 'No se pudo abrir el archivo. Elegí el .zip que te mandó Google Takeout.';
+        return;
+    }
+    keep.elegidas = new Set(keep.notas.filter(n => !n.repetida));
+    keep.etiqueta = null;
+    $('keep-estado').textContent = keep.notas.length ? '' : 'No encontramos notas de Keep en ese archivo. Fijate que en Takeout esté marcado Keep.';
+    renderizarKeep();
+});
+
+const notasKeepVisibles = () => keep.notas.filter(n => !keep.etiqueta || n.etiquetas.includes(keep.etiqueta));
+function renderizarKeep() {
+    $('keep-notas').hidden = !keep.notas.length;
+    const etiquetas = etiquetasDe(keep.notas);
+    $('keep-etiquetas').hidden = !etiquetas.length;
+    $('keep-etiquetas').replaceChildren(...[null, ...etiquetas].map(etiqueta => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'chip-tema';
+        boton.textContent = etiqueta ?? 'Todas';
+        boton.setAttribute('aria-pressed', keep.etiqueta === etiqueta);
+        boton.addEventListener('click', () => { keep.etiqueta = etiqueta; renderizarKeep(); });
+        return boton;
+    }));
+    const visibles = notasKeepVisibles();
+    $('keep-lista').replaceChildren(...visibles.map(nota => {
+        const celda = document.createElement('li');
+        celda.className = 'celda celda-keep';
+        const etiqueta = document.createElement('label');
+        const marca = document.createElement('input');
+        marca.type = 'checkbox';
+        marca.className = 'marca-keep';
+        marca.checked = keep.elegidas.has(nota);
+        marca.addEventListener('change', () => { if (marca.checked) keep.elegidas.add(nota); else keep.elegidas.delete(nota); contarKeep(); });
+        const textos = document.createElement('span');
+        textos.className = 'textos-keep';
+        const titulo = document.createElement('span');
+        titulo.className = 'titulo-keep';
+        titulo.textContent = nota.titulo || nota.texto.trim().split('\n')[0];
+        const texto = document.createElement('span');
+        texto.className = 'texto-keep';
+        texto.textContent = nota.titulo ? nota.texto.trim() : nota.texto.trim().split('\n').slice(1).join('\n');
+        const datos = document.createElement('span');
+        datos.className = 'datos-keep';
+        datos.textContent = [nota.editada && new Date(nota.editada).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }),
+            nota.archivada && 'Archivada', nota.repetida && 'Ya está en Letras'].filter(Boolean).join(' · ');
+        textos.append(titulo, ...(texto.textContent ? [texto] : []), datos);
+        etiqueta.append(marca, textos);
+        celda.append(etiqueta);
+        return celda;
+    }));
+    contarKeep();
+}
+function contarKeep() {
+    const visibles = notasKeepVisibles();
+    const n = keep.elegidas.size;
+    $('keep-cuenta').textContent = `${visibles.length} ${visibles.length === 1 ? 'nota' : 'notas'}`;
+    $('keep-todas').textContent = visibles.every(x => keep.elegidas.has(x)) ? 'Ninguna' : 'Elegir todas';
+    $('keep-importar').textContent = n ? `Pasar ${n} a Letras` : 'Elegí las notas';
+    $('keep-importar').disabled = !n;
+}
+$('keep-todas').addEventListener('click', () => {
+    const visibles = notasKeepVisibles();
+    const todas = visibles.every(x => keep.elegidas.has(x));
+    for (const nota of visibles) if (todas) keep.elegidas.delete(nota); else keep.elegidas.add(nota);
+    renderizarKeep();
+});
+$('keep-importar').addEventListener('click', () => {
+    const elegidas = keep.notas.filter(n => keep.elegidas.has(n));
+    if (!elegidas.length) return;
+    agregarLetras(localStorage, letrasDeNotas(elegidas, listarLetras(localStorage)));
+    keep.notas = [];
+    keep.elegidas.clear();
+    renderizarKeep();
+    $('keep-estado').textContent = `Listo: ${elegidas.length === 1 ? 'pasó 1 nota' : `pasaron ${elegidas.length} notas`} a Letras.`;
+    renderizarLetras();
+});
 
 const escapar = texto => String(texto).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const frasesParaWidget = () => { const frases = listarFrases(localStorage); return frases.length ? frases : FRASES_EJEMPLO; };

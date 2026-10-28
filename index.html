@@ -333,6 +333,19 @@
                     <li class="celda celda-audio"><label for="microfono">Micrófono</label><select id="microfono"></select></li>
                     <li class="celda celda-audio" id="salida-ajustes" hidden><label for="salida">Salida</label><select id="salida"></select><button type="button" class="elegir-salida" id="elegir-salida" hidden>Elegir</button></li>
                 </ul>
+                <!-- Importar: las notas de Google Keep pasan a Letras, desde el export de Google Takeout
+                     (Keep no tiene API; pedido de Swa). En SwiftUI: .fileImporter y una vista igual. -->
+                <h2 class="encabezado-grupo">Importar</h2>
+                <ul class="lista-agrupada">
+                    <li class="celda">
+                        <span class="icono-celda" style="background:#f9ab00"><svg viewBox="0 0 24 24" class="icono"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
+                        <button class="celda-boton" id="abrir-keep">
+                            <span>Google Keep</span>
+                            <span class="subtitulo">Pasá tus notas a Letras</span>
+                        </button>
+                        <span class="chevron">›</span>
+                    </li>
+                </ul>
                 <h2 class="encabezado-grupo">Acerca de</h2>
                 <ul class="lista-agrupada">
                     <li class="celda">
@@ -398,6 +411,37 @@
                         <li>Tocá <b>Editar</b> y después <b>Agregar widget</b>.</li>
                         <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
                     </ol>
+                </div>
+            </div>
+
+            <!-- Google Keep: se elige el .zip de Takeout (o los .json), se marcan las notas y pasan a
+                 Letras con sus fechas. Todo en el teléfono, sin internet (js/logica/keep.js). -->
+            <div class="vista" id="vista-keep">
+                <header class="barra-nav">
+                    <button class="boton-atras" id="keep-atras">
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
+                    </button>
+                </header>
+                <h1 class="titulo-grande">Google Keep</h1>
+                <div class="contenido">
+                    <p class="bajada-widgets">Traé las letras que tenías anotadas en Keep. Elegís cuáles y quedan en Letras, con su fecha.</p>
+                    <ol class="pasos-widgets">
+                        <li>Entrá a <a href="https://takeout.google.com/settings/takeout/custom/keep" target="_blank" rel="noopener"><b>Google Takeout</b></a> con tu cuenta, dejá marcado solo <b>Keep</b> y tocá <b>Siguiente paso</b> y <b>Crear exportación</b>.</li>
+                        <li>Cuando te llegue el mail de Google, bajá el <b>.zip</b> (guardalo en Archivos).</li>
+                        <li>Tocá <b>Elegir el .zip</b> y marcá las notas que querés pasar.</li>
+                    </ol>
+                    <input type="file" id="keep-archivo" accept=".zip,.json,application/zip,application/json" multiple hidden>
+                    <div class="botones"><button type="button" class="boton-relleno" id="keep-elegir">Elegir el .zip</button></div>
+                    <p class="estado-keep" id="keep-estado" role="status"></p>
+                    <div id="keep-notas" hidden>
+                        <div class="chips-tema chips-keep" id="keep-etiquetas" role="radiogroup" aria-label="Etiqueta"></div>
+                        <div class="cabeza-keep">
+                            <span id="keep-cuenta"></span>
+                            <button type="button" class="todas-keep" id="keep-todas">Elegir todas</button>
+                        </div>
+                        <ul class="lista-agrupada lista-keep" id="keep-lista"></ul>
+                        <div class="botones pie-keep"><button type="button" class="boton-relleno" id="keep-importar"></button></div>
+                    </div>
                 </div>
             </div>
         </section>
