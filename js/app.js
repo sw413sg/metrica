@@ -71,6 +71,53 @@ document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListe
     mostrarPestana(b.dataset.pestana);
 }));
 
+// ---------- Gestos de deslizar ----------
+// Como en iOS: deslizar desde el borde izquierdo hacia la derecha vuelve atrás (de una letra,
+// del baúl, de Widgets o de Keep), y en las pantallas principales deslizar desde un borde pasa
+// a la sección de al lado de la barra (pedido de Swa). Solo desde los bordes, así no se mezcla
+// con deslizar la caja de Rimas o la de «¿Por dónde empiezo?». En SwiftUI: el gesto de NavigationStack y
+// un DragGesture en el TabView.
+const VOLVER_DESDE = { 'vista-editor': 'editor-atras', 'vista-baul': 'baul-atras', 'vista-widgets': 'widgets-atras', 'vista-keep': 'keep-atras' };
+// Lo que tiene su propio gesto de costado o se arrastra: ahí el dedo no cambia de sección.
+const CON_GESTO_PROPIO = 'input, textarea, select, [contenteditable], #reproductor, #caja-azar, #caja-tema, .beat-fs, .reproductor-pista, #barra-pestanas';
+const BORDE = 30;
+const seDesplazaDeCostado = nodo => {
+    for (; nodo && nodo !== document.body; nodo = nodo.parentElement) {
+        const { overflowX } = getComputedStyle(nodo);
+        if ((overflowX === 'auto' || overflowX === 'scroll') && nodo.scrollWidth > nodo.clientWidth + 1) return true;
+    }
+    return false;
+};
+{
+    let inicio = null;
+    document.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        inicio = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, hora: Date.now(), objetivo: e.target } : null;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+        if (!inicio) return;
+        const { x, y, hora, objetivo } = inicio;
+        inicio = null;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - x, dy = t.clientY - y;
+        // Rápido (un arrastre largo es otra cosa, como mover una tarjeta) y bien de costado.
+        if (Date.now() - hora > 600 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return;
+        if (document.querySelector('.hoja-fondo:not([hidden]), .alerta-fondo:not([hidden]), .menu-frase-fondo:not([hidden])')) return;
+        const pantalla = document.querySelector('.pantalla.activa');
+        const vista = pantalla.querySelector('.vista.activa')?.id;
+        if (VOLVER_DESDE[vista]) {
+            if (x <= BORDE && dx > 0) { document.activeElement?.blur(); $(VOLVER_DESDE[vista]).click(); }
+            return;
+        }
+        const desdeBorde = dx > 0 ? x <= BORDE : x >= innerWidth - BORDE;
+        if (!desdeBorde || document.body.classList.contains('teclado-abierto') || objetivo.closest?.(CON_GESTO_PROPIO) || seDesplazaDeCostado(objetivo)) return;
+        const botones = [...document.querySelectorAll('#barra-pestanas button')];
+        const actual = botones.findIndex(b => b.dataset.pestana === pantalla.dataset.pestana);
+        botones[actual + (dx < 0 ? 1 : -1)]?.click();
+    }, { passive: true });
+    document.addEventListener('touchcancel', () => { inicio = null; }, { passive: true });
+}
+
 // ---------- Letras (NavigationStack: lista -> editor) ----------
 function mostrarVista(id) {
     document.querySelectorAll('#pantalla-letras .vista').forEach(v => v.classList.toggle('activa', v.id === id));
@@ -453,9 +500,8 @@ function abrirEditor(letra) {
     renderizarTemas();
     mostrarVista('vista-editor');
     actualizarEditor();
-    // Al entrar a una letra empezada no se abre el teclado (se lee primero, pedido de Swa);
-    // en una nueva sí, en el título.
-    if (!letra.texto) $('editor-titulo').focus();
+    // No se abre el teclado solo, tampoco en una nueva: se elige tocar el título, el texto o
+    // «¿Por dónde empiezo?» (pedido de Swa).
     actualizarDameTema();
 }
 
