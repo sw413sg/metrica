@@ -366,6 +366,18 @@
                 <ul class="lista-agrupada">
                     <li class="celda"><button class="celda-boton texto-rojo celda-centrada" id="borrar-compra">Volver a la versión gratis</button></li>
                 </ul>
+                <!-- Papelera, a lo último: las letras y frases del baúl borradas, 7 días (pedido de Swa). -->
+                <h2 class="encabezado-grupo">Papelera</h2>
+                <ul class="lista-agrupada">
+                    <li class="celda">
+                        <span class="icono-celda" style="background:#8e8e93"><svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg></span>
+                        <button class="celda-boton" id="abrir-papelera">
+                            <span>Papelera</span>
+                            <span class="subtitulo" id="papelera-resumen"></span>
+                        </button>
+                        <span class="chevron">›</span>
+                    </li>
+                </ul>
             </div>
             </div>
 
@@ -411,6 +423,27 @@
                         <li>Tocá <b>Editar</b> y después <b>Agregar widget</b>.</li>
                         <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
                     </ol>
+                </div>
+            </div>
+
+            <!-- Papelera: las letras y las frases del baúl borradas, en cuadrados chicos con el formato de
+                 Letras. Un toque la muestra en grande; mantenerla apretada, Restaurar y Borrar definitivamente
+                 (en SwiftUI: LazyVGrid con .contextMenu). Se vacían solas a los 7 días (js/logica/papelera.js). -->
+            <div class="vista" id="vista-papelera">
+                <header class="barra-nav">
+                    <button class="boton-atras" id="papelera-atras">
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
+                    </button>
+                    <button class="boton-atras boton-borrar-todo" id="papelera-vaciar">Borrar todo</button>
+                </header>
+                <h1 class="titulo-grande">Papelera</h1>
+                <div class="contenido">
+                    <h2 class="encabezado-grupo encabezado-primero" id="papelera-titulo-letras">Letras</h2>
+                    <ul class="grilla-papelera" id="papelera-letras"></ul>
+                    <h2 class="encabezado-grupo" id="papelera-titulo-frases">Frases del baúl</h2>
+                    <ul class="grilla-papelera" id="papelera-frases"></ul>
+                    <p class="vacio" id="papelera-vacia" hidden>La papelera está vacía.</p>
+                    <p class="pie-widgets pie-papelera">La papelera se vacía automáticamente: lo que borrás queda acá 7 días.</p>
                 </div>
             </div>
 
@@ -605,6 +638,15 @@
             <button role="menuitem" id="baul-copiar">Copiar<svg viewBox="0 0 24 24" class="icono"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
             <button role="menuitem" id="baul-usada"><span id="baul-usada-texto">Marcar como usada</span><svg viewBox="0 0 24 24" class="icono"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
             <button role="menuitem" class="texto-rojo" id="baul-borrar">Borrar<svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg></button>
+        </div>
+    </div>
+
+    <!-- Algo de la papelera: un toque lo muestra en grande; mantenerlo apretado, el menú. -->
+    <div class="menu-frase-fondo" id="papelera-menu" hidden>
+        <div class="tarjeta-letra tarjeta-papelera frase-elevada" id="papelera-menu-tarjeta"></div>
+        <div class="menu-frase" id="papelera-menu-opciones" role="menu">
+            <button role="menuitem" id="papelera-restaurar">Restaurar<svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg></button>
+            <button role="menuitem" class="texto-rojo" id="papelera-borrar">Borrar definitivamente<svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg></button>
         </div>
     </div>
 
