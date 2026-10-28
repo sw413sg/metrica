@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando uno al último número (1.0.9 -> 1.1.0): así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-1.3.2';
+const VERSION = 'metrica-1.3.3';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -63,6 +63,11 @@ const ARCHIVOS = [
     'fondos/cielo.svg',
     'fondos/durazno.svg',
     'fondos/cafe.svg',
+    'fondos/galaxia.svg',
+    'fondos/nebulosa.svg',
+    'fondos/saturno.svg',
+    'fondos/eclipse.svg',
+    'fondos/luna.svg',
 ];
 
 self.addEventListener('install', evento => {

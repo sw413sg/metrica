@@ -832,7 +832,7 @@ body.editando .vista#vista-editor {
    el texto pasa por encima. js/app.js pone data-libreta en la libreta, en el baúl de frases
    y en cada muestra (no en la hoja de ajustes): todos usan el mismo color y la misma ilustración. */
 [data-libreta="blanco"], [data-libreta="arena"], [data-libreta="partitura"],
-[data-libreta="papel"], [data-libreta="menta"], [data-libreta="cielo"], [data-libreta="durazno"], [data-libreta="cafe"] {
+[data-libreta="papel"], [data-libreta="menta"], [data-libreta="cielo"], [data-libreta="durazno"], [data-libreta="cafe"], [data-libreta="luna"] {
     color-scheme: light;
     --texto: #1c1530; --texto-2: rgba(60, 50, 90, 0.62); --texto-3: rgba(60, 50, 90, 0.32);
     --separador: rgba(60, 50, 90, 0.12); --vidrio: rgba(255, 255, 255, 0.55); --vidrio-borde: rgba(255, 255, 255, 0.85);
@@ -840,7 +840,8 @@ body.editando .vista#vista-editor {
     --acento: #3c4043; --renglon: rgba(60, 60, 67, 0.08); --teclado: #d1d4da;
 }
 [data-libreta="madrugada"], [data-libreta="sierra"], [data-libreta="ondas"],
-[data-libreta="vinilo"], [data-libreta="bosque"], [data-libreta="brasa"], [data-libreta="aurora"], [data-libreta="tinta"] {
+[data-libreta="vinilo"], [data-libreta="bosque"], [data-libreta="brasa"], [data-libreta="aurora"], [data-libreta="tinta"],
+[data-libreta="galaxia"], [data-libreta="nebulosa"], [data-libreta="saturno"], [data-libreta="eclipse"] {
     color-scheme: dark;
     --texto: #eef0f4; --texto-2: rgba(238, 240, 244, 0.6); --texto-3: rgba(238, 240, 244, 0.32);
     --separador: rgba(255, 255, 255, 0.1); --vidrio: rgba(255, 255, 255, 0.1); --vidrio-borde: rgba(255, 255, 255, 0.12);
@@ -886,10 +887,20 @@ body.editando .vista#vista-editor {
     --libreta: #ece0cf; --texto: #33241a; --texto-2: rgba(70, 48, 32, 0.62); --texto-3: rgba(70, 48, 32, 0.32);
     --renglon: rgba(110, 75, 45, 0.11); --teclado: #ddcfba; --ilustracion: url("fondos/cafe.svg");
 }
+/* Del espacio (pedido de Swa): Galaxia, Nebulosa, Saturno y Eclipse, oscuros, y Luna, claro. */
+[data-libreta="galaxia"] { --libreta: #0d1020; --texto: #e6eaff; --teclado: #171b30; --ilustracion: url("fondos/galaxia.svg"); }
+[data-libreta="nebulosa"] { --libreta: #10141f; --texto: #eaf0f8; --teclado: #1a1f2c; --ilustracion: url("fondos/nebulosa.svg"); }
+[data-libreta="saturno"] { --libreta: #16141a; --texto: #f2ece2; --teclado: #211e26; --ilustracion: url("fondos/saturno.svg"); }
+[data-libreta="eclipse"] { --libreta: #08090d; --texto: #f3eee6; --teclado: #15161b; --ilustracion: url("fondos/eclipse.svg"); }
+[data-libreta="luna"] {
+    --libreta: #eceef2; --texto: #1e2229; --texto-2: rgba(40, 45, 55, 0.62); --texto-3: rgba(40, 45, 55, 0.32);
+    --renglon: rgba(40, 45, 55, 0.08); --teclado: #dcdfe5; --ilustracion: url("fondos/luna.svg");
+}
 body.editando .vista#vista-editor, .muestra-tema { background-image: var(--ilustracion, none); background-repeat: no-repeat; }
 body.editando .vista#vista-editor { background-position: center bottom; background-size: 100% auto; }
-/* El baúl con tema: el color y la ilustración de la libreta, quieta abajo mientras pasan las
-   frases, y las tarjetas un poco más marcadas que el fondo. Con Gris liso queda como siempre. */
+/* El baúl con tema (uno solo, el del pincel): el color y la ilustración de la libreta, quieta
+   abajo mientras pasan las frases, y las tarjetas un poco más marcadas que el fondo. Con Gris
+   liso queda como siempre. */
 #vista-baul[data-libreta], .frase-elevada[data-libreta] { --tarjeta: color-mix(in srgb, var(--texto) 8%, var(--libreta)); color: var(--texto); }
 #vista-baul[data-libreta] {
     background: var(--libreta) var(--ilustracion, none) no-repeat center bottom / 100% auto;

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Saturno: el planeta con su anillo, abajo a la derecha, y estrellas sueltas. -->
+  <g fill="#f1e6cf">
+    <circle cx="50" cy="80" r="1" opacity=".45"/><circle cx="160" cy="200" r="1.1" opacity=".3"/>
+    <circle cx="90" cy="330" r=".9" opacity=".4"/><circle cx="350" cy="120" r="1" opacity=".35"/>
+  </g>
+  <g transform="rotate(-16 290 380)">
+    <path d="M170 386a120 26 0 0 1 240 0" fill="none" stroke="#e8c98f" stroke-width="5" opacity=".22"/>
+    <circle cx="290" cy="380" r="62" fill="#d9a866" opacity=".3"/>
+    <path d="M232 366h116M230 390h120" stroke="#f4dcae" stroke-width="5" opacity=".12"/>
+    <path d="M170 386a120 26 0 0 0 240 0" fill="none" stroke="#e8c98f" stroke-width="5" opacity=".35"/>
+  </g>
+</svg>

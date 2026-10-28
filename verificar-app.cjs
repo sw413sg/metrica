@@ -1889,8 +1889,8 @@ const servidor = http.createServer((req, res) => {
             await page.locator('#editor-atras').click();
         };
         await abrirTemas();
-        assert.equal(await page.locator('#temas-libreta .tema-libreta').count(), 17);
-        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 15);
+        assert.equal(await page.locator('#temas-libreta .tema-libreta').count(), 22);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 20);
         await page.locator('[data-tema="madrugada"]').click();
         assert.equal(await page.locator('#paywall').isVisible(), true);
         assert.match(await page.locator('#comprar-extras').textContent(), /^Desbloquear por USD 4,99$/);
@@ -1926,20 +1926,23 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#paywall').isVisible(), false);
         assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 0);
         await page.screenshot({path: `capturas/ajustes-libreta-temas-${tema}.png`});
-        // Desde la letra, el baúl lleva su tema y no tiene pincel (pedido de Swa).
+        // Desde la letra, el baúl no toma su tema: tiene uno solo, el del pincel, que también está (pedido de Swa).
         await page.locator('#cerrar-ajustes-libreta').click();
         await page.locator('#abrir-baul-libreta').click();
-        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), 'madrugada');
-        assert.equal(await page.locator('#baul-abrir-ajustes').isVisible(), false);
-        assert.equal(await page.locator('#baul-abrir-tema').isVisible(), true);
-        await page.screenshot({path: `capturas/baul-tema-letra-${tema}.png`});
+        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), null);
+        assert.equal(await page.locator('#baul-abrir-ajustes').isVisible(), true);
+        await page.locator('#baul-abrir-ajustes').click();
+        await page.locator('#temas-baul [data-tema="galaxia"]').click();
+        await page.locator('#cerrar-ajustes-baul').click();
+        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), 'galaxia');
+        await page.screenshot({path: `capturas/baul-galaxia-${tema}.png`});
         await page.locator('#baul-atras').click();
         await page.locator('#editor-atras').click();
-        // Desde Letras: el pincel elige tema, tamaño y si se separan las usadas; queda guardado.
+        // Desde Letras, el mismo tema; el pincel elige tema, tamaño y si se separan las usadas.
         await page.locator('#abrir-baul').click();
-        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), null);
+        assert.equal(await page.locator('#vista-baul').getAttribute('data-libreta'), 'galaxia');
         await page.locator('#baul-abrir-ajustes').click();
-        assert.equal(await page.locator('#temas-baul .tema-libreta').count(), 17);
+        assert.equal(await page.locator('#temas-baul .tema-libreta').count(), 22);
         await page.locator('#temas-baul [data-tema="vinilo"]').click();
         await page.locator('#tamanos-baul button', { hasText: 'Chicas' }).click();
         await page.locator('#separar-baul').click();
@@ -1996,7 +1999,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').blur();
         await page.screenshot({path: `capturas/editor-madrugada-${tema}.png`});
         // Los otros temas de Extras, cada uno con su ilustración abajo.
-        for (const otro of ['sierra', 'ondas', 'arena', 'partitura', 'vinilo', 'bosque', 'brasa', 'aurora', 'tinta', 'papel', 'menta', 'cielo', 'durazno', 'cafe']) {
+        for (const otro of ['sierra', 'ondas', 'arena', 'partitura', 'vinilo', 'bosque', 'brasa', 'aurora', 'tinta', 'papel', 'menta', 'cielo', 'durazno', 'cafe', 'galaxia', 'nebulosa', 'saturno', 'eclipse', 'luna']) {
             await page.evaluate(clave => { document.getElementById('vista-editor').dataset.libreta = clave; }, otro);
             assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), new RegExp(`fondos/${otro}\\.svg`));
             await page.screenshot({path: `capturas/editor-${otro}-${tema}.png`});
@@ -2026,7 +2029,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#borrar-letra').click();
         await page.locator('#aceptar-borrado').click();
         await abrirTemas();
-        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 15);
+        assert.equal(await page.locator('#temas-libreta .marca-tema rect').count(), 20);
         await cerrarLibreta();
 
         // Sin internet: recarga desde el service worker y anda todo.

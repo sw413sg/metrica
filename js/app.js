@@ -9,7 +9,7 @@ import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inic
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
-import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul, temaDelBaul } from './logica/baul.js';
+import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
 import { marcarUsado, siguienteTema, numeroEnCategoria } from './logica/temas.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
@@ -318,15 +318,14 @@ let baulDesdeLetra = false;
 function abrirBaul(desdeLetra) {
     baulDesdeLetra = desdeLetra;
     $('baul-atras-texto').textContent = desdeLetra ? etiquetaVolver($('editor-titulo').value) : 'Letras';
-    // El pincel, solo desde Letras: desde una letra el baúl lleva el tema de esa letra (pedido de Swa).
-    $('baul-abrir-ajustes').hidden = desdeLetra;
     aplicarTemaBaul();
     mostrarVista('vista-baul');
     renderizarBaul();
 }
-// Gris liso deja el baúl como el resto de la app; los otros le ponen el color y la ilustración.
+// El baúl tiene un solo tema, el del pincel, se entre de donde se entre (pedido de Swa). Gris liso
+// lo deja como el resto de la app; los otros le ponen el color y la ilustración.
 function aplicarTemaBaul() {
-    const tema = temaDelBaul(localStorage, baulDesdeLetra ? temaDeLetra(letraActual, localStorage) : null);
+    const { tema } = ajustesBaul(localStorage);
     if (tema === 'gris') delete $('vista-baul').dataset.libreta;
     else $('vista-baul').dataset.libreta = tema;
 }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Luna: el suelo de la luna con cráteres y la Tierra chiquita en el cielo. -->
+  <circle cx="320" cy="300" r="20" fill="#7fb2df" opacity=".35"/>
+  <path d="M308 292c6 2 8 8 14 6s8 4 12 0" fill="none" stroke="#7fae8a" stroke-width="3" opacity=".35"/>
+  <path fill="#cfd2d8" opacity=".75" d="M0 390c70-18 150-22 230-10s120 6 160-4v84H0z"/>
+  <g fill="#b5b9c1" opacity=".55">
+    <ellipse cx="80" cy="420" rx="30" ry="7"/><ellipse cx="240" cy="408" rx="20" ry="5"/>
+    <ellipse cx="320" cy="440" rx="36" ry="8"/><ellipse cx="170" cy="446" rx="14" ry="4"/>
+  </g>
+</svg>

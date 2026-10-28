@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Eclipse: la luna tapa el sol y queda la corona de luz. -->
+  <defs>
+    <radialGradient id="corona" cx=".5" cy=".5" r=".5">
+      <stop offset=".45" stop-color="#ffd59a" stop-opacity=".5"/>
+      <stop offset=".6" stop-color="#ffd59a" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#ffd59a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="195" cy="360" r="120" fill="url(#corona)"/>
+  <circle cx="195" cy="360" r="54" fill="#08090d"/>
+  <circle cx="232" cy="322" r="3" fill="#fff4dc" opacity=".6"/>
+</svg>
