@@ -27,6 +27,12 @@ export const TEMAS = [
     { clave: 'cielo', nombre: 'Cielo', extra: true },
     { clave: 'durazno', nombre: 'Durazno', extra: true },
     { clave: 'cafe', nombre: 'Café', extra: true },
+    // Del espacio (pedido de Swa): cuatro oscuros y uno claro.
+    { clave: 'galaxia', nombre: 'Galaxia', extra: true },
+    { clave: 'nebulosa', nombre: 'Nebulosa', extra: true },
+    { clave: 'saturno', nombre: 'Saturno', extra: true },
+    { clave: 'eclipse', nombre: 'Eclipse', extra: true },
+    { clave: 'luna', nombre: 'Luna', extra: true },
 ];
 const TEMA_INICIAL = 'gris';
 

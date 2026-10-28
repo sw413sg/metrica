@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
+  <!-- Nebulosa: una nube de gas en azules y rosado, con estrellas que se asoman. -->
+  <defs>
+    <radialGradient id="gas1" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#4fb3d9" stop-opacity=".3"/><stop offset="1" stop-color="#4fb3d9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gas2" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#e2729b" stop-opacity=".24"/><stop offset="1" stop-color="#e2729b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="260" cy="380" rx="190" ry="110" fill="url(#gas1)"/>
+  <ellipse cx="120" cy="420" rx="160" ry="80" fill="url(#gas2)"/>
+  <ellipse cx="320" cy="300" rx="90" ry="60" fill="url(#gas2)"/>
+  <g fill="#ffffff">
+    <circle cx="220" cy="360" r="1.6" opacity=".6"/><circle cx="300" cy="410" r="1.1" opacity=".5"/>
+    <circle cx="90" cy="380" r="1" opacity=".45"/><circle cx="160" cy="300" r=".9" opacity=".4"/>
+    <circle cx="350" cy="350" r="1.2" opacity=".45"/><circle cx="40" cy="120" r="1" opacity=".35"/>
+    <circle cx="280" cy="90" r=".9" opacity=".3"/>
+  </g>
+</svg>

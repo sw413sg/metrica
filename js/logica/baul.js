@@ -91,7 +91,7 @@ export function filtrarFrases(frases, { filtro = 'todas', busqueda = '' } = {}) 
         (!buscada || normalizar(f.texto).includes(buscada)));
 }
 
-// Lo que se elige con el pincel (solo entrando desde Letras): el tema, el tamaño de las tarjetas
+// Lo que se elige con el pincel (desde Letras o desde una letra): el tema, el tamaño de las tarjetas
 // (chicas en tres columnas, medianas en dos y grandes en una) y si se separan las usadas de las
 // sin usar con Todas / Sin usar / Usadas. Pedido de Swa.
 export const TAMANOS_BAUL = [
@@ -118,7 +118,3 @@ export function guardarAjusteBaul(almacen, cambios) {
     const guardados = (() => { try { return JSON.parse(almacen.getItem(CLAVE_AJUSTES)) ?? {}; } catch { return {}; } })();
     almacen.setItem(CLAVE_AJUSTES, JSON.stringify({ ...guardados, ...cambios }));
 }
-
-// El tema con el que se ve el baúl: entrando desde una letra, el de esa letra (sin guardarlo);
-// desde Letras, el que se eligió con el pincel.
-export const temaDelBaul = (almacen, temaDeLaLetra = null) => temaDeLaLetra ?? ajustesBaul(almacen).tema;
