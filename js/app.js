@@ -725,6 +725,8 @@ function marcarTocada(rango) {
             medio.splitText(fin - inicio);
             const span = document.createElement('span');
             span.className = 'tocada';
+            // Mientras se escribe se arma de nuevo en cada letra: el brillo sigue donde iba, sin volver a empezar.
+            span.style.animationDelay = `-${Math.round(performance.now() % 2200)}ms`;
             medio.replaceWith(span);
             span.append(medio);
         }
@@ -891,7 +893,17 @@ $('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, 
     mostrarVista('vista-lista-letras');
     renderizarLetras();
 }, undefined, true));
-editorTexto.addEventListener('input', () => { actualizarEditor(); guardarActual(); actualizarDameTema(); });
+// La palabra que se está escribiendo lleva el efecto de la palabra tocada; al terminarla
+// (espacio, signo o renglón nuevo) vuelve a su color.
+function marcarEscribiendo() {
+    const { value, selectionStart, selectionEnd } = editorTexto;
+    if (selectionStart !== selectionEnd) return;
+    const antes = value.slice(0, selectionStart).match(/\p{L}*$/u)[0];
+    if (!antes) return;
+    const despues = value.slice(selectionStart).match(/^\p{L}*/u)[0];
+    marcarTocada({ inicio: selectionStart - antes.length, fin: selectionStart + despues.length });
+}
+editorTexto.addEventListener('input', () => { actualizarEditor(); marcarEscribiendo(); guardarActual(); actualizarDameTema(); });
 $('editor-titulo').addEventListener('input', () => { guardarActual(); actualizarDameTema(); });
 
 // ---------- Dame un tema ----------
