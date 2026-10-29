@@ -1871,6 +1871,20 @@ const servidor = http.createServer((req, res) => {
         await page.reload();
         assert.equal(await fondo(), '#eceff1');
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
+        // Al pasar a oscuro, una letra con tema claro toma el último oscuro usado, y vuelve al claro.
+        const temaLetra = () => page.evaluate(() => JSON.parse(localStorage.getItem('metrica.letras')).find(l => l.id === 'prueba-modo').tema);
+        const letrasAntes = await page.evaluate(() => localStorage.getItem('metrica.letras'));
+        await page.evaluate(() => {
+            const letras = JSON.parse(localStorage.getItem('metrica.letras') ?? '[]');
+            letras.push({ id: 'prueba-modo', titulo: 'Modo', texto: '', creada: 1, editada: 1, tema: 'arena', temas: { claro: 'arena' } });
+            localStorage.setItem('metrica.letras', JSON.stringify(letras));
+            localStorage.setItem('metrica.ultimos-temas', JSON.stringify({ oscuro: 'vinilo', claro: 'arena' }));
+        });
+        await page.locator('button[data-apariencia="oscuro"]').click();
+        assert.equal(await temaLetra(), 'vinilo');
+        await page.locator('button[data-apariencia="claro"]').click();
+        assert.equal(await temaLetra(), 'arena');
+        await page.evaluate(antes => antes === null ? localStorage.removeItem('metrica.letras') : localStorage.setItem('metrica.letras', antes), letrasAntes);
         await page.locator('button[data-apariencia="sistema"]').click();
         assert.equal(await fondo(), fondoSistema);
         assert.equal(await page.locator('button[data-apariencia="sistema"]').getAttribute('aria-pressed'), 'true');

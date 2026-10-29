@@ -3,6 +3,7 @@
 // Solo usa getItem/setItem, así que en los tests alcanza con un objeto simple.
 
 import { mandarAPapelera } from './papelera.js';
+import { temaParaModo } from './compra.js';
 
 const CLAVE_LETRAS = 'metrica.letras';
 const CLAVE_GUARDADAS = 'metrica.guardadas';
@@ -103,4 +104,14 @@ export function alternarGuardada(almacen, palabra) {
     const queda = !guardadas.includes(palabra);
     escribir(almacen, CLAVE_GUARDADAS, queda ? [palabra, ...guardadas] : guardadas.filter(g => g !== palabra));
     return queda;
+}
+
+// Al cambiar la app entre claro y oscuro, cada letra pasa al último tema que usó en ese modo
+// (temaParaModo en compra.js), sin cambiar de lugar en la lista.
+export function adaptarTemasDeLetras(almacen, modo) {
+    escribir(almacen, CLAVE_LETRAS, leer(almacen, CLAVE_LETRAS).map(letra => {
+        if (!letra.tema) return letra;
+        const { tema, temas } = temaParaModo(almacen, letra.tema, letra.temas, modo);
+        return { ...letra, tema, temas };
+    }));
 }

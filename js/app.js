@@ -6,7 +6,7 @@ import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas }
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada, adaptarTemasDeLetras } from './logica/sesiones.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
 import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul } from './logica/baul.js';
@@ -23,7 +23,7 @@ import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijo
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, frasesDelWidget, letraDelWidget, consignaDelDia, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
-import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema } from './logica/compra.js';
+import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
 const COLORES_RIMA = 12;
@@ -505,7 +505,7 @@ function renderizarAjustesBaul() {
     const { tema, opacidad, tamano, separar } = ajustesBaul(localStorage);
     mostrarOpacidad($('opacidad-baul'), opacidad);
     $('temas-baul').replaceChildren(...muestrasDeTemas(tema, clave => {
-        guardarAjusteBaul(localStorage, { tema: clave });
+        guardarAjusteBaul(localStorage, { tema: clave, temas: recordarTema(localStorage, clave, ajustesBaul(localStorage).temas) });
         aplicarTemaBaul();
         renderizarAjustesBaul();
     }));
@@ -3012,7 +3012,7 @@ function renderizarTemas() {
     $('vista-editor').style.setProperty('--opacidad-tema', opacidad);
     mostrarOpacidad($('opacidad-libreta'), opacidad);
     $('temas-libreta').replaceChildren(...muestrasDeTemas(actual, clave => {
-        letraActual = { ...letraActual, tema: clave };
+        letraActual = { ...letraActual, tema: clave, temas: recordarTema(localStorage, clave, letraActual.temas) };
         guardarActual();
         renderizarTemas();
     }));
@@ -4208,15 +4208,38 @@ function renderizarApariencia() {
         marca.className = 'marca-apariencia';
         marca.innerHTML = clave === actual ? TILDE : '';
         boton.append(texto, marca);
-        boton.addEventListener('click', () => { elegirApariencia(localStorage, clave); renderizarApariencia(); });
+        boton.addEventListener('click', () => { elegirApariencia(localStorage, clave); renderizarApariencia(); sincronizarTemasConModo(); });
         celda.append(boton);
         return celda;
     }), $('celda-efectos'));
 }
 
+// Al pasar de claro a oscuro (o al revés), las letras y el baúl con un tema del otro modo vuelven
+// al último que usaron en este (pedido de Swa; temaParaModo en js/logica/compra.js). También si
+// cambia el sistema, con «Sistema» elegido.
+const modoOscuroDelSistema = matchMedia('(prefers-color-scheme: dark)');
+const modoActual = () => {
+    const apariencia = leerApariencia(localStorage);
+    return apariencia === 'sistema' ? (modoOscuroDelSistema.matches ? 'oscuro' : 'claro') : apariencia;
+};
+function sincronizarTemasConModo() {
+    const modo = modoActual();
+    const antes = localStorage.getItem('metrica.modo-temas');
+    localStorage.setItem('metrica.modo-temas', modo);
+    if (!antes || antes === modo) return;
+    adaptarTemasDeLetras(localStorage, modo);
+    const baul = ajustesBaul(localStorage);
+    guardarAjusteBaul(localStorage, temaParaModo(localStorage, baul.tema, baul.temas, modo));
+    if (letraActual) letraActual = listarLetras(localStorage).find(l => l.id === letraActual.id) ?? letraActual;
+    renderizarTemas();
+    if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
+}
+modoOscuroDelSistema.addEventListener('change', sincronizarTemasConModo);
+
 // ---------- Inicio ----------
 renderizarApariencia();
 renderizarExtras();
+sincronizarTemasConModo();
 renderizarLetras();
 renderizarRimas();
 renderizarGuardadas();

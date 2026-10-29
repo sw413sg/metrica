@@ -77,3 +77,36 @@ test('los temas van en dos grupos, oscuros (Gris liso primero) y claros (Blanco 
     assert.equal(oscuros.length, 13);
     assert.equal(claros.length, 9);
 });
+
+test('al cambiar de modo, cada uno vuelve al último tema que usó en ese modo', async () => {
+    const { claseDeTema, recordarTema, temaParaModo, comprarExtras: comprar } = await import('../js/logica/compra.js');
+    const { guardarLetra, listarLetras, adaptarTemasDeLetras } = await import('../js/logica/sesiones.js');
+    const almacen = almacenDePrueba();
+    comprar(almacen);
+    assert.equal(claseDeTema('gris'), null);
+    assert.equal(claseDeTema('arena'), 'claro');
+    assert.equal(claseDeTema('galaxia'), 'oscuro');
+    // Sin nada recordado, un tema claro pasa a Gris liso en oscuro.
+    assert.equal(temaParaModo(almacen, 'arena', {}, 'oscuro').tema, 'gris');
+    // Se eligió Galaxia en algún lado: es el último oscuro.
+    recordarTema(almacen, 'galaxia');
+    const { tema, temas } = temaParaModo(almacen, 'arena', {}, 'oscuro');
+    assert.equal(tema, 'galaxia');
+    // Y al volver a claro, vuelve Arena.
+    assert.equal(temaParaModo(almacen, tema, temas, 'claro').tema, 'arena');
+    // Lo recordado por la letra gana sobre el último de la app.
+    assert.equal(temaParaModo(almacen, 'arena', { oscuro: 'vinilo' }, 'oscuro').tema, 'vinilo');
+    // Gris liso y los del mismo modo no cambian.
+    assert.equal(temaParaModo(almacen, 'gris', {}, 'oscuro').tema, 'gris');
+    assert.deepEqual(recordarTema(almacen, 'gris', { claro: 'arena' }), {});
+    assert.equal(temaParaModo(almacen, 'bosque', {}, 'oscuro').tema, 'bosque');
+    // Las letras guardadas pasan juntas, sin cambiar de lugar.
+    guardarLetra(almacen, { id: 'a', titulo: 'A', texto: 'x', tema: 'menta' }, 1);
+    guardarLetra(almacen, { id: 'b', titulo: 'B', texto: 'y', tema: 'brasa' }, 2);
+    adaptarTemasDeLetras(almacen, 'oscuro');
+    assert.deepEqual(listarLetras(almacen).map(l => [l.id, l.tema]), [['b', 'brasa'], ['a', 'galaxia']]);
+    adaptarTemasDeLetras(almacen, 'claro');
+    assert.deepEqual(listarLetras(almacen).map(l => [l.id, l.tema]), [['b', 'gris'], ['a', 'menta']]);
+    adaptarTemasDeLetras(almacen, 'oscuro');
+    assert.deepEqual(listarLetras(almacen).map(l => [l.id, l.tema]), [['b', 'brasa'], ['a', 'galaxia']]);
+});
