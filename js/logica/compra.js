@@ -73,3 +73,42 @@ export function opacidadDeTema(valor) {
     if (!Number.isFinite(numero)) return OPACIDAD_TEMA.inicial;
     return Math.min(OPACIDAD_TEMA.maxima, Math.max(OPACIDAD_TEMA.minima, numero));
 }
+
+// Modo claro y oscuro (pedido de Swa): al pasar la app a oscuro, lo que tenía un tema claro pasa
+// al último tema oscuro que se usó, y al volver a claro, al último claro. Gris liso se adapta
+// solo a los dos modos, así que no cambia. Cada letra (y el baúl) recuerda el último de cada
+// modo en `temas`; si no tiene, va el último que se eligió en cualquier lado, y si no, Gris liso.
+// Gris liso elegido a propósito no guarda `temas`, así queda fijo.
+const CLAVE_ULTIMOS = 'metrica.ultimos-temas';
+export const claseDeTema = clave => {
+    const tema = TEMAS.find(t => t.clave === clave);
+    if (!tema || clave === TEMA_INICIAL) return null;
+    return tema.oscuro ? 'oscuro' : 'claro';
+};
+
+function leerUltimos(almacen) {
+    try {
+        return JSON.parse(almacen.getItem(CLAVE_ULTIMOS)) ?? {};
+    } catch {
+        return {};
+    }
+}
+
+// Anota el tema que se acaba de elegir y devuelve los `temas` de quien lo eligió, al día.
+export function recordarTema(almacen, clave, temas = {}) {
+    const clase = claseDeTema(clave);
+    // Elegir Gris liso a propósito lo deja fijo en los dos modos: se olvida lo recordado.
+    if (!clase) return {};
+    almacen.setItem(CLAVE_ULTIMOS, JSON.stringify({ ...leerUltimos(almacen), [clase]: clave }));
+    return { ...temas, [clase]: clave };
+}
+
+// El tema que corresponde en un modo ('claro' u 'oscuro'), y los `temas` recordados al día.
+export function temaParaModo(almacen, tema, temas = {}, modo) {
+    const clase = claseDeTema(tema);
+    const recordados = clase ? { ...temas, [clase]: tema } : { ...temas };
+    if (clase === modo) return { tema, temas: recordados };
+    // Gris liso puesto al cambiar de modo (no había otro) vuelve al recordado cuando lo hay.
+    if (!clase) return { tema: recordados[modo] ?? tema, temas: recordados };
+    return { tema: recordados[modo] ?? leerUltimos(almacen)[modo] ?? TEMA_INICIAL, temas: recordados };
+}
