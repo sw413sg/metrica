@@ -580,33 +580,53 @@ function abrirEditor(letra) {
 }
 
 // Desplaza la libreta para que el cursor (la palabra tocada) quede a la vista, arriba del teclado.
-// La posición sale de la copia de abajo del texto, que tiene las mismas letras en el mismo lugar.
-function mostrarCursor() {
-    const cuerpo = editorTexto.closest('.editor');
+// La posición sale de la copia de abajo del texto, que tiene las mismas letras en el mismo lugar:
+// se pone ahí una marca de ancho cero, se mide y se saca. (Medir el punto solo no anda: al principio
+// de un renglón o en uno vacío no da medida, y antes se medía todo el texto y saltaba al final.)
+function medirCursor() {
     let falta = editorTexto.selectionStart;
     const recorrido = document.createTreeWalker($('editor-fondo'), NodeFilter.SHOW_TEXT);
     let nodo;
     while ((nodo = recorrido.nextNode()) && falta > nodo.length) falta -= nodo.length;
-    if (!nodo) return;
+    if (!nodo) return null;
+    const padre = nodo.parentNode;
+    const marca = document.createElement('span');
+    marca.textContent = '\u200b';
     const rango = document.createRange();
     rango.setStart(nodo, Math.min(falta, nodo.length));
-    const cursor = rango.getClientRects()[0] ?? nodo.parentElement.getBoundingClientRect();
+    rango.insertNode(marca);
+    const lugar = marca.getBoundingClientRect();
+    marca.remove();
+    padre.normalize();
+    return lugar;
+}
+// Si el cursor quedó fuera de la parte cómoda (un renglón de margen arriba y abajo), lo lleva al
+// medio de lo que se ve; si ya se ve, no mueve nada (así no salta de un lado a otro).
+function mostrarCursor() {
+    const cursor = medirCursor();
+    if (!cursor || !cursor.height) return;
+    const cuerpo = editorTexto.closest('.editor');
     const visible = cuerpo.getBoundingClientRect();
     const margen = parseFloat(getComputedStyle(editorTexto).lineHeight);
-    if (cursor.bottom + margen > visible.bottom) cuerpo.scrollTop += cursor.bottom + margen - visible.bottom;
-    else if (cursor.top - margen < visible.top) cuerpo.scrollTop -= visible.top - cursor.top + margen;
+    if (cursor.top - margen >= visible.top && cursor.bottom + margen <= visible.bottom) return;
+    cuerpo.scrollTop += (cursor.top + cursor.bottom) / 2 - (visible.top + visible.bottom) / 2;
 }
-// El teclado tarda en subir: se acomoda de nuevo cuando termina.
+// El teclado tarda en subir: se acomoda de nuevo cuando termina (un toque nuevo cancela los anteriores).
+let esperasCursor = [];
 function mostrarCursorDespues() {
-    for (const ms of [0, 300, 600]) setTimeout(mostrarCursor, ms);
+    esperasCursor.forEach(clearTimeout);
+    esperasCursor = [0, 300, 600].map(ms => setTimeout(mostrarCursor, ms));
 }
 
 // Alto del texto, o de toda la libreta si es corto (así se puede tocar en cualquier parte).
 function ajustarAltoTexto() {
-    editorTexto.style.height = 'auto';
+    // Achicarlo un instante para medir puede hacer que el navegador suba la libreta: se guarda dónde estaba.
     const libreta = editorTexto.closest('.editor');
+    const arriba = libreta.scrollTop;
+    editorTexto.style.height = 'auto';
     const abajo = parseFloat(getComputedStyle(editorTexto.closest('.editor-cuerpo')).paddingBottom) || 0;
     editorTexto.style.height = Math.max(editorTexto.scrollHeight, libreta.clientHeight - $('editor-titulo').offsetHeight - abajo) + 'px';
+    libreta.scrollTop = arriba;
 }
 
 function actualizarEditor() {
