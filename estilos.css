@@ -1558,30 +1558,83 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .grupo-widgets:empty { display: none; }
 .grupo-debajo { margin-top: 10px; }
 /* El fondo de pantalla del teléfono: oscuro con luces violetas, igual en claro y oscuro. */
-.inicio-widgets, .bloqueo-widgets, .control-widgets, .muestra-widget.estilo-vidrio {
+.escenario-widgets, .bloqueo-widgets, .control-widgets, .muestra-widget.estilo-vidrio {
     background:
         radial-gradient(120% 70% at 15% 0%, rgba(123, 97, 255, .55), transparent 60%),
         radial-gradient(90% 60% at 100% 100%, rgba(197, 108, 240, .35), transparent 65%),
         radial-gradient(80% 60% at 0% 100%, rgba(40, 90, 200, .35), transparent 70%),
         #15131f;
 }
-/* El inicio, con bordes de 30 como las cajas de Rimas y resplandor violeta. */
-.inicio-widgets {
-    position: relative; margin-top: 14px; padding: 22px 18px; border-radius: 30px;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
-    box-shadow: 0 0 28px color-mix(in srgb, var(--destacado) 30%, transparent);
+/* Inicio, Pantalla bloqueada y Centro de control: un selector arriba, cada uno en su pantalla. */
+.lugares-widgets { margin: 0 0 14px; }
+.lugares-widgets button { flex: 1 1 auto; padding: 8px 6px; font-size: 13px; white-space: nowrap; }
+.panel-widgets[hidden] { display: none; }
+/* Los diseños, uno al lado del otro: se desliza y se frena en cada uno (TabView .page). */
+.carrusel-widgets {
+    display: flex; margin: 14px -16px 0; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+    overscroll-behavior-x: contain;
 }
-.app-muestra { aspect-ratio: 1; border-radius: 22%; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .12); overflow: hidden; }
-.app-muestra img { width: 100%; height: 100%; display: block; }
+.carrusel-widgets::-webkit-scrollbar { display: none; }
+/* El escenario: el fondo de pantalla, con bordes de 30 y resplandor violeta, y el widget solo, a su
+   tamaño real (la grilla de 4 celdas de íconos del inicio). */
+.escenario-widgets {
+    position: relative; flex: 0 0 calc(100% - 32px); margin: 0 16px; scroll-snap-align: center; scroll-snap-stop: always;
+    padding: 22px 18px; border-radius: 30px; box-sizing: border-box;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; align-content: center;
+    min-height: 200px;
+    box-shadow: 0 0 22px color-mix(in srgb, var(--destacado) 22%, transparent);
+}
+.marco-widget { position: relative; display: flex; min-width: 0; transition: none; }
+.marco-widget > .widget { flex: 1; aspect-ratio: auto; animation: aparecer-widget .25s ease; }
+@keyframes aparecer-widget { from { opacity: 0; transform: scale(.97); } }
+.marco-widget.tamano-chico { grid-column: 2 / span 2; aspect-ratio: 1; }
+.marco-widget.tamano-mediano { grid-column: span 4; aspect-ratio: 2.13; }
+.marco-widget.tamano-grande { grid-column: span 4; aspect-ratio: 1; }
+/* La esquina para estirarlo, como al editar el inicio del iPhone. */
+.esquina-widget {
+    position: absolute; right: -7px; bottom: -7px; z-index: 2; width: 30px; height: 30px; touch-action: none; cursor: nwse-resize;
+}
+.esquina-widget::after {
+    content: ""; position: absolute; right: 6px; bottom: 6px; width: 14px; height: 14px;
+    border: solid #fff; border-width: 0 3px 3px 0; border-radius: 0 0 9px 0; opacity: .85;
+    filter: drop-shadow(0 0 4px rgba(0, 0, 0, .5));
+}
+.marco-widget.estirando > .widget { box-shadow: 0 0 0 2px rgba(255, 255, 255, .5); }
+.diseno-widgets { display: flex; flex-direction: column; align-items: center; gap: 7px; margin: 12px 0 4px; }
+.diseno-widgets b { font-size: 17px; font-weight: 600; }
+.nota-widgets { font-size: 12px; color: var(--texto-2); text-align: center; }
+.puntos-widgets { display: flex; gap: 6px; }
+.puntos-widgets button { width: 7px; height: 7px; padding: 0; border-radius: 4px; background: var(--texto-3); transition: width .2s; }
+.puntos-widgets button.elegido { width: 20px; background: var(--destacado); }
 .widget {
     --w-texto: #fff; --w-texto-2: rgba(255, 255, 255, .6); --w-acento: #b9a9ff; --w-linea: rgba(255, 255, 255, .14); --w-relleno: rgba(255, 255, 255, .1);
-    position: relative; display: flex; flex-direction: column; min-width: 0; padding: 14px; border-radius: 22px;
-    color: var(--w-texto); text-align: left; overflow: hidden; animation: aparecer-widget .25s ease;
+    position: relative; isolation: isolate; display: flex; flex-direction: column; min-width: 0; padding: 14px; border-radius: 22px;
+    color: var(--w-texto); text-align: left; overflow: hidden;
 }
-@keyframes aparecer-widget { from { opacity: 0; transform: scale(.97); } }
-.widget.tamano-chico { grid-column: span 2; grid-row: span 2; aspect-ratio: 1; }
-.widget.tamano-mediano { grid-column: span 4; grid-row: span 2; aspect-ratio: 2.13; }
-.widget.tamano-grande { grid-column: span 4; grid-row: span 4; aspect-ratio: 1; }
+/* Foto de fondo: debajo del contenido (z-index -1 adentro del widget, que aísla). */
+.widget-foto, .widget-foto-sombra { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.widget-foto { background-size: cover; background-repeat: no-repeat; }
+.estilo-foto { background: #2d2e30; text-shadow: 0 1px 3px rgba(0, 0, 0, .35); }
+/* La fila «Foto», abajo de los estilos. */
+.foto-widgets { margin: 4px 10px 10px; border-radius: 16px; background: var(--relleno); box-shadow: inset 0 0 0 2px transparent; }
+.foto-widgets.elegida { box-shadow: inset 0 0 0 2px var(--destacado); }
+.boton-foto-widget { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; text-align: left; color: var(--texto); }
+.miniatura-foto { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--tarjeta) center / cover no-repeat; color: var(--texto-2); }
+.miniatura-foto .icono { width: 22px; height: 22px; }
+.texto-foto { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.texto-foto b { font-size: 15px; font-weight: 600; }
+.texto-foto span { font-size: 12px; color: var(--texto-2); }
+.boton-foto-widget .chevron { color: var(--texto-3); }
+.acciones-foto { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 12px; }
+.acciones-foto button { padding: 9px; border-radius: 12px; background: var(--tarjeta); color: var(--texto); font-size: 15px; font-weight: 600; }
+/* Hoja «Ajustar foto». */
+.escenario-foto { margin: 6px 0 0; }
+.escenario-foto .widget { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+.escenario-foto .widget * { pointer-events: none; }
+.nota-foto { margin: 8px 0 4px; }
+.fila-foto-deslizador input[type="range"] { flex: 1; max-width: 62%; accent-color: var(--destacado); }
+.fila-boton { width: 100%; color: var(--texto); text-align: left; }
+.boton-usar-foto { display: block; width: 100%; margin: 16px 0 8px; }
 /* Estilos: vidrio (el del resto de la app), oscuro y claro (los grises de Keep) y violeta. */
 .estilo-vidrio { background: rgba(255, 255, 255, .13); border: 1px solid rgba(255, 255, 255, .2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%); }
 .estilo-oscuro { background: #2d2e30; }
@@ -1662,6 +1715,95 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .widget-acceso:first-child span { box-shadow: 0 0 10px rgba(157, 139, 255, .6); }
 .widget-acceso .icono { width: 18px; height: 18px; }
 .widget-acceso .icono-rec { color: #ff453a; }
+/* Los otros diseños de cada widget. */
+.widget-centrado { align-items: center; justify-content: center; text-align: center !important; }
+.widget-centrado .widget-cabeza { align-self: stretch; justify-content: center; }
+.widget-centrado .widget-pie { margin-top: 0; }
+.widget .tonica { color: var(--w-acento); }
+/* Baúl · Frase: la última, grande y entre comillas. */
+.widget-comillas { font-size: 44px; line-height: .6; height: 18px; font-weight: 800; color: var(--w-acento); font-family: Georgia, serif; }
+.widget-frase-grande { flex: 1; margin: 4px 0 0; font-size: 17px; font-weight: 700; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.tamano-mediano .widget-frase-grande { font-size: 20px; -webkit-line-clamp: 3; padding-right: 36px; }
+.tamano-grande .widget-frase-grande { font-size: 28px; -webkit-line-clamp: 7; }
+.diseno-frase .widget-pie { padding-right: 36px; }
+/* Baúl · Libreta: las frases a mano, en renglones con margen. */
+.widget-libreta { flex: 1; list-style: none; margin: -2px 0 0 14px; padding: 0 0 0 8px; display: flex; flex-direction: column; justify-content: space-evenly; font-family: Noteworthy, "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; }
+.widget-libreta li { min-height: 1.6em; padding-top: 4px; border-bottom: 1px solid var(--w-linea); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tamano-chico .widget-libreta { margin-bottom: 34px; }
+.tamano-chico .widget-libreta li { font-size: 13px; }
+.widget-margen { position: absolute; left: 22px; top: 0; bottom: 0; width: 1.5px; background: color-mix(in srgb, var(--w-acento) 55%, transparent); }
+.diseno-libreta .widget-libreta { padding-right: 34px; }
+/* Baúl · Anotar: el cofre y un botón grande. */
+.widget-anotar-grande {
+    display: flex; align-items: center; justify-content: center !important; gap: 6px; margin-top: auto; height: 38px; padding: 0 14px; border-radius: 19px;
+    color: #fff !important; font-size: 15px; font-weight: 600; text-align: center !important;
+    background: linear-gradient(135deg, #9d8bff, #7b61ff); box-shadow: 0 0 12px rgba(157, 139, 255, .55);
+}
+.estilo-violeta .widget-anotar-grande { background: #fff; color: #5a3fd6 !important; }
+.widget-anotar-grande .icono { width: 18px; height: 18px; stroke-width: 2.6; }
+.diseno-anotar .widget-dos .widget-anotar-grande { margin: 0; flex: 1.1; height: 52px; border-radius: 26px; }
+.widget-cuenta { font-size: 13px; color: var(--w-texto-2); text-align: center; margin-bottom: 8px; }
+.widget-cuenta b { color: var(--w-texto); }
+.widget-tipo-baul.diseno-anotar .widget-izquierda { align-items: center; }
+/* Palabra · Grande y Sílabas. */
+.widget-palabra-enorme { flex: 1; display: grid; place-items: center; white-space: nowrap; font-size: 30px; font-weight: 800; letter-spacing: -.5px; line-height: 1; overflow-wrap: anywhere; }
+.tamano-mediano .widget-palabra-enorme { font-size: 46px; }
+.widget-silabas-bloques { flex: 1; display: flex; flex-wrap: wrap; gap: 5px; align-content: center; }
+.widget-silaba { padding: 6px 9px; border-radius: 10px; background: var(--w-relleno); font-size: 18px; font-weight: 700; }
+.widget-silaba.tonica { color: #fff; background: linear-gradient(135deg, #9d8bff, #7b61ff); box-shadow: 0 0 10px rgba(157, 139, 255, .5); }
+.estilo-violeta .widget-silaba.tonica { background: #fff; color: #5a3fd6; }
+.diseno-silabas .widget-cabeza { text-transform: none; font-size: 13px; letter-spacing: 0; }
+/* Palabra · Rimas: la palabra arriba y la lista. */
+.widget-titulo-rimas { display: flex; align-items: baseline; gap: 6px; }
+.widget-titulo-rimas b { font-size: 20px; font-weight: 800; }
+.widget-titulo-rimas span { font-size: 11px; color: var(--w-texto-2); text-transform: uppercase; letter-spacing: .04em; }
+.widget-lista-rimas { flex: 1; list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-auto-flow: column; grid-template-rows: repeat(4, 1fr); }
+.widget-lista-rimas li { min-width: 0; display: flex; align-items: center; border-top: 0.5px solid var(--w-linea); font-size: 14px; }
+.widget-lista-rimas button { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tamano-mediano .widget-lista-rimas { column-gap: 14px; }
+/* Seguí escribiendo · Título y Último verso. */
+.widget-titulo-grande { flex: 1; margin-top: 8px; font-size: 22px; font-weight: 800; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tamano-grande .widget-titulo-grande { font-size: 34px; -webkit-line-clamp: 5; }
+.widget-pie-fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.widget-seguir { flex: none; padding: 5px 12px; border-radius: 14px; color: #fff; font-size: 13px; font-weight: 600; background: linear-gradient(135deg, #9d8bff, #7b61ff); }
+.estilo-violeta .widget-seguir { background: #fff; color: #5a3fd6; }
+.widget-ultimo-verso { flex: 1; margin: 8px 0 0; font-size: 16px; font-weight: 600; font-style: italic; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.tamano-mediano .widget-ultimo-verso { font-size: 19px; -webkit-line-clamp: 2; }
+.tamano-grande .widget-ultimo-verso { font-size: 26px; -webkit-line-clamp: 7; }
+/* Racha · Llama y Semana. */
+.widget-llama { position: relative; display: grid; place-items: center; flex: none; width: 92px; height: 92px; color: var(--w-texto-2); }
+.widget-llama .icono { position: absolute; inset: 0; width: 100%; height: 100%; stroke-width: 1.2; }
+.widget-llama.prendida .icono { color: #b9a9ff; filter: drop-shadow(0 0 10px rgba(157, 139, 255, .7)); }
+.estilo-claro .widget-llama.prendida .icono { color: #7b61ff; }
+.widget-llama b { position: relative; color: var(--w-texto); margin-top: 26px; font-size: 26px; font-weight: 800; }
+.widget-racha-texto { font-size: 20px; font-weight: 700; line-height: 1.15; }
+.diseno-llama .widget-dos { gap: 16px; }
+.diseno-llama .widget-izquierda .widget-pie { margin-top: 6px; white-space: normal; }
+.semana-grande { flex: 1; align-items: center; justify-content: space-between; }
+.semana-grande .dia-racha i { width: 15px; height: 15px; }
+.tamano-mediano .semana-grande { justify-content: space-between; }
+.tamano-mediano .semana-grande .dia-racha i { width: 30px; height: 30px; }
+/* Accesos · Lista y Anotar grande. */
+.widget-accesos-lista { flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; }
+.tamano-mediano .widget-accesos-lista { grid-template-columns: 1fr 1fr; }
+.widget-acceso-fila { display: flex; align-items: center; gap: 8px; padding: 0 8px; border-radius: 12px; background: var(--w-relleno); font-size: 13px; font-weight: 600; }
+.widget-acceso-fila span, .widget-acceso-chico span { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #9d8bff, #7b61ff); }
+.widget-acceso-fila .icono { width: 15px; height: 15px; }
+.tamano-chico .widget-acceso-fila span { width: 22px; height: 22px; }
+.widget-accesos-anotar { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.widget-accesos-anotar .widget-anotar-grande { flex: 1; margin: 0; height: auto; border-radius: 18px; flex-direction: column; }
+.widget-accesos-anotar .widget-anotar-grande .icono { width: 26px; height: 26px; }
+.tamano-mediano .widget-accesos-anotar { flex-direction: row; }
+.tamano-mediano .widget-accesos-anotar .widget-anotar-grande { flex: 1.3; }
+.widget-accesos-chicos { display: flex; justify-content: space-between; gap: 8px; }
+.tamano-mediano .widget-accesos-chicos { flex: 1; flex-direction: column; justify-content: space-between; }
+.widget-acceso-chico { flex: 1; min-height: 0; display: grid; place-items: center; padding: 4px 0; border-radius: 14px; background: var(--w-relleno); }
+.widget-acceso-chico span { width: 28px; height: 28px; }
+.tamano-mediano .widget-accesos-chicos { gap: 6px; }
+.widget-acceso-chico .icono, .widget-accesos-lista .icono-rec { width: 16px; height: 16px; }
+.tamano-chico .widget-accesos { grid-template-columns: 1fr 1fr; margin-top: 0; }
+.tamano-chico .widget-acceso { font-size: 11px; gap: 3px; }
+.tamano-chico .widget-acceso span { width: 28px; height: 28px; }
 /* Pantalla bloqueada: la hora y los accesorios en blanco, como en iOS. */
 .bloqueo-widgets { display: flex; flex-direction: column; align-items: center; padding: 18px 18px 22px; border-radius: 30px; color: #fff; }
 .bloqueo-fecha { font-size: 15px; font-weight: 600; opacity: .85; }

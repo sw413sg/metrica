@@ -22,7 +22,7 @@ import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantid
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
-import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, frasesDelWidget, letraDelWidget, consignaDelDia, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
+import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDelWidget, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
@@ -3267,8 +3267,9 @@ $('restaurar-compra').addEventListener('click', () => {
 $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); renderizarExtras(); });
 
 // ---------- Widgets (Ajustes -> Widgets) ----------
-// Se eligen y se configuran viendo cómo quedan en el inicio, en la pantalla bloqueada y en el
-// Centro de control. En la app nativa van con WidgetKit y App Intents; acá cada toque de la muestra
+// Inicio, Pantalla bloqueada y Centro de control van en tres pantallas (un selector arriba). En el
+// inicio, cada widget tiene varios diseños que se pasan deslizando y se estira desde la esquina para
+// cambiar de tamaño; de fondo, un estilo o una foto propia. En la app nativa van con WidgetKit y App Intents; acá cada toque de la muestra
 // hace lo mismo que hará el widget (abrir el baúl para anotar, la letra, las rimas, el freestyle...).
 let widgetElegido = 'baul';
 const ICONOS_WIDGET = {
@@ -3516,28 +3517,73 @@ const cabeza = (icono, texto) => `<span class="widget-cabeza">${icono ? ICONOS_W
 const tocable = (accion, dato, clase, html, etiqueta) =>
     `<button type="button" class="${clase}" data-accion="${accion}"${dato ? ` data-dato="${escapar(dato)}"` : ''}${etiqueta ? ` aria-label="${escapar(etiqueta)}"` : ''}>${html}</button>`;
 const botonMas = (texto = '') => `<span class="widget-mas">${ICONOS_WIDGET.mas}</span>${escapar(texto)}`;
+const cofreGrande = () => `<span class="widget-cofre">${ICONOS_WIDGET.cofre}</span>`;
+// La palabra con la sílaba tónica en violeta, como en el aro de Freestyle.
+const palabraConTonica = palabra => {
+    const fuerte = silabaFuerte(palabra);
+    if (!fuerte) return escapar(palabra);
+    return fuerte.silabas.map((s, i) => (i === fuerte.tonica ? `<span class="tonica">${escapar(s)}</span>` : escapar(s))).join('');
+};
+const ACCESOS = [['anotar', 'Anotar'], ['nueva-letra', 'Letra'], ['rimas', 'Rimas'], ['freestyle', 'Freestyle']];
+const iconoAcceso = accion => `<span>${ICONOS_WIDGET[ICONO_ACCION[accion]]}</span>`;
 
-// El contenido de cada widget, con los datos de verdad (frases, letras, racha...).
+// El contenido de cada widget en cada diseño, con los datos de verdad (frases, letras, racha...).
 const CONTENIDO_WIDGET = {
-    baul({ tamano, ...ajustes }) {
+    baul({ tamano, diseno, ...ajustes }) {
         const frases = frasesDelWidget(frasesParaWidget(), { tamano, ...ajustes });
+        const anotarSolo = tocable('anotar', '', 'widget-anotar widget-anotar-solo', botonMas(), 'Anotá');
+        if (diseno === 'frase') {
+            const texto = frasesDelWidget(frasesParaWidget(), { ...ajustes, tamano: 'chico' })[0];
+            if (!texto) return cofreGrande() + tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'));
+            return `<span class="widget-comillas">“</span><p class="widget-frase-grande">${escapar(texto)}</p>` +
+                `<span class="widget-pie">${tamano === 'chico' ? 'Baúl' : 'Tu última frase'}</span>` + anotarSolo;
+        }
+        if (diseno === 'libreta') {
+            const renglones = { chico: 3, mediano: 3, grande: 8 }[tamano];
+            const lineas = Array.from({ length: renglones }, (_, i) => `<li>${escapar(frases[i] ?? '')}</li>`).join('');
+            return `<span class="widget-margen"></span><ul class="widget-libreta">${lineas}</ul>` + anotarSolo;
+        }
+        if (diseno === 'anotar') {
+            const todas = listarFrases(localStorage);
+            const sinUsar = todas.filter(f => !f.usada).length;
+            const cuenta = `<span class="widget-cuenta"><b>${todas.length}</b> ${todas.length === 1 ? 'frase' : 'frases'}${todas.length ? ` · ${sinUsar} sin usar` : ''}</span>`;
+            const boton = tocable('anotar', '', 'widget-anotar-grande', `${ICONOS_WIDGET.mas}<span>${tamano === 'chico' ? 'Anotá' : 'Anotá una frase'}</span>`);
+            if (tamano === 'mediano') return `<div class="widget-dos"><div class="widget-izquierda">${cofreGrande()}${cuenta}</div>${boton}</div>`;
+            return cofreGrande() + (tamano === 'grande' ? cuenta : '') + boton;
+        }
         const titulo = { chico: 'Baúl', mediano: 'Baúl · Últimas', grande: 'Baúl de frases' }[tamano];
         if (tamano === 'chico') {
-            const medio = frases.length ? `<p class="widget-frase">${escapar(frases[0])}</p>` : `<span class="widget-cofre">${ICONOS_WIDGET.cofre}</span>`;
+            const medio = frases.length ? `<p class="widget-frase">${escapar(frases[0])}</p>` : cofreGrande();
             return cabeza('cofre', titulo) + medio + tocable('anotar', '', 'widget-anotar', botonMas('Anotá'));
         }
-        if (!frases.length) {
-            return cabeza('cofre', titulo) + `<span class="widget-cofre">${ICONOS_WIDGET.cofre}</span>` + tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'));
-        }
+        if (!frases.length) return cabeza('cofre', titulo) + cofreGrande() + tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'));
         const lista = frases.map(f => `<li>${escapar(f)}</li>`).join('');
-        const pista = tamano === 'grande' && frases.length < 5 ? '<li class="widget-pista">Tocá + para anotar</li>' : '';
-        const abajo = tamano === 'grande'
-            ? tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'))
-            : tocable('anotar', '', 'widget-anotar widget-anotar-solo', botonMas(), 'Anotá');
-        return cabeza('cofre', titulo) + `<ul class="widget-frases">${lista}${pista}</ul>` + abajo;
+        const abajo = tamano === 'grande' ? tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase')) : anotarSolo;
+        return cabeza('cofre', titulo) + `<ul class="widget-frases">${lista}</ul>` + abajo;
     },
-    palabra({ tamano, tipoRima }) {
+    palabra({ tamano, diseno, tipoRima }) {
         const palabra = palabraHoy();
+        const tipo = tipoRima === 'asonante' ? 'Asonantes' : 'Consonantes';
+        if (diseno === 'grande') {
+            const rimas = rimasDe(palabra, tipoRima, 2);
+            return tocable('rimas', palabra, 'widget-todo widget-centrado', cabeza('chispa', 'Palabra del día') +
+                `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(tamano === 'chico' ? 30 : 46, Math.floor((tamano === 'chico' ? 200 : 440) / palabra.length))}px">${palabraConTonica(palabra)}</span></b>` +
+                `<span class="widget-pie">${tamano === 'chico' ? escapar(rimas[0] ?? '') : `rima con ${rimas.map(escapar).join(' y ')}`}</span>`);
+        }
+        if (diseno === 'silabas') {
+            const fuerte = silabaFuerte(palabra);
+            const silabas = (fuerte?.silabas ?? separarSilabas(palabra)).map((s, i) =>
+                `<span class="widget-silaba${i === fuerte?.tonica ? ' tonica' : ''}">${escapar(s)}</span>`).join('');
+            const cuantas = fuerte?.silabas.length ?? 0;
+            const rimas = tamano === 'mediano' ? `<div class="widget-rimas">${rimasDe(palabra, tipoRima, 4).map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div>` : '';
+            return cabeza('chispa', escapar(palabra)) + `<div class="widget-dos">${tocable('rimas', palabra, 'widget-silabas-bloques', silabas)}${rimas}</div>` +
+                `<span class="widget-pie">${cuantas} ${cuantas === 1 ? 'sílaba' : 'sílabas'}</span>`;
+        }
+        if (diseno === 'rimas') {
+            const rimas = rimasDe(palabra, tipoRima, tamano === 'chico' ? 4 : 8);
+            return tocable('rimas', palabra, 'widget-titulo-rimas', `<b>${palabraConTonica(palabra)}</b>${tamano === 'chico' ? '' : `<span>${tipo}</span>`}`) +
+                `<ul class="widget-lista-rimas">${rimas.map(r => `<li>${tocable('rimas', r, '', escapar(r))}</li>`).join('')}</ul>`;
+        }
         const rimas = rimasDe(palabra, tipoRima, tamano === 'chico' ? 1 : 6);
         const silabas = separarSilabas(palabra).join(' · ');
         if (tamano === 'chico') {
@@ -3548,53 +3594,60 @@ const CONTENIDO_WIDGET = {
         return cabeza('chispa', 'Palabra del día') + `<div class="widget-dos">
             ${tocable('rimas', palabra, 'widget-izquierda', `<b class="widget-palabra">${escapar(palabra)}</b><span class="widget-silabas">${escapar(silabas)}</span>`)}
             <div class="widget-rimas">${rimas.map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div></div>
-            <span class="widget-pie">${tipoRima === 'asonante' ? 'Asonantes' : 'Consonantes'} · tocá una para ver sus rimas</span>`;
+            <span class="widget-pie">${tipo}</span>`;
     },
-    consigna({ tamano, categoria: filtro }) {
-        const consigna = consignaDelDia(CONSIGNAS, { categoria: filtro });
-        const categoria = CATEGORIAS_TEMA.find(c => c.id === consigna?.categoria);
-        const empujon = tamano === 'mediano' && consigna?.empujon ? `<p class="widget-empujon">${escapar(consigna.empujon)}</p>` : '';
-        return tocable('consigna', consigna?.id, 'widget-todo', cabeza('chispa', tamano === 'chico' ? 'Consigna' : `Consigna del día${categoria ? ` · ${categoria.nombre}` : ''}`) +
-            `<p class="widget-consigna">${escapar(consigna?.texto ?? '')}</p>${empujon}<span class="widget-pie">Empezá a escribir ›</span>`);
-    },
-    letra({ tamano, letra: elegida }) {
+    letra({ tamano, diseno, letra: elegida }) {
         const letra = letraDelWidget(listarLetras(localStorage), { letra: elegida, tamano });
         if (!letra) {
             return cabeza('lapiz', 'Seguí escribiendo') + '<p class="widget-frase">Todavía no hay letras</p>' + tocable('nueva-letra', '', 'widget-anotar', botonMas('Nueva letra'));
         }
+        const versos = `${letra.versos} ${letra.versos === 1 ? 'verso' : 'versos'}`;
+        if (diseno === 'titulo') {
+            return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', tamano === 'chico' ? 'Seguí' : 'Seguí escribiendo') +
+                `<b class="widget-titulo-grande">${escapar(letra.titulo)}</b>` +
+                `<span class="widget-pie-fila"><span class="widget-pie">${versos}</span><span class="widget-seguir">Seguí</span></span>`);
+        }
+        if (diseno === 'verso') {
+            return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', tamano === 'chico' ? 'Seguí' : 'Donde quedaste') +
+                `<p class="widget-ultimo-verso">${escapar(letra.ultimo || 'Sin versos todavía')}</p>` +
+                `<span class="widget-pie"><b>${escapar(letra.titulo)}</b>${tamano === 'chico' ? '' : ` · ${versos}`}</span>`);
+        }
         const renglones = letra.renglones.map(r => `<li>${escapar(r)}</li>`).join('') || '<li class="widget-pista">Sin versos todavía</li>';
-        const pie = tamano === 'chico' ? '' : `<span class="widget-pie">${letra.versos} ${letra.versos === 1 ? 'verso' : 'versos'} · Seguí ›</span>`;
+        const pie = tamano === 'chico' ? '' : `<span class="widget-pie">${versos} · Seguí ›</span>`;
         return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', tamano === 'chico' ? 'Seguí' : 'Seguí escribiendo') +
             `<b class="widget-titulo-letra">${escapar(letra.titulo)}</b><ul class="widget-renglones">${renglones}</ul>${pie}`);
     },
-    freestyle({ tamano, beat: beatElegido }) {
-        const beat = CATALOGO_BEATS.find(b => b.id === beatElegido) ?? CATALOGO_BEATS[0];
-        const datos = beat.bpm ? `${beat.bpm} BPM` : beat.silencio ? 'Sin beat' : 'Métrica';
-        const play = tocable('freestyle', beat.id, 'widget-play', `<span class="widget-aro">${ICONOS_WIDGET.play}</span>`, `Arrancar con ${beat.nombre}`);
-        if (tamano === 'chico') {
-            return cabeza('mic', 'Freestyle') + `<div class="widget-centro">${play}</div><span class="widget-pie"><b>${escapar(beat.nombre)}</b> · ${datos}</span>`;
-        }
-        const generos = GENEROS_BEAT.map(genero => {
-            const primero = genero === beat.genero ? beat : CATALOGO_BEATS.find(b => b.genero === genero);
-            return tocable('freestyle', primero.id, `widget-genero${genero === beat.genero ? ' elegido' : ''}`, escapar(genero));
-        }).join('');
-        return cabeza('mic', 'Freestyle') + `<div class="widget-dos">${play}<div class="widget-generos">${generos}</div></div>
-            <span class="widget-pie"><b>${escapar(beat.nombre)}</b> · ${datos} · rondas de 1 min</span>`;
-    },
-    racha({ tamano }) {
+    racha({ tamano, diseno }) {
         const fechas = fechasEscritas();
         const { dias, escribioHoy } = racha(fechas);
-        const numero = `<b class="widget-numero">${dias}</b><span class="widget-dias">${dias === 1 ? 'día escribiendo' : 'días escribiendo'}</span>`;
+        const textoDias = dias === 1 ? 'día escribiendo' : 'días escribiendo';
         const pie = `<span class="widget-pie">${escribioHoy ? 'Hoy ya escribiste' : 'Seguí hoy: anotá una frase'}</span>`;
-        if (tamano === 'chico') return tocable('anotar', '', 'widget-todo', cabeza('llama', 'Racha') + numero + pie);
         const semana = ultimaSemana(fechas).map(d =>
             `<span class="dia-racha${d.escribio ? ' escribio' : ''}${d.hoy ? ' hoy' : ''}"><i></i>${d.inicial}</span>`).join('');
+        if (diseno === 'llama') {
+            const llama = `<span class="widget-llama${escribioHoy ? ' prendida' : ''}">${ICONOS_WIDGET.llama}<b>${dias}</b></span>`;
+            if (tamano === 'chico') return tocable('anotar', '', 'widget-todo widget-centrado', llama + `<span class="widget-dias">${textoDias}</span>`);
+            return tocable('anotar', '', 'widget-todo', `<div class="widget-dos">${llama}<div class="widget-izquierda"><b class="widget-racha-texto">${dias} ${textoDias}</b>${pie}</div></div>`);
+        }
+        if (diseno === 'semana') {
+            return tocable('anotar', '', 'widget-todo', cabeza('llama', `Racha · ${dias}`) + `<div class="semana-racha semana-grande">${semana}</div>` + pie);
+        }
+        const numero = `<b class="widget-numero">${dias}</b><span class="widget-dias">${textoDias}</span>`;
+        if (tamano === 'chico') return tocable('anotar', '', 'widget-todo', cabeza('llama', 'Racha') + numero + pie);
         return tocable('anotar', '', 'widget-todo', cabeza('llama', 'Racha') + `<div class="widget-dos"><div class="widget-izquierda">${numero}</div><div class="semana-racha">${semana}</div></div>` + pie);
     },
-    accesos() {
-        const accesos = [['anotar', 'Anotar'], ['nueva-letra', 'Letra'], ['rimas', 'Rimas'], ['freestyle', 'Freestyle']];
-        return cabeza('', 'Métrica') + `<div class="widget-accesos">${accesos.map(([accion, nombre]) =>
-            tocable(accion, '', 'widget-acceso', `<span>${ICONOS_WIDGET[ICONO_ACCION[accion]]}</span>${nombre}`)).join('')}</div>`;
+    accesos({ diseno }) {
+        if (diseno === 'lista') {
+            return `<div class="widget-accesos-lista">${ACCESOS.map(([accion, nombre]) =>
+                tocable(accion, '', 'widget-acceso-fila', `${iconoAcceso(accion)}${nombre}`)).join('')}</div>`;
+        }
+        if (diseno === 'anotar') {
+            const [anotar, ...resto] = ACCESOS;
+            return `<div class="widget-accesos-anotar">${tocable(anotar[0], '', 'widget-anotar-grande', `${ICONOS_WIDGET.mas}<span>Anotá una frase</span>`)}
+                <div class="widget-accesos-chicos">${resto.map(([accion, nombre]) => tocable(accion, '', 'widget-acceso-chico', iconoAcceso(accion), nombre)).join('')}</div></div>`;
+        }
+        return `<div class="widget-accesos">${ACCESOS.map(([accion, nombre]) =>
+            tocable(accion, '', 'widget-acceso', `${iconoAcceso(accion)}${nombre}`)).join('')}</div>`;
     },
 };
 
@@ -3632,25 +3685,13 @@ function opcionesWidget(id, ajustes) {
         filaInterruptor('Solo las sin usar', ajustes.soloSinUsar, v => guardar({ soloSinUsar: v }), !ajustes.mostrarFrases),
     ];
     if (id === 'palabra') return [filaMenu('Rimas', [{ id: 'consonante', nombre: 'Consonantes' }, { id: 'asonante', nombre: 'Asonantes' }], ajustes.tipoRima, v => guardar({ tipoRima: v }))];
-    if (id === 'consigna') return [filaMenu('Categoría', [{ id: 'todas', nombre: 'Todas' }, ...CATEGORIAS_TEMA], ajustes.categoria, v => guardar({ categoria: v }))];
     if (id === 'letra') {
         const letras = listarLetras(localStorage).map(l => ({ id: l.id, nombre: l.titulo?.trim() || 'Sin título' }));
         const valor = letras.some(l => l.id === ajustes.letra) ? ajustes.letra : 'ultima';
         return [filaMenu('Letra', [{ id: 'ultima', nombre: 'La última editada' }, ...letras], valor, v => guardar({ letra: v }))];
     }
-    if (id === 'freestyle') return [filaMenu('Beat', CATALOGO_BEATS.map(b => ({ id: b.id, nombre: b.nombre })), ajustes.beat, v => guardar({ beat: v }))];
     return [];
 }
-
-const PIE_WIDGET = {
-    baul: () => (listarFrases(localStorage).length ? 'Probalo: tocá + y anotá como desde el inicio.' : 'Con frases de ejemplo hasta que anotes en el baúl. Probalo: tocá +.'),
-    palabra: () => 'Una palabra por día con sus rimas. Tocá una para buscar las suyas.',
-    consigna: () => 'Una consigna por día. Tocala y arranca una letra con ella.',
-    letra: () => 'La letra que dejaste a medias, para retomarla en un toque.',
-    freestyle: () => 'El play arranca la ronda con el beat elegido.',
-    racha: () => 'Días seguidos anotando frases o escribiendo letras.',
-    accesos: () => 'Cuatro atajos: anotar, letra nueva, rimas y freestyle.',
-};
 
 // Pantalla bloqueada: accesorios en blanco, como los de iOS.
 function accesorioRedondo(id) {
@@ -3667,13 +3708,9 @@ function accesorioRectangular(id) {
         const palabra = palabraHoy();
         return tocable('rimas', palabra, 'accesorio-largo', `<b>${ICONOS_WIDGET.chispa}Palabra</b><span>${escapar(palabra)} · ${escapar(rimasDe(palabra, 'consonante', 1)[0] ?? '')}</span>`);
     }
-    if (id === 'consigna') {
-        const consigna = consignaDelDia(CONSIGNAS);
-        return tocable('consigna', consigna?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.chispa}Consigna</b><span>${escapar(consigna?.texto ?? '')}</span>`);
-    }
     if (id === 'letra') {
         const letra = letraDelWidget(listarLetras(localStorage));
-        return tocable(letra ? 'letra' : 'nueva-letra', letra?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.lapiz}${escapar(letra?.titulo ?? 'Letras')}</b><span>${escapar(letra?.renglones.at(-1) ?? 'Empezá una letra')}</span>`);
+        return tocable(letra ? 'letra' : 'nueva-letra', letra?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.lapiz}${escapar(letra?.titulo ?? 'Letras')}</b><span>${escapar(letra?.ultimo || 'Empezá una letra')}</span>`);
     }
     const ultima = frasesDelWidget(frasesParaWidget())[0];
     return tocable('anotar', '', 'accesorio-largo', `<b>${ICONOS_WIDGET.cofre}Baúl</b><span>${escapar(ultima ?? 'Anotá una frase')}</span>`);
@@ -3687,10 +3724,38 @@ function lineaBloqueo(id) {
     return '';
 }
 
-function renderizarWidgets() {
-    const ajustes = ajustesWidget(localStorage, widgetElegido);
-    const widget = WIDGETS.find(w => w.id === widgetElegido);
+// Un widget armado: el marco ocupa las celdas de su tamaño y lleva la esquina para estirarlo; adentro,
+// el widget con su estilo (y la foto, si tiene) y el diseño pedido.
+const capasFoto = foto => `<div class="widget-foto" style="background-image:url(${foto.src});background-position:${foto.x}% ${foto.y}%;transform:scale(${foto.z});transform-origin:${foto.x}% ${foto.y}%"></div>` +
+    `<div class="widget-foto-sombra" style="background:rgba(0,0,0,${foto.oscuro})"></div>`;
+function pintarWidget(widget, id, ajustes) {
+    widget.className = `widget widget-tipo-${id} diseno-${ajustes.diseno} tamano-${ajustes.tamano} estilo-${ajustes.estilo}`;
+    widget.innerHTML = (ajustes.estilo === 'foto' ? capasFoto(ajustes.foto) : '') + CONTENIDO_WIDGET[id](ajustes);
+}
+function marcoWidget(id, ajustes, conEsquina = true) {
+    const marco = document.createElement('div');
+    marco.className = `marco-widget tamano-${ajustes.tamano}`;
+    const widget = document.createElement('div');
+    pintarWidget(widget, id, ajustes);
+    marco.append(widget);
+    if (conEsquina && WIDGETS.find(w => w.id === id).tamanos.length > 1) {
+        const esquina = document.createElement('span');
+        esquina.className = 'esquina-widget';
+        esquina.setAttribute('role', 'button');
+        esquina.setAttribute('aria-label', 'Cambiar el tamaño');
+        marco.append(esquina);
+    }
+    return marco;
+}
 
+let lugarWidgets = 'inicio';
+function renderizarWidgets() {
+    $('widgets-lugares').querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', b.dataset.lugar === lugarWidgets));
+    for (const lugar of ['inicio', 'bloqueo', 'control']) $(`widgets-panel-${lugar}`).hidden = lugar !== lugarWidgets;
+    if (lugarWidgets === 'bloqueo') return renderizarBloqueo();
+    if (lugarWidgets === 'control') return renderizarControl();
+
+    const ajustes = ajustesWidget(localStorage, widgetElegido);
     $('widgets-tipos').replaceChildren(...WIDGETS.map(w => {
         const boton = document.createElement('button');
         boton.type = 'button';
@@ -3702,29 +3767,7 @@ function renderizarWidgets() {
     }));
     $('widgets-tipos').querySelector('[aria-pressed="true"]').scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
 
-    // El inicio: el widget al tamaño real, entre íconos de muestra (uno es el de Métrica).
-    const muestra = document.createElement('div');
-    muestra.className = `widget widget-tipo-${widgetElegido} tamano-${ajustes.tamano} estilo-${ajustes.estilo}`;
-    muestra.innerHTML = CONTENIDO_WIDGET[widgetElegido](ajustes);
-    const iconos = { chico: 8, mediano: 4, grande: 0 }[ajustes.tamano];
-    $('widgets-inicio').replaceChildren(muestra, ...Array.from({ length: iconos }, (_, i) => {
-        const app = document.createElement('span');
-        app.className = 'app-muestra';
-        if (i === 1) app.innerHTML = '<img src="assets/logo/icono.svg" alt="">';
-        return app;
-    }));
-    $('widgets-pie').textContent = PIE_WIDGET[widgetElegido]();
-
-    $('widgets-tamanos').replaceChildren(...TAMANOS.map(t => {
-        const boton = document.createElement('button');
-        boton.type = 'button';
-        boton.textContent = t.nombre;
-        boton.setAttribute('role', 'tab');
-        boton.setAttribute('aria-selected', t.id === ajustes.tamano);
-        boton.disabled = !widget.tamanos.includes(t.id);
-        boton.addEventListener('click', () => { guardarAjusteWidget(localStorage, widgetElegido, { tamano: t.id }); renderizarWidgets(); });
-        return boton;
-    }));
+    renderizarCarrusel();
 
     $('widgets-estilos').replaceChildren(...ESTILOS.map(e => {
         const boton = document.createElement('button');
@@ -3735,12 +3778,111 @@ function renderizarWidgets() {
         boton.addEventListener('click', () => { guardarAjusteWidget(localStorage, widgetElegido, { estilo: e.id }); renderizarWidgets(); });
         return boton;
     }));
+    renderizarFilaFoto(ajustes);
 
     const opciones = opcionesWidget(widgetElegido, ajustes);
     $('widgets-opciones').replaceChildren(...opciones);
     $('widgets-contenido').hidden = !opciones.length;
+}
 
-    // Pantalla bloqueada.
+// El carrusel: un escenario por diseño (el fondo de pantalla, sin íconos), con el widget a su tamaño real.
+function renderizarCarrusel() {
+    const ajustes = ajustesWidget(localStorage, widgetElegido);
+    const widget = WIDGETS.find(w => w.id === widgetElegido);
+    const carrusel = $('widgets-carrusel');
+    const actual = widget.disenos.findIndex(d => d.id === ajustes.diseno);
+    carrusel.replaceChildren(...widget.disenos.map(d => {
+        const escenario = document.createElement('div');
+        escenario.className = 'escenario-widgets';
+        escenario.dataset.diseno = d.id;
+        escenario.append(marcoWidget(widgetElegido, { ...ajustes, diseno: d.id }));
+        return escenario;
+    }));
+    carrusel.scrollLeft = actual * carrusel.clientWidth;
+    marcarDiseno(actual);
+}
+function marcarDiseno(indice) {
+    const widget = WIDGETS.find(w => w.id === widgetElegido);
+    const ajustes = ajustesWidget(localStorage, widgetElegido);
+    $('widgets-diseno').textContent = `${widget.disenos[indice].nombre} · ${TAMANOS.find(t => t.id === ajustes.tamano).nombre}`;
+    $('widgets-puntos').replaceChildren(...widget.disenos.map((d, i) => {
+        const punto = document.createElement('button');
+        punto.type = 'button';
+        punto.className = i === indice ? 'elegido' : '';
+        punto.setAttribute('aria-label', d.nombre);
+        punto.addEventListener('click', () => $('widgets-carrusel').scrollTo({ left: i * $('widgets-carrusel').clientWidth, behavior: 'smooth' }));
+        return punto;
+    }));
+}
+// Al terminar de deslizar, queda elegido el diseño que se ve.
+let esperaCarrusel;
+$('widgets-carrusel').addEventListener('scroll', () => {
+    clearTimeout(esperaCarrusel);
+    esperaCarrusel = setTimeout(() => {
+        const carrusel = $('widgets-carrusel');
+        if (!carrusel.clientWidth) return;
+        const widget = WIDGETS.find(w => w.id === widgetElegido);
+        const indice = Math.max(0, Math.min(widget.disenos.length - 1, Math.round(carrusel.scrollLeft / carrusel.clientWidth)));
+        if (widget.disenos[indice].id === ajustesWidget(localStorage, widgetElegido).diseno) return;
+        guardarAjusteWidget(localStorage, widgetElegido, { diseno: widget.disenos[indice].id });
+        marcarDiseno(indice);
+    }, 120);
+});
+
+// Estirar desde la esquina: mientras se arrastra, el widget toma el tamaño más cercano al dedo; un
+// toque sin arrastrar pasa al siguiente (en el iPhone, el tamaño se elige al agregar el widget).
+let estirando = null;
+function cambiarTamanoWidget(tamano) {
+    const ajustes = guardarAjusteWidget(localStorage, widgetElegido, { tamano });
+    $('widgets-carrusel').querySelectorAll('.escenario-widgets').forEach(escenario => {
+        const marco = escenario.querySelector('.marco-widget');
+        marco.className = `marco-widget tamano-${ajustes.tamano}`;
+        pintarWidget(marco.querySelector('.widget'), widgetElegido, { ...ajustes, diseno: escenario.dataset.diseno });
+    });
+    marcarDiseno(WIDGETS.find(w => w.id === widgetElegido).disenos.findIndex(d => d.id === ajustes.diseno));
+}
+$('widgets-carrusel').addEventListener('pointerdown', e => {
+    const esquina = e.target.closest('.esquina-widget');
+    if (!esquina) return;
+    e.preventDefault();
+    const marco = esquina.parentElement;
+    const escenario = marco.parentElement;
+    const caja = marco.getBoundingClientRect();
+    const estilo = getComputedStyle(escenario);
+    const hueco = parseFloat(estilo.columnGap) || 0;
+    const ancho = escenario.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight);
+    estirando = { x: e.clientX, y: e.clientY, izquierda: caja.left, arriba: caja.top, celda: (ancho + hueco) / 4, hueco, movio: false };
+    esquina.setPointerCapture(e.pointerId);
+    marco.classList.add('estirando');
+});
+$('widgets-carrusel').addEventListener('pointermove', e => {
+    if (!estirando) return;
+    if (Math.hypot(e.clientX - estirando.x, e.clientY - estirando.y) > 6) estirando.movio = true;
+    if (!estirando.movio) return;
+    const { izquierda, arriba, celda, hueco } = estirando;
+    const columnas = (e.clientX - izquierda + hueco) / celda;
+    const filas = (e.clientY - arriba + hueco) / celda;
+    const tamano = tamanoAlEstirar(WIDGETS.find(w => w.id === widgetElegido).tamanos, columnas, filas);
+    if (tamano !== ajustesWidget(localStorage, widgetElegido).tamano) cambiarTamanoWidget(tamano);
+});
+['pointerup', 'pointercancel'].forEach(tipo => $('widgets-carrusel').addEventListener(tipo, e => {
+    if (!estirando) return;
+    if (!estirando.movio && tipo === 'pointerup') {
+        const widget = WIDGETS.find(w => w.id === widgetElegido);
+        cambiarTamanoWidget(siguienteTamano(widget.tamanos, ajustesWidget(localStorage, widgetElegido).tamano));
+    }
+    estirando = null;
+    $('widgets-carrusel').querySelectorAll('.estirando').forEach(m => m.classList.remove('estirando'));
+}));
+
+$('widgets-lugares').addEventListener('click', e => {
+    const boton = e.target.closest('[data-lugar]');
+    if (!boton || boton.dataset.lugar === lugarWidgets) return;
+    lugarWidgets = boton.dataset.lugar;
+    renderizarWidgets();
+});
+
+function renderizarBloqueo() {
     const bloqueo = ajustesBloqueo(localStorage);
     const fecha = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
     $('widgets-bloqueo').innerHTML = `<span class="bloqueo-fecha">${fecha}</span>
@@ -3753,9 +3895,11 @@ function renderizarWidgets() {
         filaMenu('Redondo', BLOQUEO.redondo, bloqueo.redondo, guardarBloqueo('redondo')),
         filaMenu('Rectangular', BLOQUEO.rectangular, bloqueo.rectangular, guardarBloqueo('rectangular')),
     );
+}
 
-    // Centro de control y Botón de acción: el control de Métrica entre otros de muestra.
-    const accion = ACCIONES.find(a => a.id === bloqueo.accion);
+// Centro de control y Botón de acción: el control de Métrica entre otros de muestra.
+function renderizarControl() {
+    const accion = ACCIONES.find(a => a.id === ajustesBloqueo(localStorage).accion);
     $('widgets-control').innerHTML = `<div class="centro-control">
             <span class="control-muestra"></span><span class="control-muestra"></span>
             ${tocable(accion.id, '', 'control-metrica', ICONOS_WIDGET[ICONO_ACCION[accion.id]], accion.nombre)}
@@ -3764,8 +3908,109 @@ function renderizarWidgets() {
         <span class="control-nombre">${escapar(accion.nombre)}</span>
         ${tocable(accion.id, '', 'isla-accion', `<span>${ICONOS_WIDGET[ICONO_ACCION[accion.id]]}</span>${escapar(accion.nombre)}`)}
         <span class="control-nota">Así aparece al apretar el Botón de acción</span>`;
-    $('widgets-opciones-accion').replaceChildren(filaMenu('Acción', ACCIONES, bloqueo.accion, v => guardarAjusteBloqueo(localStorage, { accion: v })));
+    $('widgets-opciones-accion').replaceChildren(filaMenu('Acción', ACCIONES, accion.id, v => guardarAjusteBloqueo(localStorage, { accion: v })));
 }
+
+// ---------- Foto de fondo de un widget ----------
+// La fila «Foto» va abajo de los estilos: sin foto, abre las fotos del teléfono; con foto, la pone de
+// fondo, y elegida muestra Ajustar y Cambiar foto. La foto se achica acá mismo y no se sube a ningún lado.
+function renderizarFilaFoto(ajustes) {
+    const foto = ajustes.foto?.src ? ajustes.foto : null;
+    const elegida = ajustes.estilo === 'foto';
+    const miniatura = foto ? `<span class="miniatura-foto" style="background-image:url(${foto.src})"></span>`
+        : `<span class="miniatura-foto">${ICONO_FOTO}</span>`;
+    const subtitulo = elegida ? 'Es el fondo de este widget' : foto ? 'Tocá para usarla de fondo' : 'Elegí una foto de tu iPhone';
+    $('widgets-foto').className = `foto-widgets${elegida ? ' elegida' : ''}`;
+    $('widgets-foto').innerHTML = `<button type="button" class="boton-foto-widget" id="widgets-foto-elegir">${miniatura}
+            <span class="texto-foto"><b>Foto</b><span>${subtitulo}</span></span>${foto ? '' : '<span class="chevron">›</span>'}</button>
+        ${elegida ? `<div class="acciones-foto"><button type="button" id="widgets-foto-ajustar">Ajustar</button><button type="button" id="widgets-foto-cambiar">Cambiar foto</button></div>` : ''}`;
+}
+const ICONO_FOTO = '<svg viewBox="0 0 24 24" class="icono"><rect x="3.5" y="5" width="17" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4.5 3.5 3 3-2.5 4.5 4"/></svg>';
+let fotoEnAjuste = null;
+$('widgets-foto').addEventListener('click', e => {
+    const ajustes = ajustesWidget(localStorage, widgetElegido);
+    if (e.target.closest('#widgets-foto-ajustar')) return abrirAjusteFoto(ajustes.foto);
+    if (e.target.closest('#widgets-foto-cambiar')) return $('foto-widget-archivo').click();
+    if (!e.target.closest('#widgets-foto-elegir')) return;
+    if (!ajustes.foto?.src) return $('foto-widget-archivo').click();
+    if (ajustes.estilo !== 'foto') { guardarAjusteWidget(localStorage, widgetElegido, { estilo: 'foto' }); renderizarWidgets(); }
+});
+$('foto-widget-archivo').addEventListener('change', () => {
+    const archivo = $('foto-widget-archivo').files[0];
+    $('foto-widget-archivo').value = '';
+    if (!archivo) return;
+    const url = URL.createObjectURL(archivo);
+    const imagen = new Image();
+    imagen.onload = () => {
+        // A 700 px del lado más largo alcanza para el widget más grande y entra en localStorage.
+        const escala = Math.min(1, 700 / Math.max(imagen.width, imagen.height));
+        const lienzo = document.createElement('canvas');
+        lienzo.width = Math.round(imagen.width * escala);
+        lienzo.height = Math.round(imagen.height * escala);
+        lienzo.getContext('2d').drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+        URL.revokeObjectURL(url);
+        abrirAjusteFoto(ajustarFoto({ src: lienzo.toDataURL('image/jpeg', 0.8) }));
+    };
+    imagen.onerror = () => { URL.revokeObjectURL(url); alert('No se pudo abrir esa foto.'); };
+    imagen.src = url;
+});
+function abrirAjusteFoto(foto) {
+    fotoEnAjuste = ajustarFoto(foto);
+    const ajustes = { ...ajustesWidget(localStorage, widgetElegido), estilo: 'foto', foto: fotoEnAjuste };
+    $('foto-widget-muestra').replaceChildren(marcoWidget(widgetElegido, ajustes, false));
+    $('foto-widget-zoom').value = fotoEnAjuste.z;
+    $('foto-widget-oscuro').value = fotoEnAjuste.oscuro;
+    $('hoja-foto-widget').hidden = false;
+}
+// Mueve la foto en la muestra sin volver a dibujar el widget (así el arrastre va fluido).
+function moverFoto(cambios) {
+    fotoEnAjuste = ajustarFoto(fotoEnAjuste, cambios);
+    const muestra = $('foto-widget-muestra');
+    const capa = muestra.querySelector('.widget-foto');
+    capa.style.backgroundPosition = `${fotoEnAjuste.x}% ${fotoEnAjuste.y}%`;
+    capa.style.transform = `scale(${fotoEnAjuste.z})`;
+    capa.style.transformOrigin = `${fotoEnAjuste.x}% ${fotoEnAjuste.y}%`;
+    muestra.querySelector('.widget-foto-sombra').style.background = `rgba(0,0,0,${fotoEnAjuste.oscuro})`;
+}
+let arrastreFoto = null;
+$('foto-widget-muestra').addEventListener('pointerdown', e => {
+    const widget = e.target.closest('.widget');
+    if (!widget) return;
+    e.preventDefault();
+    const caja = widget.getBoundingClientRect();
+    arrastreFoto = { x: e.clientX, y: e.clientY, fx: fotoEnAjuste.x, fy: fotoEnAjuste.y, ancho: caja.width, alto: caja.height };
+    widget.setPointerCapture(e.pointerId);
+});
+$('foto-widget-muestra').addEventListener('pointermove', e => {
+    if (!arrastreFoto) return;
+    // Arrastrar a la derecha muestra lo que hay a la izquierda; con más zoom, se mueve más despacio.
+    const paso = 150 / fotoEnAjuste.z;
+    moverFoto({
+        x: arrastreFoto.fx - ((e.clientX - arrastreFoto.x) / arrastreFoto.ancho) * paso,
+        y: arrastreFoto.fy - ((e.clientY - arrastreFoto.y) / arrastreFoto.alto) * paso,
+    });
+});
+['pointerup', 'pointercancel'].forEach(tipo => $('foto-widget-muestra').addEventListener(tipo, () => { arrastreFoto = null; }));
+$('foto-widget-zoom').addEventListener('input', () => moverFoto({ z: $('foto-widget-zoom').value }));
+$('foto-widget-oscuro').addEventListener('input', () => moverFoto({ oscuro: $('foto-widget-oscuro').value }));
+$('foto-widget-centrar').addEventListener('click', () => {
+    moverFoto({ x: FOTO_CENTRADA.x, y: FOTO_CENTRADA.y, z: FOTO_CENTRADA.z });
+    $('foto-widget-zoom').value = FOTO_CENTRADA.z;
+});
+$('foto-widget-otra').addEventListener('click', () => $('foto-widget-archivo').click());
+const cerrarAjusteFoto = () => { $('hoja-foto-widget').hidden = true; fotoEnAjuste = null; };
+$('cerrar-foto-widget').addEventListener('click', cerrarAjusteFoto);
+$('hoja-foto-widget').addEventListener('click', e => { if (e.target === $('hoja-foto-widget')) cerrarAjusteFoto(); });
+$('foto-widget-listo').addEventListener('click', () => {
+    try {
+        guardarAjusteWidget(localStorage, widgetElegido, { estilo: 'foto', foto: fotoEnAjuste });
+    } catch {
+        alert('No hay lugar para guardar la foto. Probá con otra o sacá la de otro widget.');
+        return;
+    }
+    cerrarAjusteFoto();
+    renderizarWidgets();
+});
 
 // Lo que hace cada toque, igual que hará en el iPhone.
 function hacerAccionWidget(accion, dato) {
@@ -3774,30 +4019,22 @@ function hacerAccionWidget(accion, dato) {
         abrirBaul(false);
         return $('baul-texto').focus();
     }
-    if (accion === 'nueva-letra' || accion === 'letra' || accion === 'consigna') {
+    if (accion === 'nueva-letra' || accion === 'letra') {
         mostrarPestana('letras');
-        let letra = accion === 'letra' && listarLetras(localStorage).find(l => l.id === dato);
-        if (!letra) {
-            const consigna = accion === 'consigna' && CONSIGNAS.find(c => c.id === dato);
-            letra = nuevaLetra();
-            if (consigna) letra.texto = consigna.empujon ? `${consigna.texto}\n(${consigna.empujon})` : consigna.texto;
-        }
-        abrirEditor(letra);
-        if (accion === 'consigna') { marcarUsado(localStorage, dato); guardarActual(); }
-        return;
+        const letra = (accion === 'letra' && listarLetras(localStorage).find(l => l.id === dato)) || nuevaLetra();
+        return abrirEditor(letra);
     }
     if (accion === 'rimas') {
         mostrarPestana('rimas');
         return dato ? buscarPalabra(dato) : $('buscar-rima').focus();
     }
-    // Freestyle: elige el beat y arranca la ronda. Grabar: Acapella con el REC prendido, listo para el play.
+    // Freestyle: arranca la ronda con el beat de siempre. Grabar: Acapella con el REC prendido, listo para el play.
     mostrarPestana('freestyle');
     if (accion === 'grabar') {
         elegirBeat('acapella');
         if ($('fs-rec').getAttribute('aria-pressed') !== 'true') $('fs-rec').click();
         return;
     }
-    elegirBeat(dato || ajustesWidget(localStorage, 'freestyle').beat);
     if (!ronda) $('fs-play').click();
 }
 $('vista-widgets').addEventListener('click', e => {

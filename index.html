@@ -411,38 +411,65 @@
                 </header>
                 <h1 class="titulo-grande">Widgets</h1>
                 <div class="contenido">
-                    <p class="bajada-widgets">Las frases se te ocurren en cualquier lado. Con los widgets las anotás en un toque, retomás una letra o arrancás un freestyle sin buscar la app.</p>
-                    <div class="chips-tema chips-widgets" id="widgets-tipos" role="radiogroup" aria-label="Widget"></div>
-                    <!-- El inicio del teléfono, con el widget al tamaño real entre íconos de muestra. -->
-                    <div class="inicio-widgets" id="widgets-inicio" aria-label="Vista previa"></div>
-                    <p class="pie-widgets" id="widgets-pie"></p>
-                    <h3 class="encabezado-libreta">Tamaño</h3>
-                    <div class="grupo-libreta">
-                        <div class="pastillas-libreta" id="widgets-tamanos" role="tablist" aria-label="Tamaño"></div>
+                    <!-- Inicio, Pantalla bloqueada y Centro de control, cada uno en su pantalla (Picker .segmented). -->
+                    <div class="segmentado lugares-widgets" id="widgets-lugares" role="tablist" aria-label="Dónde va">
+                        <button type="button" role="tab" data-lugar="inicio" aria-selected="true">Inicio</button>
+                        <button type="button" role="tab" data-lugar="bloqueo" aria-selected="false">Pantalla bloqueada</button>
+                        <button type="button" role="tab" data-lugar="control" aria-selected="false">Centro de control</button>
                     </div>
-                    <h3 class="encabezado-libreta">Estilo</h3>
-                    <div class="grupo-libreta">
-                        <div class="temas-libreta" id="widgets-estilos"></div>
+
+                    <div class="panel-widgets" id="widgets-panel-inicio">
+                        <div class="chips-tema chips-widgets" id="widgets-tipos" role="radiogroup" aria-label="Widget"></div>
+                        <!-- Los diseños del widget: se desliza para pasar de uno a otro (TabView .page) y se
+                             estira desde la esquina para cambiar el tamaño, como al editar el inicio. -->
+                        <div class="carrusel-widgets" id="widgets-carrusel" aria-label="Diseños"></div>
+                        <div class="diseno-widgets">
+                            <b id="widgets-diseno"></b>
+                            <span class="puntos-widgets" id="widgets-puntos"></span>
+                            <span class="nota-widgets">Deslizá para ver otro diseño</span>
+                        </div>
+                        <h3 class="encabezado-libreta">Estilo</h3>
+                        <div class="grupo-libreta">
+                            <div class="temas-libreta" id="widgets-estilos"></div>
+                            <!-- Una foto propia de fondo (PhotosPicker), con su hoja para ajustarla. -->
+                            <div class="foto-widgets" id="widgets-foto"></div>
+                        </div>
+                        <!-- Lo que se ajusta de cada uno (frases, tipo de rima, letra). -->
+                        <div id="widgets-contenido">
+                            <h3 class="encabezado-libreta">Contenido</h3>
+                            <div class="grupo-libreta grupo-widgets" id="widgets-opciones"></div>
+                        </div>
+                        <h3 class="encabezado-libreta">Cómo agregarlo</h3>
+                        <ol class="pasos-widgets">
+                            <li>Mantené apretado un espacio vacío del inicio.</li>
+                            <li>Tocá <b>Editar</b> y después <b>Agregar widget</b>.</li>
+                            <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
+                        </ol>
                     </div>
-                    <!-- Lo que se ajusta de cada uno (frases, tipo de rima, categoría, letra, beat). -->
-                    <div id="widgets-contenido">
-                        <h3 class="encabezado-libreta">Contenido</h3>
-                        <div class="grupo-libreta grupo-widgets" id="widgets-opciones"></div>
-                    </div>
+
                     <!-- Pantalla bloqueada: la línea de arriba de la hora, el redondo y el rectangular. -->
-                    <h3 class="encabezado-libreta">Pantalla bloqueada</h3>
-                    <div class="bloqueo-widgets" id="widgets-bloqueo"></div>
-                    <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-bloqueo"></div>
+                    <div class="panel-widgets" id="widgets-panel-bloqueo" hidden>
+                        <div class="bloqueo-widgets" id="widgets-bloqueo"></div>
+                        <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-bloqueo"></div>
+                        <h3 class="encabezado-libreta">Cómo agregarlo</h3>
+                        <ol class="pasos-widgets">
+                            <li>Con el iPhone bloqueado, mantené apretada la pantalla y tocá <b>Personalizar</b>.</li>
+                            <li>Elegí <b>Pantalla bloqueada</b> y tocá el espacio de widgets debajo de la hora.</li>
+                            <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
+                        </ol>
+                    </div>
+
                     <!-- Centro de control y Botón de acción (iPhone 15 Pro en adelante): un toque, una acción. -->
-                    <h3 class="encabezado-libreta">Centro de control y Botón de acción</h3>
-                    <div class="control-widgets" id="widgets-control"></div>
-                    <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-accion"></div>
-                    <h3 class="encabezado-libreta">Cómo agregarlo</h3>
-                    <ol class="pasos-widgets">
-                        <li>Mantené apretado un espacio vacío del inicio.</li>
-                        <li>Tocá <b>Editar</b> y después <b>Agregar widget</b>.</li>
-                        <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
-                    </ol>
+                    <div class="panel-widgets" id="widgets-panel-control" hidden>
+                        <div class="control-widgets" id="widgets-control"></div>
+                        <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-accion"></div>
+                        <h3 class="encabezado-libreta">Cómo agregarlo</h3>
+                        <ol class="pasos-widgets">
+                            <li>Abrí el Centro de control deslizando desde la esquina de arriba a la derecha.</li>
+                            <li>Mantené apretado un espacio vacío y tocá <b>Agregar un control</b>.</li>
+                            <li>Buscá <b>Métrica</b>. Para el Botón de acción: <b>Configuración</b> &gt; <b>Botón de acción</b> &gt; <b>Controles</b>.</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
 
@@ -729,6 +756,36 @@
             <ul class="lista-grabaciones" id="lista-grabaciones"></ul>
             <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Prendé el botón rojo al lado del play y dale play.</p>
             <p class="nota aviso-grabaciones" id="grabaciones-aviso" hidden>Las grabaciones usan micrófono y parlante del celular al mismo tiempo, lo cual baja la calidad. Usá esta grabación como referencia.</p>
+        </div>
+    </div>
+
+    <!-- Ajustar la foto de un widget: se arrastra para elegir qué parte se ve, con zoom y oscurecer
+         (en SwiftUI: .sheet con PhotosPicker, DragGesture y dos Slider). -->
+    <div class="hoja-fondo" id="hoja-foto-widget" hidden>
+        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-labelledby="foto-widget-titulo">
+            <button class="boton-barra cerrar-hoja" id="cerrar-foto-widget" aria-label="Cancelar">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+            <h2 class="hoja-titulo" id="foto-widget-titulo">Ajustar foto</h2>
+            <div class="escenario-widgets escenario-foto" id="foto-widget-muestra"></div>
+            <p class="nota-widgets nota-foto">Arrastrá la foto para elegir qué parte se ve</p>
+            <div class="grupo-libreta funciones-libreta">
+                <div class="fila-grupo fila-foto-deslizador">
+                    <label for="foto-widget-zoom">Zoom</label>
+                    <input type="range" id="foto-widget-zoom" min="1" max="3" step="0.01" value="1">
+                </div>
+                <div class="fila-grupo fila-foto-deslizador">
+                    <label for="foto-widget-oscuro">Oscurecer</label>
+                    <input type="range" id="foto-widget-oscuro" min="0" max="0.6" step="0.01" value="0.25">
+                </div>
+            </div>
+            <div class="grupo-libreta funciones-libreta grupo-debajo">
+                <button type="button" class="fila-grupo fila-boton" id="foto-widget-otra">Elegir otra foto</button>
+                <button type="button" class="fila-grupo fila-boton" id="foto-widget-centrar">Volver a centrar</button>
+            </div>
+            <button type="button" class="boton-relleno boton-usar-foto" id="foto-widget-listo">Usar foto</button>
+            <p class="nota-widgets">La foto queda guardada solo en tu iPhone.</p>
+            <input type="file" id="foto-widget-archivo" accept="image/*" hidden>
         </div>
     </div>
 
