@@ -12,7 +12,7 @@ import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, D
 import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
 import { marcarUsado, siguienteTema, numeroEnCategoria } from './logica/temas.js';
-import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta } from './logica/libreta.js';
+import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta, datosParaCompartir } from './logica/libreta.js';
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearIndiceRelacionados, buscarRelacionados } from './logica/relacionados.js';
@@ -913,6 +913,21 @@ $('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, 
     mostrarVista('vista-lista-letras');
     renderizarLetras();
 }, undefined, true));
+// Compartir abre la hoja del sistema con el título aparte y el cuerpo como texto; si el
+// navegador no la tiene, copia. Copiar se lleva solo el cuerpo (pedido de Swa).
+let avisoCopiado = 0;
+const letraEnPantalla = () => ({ titulo: $('editor-titulo').value, texto: editorTexto.value });
+async function copiarCuerpo() {
+    try { await navigator.clipboard.writeText(datosParaCompartir(letraEnPantalla()).text); } catch { return; }
+    $('copiar-letra-valor').textContent = 'Copiado';
+    clearTimeout(avisoCopiado);
+    avisoCopiado = setTimeout(() => { $('copiar-letra-valor').textContent = 'Sin el título'; }, 1500);
+}
+$('compartir-letra').addEventListener('click', async () => {
+    if (!navigator.share) return copiarCuerpo();
+    try { await navigator.share(datosParaCompartir(letraEnPantalla())); } catch { /* la cerró sin elegir */ }
+});
+$('copiar-letra').addEventListener('click', copiarCuerpo);
 // La palabra que se está escribiendo lleva el efecto de la palabra tocada; al terminarla
 // (espacio, signo o renglón nuevo) vuelve a su color.
 function marcarEscribiendo() {
