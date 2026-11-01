@@ -471,6 +471,7 @@ a { color: var(--acento); text-decoration: none; }
 .caja-definicion { padding: 16px 18px 18px; }
 .caja-definicion[hidden] { display: none; }
 .definicion-palabra { margin: 0; font-size: 28px; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.definicion-corregida { font-weight: 600; opacity: 0.4; }
 .definicion-silabas { margin: 4px 0 0; font-size: 13px; color: var(--texto-3); }
 .definicion-nota { margin: 8px 0 0; font-size: 14px; color: var(--texto-2); }
 .definicion-nota button { color: var(--destacado); font-weight: 600; }
@@ -481,7 +482,6 @@ a { color: var(--acento); text-decoration: none; }
 .acepciones li::marker { color: var(--texto-3); font-size: 14px; }
 .materia { font-style: italic; color: var(--texto-2); }
 .definicion-vacia { margin: 6px 0; color: var(--texto-2); font-size: 15px; line-height: 1.4; }
-.credito-diccionario { margin: 14px 0 0; font-size: 11px; color: var(--texto-3); }
 .borrar-guardada { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; color: var(--texto-3); }
 .borrar-guardada .icono { width: 16px; height: 16px; }
 

@@ -1422,16 +1422,22 @@ function parrafo(clase, texto) {
     return p;
 }
 
-// Palabras similares: los sinónimos y las relacionadas de la palabra, sin repetir.
-function similaresDe(palabras) {
+// Las palabras de la búsqueda (con sus formas: «fuimos» → ir y ser) que da `buscar`, sin repetir.
+function palabrasDe(palabras, buscar) {
     const vistas = new Set(palabras);
     const salida = [];
     for (const palabra of palabras) {
-        for (const p of [...buscarSinonimos(palabra, indiceSinonimos()), ...buscarRelacionados(palabra, indiceRelacionados())]) {
-            if (!vistas.has(p) && !p.includes(' ')) { vistas.add(p); salida.push(p); }
-        }
+        for (const p of buscar(palabra)) if (!vistas.has(p) && !p.includes(' ')) { vistas.add(p); salida.push(p); }
     }
     return salida.slice(0, 40);
+}
+
+// Un cajón del diccionario (similares o sinónimos): tocar una palabra la busca en el diccionario.
+function llenarCajonDiccionario(cajon, lista, encabezado, titulo, palabras) {
+    $(lista).replaceChildren(...palabras.map(itemPalabra));
+    $(lista).scrollTop = 0;
+    $(cajon).hidden = !palabras.length;
+    $(encabezado).textContent = `${titulo} · ${palabras.length}`;
 }
 
 function renderizarDiccionario() {
@@ -1443,7 +1449,9 @@ function renderizarDiccionario() {
     caja.hidden = false;
     actualizarPista();
     let resultado = null;
-    if (!palabra) caja.replaceChildren(parrafo('definicion-vacia', 'Escribí una palabra para ver qué significa, aunque no sepas bien cómo se escribe.'));
+    // Sin palabra, la caja no se muestra (pedido de Swa).
+    caja.hidden = !palabra;
+    if (!palabra) caja.replaceChildren();
     else if (errorDefiniciones && !definiciones) caja.replaceChildren(parrafo('definicion-vacia', 'No se pudo abrir el diccionario. Probá de nuevo con internet.'));
     else if (!definiciones) caja.replaceChildren(parrafo('definicion-vacia', 'Abriendo el diccionario…'));
     else if (!definiciones.listo && !definiciones.entradas.has(palabra)) caja.replaceChildren(parrafo('definicion-vacia', 'Buscando…'));
@@ -1452,12 +1460,12 @@ function renderizarDiccionario() {
         if (!resultado) caja.replaceChildren(parrafo('definicion-vacia', `No encontré «${palabra}» en el diccionario.`));
         else caja.replaceChildren(...fichaDefinicion(resultado));
     }
-    // Abajo, las palabras similares: tocarlas las busca en el diccionario.
-    const similares = resultado ? similaresDe(resultado.entradas.map(e => e.palabra)) : [];
-    $('lista-relacionadas').replaceChildren(...similares.map(itemPalabra));
-    $('lista-relacionadas').scrollTop = 0;
-    $('cajon-relacionadas').hidden = !similares.length;
-    $('encabezado-relacionadas').textContent = `Palabras similares · ${similares.length}`;
+    // Abajo, las palabras similares (las relacionadas) y, debajo, los sinónimos (pedido de Swa).
+    const base = resultado ? resultado.entradas.map(e => e.palabra) : [];
+    llenarCajonDiccionario('cajon-relacionadas', 'lista-relacionadas', 'encabezado-relacionadas', 'Palabras similares',
+        palabrasDe(base, p => buscarRelacionados(p, indiceRelacionados())));
+    llenarCajonDiccionario('cajon-sinonimos-diccionario', 'lista-sinonimos-diccionario', 'encabezado-sinonimos-diccionario', 'Sinónimos',
+        palabrasDe(base, p => buscarSinonimos(p, indiceSinonimos())));
 }
 
 // La palabra, sus sílabas, si se corrigió o es forma de otra, y las acepciones por categoría.
@@ -1465,11 +1473,19 @@ function fichaDefinicion({ buscada, palabra, corregida, entradas }) {
     const partes = [];
     const titulo = document.createElement('h2');
     titulo.className = 'definicion-palabra';
-    titulo.textContent = palabra;
+    // Mal escrita: lo que se escribió y, a la derecha, entre paréntesis y apagada, la correcta
+    // («Donde (Dónde)»; pedido de Swa).
+    const escrita = $('buscar-rima').value.trim();
+    if (corregida && escrita) {
+        const mayuscula = escrita[0] !== escrita[0].toLowerCase();
+        const correcta = document.createElement('span');
+        correcta.className = 'definicion-corregida';
+        correcta.textContent = `(${mayuscula ? palabra[0].toUpperCase() + palabra.slice(1) : palabra})`;
+        titulo.append(escrita, ' ', correcta);
+    } else titulo.textContent = palabra;
     partes.push(titulo);
     const n = separarSilabas(palabra).length;
     if (n && !palabra.includes(' ')) partes.push(parrafo('definicion-silabas', `${n} ${n === 1 ? 'sílaba' : 'sílabas'}`));
-    if (corregida) partes.push(parrafo('definicion-nota', `Buscaste «${buscada}».`));
     const otras = entradas.map(e => e.palabra).filter(p => p !== palabra);
     if (otras.length) partes.push(parrafo('definicion-nota', `Forma de ${otras.map(p => `«${p}»`).join(' y ')}.`));
     for (const entrada of entradas) {
@@ -1502,7 +1518,6 @@ function fichaDefinicion({ buscada, palabra, corregida, entradas }) {
         }
         partes.push(bloque);
     }
-    partes.push(parrafo('credito-diccionario', 'Definiciones del Wikcionario (CC BY-SA 4.0).'));
     return partes;
 }
 
@@ -1519,6 +1534,7 @@ function alternarDiccionario() {
     cerrarAyudaTipo();
     $('caja-definicion').hidden = !modoDiccionario;
     $('caja-azar').hidden = modoDiccionario;
+    if (!modoDiccionario) $('cajon-sinonimos-diccionario').hidden = true;
     if (modoDiccionario) {
         frenarReloj();
         cargarDefiniciones();
