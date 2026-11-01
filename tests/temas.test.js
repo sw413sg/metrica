@@ -23,15 +23,15 @@ function jaccard(a, b) {
     return union ? inter / union : 0;
 }
 
-test('hay 1738 consignas, con id y texto únicos', () => {
-    assert.equal(TEMAS.length, 1738);
-    assert.equal(new Set(TEMAS.map(t => t.id)).size, 1738);
+test('hay 4288 consignas, con id y texto únicos', () => {
+    assert.equal(TEMAS.length, 4288);
+    assert.equal(new Set(TEMAS.map(t => t.id)).size, 4288);
     const textos = TEMAS.map(t => normalizar(t.texto));
     assert.ok(textos.every(t => t.length >= 8));
-    assert.equal(new Set(textos).size, 1738);
+    assert.equal(new Set(textos).size, 4288);
 });
 
-test('cada consigna tiene una categoría válida: 600 en amor, 300 en fiesta, 288 en superación, 150 en nostalgia y bronca, 100 en calle (con noche) y 50 en el resto', () => {
+test('cada consigna tiene una categoría válida: 1100 en amor (596 de desamor), 500 en fiesta, calle (con noche) y nostalgia, 488 en superación, 450 en bronca y 250 en familia, laburo y viaje', () => {
     const validas = new Set(CATEGORIAS.map(c => c.id));
     assert.ok(validas.size >= 8 && validas.size <= 12);
     const cuentas = {};
@@ -43,7 +43,7 @@ test('cada consigna tiene una categoría válida: 600 en amor, 300 en fiesta, 28
     }
     assert.deepEqual(Object.keys(cuentas).sort(), [...validas].sort());
     for (const [id, cuenta] of Object.entries(cuentas)) {
-        assert.equal(cuenta, { amor: 600, fiesta: 300, superacion: 288, nostalgia: 150, bronca: 150, calle: 100 }[id] ?? 50, id);
+        assert.equal(cuenta, { amor: 1100, fiesta: 500, superacion: 488, nostalgia: 500, bronca: 450, calle: 500 }[id] ?? 250, id);
     }
 });
 
@@ -123,7 +123,8 @@ test('numeroEnCategoria cuenta dentro de la categoría', () => {
     const desamor = TEMAS.filter(t => t.sub === 'desamor');
     assert.deepEqual(numeroEnCategoria(TEMAS, amor[36]), { numero: 37, total: amor.length });
     assert.deepEqual(numeroEnCategoria(TEMAS, desamor[11]), { numero: 12, total: desamor.length });
-    assert.equal(amor.length + desamor.length, 600);
+    assert.equal(amor.length + desamor.length, 1100);
+    assert.equal(desamor.length, 596);
 });
 
 test('Desamor es una subsección de Amor: prendida salen solo esas, apagada no sale ninguna', () => {
