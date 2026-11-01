@@ -6,22 +6,41 @@
 const CLAVE_WIDGETS = 'metrica.widgets';
 
 // El baúl va primero: es el que lleva a anotar las frases que se le ocurren a uno durante el día.
-// opciones: lo que se ajusta de cada uno, con su valor de entrada.
+// tamanos: los que tiene, el primero es con el que arranca. disenos: los que se pasan deslizando el
+// widget (el primero es el de entrada). opciones: lo que se ajusta de cada uno, con su valor de entrada.
 export const WIDGETS = [
-    { id: 'baul', nombre: 'Baúl de frases', tamanos: ['chico', 'mediano', 'grande'], opciones: { mostrarFrases: true, soloSinUsar: false } },
-    { id: 'palabra', nombre: 'Palabra del día', tamanos: ['chico', 'mediano'], opciones: { tipoRima: 'consonante' } },
-    { id: 'consigna', nombre: 'Consigna del día', tamanos: ['chico', 'mediano'], opciones: { categoria: 'todas' } },
-    { id: 'letra', nombre: 'Seguí escribiendo', tamanos: ['chico', 'mediano', 'grande'], opciones: { letra: 'ultima' } },
-    { id: 'freestyle', nombre: 'Freestyle', tamanos: ['chico', 'mediano'], opciones: { beat: 'boom-bap-bateria' } },
-    { id: 'racha', nombre: 'Racha', tamanos: ['chico', 'mediano'], opciones: {} },
-    { id: 'accesos', nombre: 'Accesos rápidos', tamanos: ['mediano'], opciones: {} },
+    {
+        id: 'baul', nombre: 'Baúl de frases', tamanos: ['chico', 'mediano', 'grande'],
+        disenos: [{ id: 'lista', nombre: 'Lista' }, { id: 'frase', nombre: 'Frase' }, { id: 'libreta', nombre: 'Libreta' }, { id: 'anotar', nombre: 'Anotar' }],
+        opciones: { mostrarFrases: true, soloSinUsar: false },
+    },
+    {
+        id: 'palabra', nombre: 'Palabra del día', tamanos: ['chico', 'mediano'],
+        disenos: [{ id: 'clasico', nombre: 'Clásico' }, { id: 'grande', nombre: 'Grande' }, { id: 'silabas', nombre: 'Sílabas' }, { id: 'rimas', nombre: 'Rimas' }],
+        opciones: { tipoRima: 'consonante' },
+    },
+    {
+        id: 'letra', nombre: 'Seguí escribiendo', tamanos: ['chico', 'mediano', 'grande'],
+        disenos: [{ id: 'renglones', nombre: 'Renglones' }, { id: 'titulo', nombre: 'Título' }, { id: 'verso', nombre: 'Último verso' }],
+        opciones: { letra: 'ultima' },
+    },
+    {
+        id: 'racha', nombre: 'Racha', tamanos: ['chico', 'mediano'],
+        disenos: [{ id: 'numero', nombre: 'Número' }, { id: 'llama', nombre: 'Llama' }, { id: 'semana', nombre: 'Semana' }],
+        opciones: {},
+    },
+    {
+        id: 'accesos', nombre: 'Accesos rápidos', tamanos: ['mediano', 'chico'],
+        disenos: [{ id: 'cuadricula', nombre: 'Cuadrícula' }, { id: 'lista', nombre: 'Lista' }, { id: 'anotar', nombre: 'Anotar grande' }],
+        opciones: {},
+    },
 ];
 
-// Tamaños de iOS: chico (2×2 íconos), mediano (4×2) y grande (4×4).
+// Tamaños de iOS, en celdas de íconos: chico (2×2), mediano (4×2) y grande (4×4).
 export const TAMANOS = [
-    { id: 'chico', nombre: 'Chico' },
-    { id: 'mediano', nombre: 'Mediano' },
-    { id: 'grande', nombre: 'Grande' },
+    { id: 'chico', nombre: 'Chico', columnas: 2, filas: 2 },
+    { id: 'mediano', nombre: 'Mediano', columnas: 4, filas: 2 },
+    { id: 'grande', nombre: 'Grande', columnas: 4, filas: 4 },
 ];
 
 export const ESTILOS = [
@@ -30,6 +49,11 @@ export const ESTILOS = [
     { id: 'claro', nombre: 'Claro' },
     { id: 'violeta', nombre: 'Violeta' },
 ];
+
+// La foto de fondo (estilo «foto»): qué parte se ve (x e y, en %), el zoom y cuánto se oscurece para
+// que se lea el texto. Queda solo en el teléfono (en la app nativa, en el App Group con los widgets).
+export const FOTO_CENTRADA = { x: 50, y: 50, z: 1, oscuro: 0.25 };
+const LIMITES_FOTO = { x: [0, 100], y: [0, 100], z: [1, 3], oscuro: [0, 0.6] };
 
 // Lo que abre un toque: en el inicio, en la pantalla bloqueada, en el Centro de control y en el
 // Botón de acción.
@@ -52,7 +76,6 @@ export const BLOQUEO = {
     rectangular: [
         { id: 'baul', nombre: 'Última frase' },
         { id: 'palabra', nombre: 'Palabra del día' },
-        { id: 'consigna', nombre: 'Consigna del día' },
         { id: 'letra', nombre: 'Última letra' },
     ],
     linea: [
@@ -62,7 +85,7 @@ export const BLOQUEO = {
     ],
 };
 
-const INICIAL = { tamano: 'chico', estilo: 'vidrio' };
+const INICIAL = { estilo: 'vidrio' };
 const BLOQUEO_INICIAL = { redondo: 'anotar', rectangular: 'baul', linea: 'racha', accion: 'anotar' };
 
 // Cuántas frases entran en cada tamaño (el chico muestra la última, o el cofre si no se muestran).
@@ -88,9 +111,11 @@ function escribir(almacen, id, cambios) {
 // Los ajustes de un widget, con lo que falta (o ya no vale) en sus valores de entrada.
 export function ajustesWidget(almacen, id) {
     const widget = WIDGETS.find(w => w.id === id) ?? WIDGETS[0];
-    const ajustes = { ...INICIAL, ...widget.opciones, ...leer(almacen)[widget.id] };
+    const ajustes = { ...INICIAL, tamano: widget.tamanos[0], diseno: widget.disenos[0].id, ...widget.opciones, ...leer(almacen)[widget.id] };
     if (!widget.tamanos.includes(ajustes.tamano)) ajustes.tamano = widget.tamanos[0];
-    if (!ESTILOS.some(e => e.id === ajustes.estilo)) ajustes.estilo = INICIAL.estilo;
+    if (!widget.disenos.some(d => d.id === ajustes.diseno)) ajustes.diseno = widget.disenos[0].id;
+    const conFoto = ajustes.estilo === 'foto' && typeof ajustes.foto?.src === 'string';
+    if (!conFoto && !ESTILOS.some(e => e.id === ajustes.estilo)) ajustes.estilo = INICIAL.estilo;
     return ajustes;
 }
 
@@ -98,6 +123,29 @@ export function ajustesWidget(almacen, id) {
 export function guardarAjusteWidget(almacen, id, cambios) {
     escribir(almacen, id, cambios);
     return ajustesWidget(almacen, id);
+}
+
+// Estirar el widget desde su esquina: el tamaño que tiene más cerca de lo estirado (en celdas de
+// íconos). Si no tiene otro, se queda en el que está.
+export function tamanoAlEstirar(tamanos, columnas, filas) {
+    const distancia = t => (t.columnas - columnas) ** 2 + (t.filas - filas) ** 2;
+    return TAMANOS.filter(t => tamanos.includes(t.id)).sort((a, b) => distancia(a) - distancia(b))[0]?.id ?? tamanos[0];
+}
+
+// Un toque en la esquina: el que sigue, y después del más grande vuelve al más chico.
+export function siguienteTamano(tamanos, actual) {
+    const orden = TAMANOS.map(t => t.id).filter(id => tamanos.includes(id));
+    return orden[(orden.indexOf(actual) + 1) % orden.length];
+}
+
+// Mover, acercar u oscurecer la foto sin pasarse de los bordes.
+export function ajustarFoto(foto, cambios = {}) {
+    const nueva = { ...FOTO_CENTRADA, ...foto, ...cambios };
+    for (const [clave, [min, max]] of Object.entries(LIMITES_FOTO)) {
+        const valor = Number(nueva[clave]);
+        nueva[clave] = Number.isFinite(valor) ? Math.min(max, Math.max(min, valor)) : FOTO_CENTRADA[clave];
+    }
+    return nueva;
 }
 
 // Lo elegido para la pantalla bloqueada y la acción rápida.
@@ -126,7 +174,7 @@ export function frasesDelWidget(frases, { tamano = 'chico', mostrarFrases = true
 }
 
 // La letra del widget «Seguí escribiendo»: la última editada o la elegida (si se borró, la última).
-// Devuelve el título y los primeros renglones con texto, sin las marcas de parte ([Estribillo]).
+// Devuelve el título, los primeros renglones con texto y el último (donde quedó), sin las marcas de parte ([Estribillo]).
 export function letraDelWidget(letras, { letra = 'ultima', tamano = 'chico' } = {}) {
     const elegida = letras.find(l => l.id === letra) ?? [...letras].sort((a, b) => b.editada - a.editada)[0];
     if (!elegida) return null;
@@ -135,6 +183,7 @@ export function letraDelWidget(letras, { letra = 'ultima', tamano = 'chico' } = 
         id: elegida.id,
         titulo: elegida.titulo?.trim() || 'Sin título',
         renglones: renglones.slice(0, RENGLONES_POR_TAMANO[tamano] ?? 3),
+        ultimo: renglones.at(-1) ?? '',
         versos: renglones.length,
     };
 }
@@ -148,10 +197,6 @@ const dia = fecha => {
 // Uno de la lista por día: el mismo todo el día y otro al siguiente. Saltando de a un primo, días
 // seguidos no traen vecinos del archivo (que se parecen).
 const delDia = (lista, ahora, salto) => (lista.length ? lista[(dia(ahora) * salto) % lista.length] : null);
-
-export function consignaDelDia(consignas, { categoria = 'todas', ahora = Date.now() } = {}) {
-    return delDia(categoria === 'todas' ? consignas : consignas.filter(c => c.categoria === categoria), ahora, 7919);
-}
 
 export function palabraDelDia(palabras, ahora = Date.now()) {
     return delDia(palabras, ahora, 104729);
