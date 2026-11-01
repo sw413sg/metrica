@@ -158,15 +158,15 @@ const servidor = http.createServer((req, res) => {
         assert.deepEqual((await page.locator('#chips-tema button').allTextContents()).slice(0, 5), ['Amor', 'Superación', 'Fiesta', 'Nostalgia', 'Calle']);
         assert.equal(await page.locator('#chips-tema button').last().textContent(), 'Todas');
         assert.equal(await page.locator('#chips-tema button[aria-pressed="true"]').textContent(), 'Amor');
-        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 204$/);
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 504$/);
         // Desamor: solo en Amor, prendido muestra esas y apagado vuelve a Amor.
         await page.locator('#tema-desamor').click();
-        assert.match(await page.locator('#tema-categoria').textContent(), /^Desamor \d+ de 396$/);
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Desamor \d+ de 596$/);
         await page.locator('#tema-desamor').click();
-        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 204$/);
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Amor \d+ de 504$/);
         await page.locator('#chips-tema button[data-categoria="nostalgia"]').click();
         assert.equal(await page.locator('#tema-desamor').isVisible(), false);
-        assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 150$/);
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 500$/);
         for (let i = 0; i < 20 && !(await page.locator('#tema-empujon').isVisible()); i++) await page.locator('#tema-otra').click();
         await page.screenshot({path: `capturas/tema-${tema}.png`});
         const temaAntes = await page.locator('#tema-frase').textContent();
@@ -178,7 +178,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#tema-frase').textContent(), temaAntes);
         await page.locator('#tema-otra').click();
         assert.equal(await page.locator('#tema-frase').textContent(), consigna);
-        assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 150$/);
+        assert.match(await page.locator('#tema-categoria').textContent(), /^Nostalgia \d+ de 500$/);
         await page.locator('#tema-baul').click();
         assert.equal(await page.locator('#tema-baul-texto').textContent(), 'En el baúl');
         assert.ok(await page.evaluate(t => JSON.parse(localStorage.getItem('metrica.frases')).some(f => f.texto === t), consigna));
