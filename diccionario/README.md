@@ -55,3 +55,17 @@ Regenerar con `node generar-sinonimos.cjs` (hace falta cada vez que cambien `pal
 Transformación: de los vectores en español (`/c/es/`) se toman los de las 60.000 palabras más usadas de `frecuencias.js`. Para cada una de las 20.000 más usadas se buscan las más parecidas por coseno (al menos 0,3), solo entre palabras base del diccionario (entradas de `es.dic` con banderas, sin las formas de `textoFormasSinonimos`), y se descartan las de la misma familia ("noches", "lunar": mismo comienzo) y las repetidas. Las búsquedas en plural usan las del singular.
 
 Regenerar con `node generar-relacionados.cjs ruta/a/numberbatch-19.08.txt.gz` (tarda unos 3 minutos; hace falta si cambian `frecuencias.js`, `sinonimos.js` o la lista propia). La app no necesita conexión.
+
+## Definiciones (modo Diccionario de Rimas)
+
+`../definiciones.txt` tiene lo que muestra el libro de Rimas: 108.891 palabras con sus acepciones por categoría (sustantivo, verbo...) y 105.462 formas ("perros" → perro, "fuimos" → ir y ser). Sale del Wikcionario en español:
+
+- Definiciones: autores del Wikcionario en español, https://es.wiktionary.org, bajo CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/deed.es).
+- Limpieza del Wikcionario: reader.dict (Mickaël Schoentgen y colaboradores), https://www.reader-dict.com.
+- Archivo usado: `diccionario-es.dic` de https://github.com/jcordon5/diccionario-es-pocketbook (la última versión publicada, bajada el 1 de noviembre de 2026; 18 MB, no se guarda en el repo), que empaqueta el de reader.dict para PocketBook, con la misma licencia CC BY-SA 4.0.
+
+`definiciones.txt` es una obra derivada y se distribuye bajo CC BY-SA 4.0 con esta atribución; la app muestra «Definiciones del Wikcionario (CC BY-SA 4.0)» debajo de cada una.
+
+Transformación: de cada entrada se dejan la categoría y las acepciones numeradas (hasta 12 por categoría, cortadas a 400 caracteres), con su materia («Anatomía», «Música») aparte; se sacan la pronunciación, los sinónimos, los ejemplos y la etimología. De las formas sin definición propia quedan solo las que están en `palabras.js`. Unicode NFC, en minúscula.
+
+Regenerar con `node generar-definiciones.cjs ruta/a/diccionario-es.dic` (unos 15 s). Si cambia `definiciones.txt`, subí `DICCIONARIO` en `sw.js` para que el teléfono baje el nuevo. La app no necesita conexión: el archivo queda en su propia caché.

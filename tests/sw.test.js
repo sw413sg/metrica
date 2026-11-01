@@ -43,3 +43,9 @@ test('los fondos de los temas de la libreta están en la caché', () => {
 test('la versión tiene tres números, como se ve en Ajustes (1.0.9)', () => {
     assert.match(sw.match(/const VERSION = '([^']+)'/)[1], /^metrica-\d+\.\d+\.\d+$/);
 });
+
+test('el diccionario de definiciones tiene su caché aparte y existe', () => {
+    const aparte = [...sw.match(/const ARCHIVOS_DICCIONARIO = \[([\s\S]*?)\];/)[1].matchAll(/'([^']+)'/g)].map(m => m[1]);
+    assert.deepEqual(aparte, ['definiciones.txt']);
+    for (const archivo of aparte) assert.ok(fs.existsSync(archivo), `${archivo} no existe`);
+});
