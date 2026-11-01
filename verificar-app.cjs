@@ -72,6 +72,7 @@ const servidor = http.createServer((req, res) => {
         }));
         await page.locator('#pantalla-letras [data-grabaciones]').click();
         await page.locator('#lista-grabaciones .grabacion').first().waitFor();
+        await page.waitForTimeout(400); // la hoja termina de subir antes de medir
         assert.equal(await page.locator('#lista-grabaciones .grabacion').count(), 6);
         // Se ven 4 como mucho: las demás, deslizando la lista (pedido de Swa).
         const listaGrab = await page.locator('#lista-grabaciones').evaluate(e => ({ alto: e.clientHeight, total: e.scrollHeight, fila: e.querySelector('.grabacion').offsetHeight }));
@@ -1494,16 +1495,21 @@ const servidor = http.createServer((req, res) => {
         assert.ok(await page.locator('#fs-reloj').evaluate(e => Number(getComputedStyle(e).zIndex)) > await page.locator('#fs-efecto').evaluate(e => Number(getComputedStyle(e).zIndex)), 'luces detrás del círculo');
         // Ajustes > Freestyle > Efectos en 0: no se dibuja nada aunque haya ronda.
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
-        assert.equal(await page.locator('#cantidad-efectos').inputValue(), '5');
-        // La velocidad de cambio de palabra arranca en 5 (2 compases) y se recuerda.
-        assert.equal(await page.locator('#velocidad-palabras').inputValue(), '5');
-        assert.equal(await page.locator('#puntos-velocidad span').count(), 10);
-        await page.locator('#velocidad-palabras').fill('10');
+        assert.equal(await page.locator('#valor-efectos').textContent(), '5');
+        // La velocidad de cambio de palabra arranca en 5 (2 compases) y se recuerda; va con − y +.
+        assert.equal(await page.locator('#valor-velocidad').textContent(), '5');
+        for (let i = 0; i < 6; i++) await page.locator('#mas-velocidad').click({force: true});
         assert.equal(await page.locator('#valor-velocidad').textContent(), '10');
-        await page.locator('#velocidad-palabras').fill('5');
-        await page.locator('#cantidad-efectos').fill('0');
+        assert.ok(await page.locator('#mas-velocidad').isDisabled(), 'en 10 el + no sigue');
+        for (let i = 0; i < 5; i++) await page.locator('#menos-velocidad').click();
+        assert.equal(await page.locator('#valor-velocidad').textContent(), '5');
+        for (let i = 0; i < 5; i++) await page.locator('#menos-efectos').click();
         assert.equal(await page.locator('#valor-efectos').textContent(), '0');
-        assert.equal(await page.locator('#puntos-efectos span').count(), 11);
+        assert.ok(await page.locator('#menos-efectos').isDisabled(), 'en 0 el − no sigue');
+        // Sistema, Claro y Oscuro van en un mismo renglón.
+        const altos = await page.locator('#apariencia button').evaluateAll(bs => bs.map(b => Math.round(b.getBoundingClientRect().top)));
+        assert.equal(altos.length, 3);
+        assert.equal(new Set(altos).size, 1, 'apariencia en un renglón');
         await page.screenshot({path: `capturas/ajustes-efectos-${tema}.png`});
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         await page.locator('#fs-play').click();
@@ -1511,7 +1517,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#fs-efecto').evaluate(c => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; }), 0, 'con efectos en 0 no hay luces');
         await pararFs();
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
-        await page.locator('#cantidad-efectos').fill('10');
+        for (let i = 0; i < 10; i++) await page.locator('#mas-efectos').click({force: true});
         await page.locator('#barra-pestanas [data-pestana="freestyle"]').click();
         assert.equal(await page.locator('#fs-cuenta').textContent(), '1:00');
         // Cada mp3 dura un número entero de compases: al loopear no se desfasa del reloj.
@@ -1646,7 +1652,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#musica-play').click();
         await page.waitForFunction(c => document.getElementById('fs-cuenta').textContent !== c, congelada);
         // Bajar la velocidad de las palabras en plena ronda no deja la palabra trabada.
-        const velocidad = v => page.locator('#velocidad-palabras').evaluate((e, v) => { e.value = v; e.dispatchEvent(new Event('input')); }, v);
+        const velocidad = async v => { while (Number(await page.locator('#valor-velocidad').textContent()) !== Number(v)) await page.locator(Number(await page.locator('#valor-velocidad').textContent()) < Number(v) ? '#mas-velocidad' : '#menos-velocidad').evaluate(b => b.click()); };
         await velocidad('10');
         await page.waitForTimeout(2500);
         await velocidad('9');
@@ -1887,7 +1893,7 @@ const servidor = http.createServer((req, res) => {
         await page.evaluate(antes => antes === null ? localStorage.removeItem('metrica.letras') : localStorage.setItem('metrica.letras', antes), letrasAntes);
         await page.locator('button[data-apariencia="sistema"]').click();
         assert.equal(await fondo(), fondoSistema);
-        assert.equal(await page.locator('button[data-apariencia="sistema"]').getAttribute('aria-pressed'), 'true');
+        assert.equal(await page.locator('button[data-apariencia="sistema"]').getAttribute('aria-selected'), 'true');
 
         // Métrica Extras: sin comprar hay publicidad y los temas de pago tienen candado.
         await page.locator('#barra-pestanas [data-pestana="rimas"]').click();
@@ -1984,7 +1990,20 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#barra-pestanas [data-pestana="ajustes"]').click();
         assert.equal(await page.locator('#comprar-extras').isDisabled(), true);
         // Widgets: primero en Ajustes, con su pantalla; el «+» de la muestra abre el baúl para anotar.
-        assert.equal(await page.locator('#vista-ajustes .encabezado-grupo').first().textContent(), 'Widgets');
+        assert.equal(await page.locator('#vista-ajustes .contenido > *').first().getAttribute('id'), 'abrir-widgets');
+        assert.equal(await page.locator('#abrir-widgets .mini-widget').count(), 3, 'la sección muestra un poco de los widgets');
+        assert.ok((await page.locator('#abrir-widgets').evaluate(e => getComputedStyle(e).maskImage || getComputedStyle(e).webkitMaskImage)).includes('gradient'), 'baja en degradé hacia Ajustes');
+        await page.screenshot({path: 'capturas/ajustes-widgets.png'});
+        // La papelera dice solo «Papelera».
+        assert.equal((await page.locator('#abrir-papelera').textContent()).trim(), 'Papelera');
+        // Exportar todo baja un .zip con las letras.
+        await page.evaluate(() => { const l = JSON.parse(localStorage.getItem('metrica.letras') || '[]'); l.push({ id: 'exportar', titulo: 'Canción para exportar', texto: 'un verso', creada: 1, editada: 1 }); localStorage.setItem('metrica.letras', JSON.stringify(l)); });
+        const [bajada] = await Promise.all([page.waitForEvent('download'), page.locator('#exportar-todo').click()]);
+        assert.match(bajada.suggestedFilename(), /^Metrica \d{4}-\d\d-\d\d\.zip$/);
+        const zipBajado = require('fs').readFileSync(await bajada.path());
+        assert.equal(zipBajado.readUInt32LE(0), 0x04034b50, 'es un .zip');
+        assert.ok(zipBajado.includes(Buffer.from('Letras/Canción para exportar.txt')), 'trae las letras');
+        await page.evaluate(() => localStorage.setItem('metrica.letras', JSON.stringify(JSON.parse(localStorage.getItem('metrica.letras')).filter(l => l.id !== 'exportar'))));
         await page.locator('#abrir-widgets').click();
         assert.equal(await page.locator('#vista-widgets').isVisible(), true);
         // Sin Freestyle ni Consigna del día; cada widget tiene sus diseños en un carrusel, sin íconos alrededor.

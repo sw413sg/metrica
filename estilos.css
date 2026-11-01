@@ -1896,3 +1896,42 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .tarjeta-papelera.grande .texto-letra { font-size: 15px; max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; -webkit-user-select: text; user-select: text; }
 .tarjeta-papelera.grande .texto-frase-papelera { font-size: 17px; }
 .menu-frase[hidden] { display: none; }
+
+/* Ajustes > Widgets: una sección que muestra un poco lo que hay adentro (baúl, racha y accesos),
+   sobre el inicio oscuro con luces violetas de la vista previa, que baja fundiéndose con Ajustes
+   (pedido de Swa). En SwiftUI: un NavigationLink con un fondo y un .mask de LinearGradient. */
+.seccion-widgets {
+    display: block; width: 100%; margin-top: 8px; padding: 14px 16px 30px; border-radius: 22px 22px 0 0; text-align: left; position: relative;
+    background: radial-gradient(120% 90% at 15% 0%, rgba(123, 97, 255, .55), transparent 60%),
+        radial-gradient(90% 80% at 95% 20%, rgba(197, 108, 240, .40), transparent 65%), #17142a;
+    -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent);
+    mask-image: linear-gradient(to bottom, #000 45%, transparent);
+}
+.seccion-widgets-titulo { display: flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 600; color: #fff; }
+.seccion-widgets-titulo .chevron { color: rgba(255, 255, 255, .6); font-weight: 400; }
+.muestras-widgets { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 10px; margin-top: 12px; height: 104px; }
+.mini-widget {
+    position: relative; display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 20px; overflow: hidden;
+    background: rgba(255, 255, 255, .12); border: 0.5px solid rgba(255, 255, 255, .18); color: #fff;
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.mini-widget .icono { width: 20px; height: 20px; color: #fff; }
+.mini-widget > i { display: block; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .35); }
+.mini-widget > i.corta { width: 55%; }
+.mini-baul .cerradura { fill: var(--destacado); stroke: none; }
+.mini-baul b { position: absolute; right: 10px; bottom: 10px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--destacado); font-size: 18px; line-height: 1; }
+.mini-racha { align-items: center; justify-content: center; gap: 2px; }
+.mini-racha strong { font-size: 26px; font-weight: 700; line-height: 1; }
+.mini-racha .semana { display: flex; gap: 3px; margin-top: 4px; }
+.mini-racha .semana i { width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, .6); }
+.mini-racha .semana i.hoy { background: var(--destacado); }
+.mini-accesos { display: grid; grid-template-columns: 1fr 1fr; place-items: center; gap: 6px; padding: 10px; }
+.mini-accesos i { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .16); }
+.mini-accesos .icono { width: 16px; height: 16px; }
+
+/* Ajustes: claro, oscuro y sistema en un renglón, y los pasos de − y + como en la libreta. */
+.celda-apariencia { padding: 8px 10px; }
+.celda-apariencia .pastillas-libreta { flex: 1; margin: 0; }
+.celda-pasos { padding-right: 10px; }
+.celda > .celda-texto { flex: 1; min-width: 0; }
+.celda > .pasos-libreta { flex-shrink: 0; }

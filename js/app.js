@@ -23,6 +23,7 @@ import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDelWidget, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
+import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
@@ -70,7 +71,6 @@ document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListe
         renderizarLetras();
     }
     if (b.dataset.pestana === 'ajustes' && $('pantalla-ajustes').classList.contains('activa')) mostrarVistaAjustes('vista-ajustes');
-    if (b.dataset.pestana === 'ajustes') resumirPapelera();
     mostrarPestana(b.dataset.pestana);
 }));
 
@@ -1944,34 +1944,34 @@ function tickReloj() {
 // los tiempos salen de la posición del tema (y de los BPM del título, si los dice);
 // con un beat propio, de cada paso del beat.
 const efecto = crearEfecto($('fs-efecto'), $('fs-reloj'));
-// Ajustes > Freestyle: barra de 0 (sin efectos) a 10, imantada a cada punto.
+// Ajustes > Apariencia: efectos de 0 (sin efectos) a 10, con pasos de − y + como en la libreta.
 function aplicarCantidadEfectos() {
     const cantidad = leerCantidadEfectos(localStorage);
-    $('cantidad-efectos').value = cantidad;
     $('valor-efectos').textContent = String(cantidad);
+    $('menos-efectos').disabled = cantidad <= 0;
+    $('mas-efectos').disabled = cantidad >= EFECTOS_MAXIMO;
     efecto.cantidad(cantidad / EFECTOS_MAXIMO);
     efectoRimas.cantidad(cantidad / EFECTOS_MAXIMO);
     efectoLetras.cantidad(cantidad / EFECTOS_MAXIMO);
 }
-$('puntos-efectos').append(...Array.from({ length: EFECTOS_MAXIMO + 1 }, () => document.createElement('span')));
-$('cantidad-efectos').addEventListener('input', () => {
-    guardarCantidadEfectos(localStorage, $('cantidad-efectos').value);
+for (const [id, paso] of [['menos-efectos', -1], ['mas-efectos', 1]]) $(id).addEventListener('click', () => {
+    guardarCantidadEfectos(localStorage, leerCantidadEfectos(localStorage) + paso);
     aplicarCantidadEfectos();
 });
 aplicarCantidadEfectos();
 // Ajustes > Freestyle: velocidad de cambio de palabra, de 1 a 10 (5 son 2 compases).
 function aplicarVelocidad() {
     const velocidad = leerVelocidad(localStorage);
-    $('velocidad-palabras').value = velocidad;
     $('valor-velocidad').textContent = String(velocidad);
+    $('menos-velocidad').disabled = velocidad <= 1;
+    $('mas-velocidad').disabled = velocidad >= VELOCIDAD_MAXIMA;
     compasesPorPalabra = compasesDeVelocidad(velocidad);
     // Sin beat, la palabra cambia por reloj: se recuenta con la velocidad nueva, para que
     // al bajarla no quede trabada hasta alcanzar la cuenta de antes (ni salte varias al subirla).
     if (ronda?.modo === 'reloj') indicePalabra = Math.floor(((ronda.pausa ?? performance.now()) - ronda.inicio) / msPorPalabra(BPM_FS, compasesPorPalabra));
 }
-$('puntos-velocidad').append(...Array.from({ length: VELOCIDAD_MAXIMA }, () => document.createElement('span')));
-$('velocidad-palabras').addEventListener('input', () => {
-    guardarVelocidad(localStorage, $('velocidad-palabras').value);
+for (const [id, paso] of [['menos-velocidad', -1], ['mas-velocidad', 1]]) $(id).addEventListener('click', () => {
+    guardarVelocidad(localStorage, leerVelocidad(localStorage) + paso);
     aplicarVelocidad();
 });
 aplicarVelocidad();
@@ -3192,7 +3192,6 @@ $('grabaciones').addEventListener('click', e => { if (e.target === $('grabacione
 
 // ---------- Métrica Extras (paywall) ----------
 const CANDADO = '<svg viewBox="0 0 24 24" class="icono"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-const TILDE = '<svg viewBox="0 0 24 24" class="icono"><path d="M5 12l5 5 9-10"/></svg>';
 
 function renderizarExtras() {
     const extras = tieneExtras(localStorage);
@@ -3321,17 +3320,36 @@ const keep = { notas: [], elegidas: new Set(), etiqueta: null };
 $('abrir-keep').addEventListener('click', () => mostrarVistaAjustes('vista-keep'));
 $('keep-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
 
+// Exportar todo: un .zip con cada letra en un .txt y el baúl, armado acá mismo, sin internet. En el
+// iPhone abre el menú compartir (Guardar en Archivos); en la compu se descarga.
+$('exportar-todo').addEventListener('click', async () => {
+    const archivos = archivosParaExportar(listarLetras(localStorage), listarFrases(localStorage));
+    const celda = $('exportar-todo');
+    if (!archivos.length) {
+        celda.querySelector('.subtitulo')?.remove();
+        celda.insertAdjacentHTML('beforeend', '<span class="subtitulo">Todavía no hay letras</span>');
+        setTimeout(() => celda.querySelector('.subtitulo')?.remove(), 2500);
+        return;
+    }
+    const zip = new File([crearZip(archivos)], nombreDelZip(), { type: 'application/zip' });
+    if (navigator.canShare?.({ files: [zip] })) {
+        try { await navigator.share({ files: [zip] }); return; } catch (error) { if (error.name === 'AbortError') return; }
+    }
+    const enlace = document.createElement('a');
+    enlace.href = URL.createObjectURL(zip);
+    enlace.download = zip.name;
+    document.body.append(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(enlace.href), 10000);
+});
+
 // ---------- Papelera (Ajustes -> Papelera) ----------
 // Las letras y las frases del baúl borradas, en cuadrados chicos con el formato de Letras. Un toque
 // muestra una en grande (como en el baúl); mantenerla apretada, Restaurar y Borrar definitivamente.
 // Lo que lleva 7 días se borra solo, al listarla (pedido de Swa).
-const resumirPapelera = () => {
-    const n = listarPapelera(localStorage).length;
-    $('papelera-resumen').textContent = n ? `${n} ${n === 1 ? 'cosa borrada' : 'cosas borradas'}` : 'Vacía';
-};
-resumirPapelera();
 $('abrir-papelera').addEventListener('click', () => { mostrarVistaAjustes('vista-papelera'); renderizarPapelera(); });
-$('papelera-atras').addEventListener('click', () => { resumirPapelera(); mostrarVistaAjustes('vista-ajustes'); });
+$('papelera-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
 $('papelera-vaciar').addEventListener('click', () => preguntar({
     titulo: '¿Borrar todo?', texto: 'Se van a borrar para siempre todas las letras y frases de la papelera. No se puede deshacer.', boton: 'Borrar todo', rojo: true,
 }, ok => { if (!ok) return; vaciarPapelera(localStorage); renderizarPapelera(); }));
@@ -4634,23 +4652,17 @@ function renderizarApariencia() {
     const [claro, oscuro] = document.querySelectorAll('meta[name="theme-color"]');
     claro.content = actual === 'oscuro' ? '#202123' : '#eaedee';
     oscuro.content = actual === 'claro' ? '#eaedee' : '#202123';
+    // Sistema, Claro y Oscuro en un renglón, en un selector segmentado como el de la fuente.
     $('apariencia').replaceChildren(...Object.entries(APARIENCIAS).map(([clave, nombre]) => {
-        const celda = document.createElement('li');
-        celda.className = 'celda';
         const boton = document.createElement('button');
-        boton.className = 'celda-boton celda-tema';
+        boton.type = 'button';
+        boton.setAttribute('role', 'tab');
         boton.dataset.apariencia = clave;
-        boton.setAttribute('aria-pressed', clave === actual);
-        const texto = document.createElement('span');
-        texto.textContent = nombre;
-        const marca = document.createElement('span');
-        marca.className = 'marca-apariencia';
-        marca.innerHTML = clave === actual ? TILDE : '';
-        boton.append(texto, marca);
+        boton.setAttribute('aria-selected', clave === actual);
+        boton.textContent = nombre;
         boton.addEventListener('click', () => { elegirApariencia(localStorage, clave); renderizarApariencia(); sincronizarTemasConModo(); });
-        celda.append(boton);
-        return celda;
-    }), $('celda-efectos'));
+        return boton;
+    }));
 }
 
 // Al pasar de claro a oscuro (o al revés), las letras y el baúl con un tema del otro modo vuelven
