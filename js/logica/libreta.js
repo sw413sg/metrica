@@ -72,3 +72,11 @@ export function estiloLibreta(ajustes) {
         fuente: AJUSTES_LIBRETA.fuente.opciones[ajustes.fuente].valor,
     };
 }
+
+// Compartir una letra con la hoja del sistema (Web Share API; en SwiftUI, ShareLink): el título
+// va aparte y el texto es solo el cuerpo, así «Copiar» no se lleva el título (pedido de Swa).
+export function datosParaCompartir(letra) {
+    const titulo = (letra?.titulo || '').trim();
+    const texto = (letra?.texto || '').trim();
+    return titulo ? { title: titulo, text: texto } : { text: texto };
+}
