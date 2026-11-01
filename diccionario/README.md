@@ -64,7 +64,7 @@ Regenerar con `node generar-relacionados.cjs ruta/a/numberbatch-19.08.txt.gz` (t
 - Limpieza del Wikcionario: reader.dict (Mickaël Schoentgen y colaboradores), https://www.reader-dict.com.
 - Archivo usado: `diccionario-es.dic` de https://github.com/jcordon5/diccionario-es-pocketbook (la última versión publicada, bajada el 1 de noviembre de 2026; 18 MB, no se guarda en el repo), que empaqueta el de reader.dict para PocketBook, con la misma licencia CC BY-SA 4.0.
 
-`definiciones.txt` es una obra derivada y se distribuye bajo CC BY-SA 4.0 con esta atribución; la app muestra «Definiciones del Wikcionario (CC BY-SA 4.0)» debajo de cada una.
+`definiciones.txt` es una obra derivada y se distribuye bajo CC BY-SA 4.0 con esta atribución; la app lo acredita en Ajustes > Acerca de > Licencias del diccionario (este archivo).
 
 Transformación: de cada entrada se dejan la categoría y las acepciones numeradas (hasta 12 por categoría, cortadas a 400 caracteres), con su materia («Anatomía», «Música») aparte; se sacan la pronunciación, los sinónimos, los ejemplos y la etimología. De las formas sin definición propia quedan solo las que están en `palabras.js`. Unicode NFC, en minúscula.
 
