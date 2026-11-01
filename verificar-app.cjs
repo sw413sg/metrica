@@ -1987,13 +1987,31 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#vista-ajustes .encabezado-grupo').first().textContent(), 'Widgets');
         await page.locator('#abrir-widgets').click();
         assert.equal(await page.locator('#vista-widgets').isVisible(), true);
-        assert.equal(await page.locator('#widgets-tipos button').count(), 7);
+        // Sin Freestyle ni Consigna del día; cada widget tiene sus diseños en un carrusel, sin íconos alrededor.
+        assert.equal(await page.locator('#widgets-tipos button').count(), 5);
         for (const tipo of await page.locator('#widgets-tipos button').all()) {
             await tipo.click();
-            assert.equal(await page.locator('#widgets-inicio .widget').count(), 1);
+            const disenos = await page.locator('#widgets-puntos button').count();
+            assert.ok(disenos >= 3);
+            assert.equal(await page.locator('#widgets-carrusel .widget').count(), disenos);
         }
+        assert.equal(await page.locator('.app-muestra').count(), 0);
         await page.locator('#widgets-tipos button').first().click();
-        await page.locator('#widgets-inicio .widget-anotar').click();
+        // Deslizar pasa de diseño y queda guardado; la esquina cambia el tamaño.
+        await page.locator('#widgets-carrusel').evaluate(e => e.scrollTo({ left: e.clientWidth }));
+        await page.waitForTimeout(400);
+        assert.equal(await page.locator('#widgets-diseno').textContent(), 'Frase · Chico');
+        await page.locator('#widgets-carrusel .escenario-widgets').nth(1).locator('.esquina-widget').click();
+        assert.equal(await page.locator('#widgets-diseno').textContent(), 'Frase · Mediano');
+        assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('metrica.widgets')).baul.diseno), 'frase');
+        // Inicio, Pantalla bloqueada y Centro de control, cada uno en su pantalla.
+        await page.locator('#widgets-lugares [data-lugar="bloqueo"]').click();
+        assert.equal(await page.locator('#widgets-panel-inicio').isVisible(), false);
+        assert.equal(await page.locator('#widgets-bloqueo').isVisible(), true);
+        await page.locator('#widgets-lugares [data-lugar="control"]').click();
+        assert.equal(await page.locator('#widgets-control').isVisible(), true);
+        await page.locator('#widgets-lugares [data-lugar="inicio"]').click();
+        await page.locator('#widgets-carrusel .escenario-widgets').nth(1).locator('.widget-anotar').click();
         assert.equal(await page.locator('#vista-baul').isVisible(), true);
         assert.equal(await page.evaluate(() => document.activeElement.id), 'baul-texto');
         await page.locator('#baul-atras').click();

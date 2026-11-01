@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { WIDGETS, ajustesWidget, guardarAjusteWidget, frasesDelWidget, consignaDelDia, racha, ajustesBloqueo, guardarAjusteBloqueo, letraDelWidget, palabraDelDia, ultimaSemana } from '../js/logica/widgets.js';
+import { WIDGETS, ajustesWidget, guardarAjusteWidget, frasesDelWidget, tamanoAlEstirar, siguienteTamano, ajustarFoto, FOTO_CENTRADA, racha, ajustesBloqueo, guardarAjusteBloqueo, letraDelWidget, palabraDelDia, ultimaSemana } from '../js/logica/widgets.js';
 
 function almacenDePrueba() {
     const datos = new Map();
@@ -11,10 +11,14 @@ test('el baúl es el primer widget', () => {
     assert.equal(WIDGETS[0].id, 'baul');
 });
 
-test('ajustesWidget arranca chico y en vidrio, y guarda lo que se cambia por widget', () => {
+test('ya no están Freestyle ni Consigna del día', () => {
+    assert.deepEqual(WIDGETS.map(w => w.id), ['baul', 'palabra', 'letra', 'racha', 'accesos']);
+});
+
+test('ajustesWidget arranca chico, en vidrio y con el primer diseño, y guarda lo que se cambia por widget', () => {
     const almacen = almacenDePrueba();
-    assert.deepEqual(ajustesWidget(almacen, 'baul'), { tamano: 'chico', estilo: 'vidrio', mostrarFrases: true, soloSinUsar: false });
-    assert.equal(ajustesWidget(almacen, 'consigna').categoria, 'todas');
+    assert.deepEqual(ajustesWidget(almacen, 'baul'), { estilo: 'vidrio', tamano: 'chico', diseno: 'lista', mostrarFrases: true, soloSinUsar: false });
+    assert.equal(ajustesWidget(almacen, 'letra').letra, 'ultima');
     guardarAjusteWidget(almacen, 'baul', { tamano: 'grande', estilo: 'violeta' });
     assert.equal(ajustesWidget(almacen, 'baul').tamano, 'grande');
     assert.equal(ajustesWidget(almacen, 'baul').estilo, 'violeta');
@@ -25,7 +29,39 @@ test('un tamaño que el widget no tiene vuelve al primero', () => {
     const almacen = almacenDePrueba();
     assert.equal(guardarAjusteWidget(almacen, 'racha', { tamano: 'grande' }).tamano, 'chico');
     assert.equal(ajustesWidget(almacen, 'accesos').tamano, 'mediano');
-    assert.equal(guardarAjusteWidget(almacen, 'consigna', { tamano: 'grande' }).tamano, 'chico');
+    assert.equal(guardarAjusteWidget(almacen, 'palabra', { tamano: 'grande' }).tamano, 'chico');
+});
+
+test('cada widget tiene varios diseños, y uno que no existe vuelve al primero', () => {
+    for (const widget of WIDGETS) assert.ok(widget.disenos.length >= 3, widget.id);
+    const almacen = almacenDePrueba();
+    assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'libreta' }).diseno, 'libreta');
+    assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'otro' }).diseno, 'lista');
+});
+
+test('el estilo foto vale solo si hay una foto guardada', () => {
+    const almacen = almacenDePrueba();
+    assert.equal(guardarAjusteWidget(almacen, 'racha', { estilo: 'foto' }).estilo, 'vidrio');
+    assert.equal(guardarAjusteWidget(almacen, 'racha', { estilo: 'foto', foto: { src: 'data:image/jpeg;base64,x', ...FOTO_CENTRADA } }).estilo, 'foto');
+});
+
+test('tamanoAlEstirar elige el tamaño más cercano entre los que tiene el widget', () => {
+    const todos = ['chico', 'mediano', 'grande'];
+    assert.equal(tamanoAlEstirar(todos, 2.2, 1.8), 'chico');
+    assert.equal(tamanoAlEstirar(todos, 3.6, 2.3), 'mediano');
+    assert.equal(tamanoAlEstirar(todos, 3.8, 3.7), 'grande');
+    assert.equal(tamanoAlEstirar(['chico', 'mediano'], 4, 4), 'mediano');
+});
+
+test('siguienteTamano da la vuelta', () => {
+    assert.equal(siguienteTamano(['chico', 'mediano', 'grande'], 'chico'), 'mediano');
+    assert.equal(siguienteTamano(['chico', 'mediano', 'grande'], 'grande'), 'chico');
+    assert.equal(siguienteTamano(['mediano', 'chico'], 'mediano'), 'chico');
+});
+
+test('ajustarFoto no deja pasar de los bordes ni del zoom', () => {
+    assert.deepEqual(ajustarFoto({ src: 'a' }, { x: 140, y: -5, z: 9, oscuro: 2 }), { src: 'a', x: 100, y: 0, z: 3, oscuro: 0.6 });
+    assert.equal(ajustarFoto({ src: 'a', z: 'nada' }).z, 1);
 });
 
 test('si lo guardado está roto, arranca de cero', () => {
@@ -46,17 +82,6 @@ test('frasesDelWidget muestra las últimas según el tamaño, y puede ocultarlas
     assert.equal(frasesDelWidget([...frases, ...frases, ...frases], { tamano: 'grande' }).length, 5);
     assert.deepEqual(frasesDelWidget(frases, { tamano: 'grande', soloSinUsar: true }), ['c', 'a']);
     assert.deepEqual(frasesDelWidget(frases, { tamano: 'grande', mostrarFrases: false }), []);
-});
-
-test('consignaDelDia es la misma todo el día, cambia al otro y respeta la categoría', () => {
-    const consignas = Array.from({ length: 50 }, (_, i) => ({ id: i, categoria: i % 2 ? 'amor' : 'calle' }));
-    const manana = new Date(2026, 9, 27, 8).getTime();
-    const noche = new Date(2026, 9, 27, 23).getTime();
-    const otroDia = new Date(2026, 9, 28, 8).getTime();
-    assert.equal(consignaDelDia(consignas, { ahora: manana }), consignaDelDia(consignas, { ahora: noche }));
-    assert.notEqual(consignaDelDia(consignas, { ahora: manana }), consignaDelDia(consignas, { ahora: otroDia }));
-    assert.equal(consignaDelDia(consignas, { categoria: 'amor', ahora: manana }).categoria, 'amor');
-    assert.equal(consignaDelDia(consignas, { categoria: 'nada' }), null);
 });
 
 test('racha cuenta los días seguidos y no se corta si hoy todavía no se escribió', () => {
@@ -84,7 +109,7 @@ test('letraDelWidget: la última editada o la elegida, con renglones según el t
         { id: 'a', titulo: 'Vieja', texto: 'uno', editada: 1 },
         { id: 'b', titulo: '', texto: '[Intro]\nprimer verso\n\nsegundo verso\ntercero\ncuarto', editada: 2 },
     ];
-    assert.deepEqual(letraDelWidget(letras), { id: 'b', titulo: 'Sin título', renglones: ['primer verso', 'segundo verso', 'tercero'], versos: 4 });
+    assert.deepEqual(letraDelWidget(letras), { id: 'b', titulo: 'Sin título', renglones: ['primer verso', 'segundo verso', 'tercero'], ultimo: 'cuarto', versos: 4 });
     assert.equal(letraDelWidget(letras, { tamano: 'grande' }).renglones.length, 4);
     assert.equal(letraDelWidget(letras, { letra: 'a' }).titulo, 'Vieja');
     assert.equal(letraDelWidget(letras, { letra: 'borrada' }).id, 'b');
