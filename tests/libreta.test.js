@@ -50,3 +50,10 @@ test('tamaño y separaciones: 10 puntos, de menor a mayor', () => {
         assert.ok(valores.every((v, i) => i === 0 || v > valores[i - 1]), clave);
     }
 });
+
+test('compartir: el título va aparte y el texto es solo el cuerpo', async () => {
+    const { datosParaCompartir } = await import('../js/logica/libreta.js');
+    assert.deepEqual(datosParaCompartir({ titulo: ' Checkpoint ', texto: 'Primer verso\nSegundo\n\n' }),
+        { title: 'Checkpoint', text: 'Primer verso\nSegundo' });
+    assert.deepEqual(datosParaCompartir({ titulo: '', texto: 'Solo texto' }), { text: 'Solo texto' });
+});

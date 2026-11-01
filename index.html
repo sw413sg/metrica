@@ -536,6 +536,16 @@
                         <select id="rimas-internas" data-ajuste="internas"></select>
                     </span>
                 </div>
+                <!-- Compartir abre la hoja del sistema (se puede elegir Google Keep); Copiar se lleva
+                     solo el cuerpo, sin el título (pedido de Swa; en SwiftUI, ShareLink y UIPasteboard). -->
+                <button type="button" class="fila-grupo fila-accion" id="compartir-letra">
+                    <span>Compartir</span>
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M12 15V3M8 7l4-4 4 4M7 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg>
+                </button>
+                <button type="button" class="fila-grupo fila-accion" id="copiar-letra">
+                    <span>Copiar</span>
+                    <span class="valor-accion" id="copiar-letra-valor">Sin el título</span>
+                </button>
             </div>
             <!-- Abajo de todo, borrar la letra (pide confirmación). -->
             <button type="button" class="boton-borrar-letra" id="borrar-letra">Borrar letra</button>
