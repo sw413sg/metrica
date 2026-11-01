@@ -156,7 +156,15 @@
             <!-- Con música sonando, partículas que suben detrás de todo (js/efectos.js, sin resplandor). -->
             <canvas class="efecto-fs" id="rimas-efecto" aria-hidden="true"></canvas>
             <header class="barra-nav"></header>
-            <h1 class="titulo-grande">Rimas</h1>
+            <!-- El título y, a la derecha, el libro: pasa a «Diccionario» (busca qué significa la palabra) y vuelve a «Rimas». -->
+            <div class="fila-titulo">
+                <h1 class="titulo-grande" id="titulo-rimas">Rimas</h1>
+                <div class="acciones-barra">
+                    <button class="boton-barra" id="alternar-diccionario" aria-pressed="false" aria-label="Diccionario">
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M12 6.5C10 5 7 4.6 3 5v13c4-.4 7 .1 9 1.5 2-1.4 5-1.9 9-1.5V5c-4-.4-7 0-9 1.5z"/><path d="M12 6.5v13"/></svg>
+                    </button>
+                </div>
+            </div>
             <div class="contenido">
                 <div class="busqueda-rima">
                     <!-- La lupa va con el efecto de la palabra tocada (degradé violeta con brillo). -->
@@ -178,6 +186,8 @@
                     </div>
                 </div>
                 <div class="vineta-tipo" id="vineta-tipo" role="tooltip" hidden></div>
+                <!-- Diccionario: lo que significa la palabra escrita (aunque esté mal escrita), en vez de la caja de rimas. -->
+                <div class="caja-azar caja-definicion vidrio" id="caja-definicion" aria-live="polite" hidden></div>
                 <!-- La caja de vidrio de las 4 palabras, como la bandeja de Freestyle. -->
                 <div class="caja-azar vidrio" id="caja-azar">
                     <div class="cabecera-azar">

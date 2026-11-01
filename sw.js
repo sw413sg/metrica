@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando uno al último número (1.0.9 -> 1.1.0): así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-1.3.9';
+const VERSION = 'metrica-1.4.0';
 const ARCHIVOS = [
     './',
     'index.html',
@@ -28,6 +28,7 @@ const ARCHIVOS = [
     'js/logica/libreta.js',
     'js/logica/sinonimos.js',
     'js/logica/relacionados.js',
+    'js/logica/definiciones.js',
     'js/logica/apariencia.js',
     'js/logica/musica.js',
     'js/logica/ambiente.js',
@@ -69,21 +70,44 @@ const ARCHIVOS = [
     'fondos/eclipse.svg',
     'fondos/luna.svg',
 ];
+// El diccionario de definiciones (16 MB) va en su propia caché, que no se borra con cada
+// versión: así no se vuelve a bajar en cada actualización. Cambiá DICCIONARIO solo cuando
+// se regenere definiciones.txt.
+const DICCIONARIO = 'metrica-definiciones-1';
+const ARCHIVOS_DICCIONARIO = ['definiciones.txt'];
+
+// Se baja de fondo al instalar, sin hacer esperar a la versión nueva, y si no llegó, la primera
+// vez que se abre el libro (ver el fetch de abajo).
+function guardarDiccionario() {
+    return caches.open(DICCIONARIO).then(cache => Promise.all(ARCHIVOS_DICCIONARIO.map(archivo =>
+        cache.match(archivo).then(guardado => guardado || cache.add(new Request(archivo, { cache: 'reload' }))))))
+        .catch(() => {});
+}
 
 self.addEventListener('install', evento => {
     // cache: 'reload' saltea la caché del navegador, para no guardar archivos viejos.
     const pedidos = ARCHIVOS.map(archivo => new Request(archivo, { cache: 'reload' }));
     evento.waitUntil(caches.open(VERSION).then(cache => cache.addAll(pedidos)).then(() => self.skipWaiting()));
+    guardarDiccionario();
 });
 
 self.addEventListener('activate', evento => {
     evento.waitUntil(caches.keys()
-        .then(claves => Promise.all(claves.filter(c => c !== VERSION).map(c => caches.delete(c))))
+        .then(claves => Promise.all(claves.filter(c => c !== VERSION && c !== DICCIONARIO).map(c => caches.delete(c))))
         .then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', evento => {
     // Solo lo de la app: los reproductores de música (YouTube, SoundCloud) van directo a internet.
     if (evento.request.method !== 'GET' || new URL(evento.request.url).origin !== location.origin) return;
+    const url = new URL(evento.request.url);
+    if (ARCHIVOS_DICCIONARIO.some(archivo => url.pathname.endsWith('/' + archivo))) {
+        evento.respondWith(caches.open(DICCIONARIO).then(cache => cache.match(evento.request).then(guardado => guardado ||
+            fetch(evento.request).then(respuesta => {
+                if (respuesta.ok) cache.put(evento.request, respuesta.clone());
+                return respuesta;
+            }))));
+        return;
+    }
     evento.respondWith(caches.match(evento.request).then(guardado => guardado || fetch(evento.request)));
 });

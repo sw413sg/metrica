@@ -460,6 +460,28 @@ a { color: var(--acento); text-decoration: none; }
 .lista-todas li { min-width: 0; display: flex; align-items: center; border-bottom: 0.5px solid var(--separador); }
 .lista-todas button:first-child { flex: 1; min-width: 0; height: 100%; padding: 0 8px; text-align: left; font-size: 17px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pantalla-rimas .vacio { margin: 28px 8px; }
+
+/* Diccionario: el libro, a la derecha de «Rimas». Prendido, en violeta (como la pestaña elegida). */
+#alternar-diccionario[aria-pressed="false"] { color: var(--acento); }
+#alternar-diccionario[aria-pressed="true"] { color: var(--destacado); }
+#alternar-diccionario[aria-pressed="true"] path:first-child { fill: var(--destacado-suave); }
+/* En el diccionario, consonante y asonante no se pueden tocar. */
+#tipo-rima.bloqueado { pointer-events: none; }
+#tipo-rima.bloqueado .ayuda-tipo { opacity: 0.4; }
+.caja-definicion { padding: 16px 18px 18px; }
+.caja-definicion[hidden] { display: none; }
+.definicion-palabra { margin: 0; font-size: 28px; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+.definicion-silabas { margin: 4px 0 0; font-size: 13px; color: var(--texto-3); }
+.definicion-nota { margin: 8px 0 0; font-size: 14px; color: var(--texto-2); }
+.definicion-nota button { color: var(--destacado); font-weight: 600; }
+.definicion-categoria { margin: 16px 0 8px; }
+.definicion-entrada + .definicion-entrada { margin-top: 18px; padding-top: 14px; border-top: 0.5px solid var(--separador); }
+.definicion-lema { margin: 2px 0 0; font-size: 20px; font-weight: 700; }
+.acepciones { margin: 0; padding-left: 22px; display: grid; gap: 7px; font-size: 16px; line-height: 1.4; }
+.acepciones li::marker { color: var(--texto-3); font-size: 14px; }
+.materia { font-style: italic; color: var(--texto-2); }
+.definicion-vacia { margin: 6px 0; color: var(--texto-2); font-size: 15px; line-height: 1.4; }
+.credito-diccionario { margin: 14px 0 0; font-size: 11px; color: var(--texto-3); }
 .borrar-guardada { width: 32px; height: 32px; flex-shrink: 0; display: grid; place-items: center; color: var(--texto-3); }
 .borrar-guardada .icono { width: 16px; height: 16px; }
 
@@ -510,7 +532,7 @@ a { color: var(--acento); text-decoration: none; }
 }
 /* En Rimas, con música sonando, el polvo que sube del Boombap 1 (sin resplandor). */
 #pantalla-rimas { overflow-x: hidden; }
-#pantalla-rimas > .barra-nav, #pantalla-rimas > .titulo-grande, #pantalla-rimas > .contenido { position: relative; z-index: 1; }
+#pantalla-rimas > .barra-nav, #pantalla-rimas > .fila-titulo, #pantalla-rimas > .contenido { position: relative; z-index: 1; }
 /* Y en Letras, detrás de las tarjetas: la «+» no tiene relleno, así se ve a través. */
 #vista-lista-letras > .barra-nav, #vista-lista-letras > .fila-titulo, #vista-lista-letras > .contenido { position: relative; z-index: 1; }
 

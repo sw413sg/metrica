@@ -16,6 +16,7 @@ import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibret
 import { SECCIONES, separador, esSeparador } from './logica/secciones.js';
 import { crearIndiceSinonimos, buscarSinonimos } from './logica/sinonimos.js';
 import { crearIndiceRelacionados, buscarRelacionados } from './logica/relacionados.js';
+import { crearIndiceDefiniciones, buscarDefinicion } from './logica/definiciones.js';
 import { crearEfecto } from './efectos.js';
 import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantidadEfectos, EFECTOS_MAXIMO } from './logica/ambiente.js';
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
@@ -1357,7 +1358,11 @@ function renderizarRimas() {
     // Consonante y asonante se apagan sin palabra (las terminaciones al azar no riman con nada) y con «Sinónimos».
     $('tipo-rima').classList.toggle('apagado', !palabra || conSinonimos());
     $('rimas-vacio').hidden = !palabra || lista.length > 0;
-    $('limpiar-rima').hidden = !palabra;
+    actualizarPista();
+}
+
+function actualizarPista() {
+    $('limpiar-rima').hidden = !palabraBuscada();
     // La pista se vuelve a tipear al borrar la búsqueda.
     const vacio = !$('buscar-rima').value;
     if (vacio && !pistaVacia) tipearPista();
@@ -1365,8 +1370,154 @@ function renderizarRimas() {
     $('pista-rima').hidden = !vacio;
 }
 
+// ---------- Diccionario (el libro de arriba a la derecha de Rimas) ----------
+// Busca qué significa la palabra, aunque esté mal escrita (js/logica/definiciones.js, con el
+// Wikcionario de definiciones.txt). Cada modo guarda lo suyo escrito: al volver, sigue ahí.
+let modoDiccionario = false;
+const textoDeModo = { rimas: '', diccionario: '' };
+let definiciones = null, cargaDefiniciones = null, errorDefiniciones = false;
+
+// definiciones.txt pesa (16 MB): se baja recién al abrir el libro y queda en la caché.
+// Lo de las palabras mal escritas se arma de a pedazos para no trabar la pantalla.
+function cargarDefiniciones() {
+    cargaDefiniciones ??= fetch('definiciones.txt')
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(texto => {
+            definiciones = crearIndiceDefiniciones(texto, frecuenciasDePalabras());
+            if (modoDiccionario) renderizarDiccionario();
+            const pedazo = () => {
+                if (definiciones.armarPedazo(15000)) {
+                    if (modoDiccionario) renderizarDiccionario();
+                } else setTimeout(pedazo, 0);
+            };
+            setTimeout(pedazo, 0);
+        })
+        .catch(() => {
+            errorDefiniciones = true;
+            cargaDefiniciones = null;
+            if (modoDiccionario) renderizarDiccionario();
+        });
+    return cargaDefiniciones;
+}
+
+function parrafo(clase, texto) {
+    const p = document.createElement('p');
+    p.className = clase;
+    p.textContent = texto;
+    return p;
+}
+
+// Palabras similares: los sinónimos y las relacionadas de la palabra, sin repetir.
+function similaresDe(palabras) {
+    const vistas = new Set(palabras);
+    const salida = [];
+    for (const palabra of palabras) {
+        for (const p of [...buscarSinonimos(palabra, indiceSinonimos()), ...buscarRelacionados(palabra, indiceRelacionados())]) {
+            if (!vistas.has(p) && !p.includes(' ')) { vistas.add(p); salida.push(p); }
+        }
+    }
+    return salida.slice(0, 40);
+}
+
+function renderizarDiccionario() {
+    const palabra = palabraBuscada();
+    const caja = $('caja-definicion');
+    $('caja-azar').hidden = true;
+    $('cajon-todas').hidden = true;
+    $('rimas-vacio').hidden = true;
+    caja.hidden = false;
+    actualizarPista();
+    let resultado = null;
+    if (!palabra) caja.replaceChildren(parrafo('definicion-vacia', 'Escribí una palabra para ver qué significa, aunque no sepas bien cómo se escribe.'));
+    else if (errorDefiniciones && !definiciones) caja.replaceChildren(parrafo('definicion-vacia', 'No se pudo abrir el diccionario. Probá de nuevo con internet.'));
+    else if (!definiciones) caja.replaceChildren(parrafo('definicion-vacia', 'Abriendo el diccionario…'));
+    else if (!definiciones.listo && !definiciones.entradas.has(palabra)) caja.replaceChildren(parrafo('definicion-vacia', 'Buscando…'));
+    else {
+        resultado = buscarDefinicion(palabra, definiciones);
+        if (!resultado) caja.replaceChildren(parrafo('definicion-vacia', `No encontré «${palabra}» en el diccionario.`));
+        else caja.replaceChildren(...fichaDefinicion(resultado));
+    }
+    // Abajo, las palabras similares: tocarlas las busca en el diccionario.
+    const similares = resultado ? similaresDe(resultado.entradas.map(e => e.palabra)) : [];
+    $('lista-relacionadas').replaceChildren(...similares.map(itemPalabra));
+    $('lista-relacionadas').scrollTop = 0;
+    $('cajon-relacionadas').hidden = !similares.length;
+    $('encabezado-relacionadas').textContent = `Palabras similares · ${similares.length}`;
+}
+
+// La palabra, sus sílabas, si se corrigió o es forma de otra, y las acepciones por categoría.
+function fichaDefinicion({ buscada, palabra, corregida, entradas }) {
+    const partes = [];
+    const titulo = document.createElement('h2');
+    titulo.className = 'definicion-palabra';
+    titulo.textContent = palabra;
+    partes.push(titulo);
+    const n = separarSilabas(palabra).length;
+    if (n && !palabra.includes(' ')) partes.push(parrafo('definicion-silabas', `${n} ${n === 1 ? 'sílaba' : 'sílabas'}`));
+    if (corregida) partes.push(parrafo('definicion-nota', `Buscaste «${buscada}».`));
+    const otras = entradas.map(e => e.palabra).filter(p => p !== palabra);
+    if (otras.length) partes.push(parrafo('definicion-nota', `Forma de ${otras.map(p => `«${p}»`).join(' y ')}.`));
+    for (const entrada of entradas) {
+        const bloque = document.createElement('div');
+        bloque.className = 'definicion-entrada';
+        if (entrada.palabra !== palabra) {
+            const nombre = document.createElement('h3');
+            nombre.className = 'definicion-lema';
+            nombre.textContent = entrada.palabra;
+            bloque.append(nombre);
+        }
+        for (const { nombre, acepciones } of entrada.categorias) {
+            const categoria = document.createElement('h3');
+            categoria.className = 'titulo-azar definicion-categoria';
+            categoria.textContent = nombre;
+            const lista = document.createElement('ol');
+            lista.className = 'acepciones';
+            lista.append(...acepciones.map(({ materia, texto }) => {
+                const li = document.createElement('li');
+                if (materia) {
+                    const m = document.createElement('span');
+                    m.className = 'materia';
+                    m.textContent = `${materia}. `;
+                    li.append(m);
+                }
+                li.append(document.createTextNode(texto));
+                return li;
+            }));
+            bloque.append(categoria, lista);
+        }
+        partes.push(bloque);
+    }
+    partes.push(parrafo('credito-diccionario', 'Definiciones del Wikcionario (CC BY-SA 4.0).'));
+    return partes;
+}
+
+function alternarDiccionario() {
+    textoDeModo[modoDiccionario ? 'diccionario' : 'rimas'] = $('buscar-rima').value;
+    modoDiccionario = !modoDiccionario;
+    $('buscar-rima').value = textoDeModo[modoDiccionario ? 'diccionario' : 'rimas'];
+    $('titulo-rimas').textContent = modoDiccionario ? 'Diccionario' : 'Rimas';
+    $('alternar-diccionario').setAttribute('aria-pressed', modoDiccionario);
+    $('alternar-diccionario').setAttribute('aria-label', modoDiccionario ? 'Volver a Rimas' : 'Diccionario');
+    // Consonante y asonante no se pueden tocar en el diccionario.
+    $('tipo-rima').classList.toggle('bloqueado', modoDiccionario);
+    document.querySelectorAll('#tipo-rima button').forEach(b => { b.disabled = modoDiccionario; });
+    cerrarAyudaTipo();
+    $('caja-definicion').hidden = !modoDiccionario;
+    $('caja-azar').hidden = modoDiccionario;
+    if (modoDiccionario) {
+        frenarReloj();
+        cargarDefiniciones();
+    }
+    buscarRima();
+}
+$('alternar-diccionario').addEventListener('click', alternarDiccionario);
+
 // Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
 function buscarRima() {
+    if (modoDiccionario) {
+        $('tipo-rima').classList.add('apagado');
+        return renderizarDiccionario();
+    }
     desde = 0;
     // Si la palabra no tiene sinónimos (o se borró), «Sinónimos» se apaga y no se puede tocar.
     const haySinonimos = Boolean(palabraBuscada()) && buscarSinonimos(palabraBuscada(), indiceSinonimos()).length > 0;
@@ -1556,7 +1707,7 @@ function tic(ahora) {
     cuadro = requestAnimationFrame(tic);
 }
 function arrancarReloj() {
-    if (cuadro !== null || !rimasALaVista || pausadoPorUsuario || palabraBuscada()) return;
+    if (cuadro !== null || !rimasALaVista || pausadoPorUsuario || palabraBuscada() || modoDiccionario) return;
     antes = performance.now();
     cuadro = requestAnimationFrame(tic);
 }
