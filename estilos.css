@@ -1960,7 +1960,8 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 #caja-ia.cambio::before { animation: resplandor-azar .9s ease-out; }
 #caja-ia.cambio .texto-tema, #caja-ia.cambio .empujon-tema { animation: entrar-palabra .5s cubic-bezier(.2, .8, .2, 1) both; }
 #caja-ia.cambio .empujon-tema { animation-delay: 70ms; }
-.cabeza-ia { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px; }
+.cabeza-ia { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 8px; padding: 0 6px; }
+.cabeza-ia .titulo-azar { white-space: nowrap; }
 .cupo-ia { font-size: 12px; color: var(--texto-2); white-space: nowrap; }
 /* La palabra que rima, con el efecto de la palabra tocada. */
 #ia-ultima {

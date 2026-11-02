@@ -11,15 +11,6 @@ export const PEDIDAS_IA = 6;
 // Una palabra sola (la tocada): cuántas alternativas se piden para pasar con las flechas de la viñeta.
 export const PALABRAS_IA = 8;
 
-// Las pastillas de la hoja, como las categorías de «¿Por dónde empiezo?»: hacia dónde llevar la frase.
-export const ENFOQUES_IA = [
-    { id: 'mejor', nombre: 'Mejorar', pista: 'que suene mejor y diga más' },
-    { id: 'rimas', nombre: 'Más rimas', pista: 'con más rimas internas que suenen con el verso anterior' },
-    { id: 'corta', nombre: 'Más corta', pista: 'más directa, con dos o tres sílabas menos' },
-    { id: 'imagen', nombre: 'Más imagen', pista: 'con una imagen concreta, algo que se pueda ver' },
-    { id: 'calle', nombre: 'Más calle', pista: 'con palabras de la calle, bien rioplatense' },
-];
-
 const LARGO_MAXIMO = 140;
 const VERSOS_ESTROFA = 8;
 
@@ -34,7 +25,7 @@ export function pedidoValido(pedido) {
         && (pedido.anterior == null || versoValido(pedido.anterior))
         && Array.isArray(pedido.estrofa) && pedido.estrofa.length <= VERSOS_ESTROFA && pedido.estrofa.every(v => texto(v))
         && Number.isInteger(pedido.objetivo?.silabas)
-        && (pedido.enfoque == null || ENFOQUES_IA.some(e => e.id === pedido.enfoque))
+        && (pedido.enVerso == null || texto(pedido.enVerso))
         && (pedido.palabra == null || (texto(pedido.palabra.texto, 40) && typeof pedido.palabra.final === 'boolean')));
 }
 
@@ -62,20 +53,21 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
         contexto.push(`Verso: ${describir(pedido.verso)}.`, `Palabra para cambiar: «${pedido.palabra.texto}».`);
         return { instrucciones, entrada: contexto.join('\n\n') };
     }
-    const enfoque = ENFOQUES_IA.find(e => e.id === pedido.enfoque);
+    // La frase seleccionada: frases relacionadas con ella y con sus propias rimas (pedido de Swa).
+    const { final, internas } = pedido.verso;
     const instrucciones = [
-        'Sos un compositor de rap y canciones en español rioplatense que ayuda a mejorar un verso.',
-        `Devolvé ${cantidad} versiones distintas del verso elegido, que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
-        ...(enfoque && enfoque.id !== 'mejor' ? [`Que sean ${enfoque.pista}.`] : []),
-        'Cada versión es un solo verso, sin comillas, sin numerar y sin explicar nada.',
-        'Si hay verso anterior, la versión tiene que rimar con su última palabra (mejor consonante, si no asonante) y sonar con sus rimas internas.',
-        'Respetá la cantidad de sílabas pedida, con una de diferencia como mucho.',
+        'Sos un compositor de rap y canciones en español rioplatense que ayuda a escribir.',
+        `Devolvé ${cantidad} frases nuevas relacionadas con la frase elegida: que hablen de lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
+        'Tienen que conservar las rimas de la frase elegida: que la última palabra rime con la suya (mejor consonante, o la misma palabra) y que mantengan sus rimas internas.',
+        'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, y respeta la cantidad de sílabas pedida, con una de diferencia como mucho.',
         'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
     ].join('\n');
     const lineas = contexto;
-    lineas.push(`Verso elegido para mejorar: ${describir(pedido.verso)}.`);
+    if (pedido.enVerso) lineas.push(`La frase está en el verso: «${pedido.enVerso}».`);
+    lineas.push(`Frase elegida: ${describir(pedido.verso)}.`);
     lineas.push(`Sílabas buscadas: ${pedido.objetivo.silabas}.`);
-    if (pedido.objetivo.rimaCon) lineas.push(`Tiene que rimar con «${pedido.objetivo.rimaCon}».`);
+    lineas.push(`La última palabra tiene que rimar con «${final.palabra}» (consonante «-${final.consonante}»).`);
+    if (internas.length) lineas.push(`Rimas internas para mantener: ${internas.map(i => `«${i.palabra}»`).join(', ')}.`);
     return { instrucciones, entrada: lineas.join('\n\n') };
 }
 
@@ -83,7 +75,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
 // La app manda los versos con su número de renglón, sus sílabas y su estrofa; el modelo devuelve
 // cambios chicos: una palabra (o unas pocas) de un verso por otra.
 export const VERSOS_REVISION = 80;
-export const CAMBIOS_REVISION = 6;
+export const CAMBIOS_REVISION = 4; // «Lo que cambiaría»: 4 como mucho (pedido de Swa)
 
 export function revisionValida(revision) {
     const versos = revision?.versos;
@@ -95,7 +87,7 @@ export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION) {
     const instrucciones = [
         'Sos un compositor de rap y canciones en español rioplatense que revisa la letra de otro, con respeto por su estilo.',
         `Leé la letra y devolvé hasta ${cantidad} sugerencias concretas, de la más importante a la menos: palabras repetidas sin querer, finales que no riman con su estrofa, palabras flojas o clichés.`,
-        'Cada sugerencia cambia una palabra (o una expresión corta) de un solo verso por otra, que respete la rima y las sílabas.',
+        'Cada sugerencia cambia una palabra de un solo verso por otra que tenga sentido en esa frase y que rime: con la palabra que reemplaza (así no se pierden las rimas internas) o, si es la última del verso, con los finales de su estrofa. Que respete las sílabas.',
         'El título va como «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
         'Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
     ].join('\n');

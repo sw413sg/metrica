@@ -35,7 +35,7 @@ test('el Worker arma el mensaje, llama al modelo con la clave y descuenta el cup
     assert.equal(llamadas[0].url, 'https://api.openai.com/v1/chat/completions');
     assert.equal(llamadas[0].clave, 'Bearer sk-prueba');
     assert.equal(llamadas[0].cuerpo.model, 'gpt-6.1-terra');
-    assert.match(llamadas[0].cuerpo.messages[1].content, /rimar con «razón»/);
+    assert.match(llamadas[0].cuerpo.messages[1].content, /rimar con «canción»/);
     assert.equal(respuesta.headers.get('Access-Control-Allow-Origin'), 'https://sw413sg.github.io');
 });
 

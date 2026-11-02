@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, conEnfoque, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
 import { pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision } from '../js/logica/ia-prompt.js';
 
 const almacenNuevo = () => {
@@ -11,14 +11,24 @@ const almacenNuevo = () => {
 const LETRA = 'Te busco en el balcón sin razón\ny me quedo solo con mi canción\n\n[Estribillo]\nOtra estrofa acá';
 const elegir = (texto, frase) => fraseElegida(LETRA, LETRA.indexOf(texto), LETRA.indexOf(texto) + texto.length);
 
-test('fraseElegida toma el verso entero y el anterior de la misma estrofa', () => {
-    const r = elegir('me quedo solo');
-    assert.equal(LETRA.slice(r.inicio, r.fin), 'y me quedo solo con mi canción');
+test('fraseElegida toma lo seleccionado hasta palabras enteras y busca sus propias rimas', () => {
+    const r = fraseElegida(LETRA, LETRA.indexOf('uedo solo'), LETRA.indexOf('con mi can') + 10);
+    assert.equal(LETRA.slice(r.inicio, r.fin), 'quedo solo con mi canción');
+    assert.equal(r.pedido.verso.texto, 'quedo solo con mi canción');
+    assert.equal(r.pedido.enVerso, 'y me quedo solo con mi canción');
+    assert.deepEqual(r.pedido.verso.final, { palabra: 'canción', consonante: 'on', asonante: 'o' });
+    // Lo que rima es la frase, no el verso anterior (que va solo de contexto).
+    assert.deepEqual(r.pedido.objetivo, { silabas: 9, rimaCon: 'canción' });
     assert.equal(r.pedido.anterior.texto, 'Te busco en el balcón sin razón');
-    assert.deepEqual(r.pedido.anterior.final, { palabra: 'razón', consonante: 'on', asonante: 'o' });
-    assert.deepEqual(r.pedido.anterior.internas, [{ palabra: 'balcón', asonante: 'o' }]);
-    assert.deepEqual(r.pedido.objetivo, { silabas: 10, rimaCon: 'razón' });
     assert.ok(pedidoValido(r.pedido));
+});
+
+test('fraseElegida suma las rimas internas de la frase', () => {
+    const r = elegir('Te busco en el balcón sin razón');
+    assert.equal(r.pedido.enVerso, undefined);
+    assert.deepEqual(r.pedido.verso.internas, [{ palabra: 'balcón', asonante: 'o' }]);
+    const sola = fraseElegida('la noche me deja sin coche', 0, 27);
+    assert.deepEqual(sola.pedido.verso.internas.map(i => i.palabra), ['noche']);
 });
 
 test('fraseElegida: una sola palabra, dos versos o un renglón vacío no cuentan', () => {
@@ -27,8 +37,8 @@ test('fraseElegida: una sola palabra, dos versos o un renglón vacío no cuentan
     assert.equal(fraseElegida('', 0, 0), null);
 });
 
-test('fraseElegida: el primero de la estrofa no tiene anterior y sigue rimando como rima', () => {
-    const r = elegir('Otra estrofa');
+test('fraseElegida: el primero de la estrofa no tiene anterior y rima consigo', () => {
+    const r = elegir('Otra estrofa acá');
     assert.equal(r.pedido.anterior, null);
     assert.equal(r.pedido.objetivo.rimaCon, 'acá');
     assert.deepEqual(r.pedido.estrofa, ['Otra estrofa acá']);
@@ -41,33 +51,38 @@ test('fraseElegida no corta en los agregados entre paréntesis', () => {
 });
 
 test('validarSugerencias ordena por rima, sílabas e internas y saca repetidas', () => {
-    const { pedido } = elegir('me quedo solo');
+    const { pedido } = elegir('y me quedo solo con mi canción');
     const lista = validarSugerencias([
         '1. y me quedo solo con mi canción', // igual a la frase
-        'me quedo solo con la luna',         // no rima
-        'me quedo solo esperando a Ramón',   // asonante no, consonante sí
-        '«me quedo solo con mi perdón»',
-        'me quedo solo con mi perdón',       // repetida
-        'me quedo solo con el sol',          // asonante
+        'me voy sola a la luna',             // no rima
+        'me sigo esperando a Ramón',         // consonante
+        '«sigo solo con mi perdón»',
+        'sigo solo con mi perdón',           // repetida
+        'me quedé solo y con el sol',        // asonante
         '',
     ], pedido);
-    assert.deepEqual(lista.map(s => s.texto), ['me quedo solo con mi perdón', 'me quedo solo esperando a Ramón', 'me quedo solo con el sol', 'me quedo solo con la luna']);
+    assert.deepEqual(lista.map(s => s.texto), ['me sigo esperando a Ramón', 'sigo solo con mi perdón', 'me quedé solo y con el sol', 'me voy sola a la luna']);
     assert.deepEqual(lista.map(s => s.rima), ['consonante', 'consonante', 'asonante', null]);
-    assert.equal(lista[0].silabas, 10);
+    assert.equal(lista[0].silabas, 9); // la más cerca de las 11 de la frase
 });
 
 test('validarSugerencias deja 4 como mucho', () => {
-    const { pedido } = elegir('me quedo solo');
+    const { pedido } = elegir('y me quedo solo con mi canción');
     const muchas = ['pasión', 'perdón', 'ilusión', 'corazón', 'balcón', 'canción'].map(p => `vuelvo solo por ${p}`);
     assert.equal(validarSugerencias(muchas, pedido).length, 4);
 });
 
-test('sugerenciasSimuladas usa rimas del índice y no repite la del anterior', () => {
-    const { pedido } = elegir('me quedo solo');
-    const simuladas = sugerenciasSimuladas(pedido, ['razón', 'pasión', 'perdón', 'ilusión'], () => 0);
-    assert.equal(simuladas.length, 4); // 3 rimas libres y una sin rima
-    assert.ok(simuladas.every(s => !s.endsWith('razón')));
-    assert.ok(validarSugerencias(simuladas, pedido).length >= 3);
+test('sugerenciasSimuladas: la misma idea con sinónimos y la última rimando con la de la frase', () => {
+    const { pedido } = elegir('y me quedo solo con mi canción');
+    const simuladas = sugerenciasSimuladas(pedido, {
+        rimas: ['canción', 'pasión', 'perdón'],
+        sinonimosDe: p => ({ quedo: ['sigo'], solo: ['aislado'] })[p] ?? [],
+    }, () => 0);
+    assert.equal(simuladas.length, 5);
+    assert.equal(simuladas[0], 'y me quedo solo con mi pasión');
+    assert.ok(simuladas.some(s => s.includes('sigo') && s.endsWith('canción')));
+    const validas = validarSugerencias(simuladas, pedido);
+    assert.ok(validas.length >= 3 && validas.every(s => s.rima === 'consonante' || s.rima === 'misma'));
 });
 
 test('cupo: 20 gratis por mes, se renueva y el plan simulado sube a 500', () => {
@@ -94,7 +109,7 @@ test('idDeUsuario se crea una vez y queda', () => {
 test('pedirSugerencias: sin endpoint, simuladas; con endpoint, al Worker', async () => {
     assert.equal(ENDPOINT_IA, '');
     assert.equal(endpointIA(almacenNuevo()), '');
-    const { pedido } = elegir('me quedo solo');
+    const { pedido } = elegir('y me quedo solo con mi canción');
     assert.deepEqual(await pedirSugerencias(pedido, { simular: () => ['a'] }), { sugerencias: ['a'], simulada: true });
     let enviado;
     const fetch = async (url, opciones) => {
@@ -107,7 +122,7 @@ test('pedirSugerencias: sin endpoint, simuladas; con endpoint, al Worker', async
 });
 
 test('pedirSugerencias avisa sin conexión, sin cupo o con error del servidor', async () => {
-    const { pedido } = elegir('me quedo solo');
+    const { pedido } = elegir('y me quedo solo con mi canción');
     const con = respuesta => ({ endpoint: 'https://ia.ejemplo', fetch: async () => respuesta });
     await assert.rejects(pedirSugerencias(pedido, { endpoint: 'https://ia.ejemplo', fetch: async () => { throw new TypeError(); } }), { motivo: 'red' });
     await assert.rejects(pedirSugerencias(pedido, con({ ok: false, status: 429 })), { motivo: 'cupo' });
@@ -115,24 +130,24 @@ test('pedirSugerencias avisa sin conexión, sin cupo o con error del servidor', 
 });
 
 test('el prompt lleva las rimas y sílabas del motor, y la respuesta se lee aunque venga envuelta', () => {
-    const { pedido } = elegir('me quedo solo');
+    const { pedido } = elegir('y me quedo solo con mi canción');
     const { instrucciones, entrada } = promptDeSugerencias(pedido);
     assert.match(instrucciones, /JSON/);
     assert.match(entrada, /rimas internas: «balcón»/);
-    assert.match(entrada, /Sílabas buscadas: 10/);
-    assert.match(entrada, /rimar con «razón»/);
+    assert.match(entrada, /Sílabas buscadas: 11/);
+    assert.match(entrada, /rimar con «canción»/);
     assert.deepEqual(leerRespuesta('Acá van:\n{"sugerencias": ["uno", 2, "dos"]}'), ['uno', 'dos']);
     assert.deepEqual(leerRespuesta('nada'), []);
 });
 
 test('pedidoValido rechaza pedidos raros o largos', () => {
-    const { pedido } = elegir('me quedo solo');
+    const { pedido } = elegir('y me quedo solo con mi canción');
     assert.equal(pedidoValido(null), false);
     assert.equal(pedidoValido({ ...pedido, verso: { ...pedido.verso, texto: 'x'.repeat(500) } }), false);
     assert.equal(pedidoValido({ ...pedido, estrofa: Array(20).fill('verso') }), false);
 });
 
-test('palabraElegida: la última rima con el anterior, una del medio no', () => {
+test('palabraElegida: la última rima con el verso anterior, una del medio no', () => {
     const final = palabraElegida(LETRA, LETRA.indexOf('canción'), LETRA.indexOf('canción') + 7);
     assert.deepEqual(final.pedido.palabra, { texto: 'canción', final: true });
     assert.equal(final.pedido.objetivo.rimaCon, 'razón');
@@ -150,14 +165,6 @@ test('validarPalabras saca la misma y ordena por rima si es la última', () => {
     assert.deepEqual(palabrasSimuladas(pedido, { rimas: ['razón', 'perdón'] }), ['perdón']);
 });
 
-test('conEnfoque: «Más corta» pide dos sílabas menos y va en el pedido', () => {
-    const { pedido } = elegir('me quedo solo');
-    assert.equal(conEnfoque(pedido, 'corta').objetivo.silabas, 8);
-    assert.equal(conEnfoque(pedido, 'rimas').objetivo.silabas, 10);
-    assert.ok(pedidoValido(conEnfoque(pedido, 'imagen')));
-    assert.match(promptDeSugerencias(conEnfoque(pedido, 'imagen')).instrucciones, /imagen concreta/);
-    assert.equal(pedidoValido({ ...pedido, enfoque: 'cualquiera' }), false);
-});
 
 const CANCION = 'La noche me encuentra en la esquina\nla noche me sigue a la salida\ncamino sin rumbo por la avenida\nbusco tu cara y no la encuentro';
 
@@ -172,28 +179,30 @@ test('letraParaRevisar manda los versos con renglón, sílabas y estrofa', () =>
 test('revisionSimulada: cambia la repetición y el final que no rima', () => {
     const revision = letraParaRevisar(CANCION);
     const cambios = revisionSimulada(revision, {
-        sinonimosDe: p => p === 'noche' ? ['noche', 'madrugada'] : [],
+        sinonimosDe: p => p === 'noche' ? ['noche', 'madrugada', 'golpe'] : [],
         rimasDe: p => p === 'avenida' ? ['salida', 'herida'] : [],
     });
     assert.deepEqual(cambios, [
-        { titulo: 'Cambiar la repetición de la palabra «noche»', verso: 1, viejo: 'noche', nuevo: 'madrugada' },
+        { titulo: 'Cambiar la repetición de la palabra «noche»', verso: 1, viejo: 'noche', nuevo: 'golpe' }, // madrugada no rima
         { titulo: 'Cambiar la palabra «encuentro» por «herida»', verso: 3, viejo: 'encuentro', nuevo: 'herida' },
     ]);
 });
 
 test('validarRevision ubica cada cambio en la letra y respeta la mayúscula', () => {
     const cambios = validarRevision([
-        { titulo: 'a', verso: 0, viejo: 'noche', nuevo: 'madrugada' },
+        { titulo: 'a', verso: 0, viejo: 'noche', nuevo: 'coche' },
+        { titulo: 'f', verso: 3, viejo: 'cara', nuevo: 'luz' },      // no rima con «cara» ni con los finales
+        { titulo: 'g', verso: 2, viejo: 'camino', nuevo: 'salida' },     // rima con los finales de la estrofa
         { titulo: 'b', verso: 2, viejo: 'nada', nuevo: 'algo' },        // no está
         { titulo: 'c', verso: 0, viejo: 'noche', nuevo: 'luna' },       // mismo lugar
         { titulo: 'd', verso: 3, viejo: 'cara', nuevo: 'cara' },        // no cambia
         { titulo: 'e', verso: 1, viejo: 'sigue', nuevo: 'persigue' },
     ], CANCION);
     assert.deepEqual(cambios.map(c => [c.titulo, c.viejo, c.nuevo, CANCION.slice(c.inicio, c.fin)]), [
-        ['a', 'noche', 'madrugada', 'noche'], ['e', 'sigue', 'persigue', 'sigue'],
+        ['a', 'noche', 'coche', 'noche'], ['g', 'camino', 'salida', 'camino'], ['e', 'sigue', 'persigue', 'sigue'],
     ]);
     assert.equal(ubicarCambio('La noche', 0, 'la').inicio, 0);
-    assert.equal(validarRevision([{ titulo: 'x', verso: 0, viejo: 'la', nuevo: 'una' }], CANCION)[0].nuevo, 'Una');
+    assert.equal(validarRevision([{ titulo: 'x', verso: 0, viejo: 'la', nuevo: 'ya' }], CANCION)[0].nuevo, 'Ya');
     assert.equal(ubicarCambio('nochecita noche', 0, 'noche').inicio, 10);
 });
 

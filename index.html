@@ -914,22 +914,21 @@
 
     <!-- IA (pedido de Swa): al seleccionar una frase de la letra, la estrellita de la barra de arriba del teclado
          cierra el teclado y abre esta hoja, la misma de «¿Por dónde empiezo?» con todos sus botones, pero con
-         lo que propone la IA: 3 o 4 versiones que riman con el verso anterior. Las pastillas eligen hacia dónde
-         llevarla. Simulada hasta que esté el servidor (worker/README.md). En SwiftUI, .sheet. -->
+         lo que propone la IA: 3 o 4 alternativas de la frase, con sus mismas rimas (sin pastillas, pedido de Swa). Simulada hasta que esté el servidor (worker/README.md). En SwiftUI, .sheet. -->
     <div class="hoja-fondo" id="hoja-ia" hidden>
         <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="ia-frase">
             <div class="agarre-tema"></div>
-            <div class="chips-tema" id="chips-ia" role="radiogroup" aria-label="Hacia dónde"></div>
             <div class="caja-tema vidrio" id="caja-ia">
                 <div class="cabeza-ia">
                     <span class="titulo-azar" id="ia-titulo"></span>
                     <span class="cupo-ia" id="ia-cupo"></span>
                 </div>
                 <!-- Al final, pegado a la última palabra, el ícono que la pone en la letra en lugar de la frase. -->
+                <!-- Primero lo que se cambia («En vez de: …»), después la alternativa (pedido de Swa). -->
+                <p class="empujon-tema original-ia" id="ia-original"></p>
                 <h2 class="texto-tema" id="ia-frase"><span id="ia-texto"></span><span class="final-tema"><mark id="ia-ultima"></mark><button type="button" class="enviar-tema" id="ia-usar" aria-label="Usar en la letra"><span></span></button></span></h2>
                 <div class="cargando-ia" id="ia-cargando" hidden><span></span><span></span></div>
                 <p class="empujon-tema" id="ia-meta"></p>
-                <p class="empujon-tema original-ia" id="ia-original"></p>
                 <div class="controles-azar">
                     <button type="button" class="boton-azar" id="ia-anterior" aria-label="Anterior" disabled>
                         <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>

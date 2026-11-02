@@ -1,6 +1,6 @@
 // «Mejorar frase» con IA (pedido de Swa): se elige una frase de la letra y el modelo (GPT-6.1 Terra,
-// a través de un Worker de Cloudflare, ver worker/README.md) propone 3 o 4 mejores, basadas en el
-// verso anterior y en sus rimas internas y finales. La app arma el pedido con lo que ya calcula el
+// a través de un Worker de Cloudflare, ver worker/README.md) propone 3 o 4 alternativas relacionadas,
+// con las mismas rimas internas y finales de la frase. La app arma el pedido con lo que ya calcula el
 // motor propio (sílabas, consonante y asonante, internas) y después valida y ordena lo que vuelve.
 // Mientras no haya servidor (ENDPOINT_IA vacío), las respuestas son simuladas.
 import { claveConsonante, claveAsonante, rimasInternas, numerarEstrofas } from './rimas.js';
@@ -29,53 +29,63 @@ function palabrasDeVerso(verso, corregir) {
     return ((/\p{L}/u.test(sin) ? sin : verso).match(/\p{L}+/gu) ?? []).map(corregir);
 }
 
-// La frase elegida: si lo seleccionado tiene al menos dos palabras y queda en un solo verso, se toma
-// el verso entero. Devuelve { inicio, fin, pedido } (dónde va el reemplazo y lo que se le manda al
-// modelo) o null. `distancia`: la de «Rimas internas» de la ruedita (con «No», se buscan a 4).
+// La frase elegida: lo seleccionado (al menos dos palabras, en un solo verso), estirado hasta palabras
+// enteras. La IA propone frases relacionadas con esa frase y con sus propias rimas (la de su última
+// palabra y sus internas), no con el verso anterior (pedido de Swa); el verso y la estrofa van solo
+// de contexto. Devuelve { inicio, fin, pedido } (lo que se reemplaza y lo que se manda) o null.
 export function fraseElegida(texto, inicio, fin, { corregir = p => p, distancia = 4 } = {}) {
+    while (inicio > 0 && /\p{L}/u.test(texto[inicio - 1])) inicio--;
+    while (fin < texto.length && /\p{L}/u.test(texto[fin])) fin++;
+    // Sin espacios ni signos sueltos en las puntas (sí los de adentro y los paréntesis cerrados).
+    while (inicio < fin && /[\s,;:]/.test(texto[inicio])) inicio++;
+    while (fin > inicio && /[\s,;:]/.test(texto[fin - 1])) fin--;
     const elegido = texto.slice(inicio, fin);
     if (elegido.includes('\n') || (elegido.match(/\p{L}+/gu) ?? []).length < 2) return null;
     const versos = texto.split('\n');
     const i = texto.slice(0, inicio).split('\n').length - 1;
     const palabras = versos.map(v => palabrasDeVerso(v, corregir));
-    if (palabras[i].length < 2) return null;
     const estrofas = numerarEstrofas(palabras);
-    const internas = rimasInternas(palabras, distancia || 4);
-    const describir = j => {
-        const final = palabras[j].at(-1);
+    const internasDeLetra = rimasInternas(palabras, distancia || 4);
+    const describir = (frase, j, desde = 0) => {
+        const propias = palabrasDeVerso(frase, corregir);
+        const final = propias.at(-1);
+        // Las internas de la frase: las que el motor pinta en el verso, más las de la frase que suenan
+        // como otra de ella misma (vale aunque lo seleccionado sea un pedazo del verso).
+        const antes = (versos[j].slice(0, desde).match(/\p{L}+/gu) ?? []).length;
+        const ecos = propias.map(p => p.length > 3 && claveAsonante(p));
+        const internas = propias.slice(0, -1)
+            .map((palabra, n) => {
+                const delMotor = internasDeLetra[j]?.[antes + n];
+                const propia = ecos[n] && ecos.some((otra, m) => m !== n && otra === ecos[n]);
+                return (delMotor || propia) && { palabra, asonante: delMotor?.clave ?? ecos[n] };
+            })
+            .filter(Boolean);
         return {
-            texto: versos[j].trim(),
-            silabas: contarSilabasVerso(palabras[j].join(' ')),
+            texto: frase.trim(),
+            silabas: contarSilabasVerso(propias.join(' ')),
             final: { palabra: final, consonante: claveConsonante(final), asonante: claveAsonante(final) },
-            internas: palabras[j].slice(0, -1)
-                .map((palabra, n) => internas[j][n] && { palabra, asonante: internas[j][n].clave })
-                .filter(Boolean),
+            internas,
         };
     };
+    if (!palabrasDeVerso(elegido, corregir).length) return null;
     const mismaEstrofa = versos.map((_, j) => j).filter(j => estrofas[j] === estrofas[i] && palabras[j].length);
     const anterior = mismaEstrofa.filter(j => j < i).at(-1);
     const posicion = mismaEstrofa.indexOf(i);
-    const verso = describir(i);
-    const previo = anterior == null ? null : describir(anterior);
-    const desde = texto.split('\n').slice(0, i).join('\n').length + (i ? 1 : 0);
+    const desdeLinea = texto.lastIndexOf('\n', inicio - 1) + 1;
+    const verso = describir(elegido, i, inicio - desdeLinea);
+    const enVerso = versos[i].trim();
     return {
-        inicio: desde,
-        fin: desde + versos[i].length,
+        inicio,
+        fin,
         pedido: {
             verso,
-            anterior: previo,
+            ...(enVerso !== verso.texto ? { enVerso } : {}),
+            anterior: anterior == null ? null : describir(versos[anterior], anterior),
             estrofa: mismaEstrofa.slice(Math.max(0, posicion - 6), posicion + 2).map(j => versos[j].trim()),
-            // Que rime con el anterior y tenga sus sílabas; si es el primero de la estrofa, que siga
-            // sonando como suena (así no se rompe la rima con el que viene).
-            objetivo: { silabas: (previo ?? verso).silabas, rimaCon: (previo ?? verso).final.palabra },
+            // Que suene como la frase: sus sílabas y que termine rimando con su última palabra.
+            objetivo: { silabas: verso.silabas, rimaCon: verso.final.palabra },
         },
     };
-}
-
-// La pastilla elegida en la hoja: «Más corta» busca dos sílabas menos, el resto va en el pedido.
-export function conEnfoque(pedido, enfoque = 'mejor') {
-    const objetivo = enfoque === 'corta' ? { ...pedido.objetivo, silabas: Math.max(4, pedido.objetivo.silabas - 2) } : pedido.objetivo;
-    return { ...pedido, enfoque, objetivo };
 }
 
 // La palabra tocada (de `inicio` a `fin`): el pedido de su verso, con la palabra y si es la última
@@ -88,10 +98,12 @@ export function palabraElegida(texto, inicio, fin, opciones = {}) {
     const verso = fraseElegida(texto, desde, hasta, opciones);
     if (!verso) return null;
     const final = !/\p{L}/u.test(texto.slice(fin, hasta).replace(/\([^)]*\)/g, ''));
-    const { objetivo } = verso.pedido;
+    // La última rima con la del verso anterior (o, si es el primero de la estrofa, consigo misma).
+    const { objetivo, anterior } = verso.pedido;
+    const rimaCon = final ? anterior?.final.palabra ?? objetivo.rimaCon : null;
     return {
         inicio, fin,
-        pedido: { ...verso.pedido, palabra: { texto: palabra, final }, objetivo: final ? objetivo : { ...objetivo, rimaCon: null } },
+        pedido: { ...verso.pedido, palabra: { texto: palabra, final }, objetivo: { ...objetivo, rimaCon } },
     };
 }
 
@@ -126,12 +138,12 @@ export function palabrasSimuladas(pedido, { rimas = [], sinonimos = [], relacion
 const normal = s => s.toLowerCase().normalize('NFC').replace(/[^\p{L}\s]/gu, '').replace(/\s+/g, ' ').trim();
 
 // Lo que vuelve del modelo, pasado por el motor propio: se descartan las vacías, largas, repetidas
-// o iguales a la frase, y se ordenan por rima (consonante, asonante, ninguna), sílabas más cerca de
-// las buscadas y rimas internas con el verso anterior. Quedan hasta 4, cada una con sus datos.
+// o iguales a la frase, y se ordenan por rima con la última palabra de la frase (consonante o la misma,
+// asonante, ninguna), sílabas más cerca de las de la frase y cuántas de sus rimas internas mantiene. Quedan hasta 4, cada una con sus datos.
 export function validarSugerencias(textos, pedido, { corregir = p => p } = {}) {
     const vistas = new Set([normal(pedido.verso.texto)]);
     const { rimaCon, silabas: buscadas } = pedido.objetivo;
-    const ecos = new Set((pedido.anterior?.internas ?? []).map(i => i.asonante));
+    const ecos = new Set(pedido.verso.internas.map(i => i.asonante));
     const resultado = [];
     for (const crudo of textos) {
         const texto = String(crudo ?? '').split('\n')[0].replace(/^[\s\-•*"«“]+|^\d+[.)]\s*/g, '').replace(/[\s"»”]+$/g, '').trim();
@@ -150,31 +162,42 @@ export function validarSugerencias(textos, pedido, { corregir = p => p } = {}) {
         const internas = palabras.slice(0, -1).filter(p => p.length > 3 && ecos.has(claveAsonante(p))).length;
         resultado.push({ texto, silabas, rima, final, internas, diferencia: Math.abs(silabas - buscadas) });
     }
-    const orden = { consonante: 0, asonante: 1, misma: 1 };
+    // Terminar con la misma palabra mantiene la rima con el resto de la letra: cuenta como consonante.
+    const orden = { consonante: 0, misma: 0, asonante: 1 };
     return resultado
         .sort((a, b) => (orden[a.rima] ?? 2) - (orden[b.rima] ?? 2) || a.diferencia - b.diferencia || b.internas - a.internas)
         .slice(0, SUGERENCIAS_IA);
 }
 
-// Respuestas falsas mientras no hay servidor: la frase con otra palabra final que rima, y algunas
-// frases hechas que terminan en rima. `rimas`: las que rimen con `objetivo.rimaCon` (del índice).
-const FRASES_SIMULADAS = [
-    'aunque nadie entienda sigo con', 'miro el techo y pienso en',
-    'todo lo aposté por', 'vuelvo al barrio con',
-    'la noche me habla de', 'no me pidas que olvide',
-];
-export function sugerenciasSimuladas(pedido, rimas = [], azar = Math.random) {
+// Respuestas falsas mientras no hay servidor, relacionadas con la frase: la misma idea con otras
+// palabras (sinónimos de las del medio) y la última cambiada por una que rima con ella, o igual.
+// `rimas`: las que riman con la última palabra; `sinonimosDe`: palabra -> sinónimos (del diccionario).
+export function sugerenciasSimuladas(pedido, { rimas = [], sinonimosDe = () => [] } = {}, azar = Math.random) {
     const palabras = pedido.verso.texto.split(/\s+/);
-    const sinFinal = palabras.slice(0, -1).join(' ');
-    const propias = [pedido.objetivo.rimaCon, pedido.verso.final.palabra].map(p => p?.toLowerCase());
-    const libres = rimas.filter(r => !propias.includes(r.toLowerCase())).slice(0, 20);
-    const tomar = () => libres.splice(Math.floor(azar() * libres.length), 1)[0];
-    const frases = [...FRASES_SIMULADAS];
-    const frase = () => frases.splice(Math.floor(azar() * frases.length), 1)[0];
-    // Si se acaban las rimas, quedan menos (como cuando el modelo contesta de menos).
-    const inicios = [sinFinal, palabras.slice(1, -1).join(' '), frase(), frase(), frase()];
-    const conRima = inicios.map(inicio => libres.length ? `${inicio} ${tomar()}` : null).filter(Boolean);
-    return [...conRima, `${pedido.verso.texto} otra vez`].slice(0, PEDIDAS_IA);
+    const final = palabras.at(-1);
+    const libres = rimas.filter(r => !r.includes(' ') && r.toLowerCase() !== pedido.verso.final.palabra?.toLowerCase()).slice(0, 20);
+    const tomar = lista => lista.splice(Math.floor(azar() * lista.length), 1)[0];
+    // Las del medio que tienen sinónimos, para cambiar de a una.
+    const cambiables = palabras.slice(0, -1)
+        .map((palabra, n) => ({ n, opciones: palabra.length > 3 ? sinonimosDe(palabra.toLowerCase().replace(/[^\p{L}]/gu, '')).filter(o => !o.includes(' ')).slice(0, 6) : [] }))
+        .filter(c => c.opciones.length);
+    const conSinonimo = (lista, veces) => {
+        const copia = [...lista];
+        const lugares = [...cambiables];
+        for (let k = 0; k < veces && lugares.length; k++) {
+            const { n, opciones } = tomar(lugares);
+            copia[n] = /^\p{Lu}/u.test(copia[n]) ? opciones[k % opciones.length].replace(/^./u, c => c.toUpperCase()) : opciones[k % opciones.length];
+        }
+        return copia;
+    };
+    const variantes = [
+        [...palabras.slice(0, -1), libres.length ? tomar(libres) : final],
+        [...conSinonimo(palabras, 1).slice(0, -1), final],
+        [...conSinonimo(palabras, 2).slice(0, -1), libres.length ? tomar(libres) : final],
+        [...conSinonimo(palabras, 1).slice(0, -1), libres.length ? tomar(libres) : final],
+        [...conSinonimo(palabras, 2).slice(0, -1), final],
+    ];
+    return variantes.map(v => v.join(' ')).slice(0, PEDIDAS_IA);
 }
 
 // ---------- Sugerencias: la IA lee la letra entera (pedido de Swa) ----------
@@ -207,8 +230,12 @@ export function ubicarCambio(texto, n, viejo) {
 
 // Lo que vuelve (del modelo o simulado), con dónde está cada cambio en la letra. Se descartan los que
 // no se encuentran, los repetidos y los que no cambian nada. Hasta 6.
+// La palabra nueva tiene que rimar (pedido de Swa): con la que reemplaza o con algún final de su estrofa.
 export function validarRevision(lista, texto) {
     const lineas = texto.split('\n');
+    const palabras = lineas.map(l => palabrasDeVerso(l, p => p));
+    const estrofas = numerarEstrofas(palabras);
+    const finalesDe = n => palabras.filter((p, j) => p.length && estrofas[j] === estrofas[n]).map(p => claveAsonante(p.at(-1)));
     const vistos = new Set();
     const cambios = [];
     for (const { titulo, verso, viejo, nuevo } of lista) {
@@ -218,6 +245,8 @@ export function validarRevision(lista, texto) {
         if (!lugar || vistos.has(lugar.inicio)) continue;
         vistos.add(lugar.inicio);
         const original = texto.slice(lugar.inicio, lugar.fin);
+        const suena = claveAsonante(limpio.split(/\s+/).at(-1));
+        if (!suena || (suena !== claveAsonante(original) && !finalesDe(verso).includes(suena))) continue;
         cambios.push({
             titulo: String(titulo).trim(), n: verso, ...lugar, viejo: original,
             nuevo: /^\p{Lu}/u.test(original) ? limpio[0].toUpperCase() + limpio.slice(1) : limpio,
@@ -227,8 +256,8 @@ export function validarRevision(lista, texto) {
     return cambios.slice(0, CAMBIOS_REVISION);
 }
 
-// Simuladas con el motor propio: palabras repetidas (se cambia la segunda por un sinónimo que no esté
-// en la letra) y finales que no riman con ningún otro de su estrofa (por una rima del anterior).
+// Simuladas con el motor propio: palabras repetidas (se cambia la segunda por un sinónimo que rime con
+// ella y no esté en la letra) y finales que no riman con ningún otro de su estrofa (por una rima del anterior).
 // `sinonimosDe` y `rimasDe`: palabra -> lista, del diccionario.
 export function revisionSimulada(revision, { sinonimosDe = () => [], rimasDe = () => [], corregir = p => p } = {}) {
     const cambios = [];
@@ -242,7 +271,7 @@ export function revisionSimulada(revision, { sinonimosDe = () => [], rimasDe = (
             const clave = corregir(palabra).toLowerCase();
             if (clave.length <= 3) return;
             if (vistas.has(clave) && !cambios.some(c => c.clave === clave)) {
-                const nuevo = libre(sinonimosDe(clave));
+                const nuevo = libre(sinonimosDe(clave).filter(p => claveAsonante(p) === claveAsonante(clave)));
                 if (nuevo) cambios.push({ clave, titulo: `Cambiar la repetición de la palabra «${palabra.toLowerCase()}»`, verso: v.n, viejo: palabra, nuevo });
             }
             vistas.set(clave, true);
@@ -286,14 +315,45 @@ export function usoDelMes(almacen, ahora = Date.now()) {
     return { usadas, tope, quedan: Math.max(0, tope - usadas), plan };
 }
 
-export function anotarSugerencia(almacen, ahora = Date.now()) {
-    const usadas = usoDelMes(almacen, ahora).usadas + 1;
-    almacen.setItem(CLAVE_USO, JSON.stringify({ mes: mesDe(ahora), usadas }));
-    return usoDelMes(almacen, ahora);
+// Además del mes: como mucho 10 por día en cada letra (pedido de Swa).
+export const TOPE_POR_LETRA = 10;
+const CLAVE_LETRAS = 'metrica.ia-letras';
+const diaDe = ms => `${mesDe(ms)}-${String(new Date(ms).getDate()).padStart(2, '0')}`;
+function leerLetras(almacen, ahora) {
+    let uso = {};
+    try { uso = JSON.parse(almacen.getItem(CLAVE_LETRAS)) ?? {}; } catch { /* vacío */ }
+    return uso.dia === diaDe(ahora) ? uso.letras ?? {} : {};
 }
 
-export const textoCupo = ({ quedan, tope, plan }) =>
-    `${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} de ${tope}${plan ? '' : ' gratis'} este mes`;
+// El cupo que manda: { usadas, tope, quedan, plan } del mes y, si hay letra, el del día en esa letra
+// (`porLetra: true` cuando es el que queda más corto).
+export function cupoIA(almacen, letra = null, ahora = Date.now()) {
+    const mes = usoDelMes(almacen, ahora);
+    if (letra == null) return mes;
+    const usadas = leerLetras(almacen, ahora)[letra] ?? 0;
+    const quedan = Math.max(0, TOPE_POR_LETRA - usadas);
+    return quedan < mes.quedan ? { ...mes, usadas, tope: TOPE_POR_LETRA, quedan, porLetra: true } : mes;
+}
+
+export function anotarSugerencia(almacen, ahora = Date.now(), letra = null) {
+    const usadas = usoDelMes(almacen, ahora).usadas + 1;
+    almacen.setItem(CLAVE_USO, JSON.stringify({ mes: mesDe(ahora), usadas }));
+    if (letra != null) {
+        const letras = leerLetras(almacen, ahora);
+        letras[letra] = (letras[letra] ?? 0) + 1;
+        almacen.setItem(CLAVE_LETRAS, JSON.stringify({ dia: diaDe(ahora), letras }));
+    }
+    return cupoIA(almacen, letra, ahora);
+}
+
+export const textoCupo = ({ quedan, tope, plan, porLetra }) => porLetra
+    ? `${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} de ${tope} hoy en esta letra`
+    : `${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} de ${tope}${plan ? '' : ' gratis'} este mes`;
+
+// Lo que se dice cuando no queda.
+export const textoSinCupo = ({ porLetra }) => porLetra
+    ? `Ya usaste las ${TOPE_POR_LETRA} de hoy en esta letra. Mañana hay más.`
+    : 'Ya usaste todas las de este mes.';
 
 // ---------- Cliente del Worker ----------
 export const endpointIA = almacen => almacen.getItem(CLAVE_ENDPOINT) || ENDPOINT_IA;
