@@ -10,6 +10,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Lógica pura con tests (122 tests en verde): rimas, sílabas, ortografía, diccionario, secciones, sinónimos, relacionados, definiciones, consignas, letras, papelera, baúl, compra, apariencia, libreta y recientes.
 - Baúl de frases (`BaulView`: anotar, filtros, tarjetas en columnas, editar en el lugar, menú de mantener apretado, lupa, pincel con tema, tamaño y separar, «‹ volver» con el nombre de la letra) y la hoja «¿Por dónde empiezo?» (`.porDondeEmpiezo`: pastillas, consigna, Desamor, anterior, refrescar, deslizar, «Al baúl», mandar a la nota, lista de categorías).
 - Ajustes (apariencia, Efectos, Velocidad, Grabar, versión, licencias, versión gratis), Papelera, Importar de Google Keep y Exportar todo, con `keep.js` y `exportar.js` (metrica-swift #5).
+- Letras y editor: grilla con tarjetas chicas y largas, «+», mover y tacho; editor con renglones, sílabas, rimas pintadas (finales, internas, multisilábicas, colores), palabra tocada, sugerencias (rimas → sinónimos → relacionados), partes, ruedita (tema, opacidad, texto, fuente, funciones, compartir, copiar, borrar), temas por letra con las ilustraciones y cambio claro/oscuro; cofre y «¿Por dónde empiezo?» conectados (metrica-swift #2 y #6).
 
 ## Falta portar
 
@@ -19,11 +20,10 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Publicidad: conectar el toque al paywall (hilo de Métrica Extras).
 
 ### Letras y editor
-- Grilla de tarjetas (chicas y largas, `lugaresEnGrilla`), tarjeta «+», mantener apretada para mover o tirar al tacho.
-- Editor: renglones, sílabas por verso, rimas pintadas (consonante/asonante, internas, multisilábicas, colores por terminación), palabra tocada con brillo violeta, barra de sugerencias (rimas → sinónimos → relacionados), partes ([Intro]...), ruedita de ajustes (tema, opacidad, texto, fuente, funciones, compartir, copiar, borrar).
-- Temas de cada letra (`TEMAS`, ilustraciones de `fondos/*.svg`) y cambio de modo claro/oscuro.
-- Nota musical: cajón de música en el editor.
-- Conectar el cofre de Letras y del editor a `BaulView(volverA:)`, y la estrella y el botón «✦ ¿Por dónde empiezo?» de la letra vacía a `.porDondeEmpiezo` (las dos pantallas ya están; falta conectarlas desde Letras y el editor).
+- Nota musical y grabaciones: los botones de Letras y del editor ya están, falta conectarlos al cajón de música y a la hoja «Grabaciones» (hilo de Freestyle).
+- Brillo animado que cruza la palabra tocada y el «+» (en Swift el degradé va quieto).
+- Al arrastrar una tarjeta cerca del borde de arriba o de abajo, que la lista se desplace sola.
+- Probar en el iPhone que el texto de la libreta quede centrado en su renglón con cada fuente (va con `baselineOffset`).
 
 ### Freestyle y Grabar
 - Aro con la palabra y la sílaba tónica, barrita, «después» / «y luego», bandeja (play, REC, duración, Ilimitado con Extras), beats Boombap/Trap/Acapella, reproductor chico, cajón del link (YouTube, SoundCloud, playlists, archivos del teléfono), Recientes, luces por mood (`ambiente.js`), velocidad de cambio de palabras.
