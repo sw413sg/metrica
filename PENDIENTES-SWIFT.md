@@ -31,13 +31,11 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Probar en el iPhone: la «Salida» de Ajustes > Grabar con lo que suena en Freestyle, sincronía de la voz con YouTube y SoundCloud, voz con Bluetooth (`.allowBluetoothA2DP`) y que el teclado pause y retome YouTube.
 
 ### Ajustes, Papelera, Importar y Exportar
-- La pantalla de Ajustes > Widgets queda para el port de Widgets.
 - Sin portar a propósito: la flecha de forzar actualización (en nativo actualiza el App Store) y «Versión anterior».
 
 ### Widgets
-- WidgetKit: Baúl de frases, Palabra del día, Seguí escribiendo, Racha, Accesos rápidos; pantalla bloqueada; ControlWidget y Botón de acción; App Group compartido; foto con PhotosPicker.
-- Pantalla de Ajustes > Widgets con la muestra.
-- Lógica sin portar: `widgets.js`.
+- Los toques de Freestyle y Grabar (widgets, control y Botón de acción) solo abren la pestaña: falta que arranquen la ronda o Acapella con el REC prendido cuando se porte Freestyle.
+- Probar en el iPhone, con el App Group firmado, que los widgets se actualicen y que el control abra la acción.
 
 ### Métrica Extras y nube
 - Share Extension para recibir notas de Keep.
