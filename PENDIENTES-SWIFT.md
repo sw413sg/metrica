@@ -9,6 +9,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Rimas y Diccionario: buscador con la pista tipeada, consonante/asonante con «?», caja de 4 palabras (azar cada 6 s, búsqueda con `tituloBusqueda`, Sinónimos, Palabras simples), cajones Todas, relacionadas y guardadas, publicidad solo gratis, y el libro con definiciones, similares y sinónimos (metrica-swift #4).
 - Lógica pura con tests (122 tests en verde): rimas, sílabas, ortografía, diccionario, secciones, sinónimos, relacionados, definiciones, consignas, letras, papelera, baúl, compra, apariencia, libreta y recientes.
 - Baúl de frases (`BaulView`: anotar, filtros, tarjetas en columnas, editar en el lugar, menú de mantener apretado, lupa, pincel con tema, tamaño y separar, «‹ volver» con el nombre de la letra) y la hoja «¿Por dónde empiezo?» (`.porDondeEmpiezo`: pastillas, consigna, Desamor, anterior, refrescar, deslizar, «Al baúl», mandar a la nota, lista de categorías).
+- Ajustes (apariencia, Efectos, Velocidad, Grabar, versión, licencias, versión gratis), Papelera, Importar de Google Keep y Exportar todo, con `keep.js` y `exportar.js` (metrica-swift #5).
 
 ## Falta portar
 
@@ -31,11 +32,8 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Lógica sin portar: `freestyle.js`, `musica.js`, `grabaciones.js`, `ambiente.js`, `beats.js`.
 
 ### Ajustes, Papelera, Importar y Exportar
-- Ajustes: Acerca de > Licencias del diccionario ya existe (`LicenciasDiccionarioView`, con un link provisorio en `AjustesView`): ponerla en su grupo.
-- Ajustes: apariencia (Sistema/Claro/Oscuro), Efectos, Velocidad, Grabar (micrófono y salida), versión, «Volver a la versión gratis», Acerca de y licencias.
-- Papelera: cuadrados con días que quedan, ver en grande, restaurar, borrar definitivamente, borrar todo.
-- Importar de Google Keep (`.fileImporter`, `keep.js`) y Exportar todo en .zip (menú compartir, `exportar.js`).
-- Lógica sin portar: `keep.js`, `exportar.js`.
+- La pantalla de Ajustes > Widgets queda para el port de Widgets.
+- Sin portar a propósito: la flecha de forzar actualización (en nativo actualiza el App Store) y «Versión anterior».
 
 ### Widgets
 - WidgetKit: Baúl de frases, Palabra del día, Seguí escribiendo, Racha, Accesos rápidos; pantalla bloqueada; ControlWidget y Botón de acción; App Group compartido; foto con PhotosPicker.
