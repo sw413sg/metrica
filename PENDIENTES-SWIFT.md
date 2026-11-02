@@ -7,6 +7,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 ## Hecho en Swift
 - Esqueleto: pestañas Letras, Rimas, Freestyle y Ajustes, colores de `estilos.css`, cajas de vidrio (Liquid Glass en iOS 26), datos del diccionario y CI.
 - Lógica pura con tests (122 tests en verde): rimas, sílabas, ortografía, diccionario, secciones, sinónimos, relacionados, definiciones, consignas, letras, papelera, baúl, compra, apariencia, libreta y recientes.
+- Baúl de frases (`BaulView`: anotar, filtros, tarjetas en columnas, editar en el lugar, menú de mantener apretado, lupa, pincel con tema, tamaño y separar, «‹ volver» con el nombre de la letra) y la hoja «¿Por dónde empiezo?» (`.porDondeEmpiezo`: pastillas, consigna, Desamor, anterior, refrescar, deslizar, «Al baúl», mandar a la nota, lista de categorías).
 
 ## Falta portar
 
@@ -19,10 +20,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Editor: renglones, sílabas por verso, rimas pintadas (consonante/asonante, internas, multisilábicas, colores por terminación), palabra tocada con brillo violeta, barra de sugerencias (rimas → sinónimos → relacionados), partes ([Intro]...), ruedita de ajustes (tema, opacidad, texto, fuente, funciones, compartir, copiar, borrar).
 - Temas de cada letra (`TEMAS`, ilustraciones de `fondos/*.svg`) y cambio de modo claro/oscuro.
 - Nota musical: cajón de música en el editor.
-
-### Baúl de frases y ¿Por dónde empiezo?
-- Baúl: campo «Anotá una frase…», filtros, tarjetas en columnas, editar en el lugar, menú de mantener apretado, lupa, pincel (tema, tamaño, separar por usadas).
-- ¿Por dónde empiezo?: hoja con pastillas de categoría, caja de vidrio con la consigna, Desamor, flecha atrás, refrescar, deslizar, «Al baúl», mandar a la nota, lista de la categoría.
+- Conectar el cofre de Letras y del editor a `BaulView(volverA:)`, y la estrella y el botón «✦ ¿Por dónde empiezo?» de la letra vacía a `.porDondeEmpiezo` (las dos pantallas ya están; falta conectarlas desde Letras y el editor).
 
 ### Freestyle y Grabar
 - Aro con la palabra y la sílaba tónica, barrita, «después» / «y luego», bandeja (play, REC, duración, Ilimitado con Extras), beats Boombap/Trap/Acapella, reproductor chico, cajón del link (YouTube, SoundCloud, playlists, archivos del teléfono), Recientes, luces por mood (`ambiente.js`), velocidad de cambio de palabras.
