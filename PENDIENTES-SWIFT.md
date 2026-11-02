@@ -11,13 +11,13 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Baúl de frases (`BaulView`: anotar, filtros, tarjetas en columnas, editar en el lugar, menú de mantener apretado, lupa, pincel con tema, tamaño y separar, «‹ volver» con el nombre de la letra) y la hoja «¿Por dónde empiezo?» (`.porDondeEmpiezo`: pastillas, consigna, Desamor, anterior, refrescar, deslizar, «Al baúl», mandar a la nota, lista de categorías).
 - Ajustes (apariencia, Efectos, Velocidad, Grabar, versión, licencias, versión gratis), Papelera, Importar de Google Keep y Exportar todo, con `keep.js` y `exportar.js` (metrica-swift #5).
 - Letras y editor: grilla con tarjetas chicas y largas, «+», mover y tacho; editor con renglones, sílabas, rimas pintadas (finales, internas, multisilábicas, colores), palabra tocada, sugerencias (rimas → sinónimos → relacionados), partes, ruedita (tema, opacidad, texto, fuente, funciones, compartir, copiar, borrar), temas por letra con las ilustraciones y cambio claro/oscuro; cofre y «¿Por dónde empiezo?» conectados (metrica-swift #2 y #6).
+- Métrica Extras con StoreKit 2 (`metrica.extras`, `Transaction.currentEntitlements`, archivo `.storekit`), paywall como `.sheet` desde los temas con candado y la publicidad, y letras y baúl sincronizados por iCloud con CKSyncEngine directo (metrica-swift #8).
 
 ## Falta portar
 
 ### Rimas y Diccionario
 - Polvo del Boombap 1 detrás de las cajas si suena música (va con los efectos de partículas, en Generales).
 - Brillo animado que cruza las terminaciones violetas (en Swift el degradé va quieto).
-- Publicidad: conectar el toque al paywall (hilo de Métrica Extras).
 
 ### Letras y editor
 - Nota musical y grabaciones: los botones de Letras y del editor ya están, falta conectarlos al cajón de música y a la hoja «Grabaciones» (hilo de Freestyle).
@@ -41,9 +41,8 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Lógica sin portar: `widgets.js`.
 
 ### Métrica Extras y nube
-- StoreKit 2 (`Product.purchase()`, `Transaction.currentEntitlements`) en lugar de la compra simulada; paywall como `.sheet`.
-- Sincronización de letras por iCloud con CloudKit directo (no SwiftData).
 - Share Extension para recibir notas de Keep.
+- iCloud: avisos push (CKSyncEngine con `aps-environment`) para que los cambios de otro dispositivo lleguen sin volver a abrir la app; hoy llegan al abrirla o al volver a ella.
 
 ### Generales
 - Gestos de los bordes (volver atrás y cambiar de sección), tab bar flotante, granulado del fondo, `theme-color`.
