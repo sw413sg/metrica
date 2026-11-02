@@ -939,7 +939,7 @@ function revisarSeleccion() {
         reemplazo = null;
         marcarTocada(null);
         ocultarVineta();
-        $('sugerencias').replaceChildren(botonIA('Mejorar frase'));
+        $('sugerencias').replaceChildren(botonIA('Alternativas IA'));
         $('sugerencias').dataset.modo = 'frase';
         $('sugerencias').hidden = false;
     } else if ($('sugerencias').dataset.modo === 'frase') {
@@ -961,7 +961,8 @@ function abrirHojaIA() {
     marcarTocada({ inicio: fraseHoja.inicio, fin: fraseHoja.fin });
     historialIA = [];
     posIA = -1;
-    $('ia-original').textContent = `En vez de: ${fraseHoja.pedido.verso.texto}`;
+    // La frase elegida, citada en itálica y entre comillas, sin «En vez de» (pedido de Swa).
+    $('ia-original').textContent = `«${fraseHoja.pedido.verso.texto}»`;
     $('hoja-ia').hidden = false;
     pedirTandaIA();
 }
@@ -974,8 +975,14 @@ function cerrarHojaIA() {
     marcarTocada(null);
 }
 
+// Los pedidos que quedan, abajo de la caja: el texto y una barrita violeta que se vacía.
+function pintarCupo(id, uso) {
+    $(id).textContent = textoCupo(uso);
+    $(`${id}-barra`).style.width = `${Math.round(100 * uso.quedan / uso.tope)}%`;
+}
+
 function pintarCupoIA(uso) {
-    $('ia-cupo').textContent = textoCupo(uso);
+    pintarCupo('ia-cupo', uso);
     const sinCupo = !uso.quedan;
     // El plan solo se ofrece si se terminó el mes (el tope por letra es para todos).
     $('ia-plan').hidden = !sinCupo || uso.plan || uso.porLetra;
@@ -1036,7 +1043,6 @@ async function pedirTandaIA() {
     }
 }
 
-const RIMA_IA = { consonante: 'rima consonante con', asonante: 'rima asonante con', misma: 'termina igual que' };
 function mostrarIA(pos) {
     posIA = pos;
     const sugerencia = historialIA[pos];
@@ -1046,8 +1052,7 @@ function mostrarIA(pos) {
     $('ia-ultima').classList.toggle('sin-rima', !sugerencia.rima);
     $('ia-frase').hidden = false;
     $('ia-titulo').textContent = `Alternativas de frase ${sugerencia.n + 1} de ${sugerencia.de}`;
-    const rima = sugerencia.rima ? `${RIMA_IA[sugerencia.rima]} «${sugerencia.rimaCon}»` : 'no rima';
-    $('ia-meta').textContent = rima.replace(/^./, c => c.toUpperCase());
+    $('ia-meta').textContent = '';
     $('ia-anterior').disabled = pos <= 0;
     $('ia-baul').disabled = false;
     pintarBaulIA();
@@ -1175,12 +1180,21 @@ async function abrirVineta() {
         if (generacion === generacionVineta) pintarVineta(error.motivo === 'red' ? 'Sin conexión' : 'No se pudo');
     }
 }
+// Las flechas solo pasan por las sugerencias; la palabra cambia en la letra recién al tocarla (pedido de Swa).
 function cambiarVineta(paso) {
     if (!vineta || vineta.opciones.length < 2) return;
     vineta.pos = (vineta.pos + paso + vineta.opciones.length) % vineta.opciones.length;
+    pintarVineta(vineta.opciones[vineta.pos]);
+    ubicarVineta();
+}
+function usarVineta() {
+    if (!vineta || vineta.opciones.length < 2) return;
     const nueva = vineta.opciones[vineta.pos];
     editorTexto.setRangeText(nueva, vineta.inicio, vineta.fin, 'end');
     vineta.fin = vineta.inicio + nueva.length;
+    // La primera de la lista pasa a ser la que quedó, así las flechas pueden volver a la de antes.
+    vineta.opciones = [nueva, ...vineta.opciones.filter(o => o !== nueva)];
+    vineta.pos = 0;
     if (reemplazo) reemplazo = { ...reemplazo, inicio: vineta.inicio, fin: vineta.fin };
     tocada = nueva;
     actualizarEditor();
@@ -1193,6 +1207,7 @@ function cambiarVineta(paso) {
 for (const evento of ['pointerdown', 'mousedown']) $('vineta-ia').addEventListener(evento, e => e.preventDefault());
 $('vineta-anterior').addEventListener('click', () => cambiarVineta(-1));
 $('vineta-siguiente').addEventListener('click', () => cambiarVineta(1));
+$('vineta-palabra').addEventListener('click', usarVineta);
 
 // Estado del reproductor. Vive arriba porque el teclado, al abrirse, pregunta si hay que pausar.
 let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
@@ -1364,7 +1379,7 @@ $('modo-ideas').addEventListener('click', () => {
 function estadoRevision(texto) {
     $('revision-estado').textContent = texto;
     $('revision-otra').disabled = leyendoLetra || !cupoIA(localStorage, letraActual?.id).quedan;
-    $('revision-cupo').textContent = textoCupo(cupoIA(localStorage, letraActual?.id));
+    pintarCupo('revision-cupo', cupoIA(localStorage, letraActual?.id));
 }
 
 function filaRevision(cambio) {
@@ -5147,7 +5162,8 @@ setTimeout(() => { indiceRimas(); corregir(''); }, 300);
 // La versión es el nombre de la caché del service worker ("metrica-1.0.9" -> "1.0.9").
 async function mostrarVersion() {
     const claves = await caches.keys();
-    const version = claves.find(c => c.startsWith('metrica-'))?.slice('metrica-'.length);
+    // Solo la de la app: la del diccionario («metrica-definiciones-1») no es una versión.
+    const version = claves.find(c => /^metrica-\d/.test(c))?.slice('metrica-'.length);
     if (version) $('version').textContent = version;
 }
 

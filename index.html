@@ -862,7 +862,6 @@
                 <div class="caja-tema vidrio" id="caja-revision">
                     <div class="cabeza-ia">
                         <span class="titulo-azar" id="revision-titulo">Lo que cambiaría</span>
-                        <span class="cupo-ia" id="revision-cupo"></span>
                     </div>
                     <!-- Cada cambio: el verso con la palabra a corregir subrayada y la nueva al lado. -->
                     <div class="lista-revision" id="revision-lista" aria-live="polite"></div>
@@ -873,6 +872,8 @@
                         </button>
                     </div>
                 </div>
+                <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
+                <div class="cupo-ia"><span class="estrella-ia" aria-hidden="true"></span><span id="revision-cupo"></span><span class="barra-cupo" aria-hidden="true"><span id="revision-cupo-barra"></span></span></div>
                 <p class="nota-tema" id="revision-nota"></p>
             </div>
             <div id="tema-ficha">
@@ -921,10 +922,9 @@
             <div class="caja-tema vidrio" id="caja-ia">
                 <div class="cabeza-ia">
                     <span class="titulo-azar" id="ia-titulo"></span>
-                    <span class="cupo-ia" id="ia-cupo"></span>
                 </div>
-                <!-- Al final, pegado a la última palabra, el ícono que la pone en la letra en lugar de la frase. -->
-                <!-- Primero lo que se cambia («En vez de: …»), después la alternativa (pedido de Swa). -->
+                <!-- Primero la frase elegida, citada en itálica, y después la alternativa (pedido de Swa).
+                     Al final de la alternativa, pegado a la última palabra, el ícono que la pone en la letra. -->
                 <p class="empujon-tema original-ia" id="ia-original"></p>
                 <h2 class="texto-tema" id="ia-frase"><span id="ia-texto"></span><span class="final-tema"><mark id="ia-ultima"></mark><button type="button" class="enviar-tema" id="ia-usar" aria-label="Usar en la letra"><span></span></button></span></h2>
                 <div class="cargando-ia" id="ia-cargando" hidden><span></span><span></span></div>
@@ -942,6 +942,8 @@
                     </button>
                 </div>
             </div>
+            <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
+            <div class="cupo-ia"><span class="estrella-ia" aria-hidden="true"></span><span id="ia-cupo"></span><span class="barra-cupo" aria-hidden="true"><span id="ia-cupo-barra"></span></span></div>
             <p class="nota-tema" id="ia-nota"></p>
             <!-- «Métrica IA»: sin decidir, simulado (aparte de Extras, porque cada uso cuesta). -->
             <div class="caja-tema vidrio plan-ia" id="ia-plan" hidden>
@@ -954,12 +956,13 @@
     </div>
 
     <!-- IA para una palabra sola: la estrellita abre esta viñeta arriba de la palabra tocada, con
-         flechas para pasar por lo que propone la IA (cambia la palabra en la letra). -->
+         flechas para pasar por lo que propone la IA; tocar la palabra la cambia en la letra. -->
     <div class="vineta-ia vidrio" id="vineta-ia" role="dialog" aria-label="Cambiar con IA" hidden>
         <button type="button" class="flecha-vineta" id="vineta-anterior" aria-label="Anterior">
             <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <span class="palabra-vineta" id="vineta-palabra"></span>
+        <!-- Las flechas pasan por las sugerencias; tocar la palabra la pone en la letra. -->
+        <button type="button" class="palabra-vineta" id="vineta-palabra"></button>
         <button type="button" class="flecha-vineta" id="vineta-siguiente" aria-label="Siguiente">
             <svg viewBox="0 0 24 24" class="icono"><path d="M9 5l7 7-7 7"/></svg>
         </button>
