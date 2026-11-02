@@ -12,13 +12,13 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Ajustes (apariencia, Efectos, Velocidad, Grabar, versión, licencias, versión gratis), Papelera, Importar de Google Keep y Exportar todo, con `keep.js` y `exportar.js` (metrica-swift #5).
 - Letras y editor: grilla con tarjetas chicas y largas, «+», mover y tacho; editor con renglones, sílabas, rimas pintadas (finales, internas, multisilábicas, colores), palabra tocada, sugerencias (rimas → sinónimos → relacionados), partes, ruedita (tema, opacidad, texto, fuente, funciones, compartir, copiar, borrar), temas por letra con las ilustraciones y cambio claro/oscuro; cofre y «¿Por dónde empiezo?» conectados (metrica-swift #2 y #6).
 - Freestyle y Grabar: aro con la palabra y la tónica, barrita, «después» / «y luego», bandeja (play, REC, duración, Ilimitado con Extras), Boombap/Trap/Acapella con los mp3 y Clásico sintetizado (AVAudioEngine), reproductor de beats, cajón del link (YouTube, SoundCloud, playlists, archivos del teléfono) con Recientes, reproductor de música en tres tamaños con marca y bucle que sigue al cambiar de sección, luces por mood, velocidad; Grabar con voiceProcessing, desfase, hoja «Grabaciones» con volúmenes y descarga; nota musical y Grabaciones conectadas en Letras y en el editor. Lógica `freestyle.js`, `musica.js`, `grabaciones.js` y `ambiente.js` con tests (metrica-swift #7).
+- Métrica Extras con StoreKit 2 (`metrica.extras`, `Transaction.currentEntitlements`, archivo `.storekit`), paywall como `.sheet` desde los temas con candado y la publicidad, y letras y baúl sincronizados por iCloud con CKSyncEngine directo (metrica-swift #8).
 
 ## Falta portar
 
 ### Rimas y Diccionario
 - Polvo del Boombap 1 detrás de las cajas si suena música (va con los efectos de partículas, en Generales).
 - Brillo animado que cruza las terminaciones violetas (en Swift el degradé va quieto).
-- Publicidad: conectar el toque al paywall (hilo de Métrica Extras).
 
 ### Letras y editor
 - Brillo animado que cruza la palabra tocada y el «+» (en Swift el degradé va quieto).
@@ -26,6 +26,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Probar en el iPhone que el texto de la libreta quede centrado en su renglón con cada fuente (va con `baselineOffset`).
 
 ### Freestyle y Grabar
+- «Ilimitado» sin Extras: que abra el paywall de StoreKit (hoy muestra un aviso).
 - Descargar: en Swift baja M4A (AAC) en vez de MP3; si hace falta MP3, sumar un codificador.
 - Probar en el iPhone: la «Salida» de Ajustes > Grabar con lo que suena en Freestyle, sincronía de la voz con YouTube y SoundCloud, voz con Bluetooth (`.allowBluetoothA2DP`) y que el teclado pause y retome YouTube.
 
@@ -39,9 +40,8 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Lógica sin portar: `widgets.js`.
 
 ### Métrica Extras y nube
-- StoreKit 2 (`Product.purchase()`, `Transaction.currentEntitlements`) en lugar de la compra simulada; paywall como `.sheet`.
-- Sincronización de letras por iCloud con CloudKit directo (no SwiftData).
 - Share Extension para recibir notas de Keep.
+- iCloud: avisos push (CKSyncEngine con `aps-environment`) para que los cambios de otro dispositivo lleguen sin volver a abrir la app; hoy llegan al abrirla o al volver a ella.
 
 ### Generales
 - Gestos de los bordes (volver atrás y cambiar de sección), tab bar flotante, granulado del fondo, `theme-color`.
