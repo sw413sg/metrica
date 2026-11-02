@@ -236,8 +236,10 @@ const servidor = http.createServer((req, res) => {
         // La palabra tocada se ve en degradé violeta, y al cambiarla vuelve a su color.
         assert.equal(await page.locator('#editor-fondo .tocada').textContent(), 'andar');
         await page.screenshot({path: `capturas/editor-tocada-${tema}.png`});
-        const otra = await page.locator('.sugerencia').first().textContent();
-        await page.locator('.sugerencia').first().click();
+        // Primero va la estrellita de IA: abre la viñeta arriba de la palabra, con flechas.
+        assert.equal(await page.locator('#sugerencias .sugerencia-ia').count(), 1);
+        const otra = await page.locator('.sugerencia:not(.sugerencia-ia)').first().textContent();
+        await page.locator('.sugerencia:not(.sugerencia-ia)').first().click();
         assert.ok((await page.locator('#editor-texto').inputValue()).includes(`se hace camino al ${otra}.`));
         assert.equal(await page.locator('#editor-fondo .tocada').count(), 0);
         // Tocar en otro lado (algo que no es un campo) también la suelta.

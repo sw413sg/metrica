@@ -25,6 +25,8 @@ import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/aparienc
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDelWidget, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, conEnfoque, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, anotarSugerencia, textoCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
+import { ENFOQUES_IA } from './logica/ia-prompt.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
@@ -777,6 +779,7 @@ function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(pal
         botones.unshift(texto);
     }
     $('sugerencias').replaceChildren(...botones);
+    $('sugerencias').dataset.modo = '';
     $('sugerencias').scrollLeft = 0;
     $('sugerencias').hidden = false;
 }
@@ -793,11 +796,16 @@ function mostrarCambio() {
     const palabra = bienEscrita(tocada);
     const modo = MODOS_CAMBIO[modoCambio];
     mostrarSugerencias(palabra, `${modo.etiqueta} «${tocada}»:`, modo.buscar(palabra), true);
+    // Primero, la estrellita de IA: abre la viñeta arriba de la palabra (pedido de Swa).
+    $('sugerencias').prepend(botonIA());
 }
 
 // Tocar un renglón vacío ofrece marcar una parte de la letra; tocar una palabra muestra
 // otras que riman con ella, para cambiarla.
 editorTexto.addEventListener('click', () => {
+    ocultarVineta();
+    // Con una frase seleccionada va la estrellita de IA (ver revisarSeleccion).
+    if (editorTexto.selectionStart !== editorTexto.selectionEnd) return revisarSeleccion();
     const { value, selectionStart } = editorTexto;
     const inicioVerso = value.lastIndexOf('\n', selectionStart - 1) + 1;
     const finVerso = value.indexOf('\n', selectionStart) < 0 ? value.length : value.indexOf('\n', selectionStart);
@@ -827,6 +835,7 @@ editorTexto.addEventListener('click', () => {
 
 // La barra aparece solo al tocar: si se cierra el teclado o se desliza la letra para leerla, se va.
 const ocultarSugerencias = () => {
+    ocultarVineta();
     $('sugerencias').hidden = true;
     reemplazo = null;
     marcarTocada(null);
@@ -834,7 +843,7 @@ const ocultarSugerencias = () => {
 editorTexto.addEventListener('blur', ocultarSugerencias);
 // En el iPhone tocar algo que no es un campo no cierra el teclado (no hay blur): igual se suelta la palabra.
 document.addEventListener('pointerdown', e => {
-    if (reemplazo && e.target !== editorTexto && !e.target.closest('#sugerencias')) ocultarSugerencias();
+    if (reemplazo && e.target !== editorTexto && !e.target.closest('#sugerencias, #vineta-ia')) ocultarSugerencias();
 });
 for (const evento of ['touchmove', 'wheel']) editorTexto.closest('.editor').addEventListener(evento, ocultarSugerencias, { passive: true });
 // Deslizar bastante (más de 150px) también cierra el teclado; poco, no: capaz solo querías ver un verso de abajo.
@@ -848,6 +857,11 @@ editorTexto.closest('.editor').addEventListener('touchmove', e => {
 // En iOS el toque llega como mousedown: sin esto el texto pierde el foco y el teclado se cierra.
 for (const evento of ['pointerdown', 'mousedown']) $('sugerencias').addEventListener(evento, e => e.preventDefault());
 $('sugerencias').addEventListener('click', e => {
+    if (e.target.closest('.sugerencia-ia')) {
+        if ($('sugerencias').dataset.modo === 'frase') abrirHojaIA();
+        else abrirVineta();
+        return;
+    }
     if (e.target.closest('.sugerencias-alternar')) {
         modoCambio = (modoCambio + 1) % MODOS_CAMBIO.length;
         mostrarCambio();
@@ -875,6 +889,320 @@ $('sugerencias').addEventListener('click', e => {
     actualizarEditor();
     guardarActual();
 });
+
+// ---------- IA: mejorar una frase o cambiar una palabra (pedido de Swa) ----------
+// Seleccionar una frase muestra la estrellita arriba del teclado: cierra el teclado y abre la hoja de
+// «¿Por dónde empiezo?» con lo que propone la IA. Tocar una palabra suma la estrellita a sus rimas, y
+// abre una viñeta arriba de la palabra para cambiarla con flechas. Mientras no esté el servidor
+// (worker/README.md), las respuestas son simuladas con el diccionario propio (js/logica/ia.js).
+function botonIA(texto = '') {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'sugerencia-ia';
+    boton.setAttribute('aria-label', texto || 'Cambiar con IA');
+    const estrella = document.createElement('i');
+    estrella.className = 'estrella-ia';
+    boton.append(estrella);
+    if (texto) {
+        const etiqueta = document.createElement('span');
+        etiqueta.textContent = texto;
+        boton.append(etiqueta);
+    }
+    return boton;
+}
+const opcionesIA = () => ({ corregir: bienEscrita, distancia: estiloLibreta(leerAjustesLibreta(localStorage)).internas });
+const rimasParaIA = palabra => palabra ? buscarRimas(bienEscrita(palabra), indiceRimas()).slice(0, 30) : [];
+const conMayuscula = (nueva, original) => /^\p{Lu}/u.test(original) ? nueva[0].toUpperCase() + nueva.slice(1) : nueva;
+
+// Al servidor, o simuladas (con una pausa, como si pensara).
+async function consultarIA(pedido, simular) {
+    const respuesta = await pedirSugerencias(pedido, { endpoint: endpointIA(localStorage), id: idDeUsuario(localStorage), simular });
+    if (respuesta.simulada) await new Promise(listo => setTimeout(listo, 650));
+    return respuesta;
+}
+
+// La frase seleccionada (dos palabras o más, en un verso): la barra muestra solo la estrellita.
+let fraseIA = null;
+function revisarSeleccion() {
+    if (!document.body.classList.contains('editando') || document.activeElement !== editorTexto) return;
+    const { value, selectionStart, selectionEnd } = editorTexto;
+    const elegida = selectionStart !== selectionEnd && fraseElegida(value, selectionStart, selectionEnd, opcionesIA());
+    if (elegida) {
+        fraseIA = elegida;
+        reemplazo = null;
+        marcarTocada(null);
+        ocultarVineta();
+        $('sugerencias').replaceChildren(botonIA('Mejorar frase'));
+        $('sugerencias').dataset.modo = 'frase';
+        $('sugerencias').hidden = false;
+    } else if ($('sugerencias').dataset.modo === 'frase') {
+        $('sugerencias').hidden = true;
+        $('sugerencias').dataset.modo = '';
+    }
+}
+document.addEventListener('selectionchange', revisarSeleccion);
+editorTexto.addEventListener('select', revisarSeleccion);
+
+// La hoja: las pastillas eligen hacia dónde llevarla; la flecha vuelve, el refrescar (o deslizar)
+// pasa a la siguiente y, al terminar la tanda, pide otra (cada tanda cuenta una del cupo).
+let fraseHoja = null, enfoqueIA = 'mejor', historialIA = [], posIA = -1, generacionIA = 0, pidiendoIA = false;
+
+$('chips-ia').append(...ENFOQUES_IA.map(enfoque => {
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'chip-tema';
+    boton.dataset.enfoque = enfoque.id;
+    boton.textContent = enfoque.nombre;
+    boton.addEventListener('click', () => {
+        if (enfoqueIA === enfoque.id) return;
+        enfoqueIA = enfoque.id;
+        sincronizarChipsIA();
+        pedirTandaIA();
+    });
+    return boton;
+}));
+function sincronizarChipsIA() {
+    for (const boton of $('chips-ia').children) boton.setAttribute('aria-pressed', boton.dataset.enfoque === enfoqueIA);
+}
+
+function abrirHojaIA() {
+    if (!fraseIA) return;
+    fraseHoja = fraseIA;
+    editorTexto.blur();
+    marcarTocada({ inicio: fraseHoja.inicio, fin: fraseHoja.fin });
+    enfoqueIA = 'mejor';
+    sincronizarChipsIA();
+    $('chips-ia').scrollLeft = 0;
+    historialIA = [];
+    posIA = -1;
+    $('ia-original').textContent = `En vez de: ${fraseHoja.pedido.verso.texto}`;
+    $('hoja-ia').hidden = false;
+    pedirTandaIA();
+}
+
+function cerrarHojaIA() {
+    $('hoja-ia').hidden = true;
+    generacionIA++;
+    pidiendoIA = false;
+    fraseHoja = null;
+    marcarTocada(null);
+}
+
+function pintarCupoIA(uso) {
+    $('ia-cupo').textContent = textoCupo(uso);
+    const sinCupo = !uso.quedan;
+    $('ia-plan').hidden = !sinCupo || uso.plan;
+    $('ia-plan-bajada').textContent = `Usaste las ${CUPO_GRATIS} gratis de este mes. Con ${PLAN_IA.nombre} tenés ${PLAN_IA.tope} por mes.`;
+    $('ia-comprar').textContent = `Probar por ${PLAN_IA.precio}`;
+    $('ia-otra').disabled = pidiendoIA || (sinCupo && posIA >= historialIA.length - 1);
+}
+
+function esperandoIA(si) {
+    pidiendoIA = si;
+    $('ia-cargando').hidden = !si;
+    $('ia-frase').hidden = si || posIA < 0;
+    $('ia-usar').disabled = si;
+    $('ia-baul').disabled = si || posIA < 0;
+    if (si) {
+        $('ia-titulo').textContent = 'Pensando…';
+        $('ia-meta').textContent = '';
+    }
+}
+
+async function pedirTandaIA() {
+    const uso = usoDelMes(localStorage);
+    if (!uso.quedan) {
+        pintarCupoIA(uso);
+        if (posIA < 0) {
+            $('ia-titulo').textContent = 'IA';
+            $('ia-meta').textContent = 'Ya usaste todas las de este mes.';
+        }
+        return;
+    }
+    const generacion = ++generacionIA;
+    const pedido = conEnfoque(fraseHoja.pedido, enfoqueIA);
+    esperandoIA(true);
+    pintarCupoIA(uso);
+    try {
+        const respuesta = await consultarIA(pedido, () => sugerenciasSimuladas(pedido, rimasParaIA(pedido.objetivo.rimaCon)));
+        if (generacion !== generacionIA) return;
+        const nuevas = validarSugerencias(respuesta.sugerencias, pedido, { corregir: bienEscrita });
+        const usoNuevo = anotarSugerencia(localStorage);
+        esperandoIA(false);
+        $('ia-nota').textContent = respuesta.simulada ? 'Prueba: sugerencias simuladas, todavía sin servidor.' : '';
+        if (nuevas.length) {
+            historialIA.push(...nuevas.map((sugerencia, n) => ({ ...sugerencia, n, de: nuevas.length, rimaCon: pedido.objetivo.rimaCon })));
+            mostrarIA(historialIA.length - nuevas.length);
+        } else {
+            $('ia-meta').textContent = 'No encontré otras. Probá con otra pastilla.';
+        }
+        pintarCupoIA(respuesta.quedan != null ? { ...usoNuevo, quedan: respuesta.quedan } : usoNuevo);
+    } catch (error) {
+        if (generacion !== generacionIA) return;
+        esperandoIA(false);
+        $('ia-titulo').textContent = 'IA';
+        $('ia-meta').textContent = error.message;
+        pintarCupoIA(error.motivo === 'cupo' ? { ...usoDelMes(localStorage), quedan: 0 } : usoDelMes(localStorage));
+    }
+}
+
+const RIMA_IA = { consonante: 'rima consonante con', asonante: 'rima asonante con', misma: 'misma palabra que' };
+function mostrarIA(pos) {
+    posIA = pos;
+    const sugerencia = historialIA[pos];
+    const [, resto, ultima] = sugerencia.texto.match(/^(.*?)(\S+)$/su);
+    $('ia-texto').textContent = resto;
+    $('ia-ultima').textContent = ultima;
+    $('ia-ultima').classList.toggle('sin-rima', !sugerencia.rima || sugerencia.rima === 'misma');
+    $('ia-frase').hidden = false;
+    $('ia-titulo').textContent = `IA ${sugerencia.n + 1} de ${sugerencia.de}`;
+    const rima = sugerencia.rima ? `${RIMA_IA[sugerencia.rima]} «${sugerencia.rimaCon}»` : 'no rima';
+    $('ia-meta').textContent = `${sugerencia.silabas} sílabas · ${rima}`;
+    $('ia-anterior').disabled = pos <= 0;
+    $('ia-baul').disabled = false;
+    pintarBaulIA();
+    pintarCupoIA(usoDelMes(localStorage));
+    const caja = $('caja-ia');
+    caja.classList.remove('cambio');
+    void caja.offsetWidth;
+    caja.classList.add('cambio');
+}
+
+function pintarBaulIA() {
+    const sugerencia = historialIA[posIA];
+    const guardada = sugerencia && listarFrases(localStorage).some(f => f.texto === sugerencia.texto);
+    $('ia-baul-texto').textContent = guardada ? 'En el baúl' : 'Al baúl';
+    $('ia-baul').setAttribute('aria-pressed', Boolean(guardada));
+}
+
+function siguienteIA() {
+    if (pidiendoIA) return;
+    if (posIA < historialIA.length - 1) mostrarIA(posIA + 1);
+    else pedirTandaIA();
+}
+function anteriorIA() {
+    if (!pidiendoIA && posIA > 0) mostrarIA(posIA - 1);
+}
+
+$('ia-otra').addEventListener('click', () => {
+    $('ia-otra').classList.remove('gira');
+    void $('ia-otra').offsetWidth;
+    $('ia-otra').classList.add('gira');
+    siguienteIA();
+});
+$('ia-anterior').addEventListener('click', anteriorIA);
+{
+    let inicio = null;
+    $('caja-ia').addEventListener('pointerdown', e => { inicio = { x: e.clientX, y: e.clientY }; });
+    $('caja-ia').addEventListener('pointerup', e => {
+        if (!inicio) return;
+        const dx = e.clientX - inicio.x;
+        const dy = e.clientY - inicio.y;
+        inicio = null;
+        if (Math.abs(dx) <= 50 || Math.abs(dx) <= Math.abs(dy) * 1.5) return;
+        if (dx < 0) siguienteIA();
+        else anteriorIA();
+    });
+    $('caja-ia').addEventListener('pointercancel', () => { inicio = null; });
+}
+$('hoja-ia').addEventListener('click', e => { if (e.target === $('hoja-ia')) cerrarHojaIA(); });
+$('ia-baul').addEventListener('click', () => {
+    const sugerencia = historialIA[posIA];
+    if (!sugerencia) return;
+    const guardada = listarFrases(localStorage).find(f => f.texto === sugerencia.texto);
+    if (guardada) sacarFrase(localStorage, guardada.id);
+    else anotarFrase(localStorage, sugerencia.texto);
+    pintarBaulIA();
+});
+// El ícono del final pone la sugerencia en la letra, en lugar de la frase (con su mayúscula y sangría).
+$('ia-usar').addEventListener('click', () => {
+    const sugerencia = historialIA[posIA];
+    if (!sugerencia || !fraseHoja) return;
+    const original = editorTexto.value.slice(fraseHoja.inicio, fraseHoja.fin);
+    const sangria = original.match(/^\s*/)[0];
+    editorTexto.setRangeText(sangria + conMayuscula(sugerencia.texto, original.trim()), fraseHoja.inicio, fraseHoja.fin, 'end');
+    cerrarHojaIA();
+    actualizarEditor();
+    guardarActual();
+});
+$('ia-comprar').addEventListener('click', () => {
+    comprarPlanIA(localStorage);
+    pintarCupoIA(usoDelMes(localStorage));
+    if (fraseHoja) pedirTandaIA();
+});
+
+// La viñeta de una palabra: la primera opción es la palabra como estaba; las flechas pasan por las de
+// la IA y la cambian en la letra. Se cierra al tocar en otro lado (queda la que se ve).
+let vineta = null, generacionVineta = 0;
+function ocultarVineta() {
+    if (!vineta && $('vineta-ia').hidden) return;
+    $('vineta-ia').hidden = true;
+    vineta = null;
+    generacionVineta++;
+}
+function ubicarVineta() {
+    const palabra = $('editor-fondo').querySelector('.tocada');
+    if (!palabra || !vineta) return ocultarVineta();
+    const lugar = palabra.getBoundingClientRect();
+    const globo = $('vineta-ia');
+    const abajo = lugar.top - (visualViewport?.offsetTop ?? 0) < 80;
+    globo.classList.toggle('abajo', abajo);
+    globo.style.left = `${Math.min(Math.max(lugar.left + lugar.width / 2, 90), innerWidth - 90)}px`;
+    globo.style.top = `${abajo ? lugar.bottom : lugar.top}px`;
+}
+function pintarVineta(texto, pensando = false) {
+    $('vineta-palabra').textContent = texto;
+    $('vineta-palabra').classList.toggle('pensando', pensando);
+    const hay = vineta && vineta.opciones.length > 1;
+    $('vineta-anterior').disabled = !hay;
+    $('vineta-siguiente').disabled = !hay;
+}
+async function abrirVineta() {
+    if (!reemplazo || reemplazo.seccion) return;
+    const elegida = palabraElegida(editorTexto.value, reemplazo.inicio, reemplazo.fin, opcionesIA());
+    if (!elegida) return;
+    const original = elegida.pedido.palabra.texto;
+    vineta = { inicio: reemplazo.inicio, fin: reemplazo.fin, opciones: [original], pos: 0 };
+    const generacion = ++generacionVineta;
+    $('vineta-ia').hidden = false;
+    pintarVineta('…', true);
+    ubicarVineta();
+    if (!usoDelMes(localStorage).quedan) return pintarVineta('Sin IA este mes');
+    const { pedido } = elegida;
+    const corregida = bienEscrita(original);
+    try {
+        const respuesta = await consultarIA(pedido, () => palabrasSimuladas(pedido, {
+            rimas: rimasParaIA(pedido.objetivo.rimaCon),
+            sinonimos: buscarSinonimos(corregida, indiceSinonimos()),
+            relacionadas: buscarRelacionados(corregida, indiceRelacionados()),
+        }));
+        if (generacion !== generacionVineta || !vineta) return;
+        anotarSugerencia(localStorage);
+        vineta.opciones.push(...validarPalabras(respuesta.sugerencias, pedido).map(p => conMayuscula(p.texto, original)));
+        if (vineta.opciones.length < 2) return pintarVineta('No encontré otras');
+        cambiarVineta(1);
+    } catch (error) {
+        if (generacion === generacionVineta) pintarVineta(error.motivo === 'red' ? 'Sin conexión' : 'No se pudo');
+    }
+}
+function cambiarVineta(paso) {
+    if (!vineta || vineta.opciones.length < 2) return;
+    vineta.pos = (vineta.pos + paso + vineta.opciones.length) % vineta.opciones.length;
+    const nueva = vineta.opciones[vineta.pos];
+    editorTexto.setRangeText(nueva, vineta.inicio, vineta.fin, 'end');
+    vineta.fin = vineta.inicio + nueva.length;
+    if (reemplazo) reemplazo = { ...reemplazo, inicio: vineta.inicio, fin: vineta.fin };
+    tocada = nueva;
+    actualizarEditor();
+    marcarTocada({ inicio: vineta.inicio, fin: vineta.fin });
+    guardarActual();
+    pintarVineta(nueva);
+    ubicarVineta();
+}
+// Tocar la viñeta no cierra el teclado (como la barra de sugerencias).
+for (const evento of ['pointerdown', 'mousedown']) $('vineta-ia').addEventListener(evento, e => e.preventDefault());
+$('vineta-anterior').addEventListener('click', () => cambiarVineta(-1));
+$('vineta-siguiente').addEventListener('click', () => cambiarVineta(1));
 
 // Estado del reproductor. Vive arriba porque el teclado, al abrirse, pregunta si hay que pausar.
 let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
@@ -1022,11 +1350,134 @@ function anteriorDelHistorial() {
 
 function mostrarFichaTema() {
     $('tema-lista').hidden = true;
-    $('tema-ficha').hidden = false;
+    $('tema-ficha').hidden = modoTema !== 'ideas';
 }
+
+// ---------- Sugerencias (IA): lee la letra entera solo al abrir desde la estrellita ----------
+// Cada cambio muestra el verso con la palabra a corregir subrayada y la nueva al lado; «Cambiar» la
+// pone en la letra. Aparecen de a una, en vivo. Simuladas con el diccionario hasta que esté el servidor.
+let modoTema = 'ideas', generacionRevision = 0, leyendoLetra = false;
+function elegirModoTema(modo) {
+    modoTema = modo;
+    $('modo-sugerencias').setAttribute('aria-selected', modo === 'sugerencias');
+    $('modo-ideas').setAttribute('aria-selected', modo === 'ideas');
+    $('tema-sugerencias').hidden = modo !== 'sugerencias';
+    $('chips-tema').closest('#tema-ficha').hidden = modo !== 'ideas';
+    $('tema-lista').hidden = true;
+}
+$('modo-sugerencias').addEventListener('click', () => elegirModoTema('sugerencias'));
+$('modo-ideas').addEventListener('click', () => {
+    elegirModoTema('ideas');
+    sincronizarChips();
+});
+
+function estadoRevision(texto) {
+    $('revision-estado').textContent = texto;
+    $('revision-otra').disabled = leyendoLetra || !usoDelMes(localStorage).quedan;
+    $('revision-cupo').textContent = textoCupo(usoDelMes(localStorage));
+}
+
+function filaRevision(cambio) {
+    const fila = document.createElement('div');
+    fila.className = 'cambio-rev';
+    const textos = document.createElement('div');
+    const titulo = document.createElement('p');
+    titulo.className = 'titulo-rev';
+    titulo.textContent = cambio.titulo;
+    const verso = document.createElement('p');
+    verso.className = 'verso-rev';
+    const enVerso = cambio.inicio - (editorTexto.value.lastIndexOf('\n', cambio.inicio - 1) + 1);
+    const viejo = document.createElement('u');
+    viejo.className = 'viejo-rev';
+    viejo.textContent = cambio.viejo;
+    const nuevo = document.createElement('span');
+    nuevo.className = 'nuevo-rev';
+    nuevo.textContent = cambio.nuevo;
+    verso.append(cambio.verso.slice(0, enVerso), viejo, nuevo, cambio.verso.slice(enVerso + cambio.viejo.length));
+    textos.append(titulo, verso);
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'chip-simples';
+    boton.textContent = 'Cambiar';
+    boton.addEventListener('click', () => {
+        // Se busca de nuevo: otro cambio de antes pudo correr las posiciones.
+        const lugar = ubicarCambio(editorTexto.value, cambio.n, cambio.viejo);
+        if (!lugar) return;
+        editorTexto.setRangeText(cambio.nuevo, lugar.inicio, lugar.fin, 'end');
+        actualizarEditor();
+        guardarActual();
+        fila.classList.add('hecho');
+        boton.textContent = 'Hecho';
+        boton.disabled = true;
+    });
+    fila.append(textos, boton);
+    return fila;
+}
+
+async function revisarLetra() {
+    const generacion = ++generacionRevision;
+    const lista = $('revision-lista');
+    const revision = letraParaRevisar(editorTexto.value, { corregir: bienEscrita });
+    $('revision-nota').textContent = '';
+    if (!revision) {
+        lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Escribí unos versos y te digo qué cambiaría.' }));
+        return estadoRevision('');
+    }
+    if (!usoDelMes(localStorage).quedan) {
+        lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Ya usaste todas las de este mes.' }));
+        return estadoRevision('');
+    }
+    leyendoLetra = true;
+    const cargando = document.createElement('div');
+    cargando.className = 'cargando-ia';
+    cargando.append(document.createElement('span'), document.createElement('span'));
+    lista.replaceChildren(cargando);
+    estadoRevision('Leyendo tu letra…');
+    try {
+        const respuesta = await pedirRevision(revision, {
+            endpoint: endpointIA(localStorage), id: idDeUsuario(localStorage),
+            simular: () => revisionSimulada(revision, {
+                corregir: bienEscrita,
+                sinonimosDe: palabra => buscarSinonimos(palabra, indiceSinonimos()),
+                rimasDe: rimasParaIA,
+            }),
+        });
+        if (respuesta.simulada) await new Promise(listo => setTimeout(listo, 900));
+        if (generacion !== generacionRevision) return;
+        anotarSugerencia(localStorage);
+        const cambios = validarRevision(respuesta.sugerencias, editorTexto.value);
+        $('revision-nota').textContent = respuesta.simulada ? 'Prueba: sugerencias simuladas, todavía sin servidor.' : '';
+        if (!cambios.length) {
+            lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'No encontré nada para cambiar. ¡Va bien!' }));
+        } else {
+            lista.replaceChildren();
+            // En vivo: de a una.
+            for (const cambio of cambios) {
+                lista.append(filaRevision(cambio));
+                await new Promise(listo => setTimeout(listo, 350));
+                if (generacion !== generacionRevision) return;
+            }
+        }
+        leyendoLetra = false;
+        estadoRevision(cambios.length ? `${cambios.length === 1 ? 'Una sugerencia' : `${cambios.length} sugerencias`}` : '');
+    } catch (error) {
+        if (generacion !== generacionRevision) return;
+        leyendoLetra = false;
+        lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: error.message }));
+        estadoRevision('');
+    }
+}
+$('revision-otra').addEventListener('click', () => {
+    $('revision-otra').classList.remove('gira');
+    void $('revision-otra').offsetWidth;
+    $('revision-otra').classList.add('gira');
+    revisarLetra();
+});
 
 function cerrarHojaTema() {
     $('hoja-tema').hidden = true;
+    generacionRevision++;
+    leyendoLetra = false;
     mostrarFichaTema();
 }
 
@@ -1083,7 +1534,12 @@ function renderListaTema() {
     }));
 }
 
-function abrirDameTema() {
+// Desde la estrellita de arriba de una letra con algo escrito, arranca en «Sugerencias» (la IA lee la
+// letra); desde la letra vacía o el baúl, solo «Ideas», como siempre (pedido de Swa).
+function abrirDameTema(conSugerencias = false) {
+    $('modos-tema').hidden = !conSugerencias;
+    elegirModoTema(conSugerencias ? 'sugerencias' : 'ideas');
+    if (conSugerencias) revisarLetra();
     // Arranca en Amor, con Desamor apagado (pedido de Swa).
     filtroTema = 'amor';
     desamor = false;
@@ -1097,8 +1553,8 @@ function abrirDameTema() {
     otraTema();
     document.activeElement?.blur();
 }
-$('dame-tema').addEventListener('click', abrirDameTema);
-$('abrir-tema-libreta').addEventListener('click', abrirDameTema);
+$('dame-tema').addEventListener('click', () => abrirDameTema());
+$('abrir-tema-libreta').addEventListener('click', () => abrirDameTema(true));
 $('tema-desamor').addEventListener('click', () => {
     desamor = !desamor;
     otraTema();
@@ -3279,7 +3735,7 @@ $('comprar-extras').addEventListener('click', () => {
 $('restaurar-compra').addEventListener('click', () => {
     $('paywall-nota').textContent = tieneExtras(localStorage) ? 'Tu compra ya está activa.' : 'No encontramos compras para restaurar.';
 });
-$('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); renderizarExtras(); });
+$('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); borrarPlanIA(localStorage); renderizarExtras(); });
 
 // ---------- Widgets (Ajustes -> Widgets) ----------
 // Inicio, Pantalla bloqueada y Centro de control van en tres pantallas (un selector arriba). En el
