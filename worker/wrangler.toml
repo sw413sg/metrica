@@ -1,0 +1,22 @@
+# Worker de «Mejorar frase» (ver README.md). No está desplegado: falta crear el KV y cargar la clave.
+name = "metrica-ia"
+main = "src/index.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+# Desde dónde se lo puede llamar (separados por coma).
+ORIGENES = "https://sw413sg.github.io"
+# Confirmar el nombre exacto del modelo en la consola de OpenAI.
+MODELO = "gpt-6.1-terra"
+# Sin decidir (Swa): 20 gratis por mes; con «Métrica IA», 500.
+CUPO_GRATIS = "20"
+TOPE_PLAN = "500"
+# Techo de pedidos de todos juntos en un día (unos USD 17,50 a USD 0,0035 cada uno).
+TOPE_DIA = "5000"
+
+# El id sale de `npx wrangler kv namespace create USO`.
+[[kv_namespaces]]
+binding = "USO"
+id = "COMPLETAR"
+
+# La clave de OpenAI NO va acá: `npx wrangler secret put OPENAI_API_KEY`.

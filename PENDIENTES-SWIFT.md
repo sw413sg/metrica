@@ -25,6 +25,8 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Al arrastrar una tarjeta cerca del borde de arriba o de abajo, que la lista se desplace sola.
 - Probar en el iPhone que el texto de la libreta quede centrado en su renglón con cada fuente (va con `baselineOffset`).
 
+- 1.4.7: IA en la libreta (`js/logica/ia.js` e `ia-prompt.js`, pedido de Swa): seleccionar una frase muestra la estrellita arriba del teclado y abre la hoja de «¿Por dónde empiezo?» con 3 o 4 versiones que riman con el verso anterior (pastillas Mejorar, Más rimas, Más corta, Más imagen y Más calle; anterior, «Al baúl», refrescar y el ícono que la pone en la letra); tocar una palabra suma la estrellita y abre una viñeta arriba de ella con flechas para cambiarla; la estrellita de arriba abre «¿Por dónde empiezo?» con el selector Sugerencias / Ideas (la IA lee la letra y propone cambios, con la palabra a corregir subrayada y la nueva al lado). Cupo de 20 gratis por mes y plan «Métrica IA» simulados (sin decidir). En Swift: el mismo Worker (`worker/`), con el comprobante de StoreKit para el plan y App Attest para el id.
+
 ### Freestyle y Grabar
 - «Ilimitado» sin Extras: que abra el paywall de StoreKit (hoy muestra un aviso).
 - Descargar: en Swift baja M4A (AAC) en vez de MP3; si hace falta MP3, sumar un codificador.

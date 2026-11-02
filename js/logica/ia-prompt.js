@@ -1,0 +1,132 @@
+// Lo que se le manda al modelo para «Mejorar frase» (pedido de Swa): las instrucciones y el pedido
+// armado por la app (js/logica/ia.js), con las rimas y sílabas que ya calcula el motor propio.
+// No importa nada: lo usa también el Worker de Cloudflare (worker/src/index.js), que es quien arma
+// el mensaje de verdad, así el servidor no sirve para pedirle cualquier cosa al modelo.
+
+export const MODELO_IA = 'gpt-6.1-terra';
+// Cuántas pide la app: 3 o 4 por frase. Se piden algunas de más porque el motor descarta las que no cumplen.
+export const SUGERENCIAS_IA = 4;
+export const PEDIDAS_IA = 6;
+
+// Una palabra sola (la tocada): cuántas alternativas se piden para pasar con las flechas de la viñeta.
+export const PALABRAS_IA = 8;
+
+// Las pastillas de la hoja, como las categorías de «¿Por dónde empiezo?»: hacia dónde llevar la frase.
+export const ENFOQUES_IA = [
+    { id: 'mejor', nombre: 'Mejorar', pista: 'que suene mejor y diga más' },
+    { id: 'rimas', nombre: 'Más rimas', pista: 'con más rimas internas que suenen con el verso anterior' },
+    { id: 'corta', nombre: 'Más corta', pista: 'más directa, con dos o tres sílabas menos' },
+    { id: 'imagen', nombre: 'Más imagen', pista: 'con una imagen concreta, algo que se pueda ver' },
+    { id: 'calle', nombre: 'Más calle', pista: 'con palabras de la calle, bien rioplatense' },
+];
+
+const LARGO_MAXIMO = 140;
+const VERSOS_ESTROFA = 8;
+
+const texto = (valor, largo = LARGO_MAXIMO) => typeof valor === 'string' && valor.trim() && valor.length <= largo;
+const versoValido = v => v && texto(v.texto) && Number.isInteger(v.silabas) && v.silabas >= 0 && v.silabas < 60
+    && (v.final == null || texto(v.final.palabra, 40))
+    && (v.internas == null || (Array.isArray(v.internas) && v.internas.length <= 12 && v.internas.every(i => texto(i?.palabra, 40))));
+
+// El servidor revisa que el pedido tenga la forma de siempre y no sea largo (si no, no lo manda).
+export function pedidoValido(pedido) {
+    return Boolean(pedido && versoValido(pedido.verso)
+        && (pedido.anterior == null || versoValido(pedido.anterior))
+        && Array.isArray(pedido.estrofa) && pedido.estrofa.length <= VERSOS_ESTROFA && pedido.estrofa.every(v => texto(v))
+        && Number.isInteger(pedido.objetivo?.silabas)
+        && (pedido.enfoque == null || ENFOQUES_IA.some(e => e.id === pedido.enfoque))
+        && (pedido.palabra == null || (texto(pedido.palabra.texto, 40) && typeof pedido.palabra.final === 'boolean')));
+}
+
+const describir = v => {
+    const partes = [`«${v.texto}» (${v.silabas} sílabas)`];
+    if (v.final) partes.push(`termina en «${v.final.palabra}» (rima consonante «-${v.final.consonante}», asonante «${v.final.asonante}»)`);
+    if (v.internas?.length) partes.push(`rimas internas: ${v.internas.map(i => `«${i.palabra}»`).join(', ')}`);
+    return partes.join('; ');
+};
+
+// { instrucciones, entrada }: el mensaje de sistema y el del usuario, en texto.
+export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA) {
+    const contexto = [];
+    if (pedido.estrofa.length) contexto.push(`Estrofa:\n${pedido.estrofa.join('\n')}`);
+    if (pedido.anterior) contexto.push(`Verso anterior: ${describir(pedido.anterior)}.`);
+    if (pedido.palabra) {
+        const instrucciones = [
+            'Sos un compositor de rap y canciones en español rioplatense que ayuda a elegir una palabra.',
+            `Devolvé ${cantidad} palabras sueltas que puedan reemplazar a la elegida en su verso, que encajen con el sentido y suenen bien.`,
+            pedido.palabra.final && pedido.objetivo.rimaCon
+                ? `Es la última del verso: tienen que rimar con «${pedido.objetivo.rimaCon}» (mejor consonante, si no asonante).`
+                : 'Va en el medio del verso: mejor si suenan con las rimas internas de la estrofa.',
+            'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+        ].join('\n');
+        contexto.push(`Verso: ${describir(pedido.verso)}.`, `Palabra para cambiar: «${pedido.palabra.texto}».`);
+        return { instrucciones, entrada: contexto.join('\n\n') };
+    }
+    const enfoque = ENFOQUES_IA.find(e => e.id === pedido.enfoque);
+    const instrucciones = [
+        'Sos un compositor de rap y canciones en español rioplatense que ayuda a mejorar un verso.',
+        `Devolvé ${cantidad} versiones distintas del verso elegido, que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
+        ...(enfoque && enfoque.id !== 'mejor' ? [`Que sean ${enfoque.pista}.`] : []),
+        'Cada versión es un solo verso, sin comillas, sin numerar y sin explicar nada.',
+        'Si hay verso anterior, la versión tiene que rimar con su última palabra (mejor consonante, si no asonante) y sonar con sus rimas internas.',
+        'Respetá la cantidad de sílabas pedida, con una de diferencia como mucho.',
+        'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+    ].join('\n');
+    const lineas = contexto;
+    lineas.push(`Verso elegido para mejorar: ${describir(pedido.verso)}.`);
+    lineas.push(`Sílabas buscadas: ${pedido.objetivo.silabas}.`);
+    if (pedido.objetivo.rimaCon) lineas.push(`Tiene que rimar con «${pedido.objetivo.rimaCon}».`);
+    return { instrucciones, entrada: lineas.join('\n\n') };
+}
+
+// ---------- Sugerencias de la letra entera (pestaña «Sugerencias» de «¿Por dónde empiezo?») ----------
+// La app manda los versos con su número de renglón, sus sílabas y su estrofa; el modelo devuelve
+// cambios chicos: una palabra (o unas pocas) de un verso por otra.
+export const VERSOS_REVISION = 80;
+export const CAMBIOS_REVISION = 6;
+
+export function revisionValida(revision) {
+    const versos = revision?.versos;
+    return Boolean(Array.isArray(versos) && versos.length && versos.length <= VERSOS_REVISION
+        && versos.every(v => v && Number.isInteger(v.n) && v.n >= 0 && texto(v.texto) && Number.isInteger(v.silabas) && Number.isInteger(v.estrofa)));
+}
+
+export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION) {
+    const instrucciones = [
+        'Sos un compositor de rap y canciones en español rioplatense que revisa la letra de otro, con respeto por su estilo.',
+        `Leé la letra y devolvé hasta ${cantidad} sugerencias concretas, de la más importante a la menos: palabras repetidas sin querer, finales que no riman con su estrofa, palabras flojas o clichés.`,
+        'Cada sugerencia cambia una palabra (o una expresión corta) de un solo verso por otra, que respete la rima y las sílabas.',
+        'El título va como «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
+        'Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
+    ].join('\n');
+    let estrofa = revision.versos[0]?.estrofa;
+    const lineas = revision.versos.map(v => {
+        const corte = v.estrofa !== estrofa ? '\n' : '';
+        estrofa = v.estrofa;
+        return `${corte}${v.n} (${v.silabas}) ${v.texto}`;
+    });
+    return { instrucciones, entrada: `Letra (número de renglón, sílabas y verso):\n${lineas.join('\n')}` };
+}
+
+// La lista de cambios que contesta el modelo, solo con los campos que sirven.
+export function leerRevision(contenido) {
+    try {
+        const json = JSON.parse(String(contenido).match(/\{[\s\S]*\}/)?.[0] ?? '');
+        return (Array.isArray(json.sugerencias) ? json.sugerencias : [])
+            .filter(s => s && Number.isInteger(s.verso) && ['titulo', 'viejo', 'nuevo'].every(c => typeof s[c] === 'string' && s[c].trim()))
+            .map(({ titulo, verso, viejo, nuevo }) => ({ titulo, verso, viejo, nuevo }))
+            .slice(0, CAMBIOS_REVISION + 2);
+    } catch {
+        return [];
+    }
+}
+
+// Lo que contesta el modelo: saca la lista de versos, aunque venga con algo más alrededor.
+export function leerRespuesta(contenido) {
+    try {
+        const json = JSON.parse(String(contenido).match(/\{[\s\S]*\}/)?.[0] ?? '');
+        return Array.isArray(json.sugerencias) ? json.sugerencias.filter(s => typeof s === 'string') : [];
+    } catch {
+        return [];
+    }
+}
