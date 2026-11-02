@@ -7,6 +7,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 ## Hecho en Swift
 - Esqueleto: pestañas Letras, Rimas, Freestyle y Ajustes, colores de `estilos.css`, cajas de vidrio (Liquid Glass en iOS 26), datos del diccionario y CI.
 - Lógica pura con tests (122 tests en verde): rimas, sílabas, ortografía, diccionario, secciones, sinónimos, relacionados, definiciones, consignas, letras, papelera, baúl, compra, apariencia, libreta y recientes.
+- Ajustes (apariencia, Efectos, Velocidad, Grabar, versión, licencias, versión gratis), Papelera, Importar de Google Keep y Exportar todo, con `keep.js` y `exportar.js` (metrica-swift #5).
 
 ## Falta portar
 
@@ -31,10 +32,8 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Lógica sin portar: `freestyle.js`, `musica.js`, `grabaciones.js`, `ambiente.js`, `beats.js`.
 
 ### Ajustes, Papelera, Importar y Exportar
-- Ajustes: apariencia (Sistema/Claro/Oscuro), Efectos, Velocidad, Grabar (micrófono y salida), versión, «Volver a la versión gratis», Acerca de y licencias.
-- Papelera: cuadrados con días que quedan, ver en grande, restaurar, borrar definitivamente, borrar todo.
-- Importar de Google Keep (`.fileImporter`, `keep.js`) y Exportar todo en .zip (menú compartir, `exportar.js`).
-- Lógica sin portar: `keep.js`, `exportar.js`.
+- La pantalla de Ajustes > Widgets queda para el port de Widgets.
+- Sin portar a propósito: la flecha de forzar actualización (en nativo actualiza el App Store) y «Versión anterior».
 
 ### Widgets
 - WidgetKit: Baúl de frases, Palabra del día, Seguí escribiendo, Racha, Accesos rápidos; pantalla bloqueada; ControlWidget y Botón de acción; App Group compartido; foto con PhotosPicker.
