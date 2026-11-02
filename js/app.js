@@ -25,8 +25,7 @@ import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/aparienc
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDelWidget, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, conEnfoque, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, anotarSugerencia, textoCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
-import { ENFOQUES_IA } from './logica/ia-prompt.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
 const $ = id => document.getElementById(id);
@@ -911,7 +910,15 @@ function botonIA(texto = '') {
     return boton;
 }
 const opcionesIA = () => ({ corregir: bienEscrita, distancia: estiloLibreta(leerAjustesLibreta(localStorage)).internas });
-const rimasParaIA = palabra => palabra ? buscarRimas(bienEscrita(palabra), indiceRimas()).slice(0, 30) : [];
+// Para las simuladas: primero las rimas de «Palabras simples», que suenan más a letra.
+let simplesIA = null;
+const rimasParaIA = palabra => {
+    if (!palabra) return [];
+    const rimas = buscarRimas(bienEscrita(palabra), indiceRimas());
+    simplesIA ??= new Set(palabrasSimples);
+    const simples = rimas.filter(r => simplesIA.has(r));
+    return (simples.length >= 4 ? simples : rimas).slice(0, 30);
+};
 const conMayuscula = (nueva, original) => /^\p{Lu}/u.test(original) ? nueva[0].toUpperCase() + nueva.slice(1) : nueva;
 
 // Al servidor, o simuladas (con una pausa, como si pensara).
@@ -945,34 +952,13 @@ editorTexto.addEventListener('select', revisarSeleccion);
 
 // La hoja: las pastillas eligen hacia dónde llevarla; la flecha vuelve, el refrescar (o deslizar)
 // pasa a la siguiente y, al terminar la tanda, pide otra (cada tanda cuenta una del cupo).
-let fraseHoja = null, enfoqueIA = 'mejor', historialIA = [], posIA = -1, generacionIA = 0, pidiendoIA = false;
-
-$('chips-ia').append(...ENFOQUES_IA.map(enfoque => {
-    const boton = document.createElement('button');
-    boton.type = 'button';
-    boton.className = 'chip-tema';
-    boton.dataset.enfoque = enfoque.id;
-    boton.textContent = enfoque.nombre;
-    boton.addEventListener('click', () => {
-        if (enfoqueIA === enfoque.id) return;
-        enfoqueIA = enfoque.id;
-        sincronizarChipsIA();
-        pedirTandaIA();
-    });
-    return boton;
-}));
-function sincronizarChipsIA() {
-    for (const boton of $('chips-ia').children) boton.setAttribute('aria-pressed', boton.dataset.enfoque === enfoqueIA);
-}
+let fraseHoja = null, historialIA = [], posIA = -1, generacionIA = 0, pidiendoIA = false;
 
 function abrirHojaIA() {
     if (!fraseIA) return;
     fraseHoja = fraseIA;
     editorTexto.blur();
     marcarTocada({ inicio: fraseHoja.inicio, fin: fraseHoja.fin });
-    enfoqueIA = 'mejor';
-    sincronizarChipsIA();
-    $('chips-ia').scrollLeft = 0;
     historialIA = [];
     posIA = -1;
     $('ia-original').textContent = `En vez de: ${fraseHoja.pedido.verso.texto}`;
@@ -991,7 +977,8 @@ function cerrarHojaIA() {
 function pintarCupoIA(uso) {
     $('ia-cupo').textContent = textoCupo(uso);
     const sinCupo = !uso.quedan;
-    $('ia-plan').hidden = !sinCupo || uso.plan;
+    // El plan solo se ofrece si se terminó el mes (el tope por letra es para todos).
+    $('ia-plan').hidden = !sinCupo || uso.plan || uso.porLetra;
     $('ia-plan-bajada').textContent = `Usaste las ${CUPO_GRATIS} gratis de este mes. Con ${PLAN_IA.nombre} tenés ${PLAN_IA.tope} por mes.`;
     $('ia-comprar').textContent = `Probar por ${PLAN_IA.precio}`;
     $('ia-otra').disabled = pidiendoIA || (sinCupo && posIA >= historialIA.length - 1);
@@ -1010,24 +997,27 @@ function esperandoIA(si) {
 }
 
 async function pedirTandaIA() {
-    const uso = usoDelMes(localStorage);
+    const uso = cupoIA(localStorage, letraActual?.id);
     if (!uso.quedan) {
         pintarCupoIA(uso);
         if (posIA < 0) {
-            $('ia-titulo').textContent = 'IA';
-            $('ia-meta').textContent = 'Ya usaste todas las de este mes.';
+            $('ia-titulo').textContent = 'Alternativas de frase';
+            $('ia-meta').textContent = textoSinCupo(uso);
         }
         return;
     }
     const generacion = ++generacionIA;
-    const pedido = conEnfoque(fraseHoja.pedido, enfoqueIA);
+    const { pedido } = fraseHoja;
     esperandoIA(true);
     pintarCupoIA(uso);
     try {
-        const respuesta = await consultarIA(pedido, () => sugerenciasSimuladas(pedido, rimasParaIA(pedido.objetivo.rimaCon)));
+        const respuesta = await consultarIA(pedido, () => sugerenciasSimuladas(pedido, {
+            rimas: rimasParaIA(pedido.objetivo.rimaCon),
+            sinonimosDe: palabra => buscarSinonimos(bienEscrita(palabra), indiceSinonimos()),
+        }));
         if (generacion !== generacionIA) return;
         const nuevas = validarSugerencias(respuesta.sugerencias, pedido, { corregir: bienEscrita });
-        const usoNuevo = anotarSugerencia(localStorage);
+        const usoNuevo = anotarSugerencia(localStorage, undefined, letraActual?.id);
         esperandoIA(false);
         $('ia-nota').textContent = respuesta.simulada ? 'Prueba: sugerencias simuladas, todavía sin servidor.' : '';
         if (nuevas.length) {
@@ -1036,32 +1026,32 @@ async function pedirTandaIA() {
         } else {
             $('ia-meta').textContent = 'No encontré otras. Probá con otra pastilla.';
         }
-        pintarCupoIA(respuesta.quedan != null ? { ...usoNuevo, quedan: respuesta.quedan } : usoNuevo);
+        pintarCupoIA(respuesta.quedan != null && !usoNuevo.porLetra ? { ...usoNuevo, quedan: Math.min(usoNuevo.quedan, respuesta.quedan) } : usoNuevo);
     } catch (error) {
         if (generacion !== generacionIA) return;
         esperandoIA(false);
-        $('ia-titulo').textContent = 'IA';
+        $('ia-titulo').textContent = 'Alternativas de frase';
         $('ia-meta').textContent = error.message;
-        pintarCupoIA(error.motivo === 'cupo' ? { ...usoDelMes(localStorage), quedan: 0 } : usoDelMes(localStorage));
+        pintarCupoIA(error.motivo === 'cupo' ? { ...cupoIA(localStorage, letraActual?.id), quedan: 0 } : cupoIA(localStorage, letraActual?.id));
     }
 }
 
-const RIMA_IA = { consonante: 'rima consonante con', asonante: 'rima asonante con', misma: 'misma palabra que' };
+const RIMA_IA = { consonante: 'rima consonante con', asonante: 'rima asonante con', misma: 'termina igual que' };
 function mostrarIA(pos) {
     posIA = pos;
     const sugerencia = historialIA[pos];
     const [, resto, ultima] = sugerencia.texto.match(/^(.*?)(\S+)$/su);
     $('ia-texto').textContent = resto;
     $('ia-ultima').textContent = ultima;
-    $('ia-ultima').classList.toggle('sin-rima', !sugerencia.rima || sugerencia.rima === 'misma');
+    $('ia-ultima').classList.toggle('sin-rima', !sugerencia.rima);
     $('ia-frase').hidden = false;
-    $('ia-titulo').textContent = `IA ${sugerencia.n + 1} de ${sugerencia.de}`;
+    $('ia-titulo').textContent = `Alternativas de frase ${sugerencia.n + 1} de ${sugerencia.de}`;
     const rima = sugerencia.rima ? `${RIMA_IA[sugerencia.rima]} «${sugerencia.rimaCon}»` : 'no rima';
-    $('ia-meta').textContent = `${sugerencia.silabas} sílabas · ${rima}`;
+    $('ia-meta').textContent = rima.replace(/^./, c => c.toUpperCase());
     $('ia-anterior').disabled = pos <= 0;
     $('ia-baul').disabled = false;
     pintarBaulIA();
-    pintarCupoIA(usoDelMes(localStorage));
+    pintarCupoIA(cupoIA(localStorage, letraActual?.id));
     const caja = $('caja-ia');
     caja.classList.remove('cambio');
     void caja.offsetWidth;
@@ -1127,7 +1117,7 @@ $('ia-usar').addEventListener('click', () => {
 });
 $('ia-comprar').addEventListener('click', () => {
     comprarPlanIA(localStorage);
-    pintarCupoIA(usoDelMes(localStorage));
+    pintarCupoIA(cupoIA(localStorage, letraActual?.id));
     if (fraseHoja) pedirTandaIA();
 });
 
@@ -1167,7 +1157,7 @@ async function abrirVineta() {
     $('vineta-ia').hidden = false;
     pintarVineta('…', true);
     ubicarVineta();
-    if (!usoDelMes(localStorage).quedan) return pintarVineta('Sin IA este mes');
+    if (!cupoIA(localStorage, letraActual?.id).quedan) return pintarVineta(cupoIA(localStorage, letraActual?.id).porLetra ? 'Mañana hay más' : 'Sin IA este mes');
     const { pedido } = elegida;
     const corregida = bienEscrita(original);
     try {
@@ -1177,7 +1167,7 @@ async function abrirVineta() {
             relacionadas: buscarRelacionados(corregida, indiceRelacionados()),
         }));
         if (generacion !== generacionVineta || !vineta) return;
-        anotarSugerencia(localStorage);
+        anotarSugerencia(localStorage, undefined, letraActual?.id);
         vineta.opciones.push(...validarPalabras(respuesta.sugerencias, pedido).map(p => conMayuscula(p.texto, original)));
         if (vineta.opciones.length < 2) return pintarVineta('No encontré otras');
         cambiarVineta(1);
@@ -1373,8 +1363,8 @@ $('modo-ideas').addEventListener('click', () => {
 
 function estadoRevision(texto) {
     $('revision-estado').textContent = texto;
-    $('revision-otra').disabled = leyendoLetra || !usoDelMes(localStorage).quedan;
-    $('revision-cupo').textContent = textoCupo(usoDelMes(localStorage));
+    $('revision-otra').disabled = leyendoLetra || !cupoIA(localStorage, letraActual?.id).quedan;
+    $('revision-cupo').textContent = textoCupo(cupoIA(localStorage, letraActual?.id));
 }
 
 function filaRevision(cambio) {
@@ -1423,8 +1413,8 @@ async function revisarLetra() {
         lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Escribí unos versos y te digo qué cambiaría.' }));
         return estadoRevision('');
     }
-    if (!usoDelMes(localStorage).quedan) {
-        lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Ya usaste todas las de este mes.' }));
+    if (!cupoIA(localStorage, letraActual?.id).quedan) {
+        lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: textoSinCupo(cupoIA(localStorage, letraActual?.id)) }));
         return estadoRevision('');
     }
     leyendoLetra = true;
@@ -1444,7 +1434,7 @@ async function revisarLetra() {
         });
         if (respuesta.simulada) await new Promise(listo => setTimeout(listo, 900));
         if (generacion !== generacionRevision) return;
-        anotarSugerencia(localStorage);
+        anotarSugerencia(localStorage, undefined, letraActual?.id);
         const cambios = validarRevision(respuesta.sugerencias, editorTexto.value);
         $('revision-nota').textContent = respuesta.simulada ? 'Prueba: sugerencias simuladas, todavía sin servidor.' : '';
         if (!cambios.length) {

@@ -1,6 +1,6 @@
 # Worker de «Mejorar frase» (Métrica IA)
 
-Servidor chico en Cloudflare Workers para la función de IA de la libreta: elegís una frase y propone 3 o 4 mejores, basadas en el verso anterior y en sus rimas internas y finales. **Todavía no está desplegado**: mientras `ENDPOINT_IA` (en `js/logica/ia.js`) esté vacío, la app usa respuestas simuladas.
+Servidor chico en Cloudflare Workers para la función de IA de la libreta: elegís una frase y propone 3 o 4 alternativas relacionadas, con sus mismas rimas internas y finales (además, cambia palabras sueltas y revisa la letra entera). **Todavía no está desplegado**: mientras `ENDPOINT_IA` (en `js/logica/ia.js`) esté vacío, la app usa respuestas simuladas.
 
 ## Cómo anda
 1. La app arma el pedido con su propio motor (`fraseElegida` en `js/logica/ia.js`): el verso elegido, el anterior, la estrofa, sílabas, rima consonante y asonante de la última palabra y las rimas internas.
