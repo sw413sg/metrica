@@ -43,6 +43,8 @@ Cómo probar: `npm test` (los casos pendientes están marcados como `todo`) y `n
 1. **Web app para probar (ahora).** Mobile-first, a ancho de iPhone (~390x844), con estilo nativo de iOS (fuente del sistema, títulos grandes, listas agrupadas, tab bar, modo oscuro), instalable desde Safari con "Agregar a inicio" (PWA con manifest). HTML/CSS/JS simple, sin frameworks ni paso de build. Publicada en GitHub Pages.
 2. **Cuando esté lista, pasarla 1 a 1 a SwiftUI** (iOS 17+), sin rediseñar. Por eso, en la web: separá la lógica (rimas, diccionario, sesiones) de la interfaz en módulos JS puros con tests, y usá componentes que tengan equivalente directo en SwiftUI.
 
+**Port a Swift (arrancó 2026-11-02, pedido de Swa):** la app nativa va en [sw413sg/metrica-swift](https://github.com/sw413sg/metrica-swift). Los pedidos nuevos se siguen haciendo primero acá, como preview en HTML, y cada uno se anota en `PENDIENTES-SWIFT.md` (qué falta portar a Swift, por sección). Al portar algo, se saca de esa lista.
+
 ## Qué sumar
 Hecho:
 - [x] Rima real en español, consonante y asonante, con las más usadas primero.
