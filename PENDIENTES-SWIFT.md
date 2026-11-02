@@ -6,14 +6,16 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 
 ## Hecho en Swift
 - Esqueleto: pestañas Letras, Rimas, Freestyle y Ajustes, colores de `estilos.css`, cajas de vidrio (Liquid Glass en iOS 26), datos del diccionario y CI.
+- Rimas y Diccionario: buscador con la pista tipeada, consonante/asonante con «?», caja de 4 palabras (azar cada 6 s, búsqueda con `tituloBusqueda`, Sinónimos, Palabras simples), cajones Todas, relacionadas y guardadas, publicidad solo gratis, y el libro con definiciones, similares y sinónimos (metrica-swift #4).
 - Lógica pura con tests (122 tests en verde): rimas, sílabas, ortografía, diccionario, secciones, sinónimos, relacionados, definiciones, consignas, letras, papelera, baúl, compra, apariencia, libreta y recientes.
 - Baúl de frases (`BaulView`: anotar, filtros, tarjetas en columnas, editar en el lugar, menú de mantener apretado, lupa, pincel con tema, tamaño y separar, «‹ volver» con el nombre de la letra) y la hoja «¿Por dónde empiezo?» (`.porDondeEmpiezo`: pastillas, consigna, Desamor, anterior, refrescar, deslizar, «Al baúl», mandar a la nota, lista de categorías).
 
 ## Falta portar
 
 ### Rimas y Diccionario
-- Pantalla de Rimas: buscador con el texto tipeado, consonante/asonante con «?», caja «Terminaciones al azar» (2×2, cada 6 s, barrita), resultados con título armado (`tituloBusqueda`), «Sinónimos», «Palabras simples», cajones «Todas», «Palabras relacionadas» y «Palabras guardadas», polvo del Boombap 1 si suena música, publicidad (solo gratis).
-- Diccionario: libro que cambia el modo, definición con categorías y acepciones, palabra corregida entre paréntesis, «Palabras similares» y «Sinónimos».
+- Polvo del Boombap 1 detrás de las cajas si suena música (va con los efectos de partículas, en Generales).
+- Brillo animado que cruza las terminaciones violetas (en Swift el degradé va quieto).
+- Publicidad: conectar el toque al paywall (hilo de Métrica Extras).
 
 ### Letras y editor
 - Grilla de tarjetas (chicas y largas, `lugaresEnGrilla`), tarjeta «+», mantener apretada para mover o tirar al tacho.
@@ -29,6 +31,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Lógica sin portar: `freestyle.js`, `musica.js`, `grabaciones.js`, `ambiente.js`, `beats.js`.
 
 ### Ajustes, Papelera, Importar y Exportar
+- Ajustes: Acerca de > Licencias del diccionario ya existe (`LicenciasDiccionarioView`, con un link provisorio en `AjustesView`): ponerla en su grupo.
 - Ajustes: apariencia (Sistema/Claro/Oscuro), Efectos, Velocidad, Grabar (micrófono y salida), versión, «Volver a la versión gratis», Acerca de y licencias.
 - Papelera: cuadrados con días que quedan, ver en grande, restaurar, borrar definitivamente, borrar todo.
 - Importar de Google Keep (`.fileImporter`, `keep.js`) y Exportar todo en .zip (menú compartir, `exportar.js`).
