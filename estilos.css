@@ -2034,27 +2034,39 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .lista-revision { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .lista-revision .cargando-ia { margin: 4px 6px; }
 /* Cada cambio, una cajita gris como las de Rimas; entra borroneado, uno tras otro. */
+/* Rediseño (pedido de Swa): el motivo arriba, el verso «Ahora» (la palabra tachada) y «Queda» (la nueva
+   con el efecto de la palabra tocada), uno abajo del otro, y «Cambiar» abajo a la derecha. */
 .cambio-rev {
-    display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; border-radius: 20px; background: var(--tarjeta);
+    display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 20px; background: var(--tarjeta);
     animation: entrar-palabra .5s cubic-bezier(.2, .8, .2, 1) both;
 }
-.cambio-rev > div { flex: 1; min-width: 0; }
-.titulo-rev { margin: 0; font-size: 12px; font-weight: 600; color: var(--texto-2); }
-.verso-rev { margin: 4px 0 0; font-size: 17px; line-height: 1.35; color: var(--texto); overflow-wrap: anywhere; }
-/* Lo que se cambia, subrayado y apagado; lo nuevo, al lado, con el efecto de la palabra tocada. */
-.viejo-rev { text-decoration: underline wavy color-mix(in srgb, var(--destacado) 70%, transparent); text-underline-offset: 4px; text-decoration-thickness: 1.5px; opacity: .6; }
+.titulo-rev { margin: 0; font-size: 14px; font-weight: 600; color: var(--texto); }
+.versos-rev { display: flex; flex-direction: column; border-radius: 14px; background: color-mix(in srgb, var(--texto) 5%, transparent); }
+.versos-rev .verso-rev + .verso-rev { border-top: 1px solid var(--separador); }
+.verso-rev { display: flex; align-items: baseline; gap: 10px; margin: 0; padding: 9px 12px; font-size: 16px; line-height: 1.35; overflow-wrap: anywhere; }
+.etiqueta-rev { flex: none; width: 48px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--texto-3); }
+.linea-rev { flex: 1; min-width: 0; color: var(--texto-2); }
+.verso-rev:last-child .linea-rev { color: var(--texto); }
+/* Lo que se cambia, tachado; lo nuevo, con el efecto de la palabra tocada. */
+.viejo-rev { color: var(--texto); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--destacado) 80%, transparent); text-decoration-thickness: 2px; }
 .nuevo-rev {
-    margin-left: 6px; font-weight: 700;
+    font-weight: 700;
     background: var(--degrade-tocada); -webkit-background-clip: text; background-clip: text;
     color: transparent; -webkit-text-fill-color: transparent; animation: brillo-tocada 2.2s linear infinite;
 }
-.cambio-rev .chip-simples { margin-left: 0; flex: none; height: 36px; padding: 0 14px; background: var(--destacado-suave); color: var(--destacado); }
+.cambio-rev .chip-simples { align-self: flex-end; margin-left: 0; flex: none; height: 36px; padding: 0 16px; background: var(--destacado-suave); color: var(--destacado); }
 .cambio-rev.hecho { opacity: .55; }
-.cambio-rev.hecho .viejo-rev { display: none; }
-.cambio-rev.hecho .nuevo-rev { margin-left: 0; }
+/* «Generar sugerencias con IA»: con el borde de la palabra tocada, como «Desamor» prendido. */
+.generar-rev { position: relative; margin-left: 0; align-self: center; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; font-size: 16px; box-shadow: 0 0 10px color-mix(in srgb, var(--destacado) 35%, transparent); }
+.generar-rev::before {
+    content: ""; position: absolute; inset: 0; padding: 2px; border-radius: inherit; pointer-events: none;
+    background: var(--degrade-tocada); animation: brillo-tocada 2.2s linear infinite;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.generar-rev .estrella-ia { width: 16px; height: 16px; }
+#caja-revision .controles-azar { margin-top: 14px; justify-content: center; }
+.generar-rev:disabled { opacity: .5; }
+.lista-revision:empty { display: none; }
 .vacio-rev { margin: 4px 6px; font-size: 15px; color: var(--texto-2); }
-#revision-otra { width: 46px; height: 46px; }
-#revision-otra .icono { width: 23px; height: 23px; }
-#revision-otra:disabled { opacity: .35; }
-#revision-otra.gira .icono { animation: girar .5s ease; }
 @media (prefers-reduced-motion: reduce) { .cambio-rev, .nuevo-rev { animation: none; } }
