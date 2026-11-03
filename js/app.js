@@ -1738,22 +1738,22 @@ function pastillasLibreta(clave, ajuste, elegida) {
     return grupo;
 }
 
+// Renglones, Sílabas por verso y Rimas internas van en «Texto», entre los pasos y la fuente; las
+// rimas internas, con botones en vez del menú (pedidos de Swa).
+const interruptoresTexto = [...$('opciones-libreta').children];
 function aplicarAjustesLibreta() {
     aplicarEstiloLibreta();
     const ajustes = leerAjustesLibreta(localStorage);
+    const filaInternas = document.createElement('div');
+    filaInternas.className = 'fila-grupo fila-titulo-pastillas';
+    filaInternas.textContent = AJUSTES_LIBRETA.internas.nombre;
     $('opciones-libreta').replaceChildren(
         ...['tamano', 'separacion', 'letras'].map(clave => pasosLibreta(clave, AJUSTES_LIBRETA[clave], ajustes[clave])),
+        ...interruptoresTexto,
+        filaInternas,
+        pastillasLibreta('internas', AJUSTES_LIBRETA.internas, ajustes.internas),
         pastillasLibreta('fuente', AJUSTES_LIBRETA.fuente, ajustes.fuente));
-    const internas = AJUSTES_LIBRETA.internas;
-    $('rimas-internas').replaceChildren(...Object.entries(internas.opciones).map(([opcion, { nombre }]) => new Option(nombre, opcion)));
-    $('rimas-internas').value = ajustes.internas;
-    $('valor-internas').textContent = `${internas.etiqueta}: ${internas.opciones[ajustes.internas].nombre}`;
 }
-$('rimas-internas').addEventListener('change', () => {
-    guardarAjusteLibreta(localStorage, 'internas', $('rimas-internas').value);
-    aplicarAjustesLibreta();
-    actualizarEditor();
-});
 aplicarAjustesLibreta();
 $('abrir-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = false; });
 $('cerrar-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = true; });

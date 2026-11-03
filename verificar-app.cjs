@@ -829,11 +829,13 @@ const servidor = http.createServer((req, res) => {
         await page.mouse.click(195, 100);
         assert.equal(await page.locator('#hoja-musica').isVisible(), false);
         // En pantalla chica (iPhone 16) los renglones arrancan apagados, sin botón arriba: se prenden
-        // desde «Funciones» en la ruedita.
+        // desde «Texto» en la ruedita.
         assert.equal(await page.locator('#alternar-renglones').isVisible(), false);
         assert.equal(await page.locator('.editor-cuerpo').evaluate(e => getComputedStyle(e).backgroundImage), 'none');
         await page.locator('#abrir-ajustes-libreta').click();
-        assert.deepEqual(await page.locator('#ajustes-libreta .funciones-libreta label').allTextContents(), ['Renglones', 'Sílabas por verso', 'Rimas internas']);
+        assert.deepEqual(await page.locator('#opciones-libreta label').allTextContents(), ['Renglones', 'Sílabas por verso']);
+        assert.equal(await page.locator('#opciones-libreta .fila-titulo-pastillas').textContent(), 'Rimas internas');
+        assert.deepEqual(await page.locator('#ajustes-libreta .funciones-libreta .fila-grupo').allInnerTexts().then(t => t.map(x => x.split('\n')[0])), ['Compartir', 'Copiar']);
         assert.equal(await page.locator('#mostrar-renglones').isChecked(), false);
         await page.locator('#mostrar-renglones').click();
         await page.locator('#cerrar-ajustes-libreta').click();
@@ -858,9 +860,10 @@ const servidor = http.createServer((req, res) => {
         const marcas = () => page.locator('#editor-fondo mark').evaluateAll(ms => ms.map(m => m.className + ':' + m.textContent));
         // Arrancan en 2 versos: se pasa a 4 para este ejemplo.
         await page.locator('#abrir-ajustes-libreta').click();
-        assert.equal(await page.locator('#rimas-internas').inputValue(), 'dos', 'arranca en 2 versos');
-        assert.equal(await page.locator('#valor-internas').textContent(), 'Distancia: 2 versos');
-        await page.locator('#rimas-internas').selectOption('cuatro');
+        const internas = opcion => page.locator(`.pastillas-libreta[data-ajuste="internas"] button[data-opcion="${opcion}"]`);
+        assert.deepEqual(await page.locator('.pastillas-libreta[data-ajuste="internas"] button').allTextContents(), ['No', '2 versos', '4 versos', '8 versos']);
+        assert.equal(await internas('dos').getAttribute('aria-selected'), 'true', 'arranca en 2 versos');
+        await internas('cuatro').click();
         await page.locator('#cerrar-ajustes-libreta').click();
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         assert.deepEqual(await marcas(), ['rima-0:tengo', 'rima-1:mino', 'rima-1:tino', 'rima-0:vengo', 'rima-0 suave:lejos']);
@@ -875,11 +878,11 @@ const servidor = http.createServer((req, res) => {
         await page.screenshot({path: `capturas/editor-colores-${tema}.png`});
         await escribir('tengo un camino y un destino\nla luna me mira\nvengo de lejos');
         await page.locator('#abrir-ajustes-libreta').click();
-        await page.locator('#rimas-internas').selectOption('dos');
+        await internas('dos').click();
         assert.deepEqual(await marcas(), ['rima-0:mino', 'rima-0:tino', 'rima-1 suave:vengo', 'rima-1 suave:lejos'], 'a 2 versos, tengo y vengo quedan lejos');
-        await page.locator('#rimas-internas').selectOption('no');
+        await internas('no').click();
         assert.deepEqual(await marcas(), []);
-        await page.locator('#rimas-internas').selectOption('cuatro');
+        await internas('cuatro').click();
         await page.locator('#cerrar-ajustes-libreta').click();
         await escribir(textoAntes);
         // La ruedita abre los ajustes de la libreta: sílabas, tamaño, separación y fuente.
@@ -891,7 +894,7 @@ const servidor = http.createServer((req, res) => {
         assert.equal(await page.locator('#ajustes-libreta .hoja-titulo').count(), 0);
         assert.deepEqual(await page.locator('#ajustes-libreta .encabezado-libreta').allTextContents(), ['Tema de esta letra', 'Texto', 'Funciones']);
         assert.deepEqual(await page.locator('#opciones-libreta .fila-grupo').evaluateAll(fs => fs.map(f => f.innerText.replace(/\s+/g, ' ').trim())),
-            ['Tamaño de letra − 4 +', 'Separación de renglones − 4 +', 'Separación de letras − 5 +']);
+            ['Tamaño de letra − 4 +', 'Separación de renglones − 4 +', 'Separación de letras − 5 +', 'Renglones', 'Sílabas por verso', 'Rimas internas']);
         // Hasta un punto, con los pasos de − y +; en los extremos el botón se apaga.
         const fijarPaso = async (clave, punto) => {
             const pasos = page.locator(`.pasos-libreta[data-ajuste="${clave}"]`);

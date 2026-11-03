@@ -559,11 +559,9 @@
                 <input type="range" class="opacidad-tema" id="opacidad-libreta" min="1" max="10" step="1" value="10" aria-label="Opacidad del tema">
             </div>
             <h3 class="encabezado-libreta">Texto</h3>
-            <!-- Tamaño, separaciones y fuente: lo arma js/app.js -->
-            <div class="grupo-libreta" id="opciones-libreta"></div>
-            <h3 class="encabezado-libreta">Funciones</h3>
-            <!-- Renglones solo en pantallas chicas, donde su botón no entra arriba (pedido de Swa). -->
-            <div class="grupo-libreta funciones-libreta">
+            <!-- Tamaño, separaciones, Renglones, Sílabas por verso, Rimas internas y fuente: js/app.js los ordena.
+                 Renglones solo en pantallas chicas, donde su botón no entra arriba (pedido de Swa). -->
+            <div class="grupo-libreta" id="opciones-libreta">
                 <div class="fila-grupo fila-renglones">
                     <label for="mostrar-renglones">Renglones</label>
                     <input type="checkbox" class="interruptor" id="mostrar-renglones">
@@ -572,15 +570,9 @@
                     <label for="mostrar-silabas">Sílabas por verso</label>
                     <input type="checkbox" class="interruptor" id="mostrar-silabas">
                 </div>
-                <div class="fila-grupo">
-                    <label for="rimas-internas">Rimas internas</label>
-                    <!-- Un menú (Picker con .menu en SwiftUI): el select va invisible encima del texto. -->
-                    <span class="menu-libreta">
-                        <span id="valor-internas"></span>
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M8 10l4-4 4 4M8 14l4 4 4-4"/></svg>
-                        <select id="rimas-internas" data-ajuste="internas"></select>
-                    </span>
-                </div>
+            </div>
+            <h3 class="encabezado-libreta">Funciones</h3>
+            <div class="grupo-libreta funciones-libreta">
                 <!-- Compartir abre la hoja del sistema (se puede elegir Google Keep); Copiar se lleva
                      solo el cuerpo, sin el título (pedido de Swa; en SwiftUI, ShareLink y UIPasteboard). -->
                 <button type="button" class="fila-grupo fila-accion" id="compartir-letra">
