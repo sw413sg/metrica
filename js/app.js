@@ -22,7 +22,7 @@ import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantid
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
-import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDelWidget, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
+import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
 import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
@@ -3780,15 +3780,6 @@ const ICONOS_WIDGET = {
     chispa: '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M12 3l1.9 6.1L20 12l-6.1 1.9L12 21l-1.9-7.1L4 12l6.1-2.9z"/></svg>',
 };
 const ICONO_ACCION = { anotar: 'cofre', 'nueva-letra': 'lapiz', rimas: 'lupa', freestyle: 'mic', grabar: 'rec' };
-// Hasta que se anote algo en el baúl, la muestra va con frases de ejemplo.
-const FRASES_EJEMPLO = [
-    { texto: 'el bondi tarda pero siempre llega', creada: 5 },
-    { texto: 'tengo un verso guardado en el bolsillo', creada: 4 },
-    { texto: 'la luna no cobra entrada', creada: 3 },
-    { texto: 'si me caigo, que sea bailando', creada: 2 },
-    { texto: 'mi barrio tiene más flow que tu playlist', creada: 1 },
-];
-
 function mostrarVistaAjustes(id) {
     document.querySelectorAll('#pantalla-ajustes .vista').forEach(v => v.classList.toggle('activa', v.id === id));
 }
@@ -4023,9 +4014,14 @@ $('keep-importar').addEventListener('click', () => {
 });
 
 const escapar = texto => String(texto).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const frasesParaWidget = () => { const frases = listarFrases(localStorage); return frases.length ? frases : FRASES_EJEMPLO; };
 const fechasEscritas = () => [...listarFrases(localStorage).map(f => f.creada), ...listarLetras(localStorage).filter(l => l.texto?.trim()).map(l => l.editada)];
-const palabraHoy = () => palabraDelDia(palabrasSimples);
+// La palabra del día tiene que tener rimas consonantes para mostrar (se busca una vez por día).
+let palabraDeHoy = null;
+const palabraHoy = () => {
+    const hoy = new Date().toDateString();
+    if (palabraDeHoy?.dia !== hoy) palabraDeHoy = { dia: hoy, palabra: palabraDelDia(palabrasSimples, Date.now(), p => rimasDe(p, 'consonante', 4).length >= 4) };
+    return palabraDeHoy.palabra;
+};
 const rimasDe = (palabra, tipo, cuantas) => buscarRimas(palabra, indiceRimas(), { tipo }).filter(r => !r.includes(' ')).slice(0, cuantas);
 const cabeza = (icono, texto) => `<span class="widget-cabeza">${icono ? ICONOS_WIDGET[icono] : ''}${escapar(texto)}</span>`;
 // Un botón de la muestra: data-accion dice qué abre (y data-dato, con qué).
@@ -4033,104 +4029,77 @@ const tocable = (accion, dato, clase, html, etiqueta) =>
     `<button type="button" class="${clase}" data-accion="${accion}"${dato ? ` data-dato="${escapar(dato)}"` : ''}${etiqueta ? ` aria-label="${escapar(etiqueta)}"` : ''}>${html}</button>`;
 const botonMas = (texto = '') => `<span class="widget-mas">${ICONOS_WIDGET.mas}</span>${escapar(texto)}`;
 const cofreGrande = () => `<span class="widget-cofre">${ICONOS_WIDGET.cofre}</span>`;
-// La palabra con la sílaba tónica en violeta, como en el aro de Freestyle.
-const palabraConTonica = palabra => {
-    const fuerte = silabaFuerte(palabra);
-    if (!fuerte) return escapar(palabra);
-    return fuerte.silabas.map((s, i) => (i === fuerte.tonica ? `<span class="tonica">${escapar(s)}</span>` : escapar(s))).join('');
-};
 const ACCESOS = [['anotar', 'Anotar'], ['nueva-letra', 'Letra'], ['rimas', 'Rimas'], ['freestyle', 'Freestyle']];
 const iconoAcceso = accion => `<span>${ICONOS_WIDGET[ICONO_ACCION[accion]]}</span>`;
 
 // El contenido de cada widget en cada diseño, con los datos de verdad (frases, letras, racha...).
 const CONTENIDO_WIDGET = {
-    baul({ tamano, diseno, ...ajustes }) {
-        const frases = frasesDelWidget(frasesParaWidget(), { tamano, ...ajustes });
-        const anotarSolo = tocable('anotar', '', 'widget-anotar widget-anotar-solo', botonMas(), 'Anotá');
-        if (diseno === 'frase') {
-            const texto = frasesDelWidget(frasesParaWidget(), { ...ajustes, tamano: 'chico' })[0];
-            if (!texto) return cofreGrande() + tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'));
-            return `<span class="widget-comillas">“</span><p class="widget-frase-grande">${escapar(texto)}</p>` +
-                `<span class="widget-pie">${tamano === 'chico' ? 'Baúl' : 'Tu última frase'}</span>` + anotarSolo;
+    // El baúl es para anotar rápido, no para leerlo (pedido de Swa): todo el widget es un toque que
+    // abre el baúl con el teclado listo, y no muestra frases guardadas.
+    baul({ tamano, diseno }) {
+        const anotar = (clase, html) => tocable('anotar', '', `widget-todo widget-baul-anotar ${clase}`, html, 'Anotá una frase');
+        const grande = tamano !== 'chico';
+        if (diseno === 'boton') {
+            return anotar('widget-centrado', `<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span><b class="widget-anotar-texto">${grande ? 'Anotá una frase' : 'Anotá'}</b>`);
         }
         if (diseno === 'libreta') {
             const renglones = { chico: 3, mediano: 3, grande: 8 }[tamano];
-            const lineas = Array.from({ length: renglones }, (_, i) => `<li>${escapar(frases[i] ?? '')}</li>`).join('');
-            return `<span class="widget-margen"></span><ul class="widget-libreta">${lineas}</ul>` + anotarSolo;
+            const lineas = Array.from({ length: renglones }, (_, i) => `<li>${i === 0 ? `<span class="widget-cursor"></span>${grande ? 'Escribí acá…' : 'Escribí…'}` : ''}</li>`).join('');
+            return anotar('', `<span class="widget-margen"></span><ul class="widget-libreta">${lineas}</ul><span class="widget-anotar-solo">${botonMas()}</span>`);
         }
-        if (diseno === 'anotar') {
-            const todas = listarFrases(localStorage);
-            const sinUsar = todas.filter(f => !f.usada).length;
-            const cuenta = `<span class="widget-cuenta"><b>${todas.length}</b> ${todas.length === 1 ? 'frase' : 'frases'}${todas.length ? ` · ${sinUsar} sin usar` : ''}</span>`;
-            const boton = tocable('anotar', '', 'widget-anotar-grande', `${ICONOS_WIDGET.mas}<span>${tamano === 'chico' ? 'Anotá' : 'Anotá una frase'}</span>`);
-            if (tamano === 'mediano') return `<div class="widget-dos"><div class="widget-izquierda">${cofreGrande()}${cuenta}</div>${boton}</div>`;
-            return cofreGrande() + (tamano === 'grande' ? cuenta : '') + boton;
+        if (diseno === 'hoy') {
+            const hoy = frasesDeHoy(listarFrases(localStorage));
+            const cuenta = hoy ? `<b class="widget-numero">${hoy}</b><span class="widget-dias">${hoy === 1 ? 'frase hoy' : 'frases hoy'}</span>`
+                : `<b class="widget-hoy-vacio">${grande ? 'Anotá la primera frase de hoy' : 'La primera de hoy'}</b>`;
+            return anotar('', cabeza('cofre', 'Baúl') + `<div class="widget-dos"><div class="widget-izquierda">${cuenta}</div>${grande ? `<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span>` : ''}</div>` +
+                (grande ? '' : `<span class="widget-anotar">${botonMas('Anotá')}</span>`));
         }
-        const titulo = { chico: 'Baúl', mediano: 'Baúl · Últimas', grande: 'Baúl de frases' }[tamano];
-        if (tamano === 'chico') {
-            const medio = frases.length ? `<p class="widget-frase">${escapar(frases[0])}</p>` : cofreGrande();
-            return cabeza('cofre', titulo) + medio + tocable('anotar', '', 'widget-anotar', botonMas('Anotá'));
-        }
-        if (!frases.length) return cabeza('cofre', titulo) + cofreGrande() + tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase'));
-        const lista = frases.map(f => `<li>${escapar(f)}</li>`).join('');
-        const abajo = tamano === 'grande' ? tocable('anotar', '', 'widget-anotar', botonMas('Anotá una frase')) : anotarSolo;
-        return cabeza('cofre', titulo) + `<ul class="widget-frases">${lista}</ul>` + abajo;
+        // Campo: como un campo de texto vacío con el cursor, listo para escribir.
+        const campo = `<span class="widget-campo"><span class="widget-cursor"></span>${grande ? 'Anotá una frase…' : 'Anotá…'}</span>`;
+        if (tamano === 'mediano') return anotar('', cabeza('cofre', 'Baúl de frases') + `<div class="widget-dos">${campo}<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span></div>`);
+        return anotar('', cabeza('cofre', grande ? 'Baúl de frases' : 'Baúl') + cofreGrande() + campo);
     },
-    palabra({ tamano, diseno, tipoRima }) {
+    // Palabra del día: la palabra entera (sin separar ni marcar sílabas) y sus rimas consonantes.
+    palabra({ tamano, diseno }) {
         const palabra = palabraHoy();
-        const tipo = tipoRima === 'asonante' ? 'Asonantes' : 'Consonantes';
         if (diseno === 'grande') {
-            const rimas = rimasDe(palabra, tipoRima, 2);
+            const rimas = rimasDe(palabra, 'consonante', 2);
             return tocable('rimas', palabra, 'widget-todo widget-centrado', cabeza('chispa', 'Palabra del día') +
-                `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(tamano === 'chico' ? 30 : 46, Math.floor((tamano === 'chico' ? 200 : 440) / palabra.length))}px">${palabraConTonica(palabra)}</span></b>` +
-                `<span class="widget-pie">${tamano === 'chico' ? escapar(rimas[0] ?? '') : `rima con ${rimas.map(escapar).join(' y ')}`}</span>`);
-        }
-        if (diseno === 'silabas') {
-            const fuerte = silabaFuerte(palabra);
-            const silabas = (fuerte?.silabas ?? separarSilabas(palabra)).map((s, i) =>
-                `<span class="widget-silaba${i === fuerte?.tonica ? ' tonica' : ''}">${escapar(s)}</span>`).join('');
-            const cuantas = fuerte?.silabas.length ?? 0;
-            const rimas = tamano === 'mediano' ? `<div class="widget-rimas">${rimasDe(palabra, tipoRima, 4).map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div>` : '';
-            return cabeza('chispa', escapar(palabra)) + `<div class="widget-dos">${tocable('rimas', palabra, 'widget-silabas-bloques', silabas)}${rimas}</div>` +
-                `<span class="widget-pie">${cuantas} ${cuantas === 1 ? 'sílaba' : 'sílabas'}</span>`;
+                `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(tamano === 'chico' ? 30 : 46, Math.floor((tamano === 'chico' ? 200 : 440) / palabra.length))}px">${escapar(palabra)}</span></b>` +
+                (rimas.length ? `<span class="widget-pie">${tamano === 'chico' ? escapar(rimas[0]) : `rima con ${rimas.map(escapar).join(' y ')}`}</span>` : ''));
         }
         if (diseno === 'rimas') {
-            const rimas = rimasDe(palabra, tipoRima, tamano === 'chico' ? 4 : 8);
-            return tocable('rimas', palabra, 'widget-titulo-rimas', `<b>${palabraConTonica(palabra)}</b>${tamano === 'chico' ? '' : `<span>${tipo}</span>`}`) +
+            const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 4 : 8);
+            return tocable('rimas', palabra, 'widget-titulo-rimas', `<b>${escapar(palabra)}</b>`) +
                 `<ul class="widget-lista-rimas">${rimas.map(r => `<li>${tocable('rimas', r, '', escapar(r))}</li>`).join('')}</ul>`;
         }
-        const rimas = rimasDe(palabra, tipoRima, tamano === 'chico' ? 1 : 6);
-        const silabas = separarSilabas(palabra).join(' · ');
+        const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 1 : 6);
         if (tamano === 'chico') {
-            return tocable('rimas', palabra, 'widget-todo', cabeza('chispa', 'Palabra') +
-                `<b class="widget-palabra">${escapar(palabra)}</b><span class="widget-silabas">${escapar(silabas)}</span>
-                <span class="widget-pie">${rimas[0] ? `rima con ${escapar(rimas[0])}` : 'Buscá sus rimas'}</span>`);
+            return tocable('rimas', palabra, 'widget-todo', cabeza('chispa', 'Palabra') + `<b class="widget-palabra">${escapar(palabra)}</b>` +
+                `<span class="widget-pie">${rimas[0] ? `rima con ${escapar(rimas[0])}` : 'Buscá sus rimas'}</span>`);
         }
         return cabeza('chispa', 'Palabra del día') + `<div class="widget-dos">
-            ${tocable('rimas', palabra, 'widget-izquierda', `<b class="widget-palabra">${escapar(palabra)}</b><span class="widget-silabas">${escapar(silabas)}</span>`)}
-            <div class="widget-rimas">${rimas.map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div></div>
-            <span class="widget-pie">${tipo}</span>`;
+            ${tocable('rimas', palabra, 'widget-izquierda', `<b class="widget-palabra">${escapar(palabra)}</b>`)}
+            <div class="widget-rimas">${rimas.map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div></div>`;
     },
-    letra({ tamano, diseno, letra: elegida }) {
+    // Seguí escribiendo: el título y un poco del comienzo; sin «Mostrar contenido», solo el título.
+    letra({ tamano, diseno, letra: elegida, mostrarContenido }) {
         const letra = letraDelWidget(listarLetras(localStorage), { letra: elegida, tamano });
         if (!letra) {
             return cabeza('lapiz', 'Seguí escribiendo') + '<p class="widget-frase">Todavía no hay letras</p>' + tocable('nueva-letra', '', 'widget-anotar', botonMas('Nueva letra'));
         }
-        const versos = `${letra.versos} ${letra.versos === 1 ? 'verso' : 'versos'}`;
+        const titulo = tamano === 'chico' ? 'Seguí' : 'Seguí escribiendo';
+        const inicio = mostrarContenido && letra.renglones.length
+            ? `<ul class="widget-renglones">${letra.renglones.map(r => `<li>${escapar(r)}</li>`).join('')}</ul>` : '';
         if (diseno === 'titulo') {
-            return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', tamano === 'chico' ? 'Seguí' : 'Seguí escribiendo') +
-                `<b class="widget-titulo-grande">${escapar(letra.titulo)}</b>` +
-                `<span class="widget-pie-fila"><span class="widget-pie">${versos}</span><span class="widget-seguir">Seguí</span></span>`);
+            return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', titulo) +
+                `<b class="widget-titulo-grande">${escapar(letra.titulo)}</b>${inicio}<span class="widget-seguir">Seguí</span>`);
         }
-        if (diseno === 'verso') {
-            return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', tamano === 'chico' ? 'Seguí' : 'Donde quedaste') +
-                `<p class="widget-ultimo-verso">${escapar(letra.ultimo || 'Sin versos todavía')}</p>` +
-                `<span class="widget-pie"><b>${escapar(letra.titulo)}</b>${tamano === 'chico' ? '' : ` · ${versos}`}</span>`);
+        if (diseno === 'tarjeta') {
+            // Como una tarjeta de Letras: el título arriba y el comienzo que se desvanece.
+            return tocable('letra', letra.id, 'widget-todo widget-tarjeta-letra', `<b class="widget-titulo-letra">${escapar(letra.titulo)}</b>${inicio}`);
         }
-        const renglones = letra.renglones.map(r => `<li>${escapar(r)}</li>`).join('') || '<li class="widget-pista">Sin versos todavía</li>';
-        const pie = tamano === 'chico' ? '' : `<span class="widget-pie">${versos} · Seguí ›</span>`;
-        return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', tamano === 'chico' ? 'Seguí' : 'Seguí escribiendo') +
-            `<b class="widget-titulo-letra">${escapar(letra.titulo)}</b><ul class="widget-renglones">${renglones}</ul>${pie}`);
+        return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', titulo) + `<b class="widget-titulo-letra">${escapar(letra.titulo)}</b>${inicio}`);
     },
     racha({ tamano, diseno }) {
         const fechas = fechasEscritas();
@@ -4143,6 +4112,15 @@ const CONTENIDO_WIDGET = {
             const llama = `<span class="widget-llama${escribioHoy ? ' prendida' : ''}">${ICONOS_WIDGET.llama}<b>${dias}</b></span>`;
             if (tamano === 'chico') return tocable('anotar', '', 'widget-todo widget-centrado', llama + `<span class="widget-dias">${textoDias}</span>`);
             return tocable('anotar', '', 'widget-todo', `<div class="widget-dos">${llama}<div class="widget-izquierda"><b class="widget-racha-texto">${dias} ${textoDias}</b>${pie}</div></div>`);
+        }
+        if (diseno === 'mes') {
+            const mes = mesDeRacha(fechas);
+            const puntos = Array.from({ length: mes.hueco }, () => '<i class="vacio"></i>').join('') +
+                mes.dias.map(d => `<i class="${d.escribio ? 'escribio' : ''}${d.hoy ? ' hoy' : ''}${d.futuro ? ' futuro' : ''}"></i>`).join('');
+            const grilla = `<div class="mes-racha">${puntos}</div>`;
+            const titulo = `${mes.nombre[0].toUpperCase()}${mes.nombre.slice(1)}`;
+            if (tamano === 'chico') return tocable('anotar', '', 'widget-todo', cabeza('llama', `${titulo} · ${dias}`) + grilla);
+            return tocable('anotar', '', 'widget-todo', `<div class="widget-dos"><div class="widget-izquierda">${cabeza('llama', titulo)}<b class="widget-numero">${dias}</b><span class="widget-dias">${textoDias}</span><span class="widget-pie">${mes.escritos} de ${mes.dias.length} días</span></div>${grilla}</div>`);
         }
         if (diseno === 'semana') {
             return tocable('anotar', '', 'widget-todo', cabeza('llama', `Racha · ${dias}`) + `<div class="semana-racha semana-grande">${semana}</div>` + pie);
@@ -4180,26 +4158,9 @@ function filaMenu(etiqueta, opciones, valor, alCambiar) {
     select.addEventListener('change', () => { alCambiar(select.value); renderizarWidgets(); });
     return fila;
 }
-function filaInterruptor(etiqueta, valor, alCambiar, deshabilitado = false) {
-    const fila = document.createElement('div');
-    fila.className = 'fila-grupo';
-    const id = `widgets-int-${Math.random().toString(36).slice(2, 8)}`;
-    fila.innerHTML = `<label for="${id}">${escapar(etiqueta)}</label><input type="checkbox" class="interruptor" id="${id}">`;
-    const interruptor = fila.querySelector('input');
-    interruptor.checked = valor;
-    interruptor.disabled = deshabilitado;
-    interruptor.addEventListener('change', () => { alCambiar(interruptor.checked); renderizarWidgets(); });
-    return fila;
-}
-
 // Las opciones de contenido de cada widget.
 function opcionesWidget(id, ajustes) {
     const guardar = cambios => guardarAjusteWidget(localStorage, id, cambios);
-    if (id === 'baul') return [
-        filaInterruptor('Mostrar frases', ajustes.mostrarFrases, v => guardar({ mostrarFrases: v })),
-        filaInterruptor('Solo las sin usar', ajustes.soloSinUsar, v => guardar({ soloSinUsar: v }), !ajustes.mostrarFrases),
-    ];
-    if (id === 'palabra') return [filaMenu('Rimas', [{ id: 'consonante', nombre: 'Consonantes' }, { id: 'asonante', nombre: 'Asonantes' }], ajustes.tipoRima, v => guardar({ tipoRima: v }))];
     if (id === 'letra') {
         const letras = listarLetras(localStorage).map(l => ({ id: l.id, nombre: l.titulo?.trim() || 'Sin título' }));
         const valor = letras.some(l => l.id === ajustes.letra) ? ajustes.letra : 'ultima';
@@ -4227,8 +4188,7 @@ function accesorioRectangular(id) {
         const letra = letraDelWidget(listarLetras(localStorage));
         return tocable(letra ? 'letra' : 'nueva-letra', letra?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.lapiz}${escapar(letra?.titulo ?? 'Letras')}</b><span>${escapar(letra?.ultimo || 'Empezá una letra')}</span>`);
     }
-    const ultima = frasesDelWidget(frasesParaWidget())[0];
-    return tocable('anotar', '', 'accesorio-largo', `<b>${ICONOS_WIDGET.cofre}Baúl</b><span>${escapar(ultima ?? 'Anotá una frase')}</span>`);
+    return tocable('anotar', '', 'accesorio-largo', `<b>${ICONOS_WIDGET.cofre}Baúl</b><span>Anotá una frase…</span>`);
 }
 function lineaBloqueo(id) {
     if (id === 'racha') {
@@ -4259,6 +4219,13 @@ function marcoWidget(id, ajustes, conEsquina = true) {
         esquina.setAttribute('role', 'button');
         esquina.setAttribute('aria-label', 'Cambiar el tamaño');
         marco.append(esquina);
+        // Hasta que se la toca una vez, una viñeta tenue invita a probar otro tamaño (pedido de Swa).
+        if (!esquinaUsada(localStorage)) {
+            const pista = document.createElement('span');
+            pista.className = 'pista-esquina';
+            pista.textContent = 'Probá otro tamaño!';
+            marco.append(pista);
+        }
     }
     return marco;
 }
@@ -4316,7 +4283,14 @@ function renderizarCarrusel() {
     carrusel.scrollLeft = actual * carrusel.clientWidth;
     marcarDiseno(actual);
 }
+// «Mostrar contenido», al lado del cambio de diseño, solo en Seguí escribiendo (pedido de Swa).
+$('widgets-contenido-letra').addEventListener('change', e => {
+    guardarAjusteWidget(localStorage, widgetElegido, { mostrarContenido: e.target.checked });
+    renderizarCarrusel();
+});
 function marcarDiseno(indice) {
+    $('widgets-fila-contenido').hidden = widgetElegido !== 'letra';
+    $('widgets-contenido-letra').checked = ajustesWidget(localStorage, widgetElegido).mostrarContenido !== false;
     const widget = WIDGETS.find(w => w.id === widgetElegido);
     const ajustes = ajustesWidget(localStorage, widgetElegido);
     $('widgets-diseno').textContent = `${widget.disenos[indice].nombre} · ${TAMANOS.find(t => t.id === ajustes.tamano).nombre}`;
@@ -4360,6 +4334,10 @@ $('widgets-carrusel').addEventListener('pointerdown', e => {
     const esquina = e.target.closest('.esquina-widget');
     if (!esquina) return;
     e.preventDefault();
+    if (!esquinaUsada(localStorage)) {
+        marcarEsquinaUsada(localStorage);
+        $('widgets-carrusel').querySelectorAll('.pista-esquina').forEach(p => p.remove());
+    }
     const marco = esquina.parentElement;
     const escenario = marco.parentElement;
     const caja = marco.getBoundingClientRect();

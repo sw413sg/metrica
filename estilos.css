@@ -1595,10 +1595,24 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     position: absolute; right: -7px; bottom: -7px; z-index: 2; width: 30px; height: 30px; touch-action: none; cursor: nwse-resize;
 }
 .esquina-widget::after {
-    content: ""; position: absolute; right: 6px; bottom: 6px; width: 14px; height: 14px;
-    border: solid #fff; border-width: 0 3px 3px 0; border-radius: 0 0 9px 0; opacity: .85;
-    filter: drop-shadow(0 0 4px rgba(0, 0, 0, .5));
+    content: ""; position: absolute; right: 4px; bottom: 4px; width: 18px; height: 18px;
+    background: var(--degrade-tocada); animation: brillo-tocada 2.2s linear infinite;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--destacado) 70%, transparent));
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'%3E%3Cpath d='M16 2v5a9 9 0 0 1-9 9H2'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18' fill='none' stroke='%23000' stroke-width='3.2' stroke-linecap='round'%3E%3Cpath d='M16 2v5a9 9 0 0 1-9 9H2'/%3E%3C/svg%3E") center / contain no-repeat;
 }
+/* La viñeta tenue que apunta a la esquina, hasta que se la toca una vez. */
+.pista-esquina {
+    position: absolute; right: 30px; bottom: -32px; z-index: 2; padding: 4px 10px; border-radius: 12px; pointer-events: none;
+    font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; opacity: .6;
+    background: color-mix(in srgb, var(--destacado) 45%, rgba(20, 18, 31, .7));
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.pista-esquina::after {
+    content: ""; position: absolute; right: -5px; top: 4px; border: 6px solid transparent; border-left-color: color-mix(in srgb, var(--destacado) 45%, rgba(20, 18, 31, .7));
+    border-right: 0; transform: rotate(-35deg); transform-origin: left center;
+}
+.escenario-widgets:has(.pista-esquina) { padding-bottom: 46px; }
 .marco-widget.estirando > .widget { box-shadow: 0 0 0 2px rgba(255, 255, 255, .5); }
 .diseno-widgets { display: flex; flex-direction: column; align-items: center; gap: 7px; margin: 12px 0 4px; }
 .diseno-widgets b { font-size: 17px; font-weight: 600; }
@@ -1678,7 +1692,6 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .widget-empujon { margin: 4px 0 0; font-size: 14px; font-weight: 400; color: var(--w-texto-2); }
 /* Palabra del día. */
 .widget-palabra { margin-top: 10px; font-size: 26px; font-weight: 800; letter-spacing: -.3px; line-height: 1.1; overflow-wrap: anywhere; }
-.widget-silabas { font-size: 13px; color: var(--w-texto-2); }
 .widget-dos { flex: 1; min-height: 0; display: flex; align-items: center; gap: 12px; }
 .widget-izquierda { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .widget-izquierda .widget-palabra { margin-top: 0; }
@@ -1687,8 +1700,14 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 /* Seguí escribiendo. */
 .widget-titulo-letra { margin-top: 8px; font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .widget-renglones { margin-top: 4px; flex: none; }
+.widget-seguir { align-self: flex-end; margin-top: auto; }
+.widget-tarjeta-letra .widget-titulo-letra { margin-top: 0; font-size: 17px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.widget-tarjeta-letra .widget-renglones { -webkit-mask: linear-gradient(#000 40%, transparent); mask: linear-gradient(#000 40%, transparent); }
+.tamano-grande .widget-tarjeta-letra .widget-titulo-letra { font-size: 26px; }
+.tamano-grande .widget-renglones li { font-size: 16px; line-height: 1.6; }
+.fila-contenido-widgets { display: flex; align-items: center; gap: 10px; margin-top: 4px; font-size: 15px; }
+.fila-contenido-widgets[hidden] { display: none; }
 .widget-renglones li { font-size: 14px; line-height: 1.45; color: var(--w-texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tamano-grande .widget-renglones li { line-height: 1.75; border-bottom: 0.5px solid var(--w-linea); }
 /* Freestyle: el play en el aro violeta, como el círculo de la ronda. */
 .widget-centro { flex: 1; display: grid; place-items: center; }
 .widget-play { flex: none; display: grid; place-items: center; }
@@ -1719,21 +1738,14 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .widget-centrado { align-items: center; justify-content: center; text-align: center !important; }
 .widget-centrado .widget-cabeza { align-self: stretch; justify-content: center; }
 .widget-centrado .widget-pie { margin-top: 0; }
-.widget .tonica { color: var(--w-acento); }
-/* Baúl · Frase: la última, grande y entre comillas. */
-.widget-comillas { font-size: 44px; line-height: .6; height: 18px; font-weight: 800; color: var(--w-acento); font-family: Georgia, serif; }
-.widget-frase-grande { flex: 1; margin: 4px 0 0; font-size: 17px; font-weight: 700; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-.tamano-mediano .widget-frase-grande { font-size: 20px; -webkit-line-clamp: 3; padding-right: 36px; }
-.tamano-grande .widget-frase-grande { font-size: 28px; -webkit-line-clamp: 7; }
-.diseno-frase .widget-pie { padding-right: 36px; }
-/* Baúl · Libreta: las frases a mano, en renglones con margen. */
+/* Baúl · Libreta: renglones vacíos con margen, para escribir a mano. */
 .widget-libreta { flex: 1; list-style: none; margin: -2px 0 0 14px; padding: 0 0 0 8px; display: flex; flex-direction: column; justify-content: space-evenly; font-family: Noteworthy, "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive; }
 .widget-libreta li { min-height: 1.6em; padding-top: 4px; border-bottom: 1px solid var(--w-linea); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tamano-chico .widget-libreta { margin-bottom: 34px; }
 .tamano-chico .widget-libreta li { font-size: 13px; }
 .widget-margen { position: absolute; left: 22px; top: 0; bottom: 0; width: 1.5px; background: color-mix(in srgb, var(--w-acento) 55%, transparent); }
 .diseno-libreta .widget-libreta { padding-right: 34px; }
-/* Baúl · Anotar: el cofre y un botón grande. */
+/* El botón grande de anotar (también en Accesos). */
 .widget-anotar-grande {
     display: flex; align-items: center; justify-content: center !important; gap: 6px; margin-top: auto; height: 38px; padding: 0 14px; border-radius: 19px;
     color: #fff !important; font-size: 15px; font-weight: 600; text-align: center !important;
@@ -1741,35 +1753,47 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 }
 .estilo-violeta .widget-anotar-grande { background: #fff; color: #5a3fd6 !important; }
 .widget-anotar-grande .icono { width: 18px; height: 18px; stroke-width: 2.6; }
-.diseno-anotar .widget-dos .widget-anotar-grande { margin: 0; flex: 1.1; height: 52px; border-radius: 26px; }
-.widget-cuenta { font-size: 13px; color: var(--w-texto-2); text-align: center; margin-bottom: 8px; }
-.widget-cuenta b { color: var(--w-texto); }
-.widget-tipo-baul.diseno-anotar .widget-izquierda { align-items: center; }
-/* Palabra · Grande y Sílabas. */
+/* Baúl: todo el widget anota (Campo, Botón, Libreta, Hoy). */
+.widget-baul-anotar { gap: 0; }
+.widget-campo {
+    display: flex; align-items: center; gap: 2px; margin-top: auto; height: 38px; padding: 0 12px; border-radius: 19px;
+    background: var(--w-relleno); box-shadow: inset 0 0 0 1px var(--w-linea); color: var(--w-texto-2); font-size: 15px; white-space: nowrap; overflow: hidden;
+}
+.diseno-campo .widget-dos .widget-campo { flex: 1; margin: 0; height: 48px; border-radius: 24px; font-size: 17px; }
+.tamano-grande .widget-campo { height: 52px; border-radius: 26px; font-size: 18px; padding: 0 18px; }
+.widget-cursor { flex: none; display: inline-block; width: 2px; height: 1.1em; margin-right: 3px; vertical-align: middle; border-radius: 1px; background: var(--w-acento); animation: cursor-widget 1.1s steps(1) infinite; }
+@keyframes cursor-widget { 50% { opacity: 0; } }
+.widget-mas-gigante {
+    display: grid; place-items: center; flex: none; width: 64px; height: 64px; border-radius: 50%; color: #fff;
+    background: linear-gradient(135deg, #9d8bff, #7b61ff); box-shadow: 0 0 18px rgba(157, 139, 255, .6);
+}
+.widget-mas-gigante .icono { width: 32px; height: 32px; stroke-width: 2.6; }
+.estilo-violeta .widget-mas-gigante { background: #fff; color: #5a3fd6; box-shadow: 0 0 14px rgba(255, 255, 255, .5); }
+.tamano-grande .widget-mas-gigante { width: 110px; height: 110px; }
+.tamano-grande .widget-mas-gigante .icono { width: 52px; height: 52px; }
+.diseno-boton.tamano-chico .widget-mas-gigante { width: 72px; height: 72px; }
+.widget-anotar-texto { margin-top: 12px; font-size: 16px; font-weight: 700; }
+.tamano-grande .widget-anotar-texto { font-size: 22px; margin-top: 18px; }
+.widget-baul-anotar .widget-libreta li { color: var(--w-texto-2); }
+.widget-hoy-vacio { font-size: 16px; font-weight: 700; line-height: 1.2; }
+.tamano-mediano .widget-hoy-vacio, .tamano-grande .widget-hoy-vacio { font-size: 20px; }
+.diseno-hoy .widget-dos { gap: 14px; }
+.widget-baul-anotar .widget-anotar { margin-top: auto; }
+/* Palabra · Grande. */
 .widget-palabra-enorme { flex: 1; display: grid; place-items: center; white-space: nowrap; font-size: 30px; font-weight: 800; letter-spacing: -.5px; line-height: 1; overflow-wrap: anywhere; }
 .tamano-mediano .widget-palabra-enorme { font-size: 46px; }
-.widget-silabas-bloques { flex: 1; display: flex; flex-wrap: wrap; gap: 5px; align-content: center; }
-.widget-silaba { padding: 6px 9px; border-radius: 10px; background: var(--w-relleno); font-size: 18px; font-weight: 700; }
-.widget-silaba.tonica { color: #fff; background: linear-gradient(135deg, #9d8bff, #7b61ff); box-shadow: 0 0 10px rgba(157, 139, 255, .5); }
-.estilo-violeta .widget-silaba.tonica { background: #fff; color: #5a3fd6; }
-.diseno-silabas .widget-cabeza { text-transform: none; font-size: 13px; letter-spacing: 0; }
 /* Palabra · Rimas: la palabra arriba y la lista. */
 .widget-titulo-rimas { display: flex; align-items: baseline; gap: 6px; }
 .widget-titulo-rimas b { font-size: 20px; font-weight: 800; }
-.widget-titulo-rimas span { font-size: 11px; color: var(--w-texto-2); text-transform: uppercase; letter-spacing: .04em; }
 .widget-lista-rimas { flex: 1; list-style: none; margin: 6px 0 0; padding: 0; display: grid; grid-auto-flow: column; grid-template-rows: repeat(4, 1fr); }
 .widget-lista-rimas li { min-width: 0; display: flex; align-items: center; border-top: 0.5px solid var(--w-linea); font-size: 14px; }
 .widget-lista-rimas button { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tamano-mediano .widget-lista-rimas { column-gap: 14px; }
-/* Seguí escribiendo · Título y Último verso. */
-.widget-titulo-grande { flex: 1; margin-top: 8px; font-size: 22px; font-weight: 800; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+/* Seguí escribiendo · Título y Tarjeta. */
+.widget-titulo-grande { margin-top: 8px; font-size: 22px; font-weight: 800; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .tamano-grande .widget-titulo-grande { font-size: 34px; -webkit-line-clamp: 5; }
-.widget-pie-fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
 .widget-seguir { flex: none; padding: 5px 12px; border-radius: 14px; color: #fff; font-size: 13px; font-weight: 600; background: linear-gradient(135deg, #9d8bff, #7b61ff); }
 .estilo-violeta .widget-seguir { background: #fff; color: #5a3fd6; }
-.widget-ultimo-verso { flex: 1; margin: 8px 0 0; font-size: 16px; font-weight: 600; font-style: italic; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-.tamano-mediano .widget-ultimo-verso { font-size: 19px; -webkit-line-clamp: 2; }
-.tamano-grande .widget-ultimo-verso { font-size: 26px; -webkit-line-clamp: 7; }
 /* Racha · Llama y Semana. */
 .widget-llama { position: relative; display: grid; place-items: center; flex: none; width: 92px; height: 92px; color: var(--w-texto-2); }
 .widget-llama .icono { position: absolute; inset: 0; width: 100%; height: 100%; stroke-width: 1.2; }
@@ -1783,6 +1807,18 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .semana-grande .dia-racha i { width: 15px; height: 15px; }
 .tamano-mediano .semana-grande { justify-content: space-between; }
 .tamano-mediano .semana-grande .dia-racha i { width: 30px; height: 30px; }
+/* Racha · Mes: un punto por día, en columnas de lunes a domingo. */
+.mes-racha { flex: 1; min-height: 0; min-width: 0; width: 100%; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); align-content: center; justify-items: center; gap: 4px; margin-top: 6px; }
+.mes-racha i { width: 12px; height: 12px; border-radius: 50%; background: var(--w-relleno); }
+.mes-racha i.vacio { visibility: hidden; }
+.mes-racha i.futuro { background: transparent; box-shadow: inset 0 0 0 1px var(--w-linea); }
+.mes-racha i.escribio { background: linear-gradient(135deg, #9d8bff, #7b61ff); box-shadow: 0 0 6px rgba(157, 139, 255, .6); }
+.estilo-violeta .mes-racha i.escribio { background: #fff; }
+.mes-racha i.hoy { box-shadow: 0 0 0 1.5px var(--w-texto); }
+.mes-racha i.escribio.hoy { box-shadow: 0 0 0 1.5px var(--w-texto), 0 0 8px rgba(157, 139, 255, .7); }
+.tamano-mediano .mes-racha { flex: 1.25; margin-top: 0; gap: 5px 6px; }
+.diseno-mes .widget-izquierda .widget-numero { margin-top: 4px; }
+.diseno-mes .widget-izquierda .widget-pie { margin-top: 6px; }
 /* Accesos · Lista y Anotar grande. */
 .widget-accesos-lista { flex: 1; display: grid; grid-template-columns: 1fr; gap: 6px; }
 .tamano-mediano .widget-accesos-lista { grid-template-columns: 1fr 1fr; }
