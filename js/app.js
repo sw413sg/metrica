@@ -1005,6 +1005,7 @@ function esperandoIA(si) {
     if (si) {
         $('ia-titulo').textContent = 'Pensando…';
         $('ia-meta').textContent = '';
+        $('ia-puntos').replaceChildren();
     }
 }
 
@@ -1013,7 +1014,7 @@ async function pedirTandaIA() {
     if (!uso.quedan) {
         pintarCupoIA(uso);
         if (posIA < 0) {
-            $('ia-titulo').textContent = 'Alternativas de frase';
+            $('ia-titulo').textContent = 'Sugerencias';
             $('ia-meta').textContent = textoSinCupo(uso);
         }
         return;
@@ -1042,7 +1043,7 @@ async function pedirTandaIA() {
     } catch (error) {
         if (generacion !== generacionIA) return;
         esperandoIA(false);
-        $('ia-titulo').textContent = 'Alternativas de frase';
+        $('ia-titulo').textContent = 'Sugerencias';
         $('ia-meta').textContent = error.message;
         pintarCupoIA(error.motivo === 'cupo' ? { ...cupoIA(localStorage, letraActual?.id), quedan: 0 } : cupoIA(localStorage, letraActual?.id));
     }
@@ -1056,7 +1057,15 @@ function mostrarIA(pos) {
     $('ia-ultima').textContent = ultima;
     $('ia-ultima').classList.toggle('sin-rima', !sugerencia.rima);
     $('ia-frase').hidden = false;
-    $('ia-titulo').textContent = `Alternativas de frase ${sugerencia.n + 1} de ${sugerencia.de}`;
+    // Título fijo y los puntitos abajo, como páginas; tocar uno va a esa (pedido de Swa).
+    $('ia-titulo').textContent = 'Sugerencias';
+    const primera = pos - sugerencia.n;
+    $('ia-puntos').replaceChildren(...Array.from({ length: sugerencia.de }, (_, n) => {
+        const punto = document.createElement('span');
+        punto.classList.toggle('activo', n === sugerencia.n);
+        punto.addEventListener('click', () => { if (!pidiendoIA && n !== sugerencia.n) mostrarIA(primera + n); });
+        return punto;
+    }));
     $('ia-meta').textContent = '';
     $('ia-anterior').disabled = pos <= 0;
     $('ia-baul').disabled = false;
