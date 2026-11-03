@@ -1399,10 +1399,34 @@ $('modo-ideas').addEventListener('click', () => {
 });
 
 // Al entrar a Sugerencias no se pide nada: el botón genera (pedido de Swa: que no gaste solo por entrar).
+// Muestra el cambio n y pinta los puntitos; tocar uno, o deslizar la tarjeta, pasa a ese.
+function paginaRevision(n) {
+    const filas = [...$('revision-lista').querySelectorAll('.cambio-rev')];
+    if (!filas.length) return $('revision-puntos').replaceChildren();
+    n = (n + filas.length) % filas.length;
+    filas.forEach((fila, i) => { fila.hidden = i !== n; });
+    $('revision-lista').dataset.pagina = n;
+    $('revision-puntos').replaceChildren(...(filas.length < 2 ? [] : filas.map((_, i) => {
+        const punto = document.createElement('span');
+        punto.classList.toggle('activo', i === n);
+        punto.addEventListener('click', () => paginaRevision(i));
+        return punto;
+    })));
+}
+let toqueRevision = null;
+$('revision-lista').addEventListener('touchstart', e => { toqueRevision = e.touches[0].clientX; }, { passive: true });
+$('revision-lista').addEventListener('touchend', e => {
+    if (toqueRevision == null) return;
+    const dx = e.changedTouches[0].clientX - toqueRevision;
+    toqueRevision = null;
+    if (Math.abs(dx) > 40) paginaRevision(Number($('revision-lista').dataset.pagina || 0) + (dx < 0 ? 1 : -1));
+});
+
 function botonGenerarRevision() {
     generacionRevision++;
     leyendoLetra = false;
     $('revision-lista').replaceChildren();
+    $('revision-puntos').replaceChildren();
     $('revision-nota').textContent = '';
     estadoRevision();
 }
@@ -1456,6 +1480,7 @@ function filaRevision(cambio) {
 async function revisarLetra() {
     const generacion = ++generacionRevision;
     const lista = $('revision-lista');
+    $('revision-puntos').replaceChildren();
     const revision = letraParaRevisar(editorTexto.value, { corregir: bienEscrita });
     $('revision-nota').textContent = '';
     if (!revision) {
@@ -1489,13 +1514,9 @@ async function revisarLetra() {
         if (!cambios.length) {
             lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'No encontré nada para cambiar. ¡Va bien!' }));
         } else {
-            lista.replaceChildren();
-            // En vivo: de a una.
-            for (const cambio of cambios) {
-                lista.append(filaRevision(cambio));
-                await new Promise(listo => setTimeout(listo, 350));
-                if (generacion !== generacionRevision) return;
-            }
+            // Uno por página, con puntitos abajo para pasar de uno a otro (pedido de Swa).
+            lista.replaceChildren(...cambios.map(filaRevision));
+            paginaRevision(0);
         }
         leyendoLetra = false;
         estadoRevision();
