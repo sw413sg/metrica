@@ -11,22 +11,27 @@ const CLAVE_WIDGETS = 'metrica.widgets';
 export const WIDGETS = [
     {
         id: 'baul', nombre: 'Baúl de frases', tamanos: ['chico', 'mediano', 'grande'],
-        disenos: [{ id: 'lista', nombre: 'Lista' }, { id: 'frase', nombre: 'Frase' }, { id: 'libreta', nombre: 'Libreta' }, { id: 'anotar', nombre: 'Anotar' }],
-        opciones: { mostrarFrases: true, soloSinUsar: false },
+        // Es para anotar rápido, no para leer el baúl (pedido de Swa): todo el widget abre el baúl
+        // con el teclado listo, y ningún diseño muestra frases guardadas.
+        disenos: [{ id: 'campo', nombre: 'Campo' }, { id: 'boton', nombre: 'Botón' }, { id: 'libreta', nombre: 'Libreta' }, { id: 'hoy', nombre: 'Hoy' }],
+        opciones: {},
     },
     {
         id: 'palabra', nombre: 'Palabra del día', tamanos: ['chico', 'mediano'],
-        disenos: [{ id: 'clasico', nombre: 'Clásico' }, { id: 'grande', nombre: 'Grande' }, { id: 'silabas', nombre: 'Sílabas' }, { id: 'rimas', nombre: 'Rimas' }],
-        opciones: { tipoRima: 'consonante' },
+        // La palabra entera, sin separar ni marcar sílabas, y sus rimas consonantes (pedido de Swa).
+        disenos: [{ id: 'clasico', nombre: 'Clásico' }, { id: 'grande', nombre: 'Grande' }, { id: 'rimas', nombre: 'Rimas' }],
+        opciones: {},
     },
     {
         id: 'letra', nombre: 'Seguí escribiendo', tamanos: ['chico', 'mediano', 'grande'],
-        disenos: [{ id: 'renglones', nombre: 'Renglones' }, { id: 'titulo', nombre: 'Título' }, { id: 'verso', nombre: 'Último verso' }],
-        opciones: { letra: 'ultima' },
+        // Solo el título y un poco del comienzo de la letra; «Mostrar contenido» apagado deja solo el
+        // título (pedido de Swa).
+        disenos: [{ id: 'renglones', nombre: 'Renglones' }, { id: 'titulo', nombre: 'Título' }, { id: 'tarjeta', nombre: 'Tarjeta' }],
+        opciones: { letra: 'ultima', mostrarContenido: true },
     },
     {
         id: 'racha', nombre: 'Racha', tamanos: ['chico', 'mediano'],
-        disenos: [{ id: 'numero', nombre: 'Número' }, { id: 'llama', nombre: 'Llama' }, { id: 'semana', nombre: 'Semana' }],
+        disenos: [{ id: 'numero', nombre: 'Número' }, { id: 'llama', nombre: 'Llama' }, { id: 'semana', nombre: 'Semana' }, { id: 'mes', nombre: 'Mes' }],
         opciones: {},
     },
     {
@@ -74,7 +79,7 @@ export const BLOQUEO = {
         { id: 'grabar', nombre: 'Grabar' },
     ],
     rectangular: [
-        { id: 'baul', nombre: 'Última frase' },
+        { id: 'baul', nombre: 'Anotar una frase' },
         { id: 'palabra', nombre: 'Palabra del día' },
         { id: 'letra', nombre: 'Última letra' },
     ],
@@ -90,8 +95,8 @@ const BLOQUEO_INICIAL = { redondo: 'anotar', rectangular: 'baul', linea: 'racha'
 
 // Cuántas frases entran en cada tamaño (el chico muestra la última, o el cofre si no se muestran).
 const FRASES_POR_TAMANO = { chico: 1, mediano: 2, grande: 5 };
-// Cuántos renglones de la letra entran en cada tamaño.
-const RENGLONES_POR_TAMANO = { chico: 3, mediano: 3, grande: 11 };
+// Cuántos renglones del comienzo de la letra se ven en cada tamaño: solo una parte breve.
+const RENGLONES_POR_TAMANO = { chico: 1, mediano: 2, grande: 3 };
 
 function leer(almacen) {
     try {
@@ -138,6 +143,12 @@ export function siguienteTamano(tamanos, actual) {
     return orden[(orden.indexOf(actual) + 1) % orden.length];
 }
 
+// La viñeta «Probá otro tamaño!» de la esquina sale hasta que se toca la esquina una vez.
+export const esquinaUsada = almacen => Boolean(leer(almacen).esquina?.usada);
+export function marcarEsquinaUsada(almacen) {
+    escribir(almacen, 'esquina', { usada: true });
+}
+
 // Mover, acercar u oscurecer la foto sin pasarse de los bordes.
 export function ajustarFoto(foto, cambios = {}) {
     const nueva = { ...FOTO_CENTRADA, ...foto, ...cambios };
@@ -163,14 +174,10 @@ export function guardarAjusteBloqueo(almacen, cambios) {
     return ajustesBloqueo(almacen);
 }
 
-// Las frases que muestra el widget del baúl, de la última anotada a la primera.
-export function frasesDelWidget(frases, { tamano = 'chico', mostrarFrases = true, soloSinUsar = false } = {}) {
-    if (!mostrarFrases) return [];
-    return frases
-        .filter(f => !soloSinUsar || !f.usada)
-        .sort((a, b) => b.creada - a.creada)
-        .slice(0, FRASES_POR_TAMANO[tamano] ?? 1)
-        .map(f => f.texto);
+// Cuántas frases se anotaron hoy, a la hora del teléfono (el diseño «Hoy» del baúl).
+export function frasesDeHoy(frases, ahora = Date.now()) {
+    const hoy = dia(ahora);
+    return frases.filter(f => Number.isFinite(f.creada) && dia(f.creada) === hoy).length;
 }
 
 // La letra del widget «Seguí escribiendo»: la última editada o la elegida (si se borró, la última).
@@ -198,8 +205,17 @@ const dia = fecha => {
 // seguidos no traen vecinos del archivo (que se parecen).
 const delDia = (lista, ahora, salto) => (lista.length ? lista[(dia(ahora) * salto) % lista.length] : null);
 
-export function palabraDelDia(palabras, ahora = Date.now()) {
-    return delDia(palabras, ahora, 104729);
+// sirve: si la palabra vale (por ejemplo, que tenga rimas consonantes); si no, se prueba la que
+// sigue en la lista, siempre la misma para ese día.
+export function palabraDelDia(palabras, ahora = Date.now(), sirve = () => true) {
+    const primera = delDia(palabras, ahora, 104729);
+    if (primera === null) return null;
+    const inicio = palabras.indexOf(primera);
+    for (let i = 0; i < Math.min(palabras.length, 200); i++) {
+        const palabra = palabras[(inicio + i) % palabras.length];
+        if (sirve(palabra)) return palabra;
+    }
+    return primera;
 }
 
 // Días seguidos escribiendo (una frase anotada o una letra editada), hasta hoy. Si hoy todavía no
@@ -224,4 +240,21 @@ export function ultimaSemana(fechas, ahora = Date.now()) {
         // El día 0 (1/1/1970) fue jueves.
         return { inicial: INICIALES[(d + 4) % 7], escribio: dias.has(d), hoy: d === hoy };
     });
+}
+
+// El mes entero de la racha (diseño «Mes», pedido de Swa): un punto por día, con si se escribió,
+// cuál es hoy y los que todavía no llegaron. «hueco» es cuántos lugares van vacíos antes del 1
+// para que cada día caiga en su columna, con la semana de lunes a domingo.
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+export function mesDeRacha(fechas, ahora = Date.now()) {
+    const escritos = new Set(fechas.filter(Number.isFinite).map(dia));
+    const hoy = new Date(ahora);
+    const anio = hoy.getFullYear();
+    const mes = hoy.getMonth();
+    const cuantos = new Date(anio, mes + 1, 0).getDate();
+    const dias = Array.from({ length: cuantos }, (_, i) => {
+        const d = dia(new Date(anio, mes, i + 1, 12).getTime());
+        return { numero: i + 1, escribio: escritos.has(d), hoy: i + 1 === hoy.getDate(), futuro: i + 1 > hoy.getDate() };
+    });
+    return { nombre: MESES[mes], hueco: (new Date(anio, mes, 1).getDay() + 6) % 7, dias, escritos: dias.filter(d => d.escribio).length };
 }

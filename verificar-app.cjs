@@ -2038,10 +2038,10 @@ const servidor = http.createServer((req, res) => {
         // Deslizar pasa de diseño y queda guardado; la esquina cambia el tamaño.
         await page.locator('#widgets-carrusel').evaluate(e => e.scrollTo({ left: e.clientWidth }));
         await page.waitForTimeout(400);
-        assert.equal(await page.locator('#widgets-diseno').textContent(), 'Frase · Chico');
+        assert.equal(await page.locator('#widgets-diseno').textContent(), 'Botón · Chico');
         await page.locator('#widgets-carrusel .escenario-widgets').nth(1).locator('.esquina-widget').click();
-        assert.equal(await page.locator('#widgets-diseno').textContent(), 'Frase · Mediano');
-        assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('metrica.widgets')).baul.diseno), 'frase');
+        assert.equal(await page.locator('#widgets-diseno').textContent(), 'Botón · Mediano');
+        assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('metrica.widgets')).baul.diseno), 'boton');
         // Inicio, Pantalla bloqueada y Centro de control, cada uno en su pantalla.
         await page.locator('#widgets-lugares [data-lugar="bloqueo"]').click();
         assert.equal(await page.locator('#widgets-panel-inicio').isVisible(), false);
@@ -2049,7 +2049,10 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#widgets-lugares [data-lugar="control"]').click();
         assert.equal(await page.locator('#widgets-control').isVisible(), true);
         await page.locator('#widgets-lugares [data-lugar="inicio"]').click();
-        await page.locator('#widgets-carrusel .escenario-widgets').nth(1).locator('.widget-anotar').click();
+        // El baúl es para anotar rápido: ningún diseño muestra frases guardadas y todo el widget anota.
+        assert.equal(await page.locator('#widgets-carrusel .widget-frases, #widgets-carrusel .widget-frase').count(), 0);
+        assert.equal(await page.locator('#widgets-opciones .fila-grupo').count(), 0);
+        await page.locator('#widgets-carrusel .escenario-widgets').nth(1).locator('.widget-baul-anotar').click();
         assert.equal(await page.locator('#vista-baul').isVisible(), true);
         assert.equal(await page.evaluate(() => document.activeElement.id), 'baul-texto');
         await page.locator('#baul-atras').click();
