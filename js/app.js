@@ -1358,7 +1358,7 @@ function mostrarFichaTema() {
     $('tema-ficha').hidden = modoTema !== 'ideas';
 }
 
-// ---------- Sugerencias (IA): lee la letra entera solo al abrir desde la estrellita ----------
+// ---------- Sugerencias (IA): lee la letra entera recién al tocar «Generar sugerencias con IA» ----------
 // Cada cambio muestra el verso con la palabra a corregir subrayada y la nueva al lado; «Cambiar» la
 // pone en la letra. Aparecen de a una, en vivo. Simuladas con el diccionario hasta que esté el servidor.
 let modoTema = 'ideas', generacionRevision = 0, leyendoLetra = false;
@@ -1376,30 +1376,42 @@ $('modo-ideas').addEventListener('click', () => {
     sincronizarChips();
 });
 
-function estadoRevision(texto) {
-    $('revision-estado').textContent = texto;
-    $('revision-otra').disabled = leyendoLetra || !cupoIA(localStorage, letraActual?.id).quedan;
+// Al entrar a Sugerencias no se pide nada: el botón genera (pedido de Swa: que no gaste solo por entrar).
+function botonGenerarRevision() {
+    generacionRevision++;
+    leyendoLetra = false;
+    $('revision-lista').replaceChildren();
+    $('revision-nota').textContent = '';
+    estadoRevision();
+}
+
+function estadoRevision() {
+    $('revision-generar').disabled = leyendoLetra || !cupoIA(localStorage, letraActual?.id).quedan;
     pintarCupo('revision-cupo', cupoIA(localStorage, letraActual?.id));
 }
 
 function filaRevision(cambio) {
+    // Rediseño (pedido de Swa): arriba qué se cambia, después el verso como está («Ahora», con la palabra
+    // tachada) y como quedaría («Queda», con la nueva en violeta), y «Cambiar» abajo a la derecha.
     const fila = document.createElement('div');
     fila.className = 'cambio-rev';
-    const textos = document.createElement('div');
     const titulo = document.createElement('p');
     titulo.className = 'titulo-rev';
     titulo.textContent = cambio.titulo;
-    const verso = document.createElement('p');
-    verso.className = 'verso-rev';
     const enVerso = cambio.inicio - (editorTexto.value.lastIndexOf('\n', cambio.inicio - 1) + 1);
-    const viejo = document.createElement('u');
-    viejo.className = 'viejo-rev';
-    viejo.textContent = cambio.viejo;
-    const nuevo = document.createElement('span');
-    nuevo.className = 'nuevo-rev';
-    nuevo.textContent = cambio.nuevo;
-    verso.append(cambio.verso.slice(0, enVerso), viejo, nuevo, cambio.verso.slice(enVerso + cambio.viejo.length));
-    textos.append(titulo, verso);
+    const antes = cambio.verso.slice(0, enVerso), despues = cambio.verso.slice(enVerso + cambio.viejo.length);
+    const renglon = (etiqueta, clase, palabra) => {
+        const p = document.createElement('p');
+        p.className = 'verso-rev';
+        const marca = Object.assign(document.createElement('span'), { className: clase, textContent: palabra });
+        p.append(Object.assign(document.createElement('span'), { className: 'etiqueta-rev', textContent: etiqueta }),
+            Object.assign(document.createElement('span'), { className: 'linea-rev' }));
+        p.lastChild.append(antes, marca, despues);
+        return p;
+    };
+    const versos = document.createElement('div');
+    versos.className = 'versos-rev';
+    versos.append(renglon('Ahora', 'viejo-rev', cambio.viejo), renglon('Queda', 'nuevo-rev', cambio.nuevo));
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'chip-simples';
@@ -1415,7 +1427,7 @@ function filaRevision(cambio) {
         boton.textContent = 'Hecho';
         boton.disabled = true;
     });
-    fila.append(textos, boton);
+    fila.append(titulo, versos, boton);
     return fila;
 }
 
@@ -1426,18 +1438,18 @@ async function revisarLetra() {
     $('revision-nota').textContent = '';
     if (!revision) {
         lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Escribí unos versos y te digo qué cambiaría.' }));
-        return estadoRevision('');
+        return estadoRevision();
     }
     if (!cupoIA(localStorage, letraActual?.id).quedan) {
         lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: textoSinCupo(cupoIA(localStorage, letraActual?.id)) }));
-        return estadoRevision('');
+        return estadoRevision();
     }
     leyendoLetra = true;
     const cargando = document.createElement('div');
     cargando.className = 'cargando-ia';
     cargando.append(document.createElement('span'), document.createElement('span'));
     lista.replaceChildren(cargando);
-    estadoRevision('Leyendo tu letra…');
+    estadoRevision();
     try {
         const respuesta = await pedirRevision(revision, {
             endpoint: endpointIA(localStorage), id: idDeUsuario(localStorage),
@@ -1464,20 +1476,15 @@ async function revisarLetra() {
             }
         }
         leyendoLetra = false;
-        estadoRevision(cambios.length ? `${cambios.length === 1 ? 'Una sugerencia' : `${cambios.length} sugerencias`}` : '');
+        estadoRevision();
     } catch (error) {
         if (generacion !== generacionRevision) return;
         leyendoLetra = false;
         lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: error.message }));
-        estadoRevision('');
+        estadoRevision();
     }
 }
-$('revision-otra').addEventListener('click', () => {
-    $('revision-otra').classList.remove('gira');
-    void $('revision-otra').offsetWidth;
-    $('revision-otra').classList.add('gira');
-    revisarLetra();
-});
+$('revision-generar').addEventListener('click', revisarLetra);
 
 function cerrarHojaTema() {
     $('hoja-tema').hidden = true;
@@ -1539,12 +1546,12 @@ function renderListaTema() {
     }));
 }
 
-// Desde la estrellita de arriba de una letra con algo escrito, arranca en «Sugerencias» (la IA lee la
-// letra); desde la letra vacía o el baúl, solo «Ideas», como siempre (pedido de Swa).
+// Desde la estrellita de arriba de una letra con algo escrito, el selector Ideas / Sugerencias, arrancando
+// en Ideas; desde la letra vacía o el baúl, solo «Ideas», como siempre (pedidos de Swa).
 function abrirDameTema(conSugerencias = false) {
     $('modos-tema').hidden = !conSugerencias;
-    elegirModoTema(conSugerencias ? 'sugerencias' : 'ideas');
-    if (conSugerencias) revisarLetra();
+    elegirModoTema('ideas');
+    if (conSugerencias) botonGenerarRevision();
     // Arranca en Amor, con Desamor apagado (pedido de Swa).
     filtroTema = 'amor';
     desamor = false;
