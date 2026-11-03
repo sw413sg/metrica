@@ -14,15 +14,11 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Freestyle y Grabar: aro con la palabra y la tónica, barrita, «después» / «y luego», bandeja (play, REC, duración, Ilimitado con Extras), Boombap/Trap/Acapella con los mp3 y Clásico sintetizado (AVAudioEngine), reproductor de beats, cajón del link (YouTube, SoundCloud, playlists, archivos del teléfono) con Recientes, reproductor de música en tres tamaños con marca y bucle que sigue al cambiar de sección, luces por mood, velocidad; Grabar con voiceProcessing, desfase, hoja «Grabaciones» con volúmenes y descarga; nota musical y Grabaciones conectadas en Letras y en el editor. Lógica `freestyle.js`, `musica.js`, `grabaciones.js` y `ambiente.js` con tests (metrica-swift #7).
 - Métrica Extras con StoreKit 2 (`metrica.extras`, `Transaction.currentEntitlements`, archivo `.storekit`), paywall como `.sheet` desde los temas con candado y la publicidad, y letras y baúl sincronizados por iCloud con CKSyncEngine directo (metrica-swift #8).
 - «Ilimitado» de Freestyle abre el paywall de StoreKit; Share Extension para pasar a Letras una nota compartida desde Keep (`notaCompartida`); avisos push de iCloud (`aps-environment`) (metrica-swift #10).
+- Generales: gestos de los bordes (volver atrás y cambiar de sección), tab bar flotante, granulado del fondo, polvo del Boombap 1 detrás de las cajas de Rimas y las tarjetas de Letras cuando suena música (`PolvoMusica`) y el brillo animado que cruza las terminaciones violetas, la palabra tocada y el «+» (metrica-swift #12). `theme-color` no hace falta en nativo: la barra de estado toma el fondo sola.
 
 ## Falta portar
 
-### Rimas y Diccionario
-- Polvo del Boombap 1 detrás de las cajas si suena música (va con los efectos de partículas, en Generales).
-- Brillo animado que cruza las terminaciones violetas (en Swift el degradé va quieto).
-
 ### Letras y editor
-- Brillo animado que cruza la palabra tocada y el «+» (en Swift el degradé va quieto).
 - Al arrastrar una tarjeta cerca del borde de arriba o de abajo, que la lista se desplace sola.
 - Probar en el iPhone que el texto de la libreta quede centrado en su renglón con cada fuente (va con `baselineOffset`).
 - 1.5.6: en la ruedita de la libreta, «Renglones», «Sílabas por verso» y «Rimas internas» pasan de «Funciones» a «Texto», entre los pasos (tamaño, separación de renglones y de letras) y la fuente, y las rimas internas pasan del menú a pasos de − y + a la derecha de la fila, como el tamaño: No, 2, 4 y 8 versos (`Stepper`; 1.5.8, no botones segmentados, que se confundían con la fuente; pedidos de Swa). «Renglones» sigue solo en pantallas chicas; en «Funciones» quedan Compartir y Copiar.
@@ -51,6 +47,4 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Probar en el iPhone, con la cuenta paga: compartir una nota desde Keep hacia Métrica (Share Extension) y que los cambios de iCloud lleguen por aviso push.
 
 ### Generales
-- Gestos de los bordes (volver atrás y cambiar de sección), tab bar flotante, granulado del fondo, `theme-color`.
-- Efectos de partículas (`efectos.js`) en Rimas y Letras (en Freestyle ya están, `LucesFreestyle`).
 - Ícono de la app y textos de App Store.
