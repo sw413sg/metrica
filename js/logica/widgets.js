@@ -13,7 +13,7 @@ export const WIDGETS = [
         id: 'baul', nombre: 'Baúl de frases', tamanos: ['chico', 'mediano', 'grande'],
         // Es para anotar rápido, no para leer el baúl (pedido de Swa): todo el widget abre el baúl
         // con el teclado listo, y ningún diseño muestra frases guardadas.
-        disenos: [{ id: 'campo', nombre: 'Campo' }, { id: 'boton', nombre: 'Botón' }, { id: 'libreta', nombre: 'Libreta' }, { id: 'hoy', nombre: 'Hoy' }],
+        disenos: [{ id: 'cofre', nombre: 'Cofre' }, { id: 'boton', nombre: 'Botón' }, { id: 'libreta', nombre: 'Libreta' }, { id: 'hoy', nombre: 'Hoy' }],
         opciones: {},
     },
     {

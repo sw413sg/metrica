@@ -17,7 +17,7 @@ test('ya no están Freestyle ni Consigna del día', () => {
 
 test('ajustesWidget arranca chico, en vidrio y con el primer diseño, y guarda lo que se cambia por widget', () => {
     const almacen = almacenDePrueba();
-    assert.deepEqual(ajustesWidget(almacen, 'baul'), { estilo: 'vidrio', tamano: 'chico', diseno: 'campo' });
+    assert.deepEqual(ajustesWidget(almacen, 'baul'), { estilo: 'vidrio', tamano: 'chico', diseno: 'cofre' });
     assert.equal(ajustesWidget(almacen, 'letra').letra, 'ultima');
     assert.equal(ajustesWidget(almacen, 'letra').mostrarContenido, true);
     guardarAjusteWidget(almacen, 'baul', { tamano: 'grande', estilo: 'violeta' });
@@ -37,7 +37,7 @@ test('cada widget tiene varios diseños, y uno que no existe vuelve al primero',
     for (const widget of WIDGETS) assert.ok(widget.disenos.length >= 3, widget.id);
     const almacen = almacenDePrueba();
     assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'libreta' }).diseno, 'libreta');
-    assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'otro' }).diseno, 'campo');
+    assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'otro' }).diseno, 'cofre');
 });
 
 test('el estilo foto vale solo si hay una foto guardada', () => {
@@ -135,7 +135,7 @@ test('la viñeta de la esquina sale hasta que se usa una vez', () => {
     assert.equal(esquinaUsada(almacen), false);
     marcarEsquinaUsada(almacen);
     assert.equal(esquinaUsada(almacen), true);
-    assert.equal(ajustesWidget(almacen, 'baul').diseno, 'campo');
+    assert.equal(ajustesWidget(almacen, 'baul').diseno, 'cofre');
 });
 
 test('mesDeRacha: un punto por día del mes, con hoy, los escritos y los que faltan', () => {
