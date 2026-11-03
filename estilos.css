@@ -1788,6 +1788,17 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 /* Palabra · Grande. */
 .widget-palabra-enorme { flex: 1; display: grid; place-items: center; white-space: nowrap; font-size: 30px; font-weight: 800; letter-spacing: -.5px; line-height: 1; overflow-wrap: anywhere; }
 .tamano-mediano .widget-palabra-enorme { font-size: 46px; }
+/* Palabra del día «Hoja»: la hoja de un almanaque, con el día en una franja violeta. */
+.widget:has(.widget-hoja) { padding: 0; overflow: hidden; }
+.widget-hoja { gap: 0; }
+.widget-hoja-franja {
+    display: flex; align-items: center; gap: 8px; padding: 9px 14px; color: #fff; text-align: left;
+    background: linear-gradient(135deg, #9d8bff, #7b61ff);
+}
+.widget-hoja-franja b { font-size: 30px; font-weight: 800; line-height: 1; letter-spacing: -.5px; }
+.widget-hoja-franja span { font-size: 11px; font-weight: 600; line-height: 1.2; text-transform: uppercase; letter-spacing: .3px; opacity: .9; }
+.estilo-violeta .widget-hoja-franja { background: #fff; color: #5a3fd6; }
+.widget-hoja-palabra { flex: 1; display: grid; place-items: center; padding: 0 12px; white-space: nowrap; font-weight: 800; letter-spacing: -.4px; line-height: 1; }
 /* Palabra · Rimas: la palabra arriba y la lista. */
 .widget-titulo-rimas { display: flex; align-items: baseline; gap: 6px; }
 .widget-titulo-rimas b { font-size: 20px; font-weight: 800; }

@@ -22,7 +22,7 @@ import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantid
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
-import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
+import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, guardarFotoWidgets, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
 import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
@@ -4066,6 +4066,14 @@ const CONTENIDO_WIDGET = {
     // Palabra del día: la palabra entera (sin separar ni marcar sílabas) y sus rimas consonantes.
     palabra({ tamano, diseno }) {
         const palabra = palabraHoy();
+        // Hoja: como la hoja de un almanaque, con el día arriba en una franja violeta y la palabra abajo.
+        if (diseno === 'hoja') {
+            const hoy = new Date();
+            const dia = hoy.toLocaleDateString('es-AR', { weekday: 'long' });
+            const mes = hoy.toLocaleDateString('es-AR', { month: tamano === 'chico' ? 'short' : 'long' }).replace('.', '');
+            return tocable('rimas', palabra, 'widget-todo widget-hoja', `<span class="widget-hoja-franja"><b>${hoy.getDate()}</b><span>${escapar(dia)}<br>${escapar(mes)}</span></span>` +
+                `<b class="widget-hoja-palabra"><span style="font-size:${Math.min(tamano === 'chico' ? 26 : 36, Math.floor((tamano === 'chico' ? 180 : 400) / palabra.length))}px">${escapar(palabra)}</span></b>`);
+        }
         if (diseno === 'rimas') {
             const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 4 : 8);
             return tocable('rimas', palabra, 'widget-titulo-rimas', `<b>${escapar(palabra)}</b>`) +
@@ -4411,7 +4419,7 @@ function renderizarFilaFoto(ajustes) {
     const elegida = ajustes.estilo === 'foto';
     const miniatura = foto ? `<span class="miniatura-foto" style="background-image:url(${foto.src})"></span>`
         : `<span class="miniatura-foto">${ICONO_FOTO}</span>`;
-    const subtitulo = elegida ? 'Es el fondo de este widget' : foto ? 'Tocá para usarla de fondo' : 'Elegí una foto de tu iPhone';
+    const subtitulo = elegida ? 'Es el fondo de tus widgets' : foto ? 'Tocá para usarla de fondo' : 'Elegí una foto de tu iPhone';
     $('widgets-foto').className = `foto-widgets${elegida ? ' elegida' : ''}`;
     $('widgets-foto').innerHTML = `<button type="button" class="boton-foto-widget" id="widgets-foto-elegir">${miniatura}
             <span class="texto-foto"><b>Foto</b><span>${subtitulo}</span></span>${foto ? '' : '<span class="chevron">›</span>'}</button>
@@ -4495,9 +4503,9 @@ $('cerrar-foto-widget').addEventListener('click', cerrarAjusteFoto);
 $('hoja-foto-widget').addEventListener('click', e => { if (e.target === $('hoja-foto-widget')) cerrarAjusteFoto(); });
 $('foto-widget-listo').addEventListener('click', () => {
     try {
-        guardarAjusteWidget(localStorage, widgetElegido, { estilo: 'foto', foto: fotoEnAjuste });
+        guardarFotoWidgets(localStorage, fotoEnAjuste);
     } catch {
-        alert('No hay lugar para guardar la foto. Probá con otra o sacá la de otro widget.');
+        alert('No hay lugar para guardar la foto. Probá con otra.');
         return;
     }
     cerrarAjusteFoto();
