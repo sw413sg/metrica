@@ -856,11 +856,12 @@
     <div class="hoja-fondo" id="hoja-tema" hidden>
         <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="tema-frase">
             <div class="agarre-tema"></div>
-            <!-- Desde la estrellita de arriba (con algo escrito): «Sugerencias» (la IA lee la letra y propone
-                 cambios) e «Ideas» (las consignas de siempre). Desde una letra vacía o el baúl, solo Ideas (pedido de Swa). -->
+            <!-- Desde la estrellita de arriba (con algo escrito): «Ideas» (las consignas de siempre, primero) y
+                 «Sugerencias» (la IA lee la letra y propone cambios, recién al tocar «Generar sugerencias con IA»,
+                 así no gasta solo por entrar). Desde una letra vacía o el baúl, solo Ideas (pedidos de Swa). -->
             <div class="segmentado modos-tema" id="modos-tema" role="tablist" aria-label="Qué mostrar" hidden>
-                <button type="button" role="tab" id="modo-sugerencias" aria-selected="true">Sugerencias</button>
-                <button type="button" role="tab" id="modo-ideas" aria-selected="false">Ideas</button>
+                <button type="button" role="tab" id="modo-ideas" aria-selected="true">Ideas</button>
+                <button type="button" role="tab" id="modo-sugerencias" aria-selected="false">Sugerencias</button>
             </div>
             <div id="tema-sugerencias" hidden>
                 <div class="caja-tema vidrio" id="caja-revision">
@@ -869,11 +870,9 @@
                     </div>
                     <!-- Cada cambio: el verso con la palabra a corregir subrayada y la nueva al lado. -->
                     <div class="lista-revision" id="revision-lista" aria-live="polite"></div>
+                    <!-- Solo el botón, sin «N sugerencias»: genera y vuelve a generar (pedidos de Swa). -->
                     <div class="controles-azar">
-                        <p class="nota-ia" id="revision-estado"></p>
-                        <button type="button" class="boton-azar" id="revision-otra" aria-label="Volver a leer">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>
-                        </button>
+                        <button type="button" class="chip-simples generar-rev" id="revision-generar"><span class="estrella-ia" aria-hidden="true"></span>Generar sugerencias con IA</button>
                     </div>
                 </div>
                 <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
