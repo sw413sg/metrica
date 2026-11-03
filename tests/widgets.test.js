@@ -34,7 +34,7 @@ test('un tamaño que el widget no tiene vuelve al primero', () => {
 });
 
 test('cada widget tiene varios diseños, y uno que no existe vuelve al primero', () => {
-    for (const widget of WIDGETS) assert.ok(widget.disenos.length >= 3, widget.id);
+    for (const widget of WIDGETS) assert.ok(widget.disenos.length >= 2, widget.id);
     const almacen = almacenDePrueba();
     assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'libreta' }).diseno, 'libreta');
     assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'otro' }).diseno, 'cofre');

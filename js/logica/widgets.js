@@ -19,7 +19,7 @@ export const WIDGETS = [
     {
         id: 'palabra', nombre: 'Palabra del día', tamanos: ['chico', 'mediano'],
         // La palabra entera, sin separar ni marcar sílabas, y sus rimas consonantes (pedido de Swa).
-        disenos: [{ id: 'clasico', nombre: 'Clásico' }, { id: 'grande', nombre: 'Grande' }, { id: 'rimas', nombre: 'Rimas' }],
+        disenos: [{ id: 'clasico', nombre: 'Clásico' }, { id: 'rimas', nombre: 'Rimas' }], // Grande se sacó: era casi igual a Clásico (Swa)
         opciones: {},
     },
     {

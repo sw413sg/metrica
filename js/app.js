@@ -4022,7 +4022,12 @@ const palabraHoy = () => {
     if (palabraDeHoy?.dia !== hoy) palabraDeHoy = { dia: hoy, palabra: palabraDelDia(palabrasSimples, Date.now(), p => rimasDe(p, 'consonante', 4).length >= 4) };
     return palabraDeHoy.palabra;
 };
-const rimasDe = (palabra, tipo, cuantas) => buscarRimas(palabra, indiceRimas(), { tipo }).filter(r => !r.includes(' ')).slice(0, cuantas);
+// Sin repetir la misma palabra con y sin tilde («este» y «éste»).
+const sinTilde = p => p.normalize('NFD').replace(/[\u0301\u0300\u0308]/g, '').normalize('NFC');
+const rimasDe = (palabra, tipo, cuantas) => {
+    const vistas = new Set();
+    return buscarRimas(palabra, indiceRimas(), { tipo }).filter(r => !r.includes(' ') && !vistas.has(sinTilde(r)) && vistas.add(sinTilde(r))).slice(0, cuantas);
+};
 const cabeza = (icono, texto) => `<span class="widget-cabeza">${icono ? ICONOS_WIDGET[icono] : ''}${escapar(texto)}</span>`;
 // Un botón de la muestra: data-accion dice qué abre (y data-dato, con qué).
 const tocable = (accion, dato, clase, html, etiqueta) =>
@@ -4061,22 +4066,17 @@ const CONTENIDO_WIDGET = {
     // Palabra del día: la palabra entera (sin separar ni marcar sílabas) y sus rimas consonantes.
     palabra({ tamano, diseno }) {
         const palabra = palabraHoy();
-        if (diseno === 'grande') {
-            const rimas = rimasDe(palabra, 'consonante', 2);
-            return tocable('rimas', palabra, 'widget-todo widget-centrado', cabeza('chispa', 'Palabra del día') +
-                `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(tamano === 'chico' ? 30 : 46, Math.floor((tamano === 'chico' ? 200 : 440) / palabra.length))}px">${escapar(palabra)}</span></b>` +
-                ''); // Una sola palabra, sin «rima con…» abajo (pedido de Swa).
-        }
         if (diseno === 'rimas') {
             const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 4 : 8);
             return tocable('rimas', palabra, 'widget-titulo-rimas', `<b>${escapar(palabra)}</b>`) +
                 `<ul class="widget-lista-rimas">${rimas.map(r => `<li>${tocable('rimas', r, '', escapar(r))}</li>`).join('')}</ul>`;
         }
-        const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 1 : 6);
         if (tamano === 'chico') {
-            return tocable('rimas', palabra, 'widget-todo', cabeza('chispa', 'Palabra') + `<b class="widget-palabra">${escapar(palabra)}</b>` +
-                `<span class="widget-pie">${rimas[0] ? `rima con ${escapar(rimas[0])}` : 'Buscá sus rimas'}</span>`);
+            // Solo la palabra, grande y centrada, sin «rima con…» (pedido de Swa).
+            return tocable('rimas', palabra, 'widget-todo widget-centrado', cabeza('chispa', 'Palabra del día') +
+                `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(30, Math.floor(200 / palabra.length))}px">${escapar(palabra)}</span></b>`);
         }
+        const rimas = rimasDe(palabra, 'consonante', 6);
         return cabeza('chispa', 'Palabra del día') + `<div class="widget-dos">
             ${tocable('rimas', palabra, 'widget-izquierda', `<b class="widget-palabra">${escapar(palabra)}</b>`)}
             <div class="widget-rimas">${rimas.map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div></div>`;
