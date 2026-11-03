@@ -813,6 +813,7 @@ editorTexto.addEventListener('click', () => {
         mostrarCursorDespues();
         return;
     }
+    const previa = reemplazo && !reemplazo.seccion && !$('sugerencias').hidden ? { ...reemplazo, palabra: tocada } : null;
     $('sugerencias').hidden = true;
     reemplazo = null;
     marcarTocada(null);
@@ -824,12 +825,14 @@ editorTexto.addEventListener('click', () => {
     mostrarCursorDespues();
     // Si está mal escrita no se avisa: solo se muestran las rimas (o sinónimos) de la palabra que se quiso escribir.
     tocada = antes + despues;
-    modoCambio = 0;
-    mostrarCambio();
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
+    // Un toque la marca en violeta; otro toque sobre la misma, ya violeta, saca la estrellita de IA
+    // arriba de ella, que abre la viñeta (pedido de Swa). La barra sigue en el modo que estaba.
+    const otraVez = previa && previa.inicio === reemplazo.inicio && previa.fin === reemplazo.fin && previa.palabra === tocada;
+    if (!otraVez) modoCambio = 0;
+    mostrarCambio();
     marcarTocada(reemplazo);
-    // La estrellita de IA va arriba de la palabra, no en la barra (pedido de Swa): abre la viñeta.
-    mostrarEstrellaPalabra();
+    if (otraVez) mostrarEstrellaPalabra();
 });
 
 // La barra aparece solo al tocar: si se cierra el teclado o se desliza la letra para leerla, se va.

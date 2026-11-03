@@ -236,8 +236,14 @@ const servidor = http.createServer((req, res) => {
         // La palabra tocada se ve en degradé violeta, y al cambiarla vuelve a su color.
         assert.equal(await page.locator('#editor-fondo .tocada').textContent(), 'andar');
         await page.screenshot({path: `capturas/editor-tocada-${tema}.png`});
-        // La estrellita de IA va arriba de la palabra, no en la barra: abre ahí la viñeta, con flechas.
+        // La estrellita de IA no sale con el primer toque: otro toque sobre la palabra ya violeta la saca
+        // arriba de ella (no en la barra), y abre ahí la viñeta, con flechas.
         assert.equal(await page.locator('#sugerencias .sugerencia-ia').count(), 0);
+        assert.equal(await page.locator('#vineta-ia').isVisible(), false);
+        await page.locator('#editor-texto').evaluate(t => {
+            t.setSelectionRange(t.value.indexOf('andar') + 3, t.value.indexOf('andar') + 3);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
         const estrellaIA = await page.locator('#vineta-estrella').boundingBox();
         const palabraTocada = await page.locator('#editor-fondo .tocada').boundingBox();
         assert.ok(estrellaIA.y + estrellaIA.height <= palabraTocada.y, `la estrellita, arriba de la palabra: ${JSON.stringify([estrellaIA, palabraTocada])}`);
@@ -253,6 +259,7 @@ const servidor = http.createServer((req, res) => {
             t.setSelectionRange(t.value.indexOf('andar') + 2, t.value.indexOf('andar') + 2);
             t.dispatchEvent(new MouseEvent('click'));
         });
+        // Sigue violeta: tocarla otra vez vuelve a la estrellita.
         assert.equal(await page.locator('#vineta-estrella').isVisible(), true);
         const otra = await page.locator('.sugerencia').first().textContent();
         await page.locator('.sugerencia').first().click();
