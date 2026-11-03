@@ -2024,6 +2024,10 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 }
 #ia-ultima.sin-rima { background: none; color: inherit; -webkit-text-fill-color: currentColor; animation: none; }
 #ia-frase[hidden], .empujon-tema:empty { display: none; }
+.puntos-ia { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 14px; }
+.puntos-ia:empty { display: none; }
+.puntos-ia span { width: 7px; height: 7px; border-radius: 50%; background: var(--texto-3); opacity: .6; cursor: pointer; transition: transform .2s, background .2s; }
+.puntos-ia span.activo { opacity: 1; background: var(--destacado); transform: scale(1.4); box-shadow: 0 0 6px color-mix(in srgb, var(--destacado) 60%, transparent); }
 .original-ia { font-size: 14px; font-style: italic; color: var(--texto-3); }
 /* Mientras piensa: dos renglones grises con el brillo violeta que los cruza. */
 .cargando-ia { display: flex; flex-direction: column; gap: 10px; margin: 16px 6px 6px; }
