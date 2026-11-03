@@ -36,11 +36,11 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Sin portar a propósito: la flecha de forzar actualización (en nativo actualiza el App Store) y «Versión anterior».
 
 ### Widgets
-- 1.5.2: el widget «Baúl de frases» es para anotar rápido, no para leer el baúl (pedido de Swa): no muestra frases guardadas, todo el widget abre el baúl con el teclado listo, sin «Mostrar frases» ni «Solo las sin usar», y sus diseños pasan a Campo (un campo vacío con cursor), Botón (un «+» grande), Libreta (renglones vacíos) y Hoy (cuántas anotaste hoy, `frasesDeHoy`). El rectangular de la pantalla bloqueada dice «Anotá una frase…» en vez de la última frase.
-- 1.5.2: la esquina para cambiar el tamaño en Ajustes > Widgets lleva el efecto de la palabra tocada y, hasta que se la toca una vez, una viñeta tenue «Probá otro tamaño!» (`esquinaUsada` en `metrica.widgets`).
-- 1.5.2: Racha suma el diseño «Mes»: un punto por día del mes, de lunes a domingo, con hoy marcado y los días que faltan en contorno (`mesDeRacha`).
-- 1.5.2: Seguí escribiendo muestra solo el título y un poco del comienzo (1, 2 o 3 renglones según el tamaño); los diseños pasan a Renglones, Título y Tarjeta (sale «Último verso»), y al lado del cambio de diseño va el switch «Mostrar contenido» (`mostrarContenido`), que apagado deja solo el título.
-- 1.5.2: Palabra del día no separa ni marca sílabas (sale el diseño «Sílabas» y la tónica en violeta) y muestra solo rimas consonantes: sale el menú de Contenido consonantes/asonantes (`tipoRima`).
+- 1.5.3: el widget «Baúl de frases» es para anotar rápido, no para leer el baúl (pedido de Swa): no muestra frases guardadas, todo el widget abre el baúl con el teclado listo, sin «Mostrar frases» ni «Solo las sin usar», y sus diseños pasan a Campo (un campo vacío con cursor), Botón (un «+» grande), Libreta (renglones vacíos) y Hoy (cuántas anotaste hoy, `frasesDeHoy`). El rectangular de la pantalla bloqueada dice «Anotá una frase…» en vez de la última frase.
+- 1.5.3: la esquina para cambiar el tamaño en Ajustes > Widgets lleva el efecto de la palabra tocada y, hasta que se la toca una vez, una viñeta tenue «Probá otro tamaño!» (`esquinaUsada` en `metrica.widgets`).
+- 1.5.3: Racha suma el diseño «Mes»: un punto por día del mes, de lunes a domingo, con hoy marcado y los días que faltan en contorno (`mesDeRacha`).
+- 1.5.3: Seguí escribiendo muestra solo el título y un poco del comienzo (1, 2 o 3 renglones según el tamaño); los diseños pasan a Renglones, Título y Tarjeta (sale «Último verso»), y al lado del cambio de diseño va el switch «Mostrar contenido» (`mostrarContenido`), que apagado deja solo el título.
+- 1.5.3: Palabra del día no separa ni marca sílabas (sale el diseño «Sílabas» y la tónica en violeta) y muestra solo rimas consonantes: sale el menú de Contenido consonantes/asonantes (`tipoRima`).
 - Los toques de Freestyle y Grabar (widgets, control y Botón de acción) solo abren la pestaña: falta que arranquen la ronda o Acapella con el REC prendido cuando se porte Freestyle.
 - Probar en el iPhone, con el App Group firmado, que los widgets se actualicen y que el control abra la acción.
 
