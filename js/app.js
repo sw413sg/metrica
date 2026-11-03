@@ -4044,7 +4044,7 @@ const CONTENIDO_WIDGET = {
         }
         if (diseno === 'libreta') {
             const renglones = { chico: 3, mediano: 3, grande: 8 }[tamano];
-            const lineas = Array.from({ length: renglones }, (_, i) => `<li>${i === 0 ? `<span class="widget-cursor"></span>${grande ? 'Escribí acá…' : 'Escribí…'}` : ''}</li>`).join('');
+            const lineas = '<li></li>'.repeat(renglones);
             return anotar('', `<span class="widget-margen"></span><ul class="widget-libreta">${lineas}</ul><span class="widget-anotar-solo">${botonMas()}</span>`);
         }
         if (diseno === 'hoy') {
@@ -4054,10 +4054,9 @@ const CONTENIDO_WIDGET = {
             return anotar('', cabeza('cofre', 'Baúl') + `<div class="widget-dos"><div class="widget-izquierda">${cuenta}</div>${grande ? `<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span>` : ''}</div>` +
                 (grande ? '' : `<span class="widget-anotar">${botonMas('Anotá')}</span>`));
         }
-        // Campo: como un campo de texto vacío con el cursor, listo para escribir.
-        const campo = `<span class="widget-campo"><span class="widget-cursor"></span>${grande ? 'Anotá una frase…' : 'Anotá…'}</span>`;
-        if (tamano === 'mediano') return anotar('', cabeza('cofre', 'Baúl de frases') + `<div class="widget-dos">${campo}<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span></div>`);
-        return anotar('', cabeza('cofre', grande ? 'Baúl de frases' : 'Baúl') + cofreGrande() + campo);
+        // Cofre: el cofre del baúl y un botón para anotar (sin campo de texto ni cursor; pedido de Swa).
+        const boton = `<span class="widget-anotar-grande">${ICONOS_WIDGET.mas}${grande ? 'Anotá una frase' : 'Anotá'}</span>`;
+        return anotar('', cabeza('cofre', grande ? 'Baúl de frases' : 'Baúl') + cofreGrande() + boton);
     },
     // Palabra del día: la palabra entera (sin separar ni marcar sílabas) y sus rimas consonantes.
     palabra({ tamano, diseno }) {
@@ -4066,7 +4065,7 @@ const CONTENIDO_WIDGET = {
             const rimas = rimasDe(palabra, 'consonante', 2);
             return tocable('rimas', palabra, 'widget-todo widget-centrado', cabeza('chispa', 'Palabra del día') +
                 `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(tamano === 'chico' ? 30 : 46, Math.floor((tamano === 'chico' ? 200 : 440) / palabra.length))}px">${escapar(palabra)}</span></b>` +
-                (rimas.length ? `<span class="widget-pie">${tamano === 'chico' ? escapar(rimas[0]) : `rima con ${rimas.map(escapar).join(' y ')}`}</span>` : ''));
+                ''); // Una sola palabra, sin «rima con…» abajo (pedido de Swa).
         }
         if (diseno === 'rimas') {
             const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 4 : 8);

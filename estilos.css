@@ -1603,16 +1603,16 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 }
 /* La viñeta tenue que apunta a la esquina, hasta que se la toca una vez. */
 .pista-esquina {
-    position: absolute; right: 30px; bottom: -32px; z-index: 2; padding: 4px 10px; border-radius: 12px; pointer-events: none;
-    font-size: 12px; font-weight: 600; color: #fff; white-space: nowrap; opacity: .6;
-    background: color-mix(in srgb, var(--destacado) 45%, rgba(20, 18, 31, .7));
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    position: absolute; top: calc(100% + 14px); right: -6px; z-index: 2; padding: 5px 11px; border-radius: 11px; pointer-events: none;
+    font-size: 12px; font-weight: 600; line-height: 16px; color: #fff; white-space: nowrap; opacity: .7;
+    background: #4a3d8f; box-shadow: 0 0 0 1px rgba(255, 255, 255, .14), 0 4px 14px rgba(0, 0, 0, .35);
 }
+/* La puntita, arriba a la derecha, apunta a la esquina. */
 .pista-esquina::after {
-    content: ""; position: absolute; right: -5px; top: 4px; border: 6px solid transparent; border-left-color: color-mix(in srgb, var(--destacado) 45%, rgba(20, 18, 31, .7));
-    border-right: 0; transform: rotate(-35deg); transform-origin: left center;
+    content: ""; position: absolute; right: 11px; top: -5px; width: 10px; height: 10px; border-radius: 2px 0 0 0;
+    background: #4a3d8f; box-shadow: -1px -1px 0 0 rgba(255, 255, 255, .14); transform: rotate(45deg);
 }
-.escenario-widgets:has(.pista-esquina) { padding-bottom: 46px; }
+.escenario-widgets:has(.pista-esquina) { padding-bottom: 50px; }
 .marco-widget.estirando > .widget { box-shadow: 0 0 0 2px rgba(255, 255, 255, .5); }
 .diseno-widgets { display: flex; flex-direction: column; align-items: center; gap: 7px; margin: 12px 0 4px; }
 .diseno-widgets b { font-size: 17px; font-weight: 600; }
@@ -1705,8 +1705,22 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .widget-tarjeta-letra .widget-renglones { -webkit-mask: linear-gradient(#000 40%, transparent); mask: linear-gradient(#000 40%, transparent); }
 .tamano-grande .widget-tarjeta-letra .widget-titulo-letra { font-size: 26px; }
 .tamano-grande .widget-renglones li { font-size: 16px; line-height: 1.6; }
-.fila-contenido-widgets { display: flex; align-items: center; gap: 10px; margin-top: 4px; font-size: 15px; }
+/* «Mostrar contenido» de Seguí escribiendo: una pastilla chica al lado del nombre del diseño, con un
+   interruptor mini adentro, en vez de un renglón suelto (pedido de Swa). */
+.cabeza-diseno-widgets { display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 100%; }
+.cabeza-diseno-widgets b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fila-contenido-widgets {
+    display: flex; align-items: center; gap: 7px; flex: none; height: 30px; padding: 0 5px 0 12px; border-radius: 15px;
+    font-size: 13px; font-weight: 600; color: var(--texto-2); background: var(--relleno); cursor: pointer;
+}
+.fila-contenido-widgets:has(:checked) { color: var(--texto); }
 .fila-contenido-widgets[hidden] { display: none; }
+.fila-contenido-widgets .interruptor { width: 34px; height: 20px; border-radius: 10px; background: var(--texto-3); }
+.fila-contenido-widgets .interruptor::after { top: 2px; left: 2px; width: 16px; height: 16px; }
+.fila-contenido-widgets .interruptor:checked { background: var(--destacado); }
+.fila-contenido-widgets .interruptor:checked::after { transform: translateX(14px); }
+/* Con la pastilla, la nota de deslizar sobra: los puntos ya lo dicen (quedan dos renglones). */
+.diseno-widgets:has(.fila-contenido-widgets:not([hidden])) .nota-widgets { display: none; }
 .widget-renglones li { font-size: 14px; line-height: 1.45; color: var(--w-texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Freestyle: el play en el aro violeta, como el círculo de la ronda. */
 .widget-centro { flex: 1; display: grid; place-items: center; }
@@ -1755,14 +1769,6 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .widget-anotar-grande .icono { width: 18px; height: 18px; stroke-width: 2.6; }
 /* Baúl: todo el widget anota (Campo, Botón, Libreta, Hoy). */
 .widget-baul-anotar { gap: 0; }
-.widget-campo {
-    display: flex; align-items: center; gap: 2px; margin-top: auto; height: 38px; padding: 0 12px; border-radius: 19px;
-    background: var(--w-relleno); box-shadow: inset 0 0 0 1px var(--w-linea); color: var(--w-texto-2); font-size: 15px; white-space: nowrap; overflow: hidden;
-}
-.diseno-campo .widget-dos .widget-campo { flex: 1; margin: 0; height: 48px; border-radius: 24px; font-size: 17px; }
-.tamano-grande .widget-campo { height: 52px; border-radius: 26px; font-size: 18px; padding: 0 18px; }
-.widget-cursor { flex: none; display: inline-block; width: 2px; height: 1.1em; margin-right: 3px; vertical-align: middle; border-radius: 1px; background: var(--w-acento); animation: cursor-widget 1.1s steps(1) infinite; }
-@keyframes cursor-widget { 50% { opacity: 0; } }
 .widget-mas-gigante {
     display: grid; place-items: center; flex: none; width: 64px; height: 64px; border-radius: 50%; color: #fff;
     background: linear-gradient(135deg, #9d8bff, #7b61ff); box-shadow: 0 0 18px rgba(157, 139, 255, .6);
