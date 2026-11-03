@@ -958,6 +958,8 @@
     <!-- IA para una palabra sola: la estrellita abre esta viñeta arriba de la palabra tocada, con
          flechas para pasar por lo que propone la IA; tocar la palabra la cambia en la letra. -->
     <div class="vineta-ia vidrio" id="vineta-ia" role="dialog" aria-label="Cambiar con IA" hidden>
+        <!-- Al tocar una palabra, primero va solo la estrellita arriba de ella; tocarla abre la viñeta. -->
+        <button type="button" class="estrella-vineta" id="vineta-estrella" aria-label="Cambiar con IA"><i class="estrella-ia"></i></button>
         <button type="button" class="flecha-vineta" id="vineta-anterior" aria-label="Anterior">
             <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>
         </button>

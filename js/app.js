@@ -795,8 +795,6 @@ function mostrarCambio() {
     const palabra = bienEscrita(tocada);
     const modo = MODOS_CAMBIO[modoCambio];
     mostrarSugerencias(palabra, `${modo.etiqueta} «${tocada}»:`, modo.buscar(palabra), true);
-    // Primero, la estrellita de IA: abre la viñeta arriba de la palabra (pedido de Swa).
-    $('sugerencias').prepend(botonIA());
 }
 
 // Tocar un renglón vacío ofrece marcar una parte de la letra; tocar una palabra muestra
@@ -830,6 +828,8 @@ editorTexto.addEventListener('click', () => {
     mostrarCambio();
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
     marcarTocada(reemplazo);
+    // La estrellita de IA va arriba de la palabra, no en la barra (pedido de Swa): abre la viñeta.
+    mostrarEstrellaPalabra();
 });
 
 // La barra aparece solo al tocar: si se cierra el teclado o se desliza la letra para leerla, se va.
@@ -887,11 +887,13 @@ $('sugerencias').addEventListener('click', e => {
     editorTexto.focus();
     actualizarEditor();
     guardarActual();
+    // La estrellita de arriba de la palabra se va si la palabra ya no está marcada.
+    if (!$('vineta-ia').hidden) ubicarVineta();
 });
 
 // ---------- IA: mejorar una frase o cambiar una palabra (pedido de Swa) ----------
 // Seleccionar una frase muestra la estrellita arriba del teclado: cierra el teclado y abre la hoja de
-// «¿Por dónde empiezo?» con lo que propone la IA. Tocar una palabra suma la estrellita a sus rimas, y
+// «¿Por dónde empiezo?» con lo que propone la IA. Tocar una palabra muestra la estrellita arriba de ella, que
 // abre una viñeta arriba de la palabra para cambiarla con flechas. Mientras no esté el servidor
 // (worker/README.md), las respuestas son simuladas con el diccionario propio (js/logica/ia.js).
 function botonIA(texto = '') {
@@ -1135,14 +1137,20 @@ function ocultarVineta() {
     vineta = null;
     generacionVineta++;
 }
+function mostrarEstrellaPalabra() {
+    $('vineta-ia').classList.add('solo-estrella');
+    $('vineta-ia').hidden = false;
+    ubicarVineta();
+}
 function ubicarVineta() {
     const palabra = $('editor-fondo').querySelector('.tocada');
-    if (!palabra || !vineta) return ocultarVineta();
+    if (!palabra || $('vineta-ia').hidden) return ocultarVineta();
     const lugar = palabra.getBoundingClientRect();
     const globo = $('vineta-ia');
     const abajo = lugar.top - (visualViewport?.offsetTop ?? 0) < 80;
     globo.classList.toggle('abajo', abajo);
-    globo.style.left = `${Math.min(Math.max(lugar.left + lugar.width / 2, 90), innerWidth - 90)}px`;
+    const medio = globo.offsetWidth / 2 + 8;
+    globo.style.left = `${Math.min(Math.max(lugar.left + lugar.width / 2, medio), innerWidth - medio)}px`;
     globo.style.top = `${abajo ? lugar.bottom : lugar.top}px`;
 }
 function pintarVineta(texto, pensando = false) {
@@ -1159,6 +1167,7 @@ async function abrirVineta() {
     const original = elegida.pedido.palabra.texto;
     vineta = { inicio: reemplazo.inicio, fin: reemplazo.fin, opciones: [original], pos: 0 };
     const generacion = ++generacionVineta;
+    $('vineta-ia').classList.remove('solo-estrella');
     $('vineta-ia').hidden = false;
     pintarVineta('…', true);
     ubicarVineta();
@@ -1208,6 +1217,7 @@ for (const evento of ['pointerdown', 'mousedown']) $('vineta-ia').addEventListen
 $('vineta-anterior').addEventListener('click', () => cambiarVineta(-1));
 $('vineta-siguiente').addEventListener('click', () => cambiarVineta(1));
 $('vineta-palabra').addEventListener('click', usarVineta);
+$('vineta-estrella').addEventListener('click', abrirVineta);
 
 // Estado del reproductor. Vive arriba porque el teclado, al abrirse, pregunta si hay que pausar.
 let musica = null; // { fuente, reproducir(), pausar(), mover(segundos), ir(segundos), cerrar() }
