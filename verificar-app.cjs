@@ -236,10 +236,27 @@ const servidor = http.createServer((req, res) => {
         // La palabra tocada se ve en degradé violeta, y al cambiarla vuelve a su color.
         assert.equal(await page.locator('#editor-fondo .tocada').textContent(), 'andar');
         await page.screenshot({path: `capturas/editor-tocada-${tema}.png`});
-        // Primero va la estrellita de IA: abre la viñeta arriba de la palabra, con flechas.
-        assert.equal(await page.locator('#sugerencias .sugerencia-ia').count(), 1);
-        const otra = await page.locator('.sugerencia:not(.sugerencia-ia)').first().textContent();
-        await page.locator('.sugerencia:not(.sugerencia-ia)').first().click();
+        // La estrellita de IA va arriba de la palabra, no en la barra: abre ahí la viñeta, con flechas.
+        assert.equal(await page.locator('#sugerencias .sugerencia-ia').count(), 0);
+        const estrellaIA = await page.locator('#vineta-estrella').boundingBox();
+        const palabraTocada = await page.locator('#editor-fondo .tocada').boundingBox();
+        assert.ok(estrellaIA.y + estrellaIA.height <= palabraTocada.y, `la estrellita, arriba de la palabra: ${JSON.stringify([estrellaIA, palabraTocada])}`);
+        assert.ok(Math.abs(estrellaIA.x + estrellaIA.width / 2 - (palabraTocada.x + palabraTocada.width / 2)) < 2, 'centrada en la palabra');
+        assert.equal(await page.locator('#vineta-palabra').isVisible(), false);
+        await page.waitForTimeout(300);
+        await page.screenshot({path: `capturas/editor-estrella-${tema}.png`});
+        await page.locator('#vineta-estrella').click();
+        assert.equal(await page.locator('#vineta-estrella').isVisible(), false);
+        assert.equal(await page.locator('#vineta-palabra').isVisible(), true);
+        await page.waitForFunction(() => document.querySelectorAll('#vineta-siguiente:not([disabled])').length === 1);
+        await page.locator('#editor-texto').evaluate(t => {
+            t.setSelectionRange(t.value.indexOf('andar') + 2, t.value.indexOf('andar') + 2);
+            t.dispatchEvent(new MouseEvent('click'));
+        });
+        assert.equal(await page.locator('#vineta-estrella').isVisible(), true);
+        const otra = await page.locator('.sugerencia').first().textContent();
+        await page.locator('.sugerencia').first().click();
+        assert.equal(await page.locator('#vineta-ia').isVisible(), false);
         assert.ok((await page.locator('#editor-texto').inputValue()).includes(`se hace camino al ${otra}.`));
         assert.equal(await page.locator('#editor-fondo .tocada').count(), 0);
         // Tocar en otro lado (algo que no es un campo) también la suelta.
