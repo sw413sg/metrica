@@ -19,7 +19,7 @@ export const WIDGETS = [
     {
         id: 'palabra', nombre: 'Palabra del día', tamanos: ['chico', 'mediano'],
         // La palabra entera, sin separar ni marcar sílabas, y sus rimas consonantes (pedido de Swa).
-        disenos: [{ id: 'clasico', nombre: 'Clásico' }, { id: 'grande', nombre: 'Grande' }, { id: 'rimas', nombre: 'Rimas' }],
+        disenos: [{ id: 'clasico', nombre: 'Clásico' }, { id: 'hoja', nombre: 'Hoja' }, { id: 'rimas', nombre: 'Rimas' }], // Grande se sacó: era casi igual a Clásico (Swa)
         opciones: {},
     },
     {
@@ -116,7 +116,10 @@ function escribir(almacen, id, cambios) {
 // Los ajustes de un widget, con lo que falta (o ya no vale) en sus valores de entrada.
 export function ajustesWidget(almacen, id) {
     const widget = WIDGETS.find(w => w.id === id) ?? WIDGETS[0];
-    const ajustes = { ...INICIAL, tamano: widget.tamanos[0], diseno: widget.disenos[0].id, ...widget.opciones, ...leer(almacen)[widget.id] };
+    const todos = leer(almacen);
+    const ajustes = { ...INICIAL, tamano: widget.tamanos[0], diseno: widget.disenos[0].id, ...widget.opciones, ...todos[widget.id] };
+    // La foto propia es una sola para todos los widgets (pedido de Swa).
+    if (typeof todos.foto?.src === 'string') ajustes.foto = todos.foto;
     if (!widget.tamanos.includes(ajustes.tamano)) ajustes.tamano = widget.tamanos[0];
     if (!widget.disenos.some(d => d.id === ajustes.diseno)) ajustes.diseno = widget.disenos[0].id;
     const conFoto = ajustes.estilo === 'foto' && typeof ajustes.foto?.src === 'string';
@@ -128,6 +131,15 @@ export function ajustesWidget(almacen, id) {
 export function guardarAjusteWidget(almacen, id, cambios) {
     escribir(almacen, id, cambios);
     return ajustesWidget(almacen, id);
+}
+
+// Elegir o ajustar la foto la pone de fondo en todos los widgets (pedido de Swa): se guarda una sola
+// vez y cada widget pasa al estilo «foto».
+export function guardarFotoWidgets(almacen, foto) {
+    const todos = leer(almacen);
+    todos.foto = foto;
+    for (const widget of WIDGETS) todos[widget.id] = { ...todos[widget.id], estilo: 'foto', foto: undefined };
+    almacen.setItem(CLAVE_WIDGETS, JSON.stringify(todos));
 }
 
 // Estirar el widget desde su esquina: el tamaño que tiene más cerca de lo estirado (en celdas de

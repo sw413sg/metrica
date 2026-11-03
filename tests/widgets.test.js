@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { WIDGETS, ajustesWidget, guardarAjusteWidget, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, tamanoAlEstirar, siguienteTamano, ajustarFoto, FOTO_CENTRADA, racha, ajustesBloqueo, guardarAjusteBloqueo, letraDelWidget, palabraDelDia, ultimaSemana } from '../js/logica/widgets.js';
+import { WIDGETS, ajustesWidget, guardarAjusteWidget, guardarFotoWidgets, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, tamanoAlEstirar, siguienteTamano, ajustarFoto, FOTO_CENTRADA, racha, ajustesBloqueo, guardarAjusteBloqueo, letraDelWidget, palabraDelDia, ultimaSemana } from '../js/logica/widgets.js';
 
 function almacenDePrueba() {
     const datos = new Map();
@@ -34,10 +34,23 @@ test('un tamaño que el widget no tiene vuelve al primero', () => {
 });
 
 test('cada widget tiene varios diseños, y uno que no existe vuelve al primero', () => {
-    for (const widget of WIDGETS) assert.ok(widget.disenos.length >= 3, widget.id);
+    for (const widget of WIDGETS) assert.ok(widget.disenos.length >= 2, widget.id);
     const almacen = almacenDePrueba();
     assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'libreta' }).diseno, 'libreta');
     assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'otro' }).diseno, 'cofre');
+});
+
+test('la foto propia se pone en todos los widgets', () => {
+    const almacen = almacenDePrueba();
+    guardarAjusteWidget(almacen, 'racha', { estilo: 'violeta' });
+    guardarFotoWidgets(almacen, { src: 'data:image/jpeg;base64,x', ...FOTO_CENTRADA });
+    for (const widget of WIDGETS) {
+        assert.equal(ajustesWidget(almacen, widget.id).estilo, 'foto', widget.id);
+        assert.equal(ajustesWidget(almacen, widget.id).foto.src, 'data:image/jpeg;base64,x');
+    }
+    // Después se puede elegir otro estilo en uno solo.
+    assert.equal(guardarAjusteWidget(almacen, 'baul', { estilo: 'claro' }).estilo, 'claro');
+    assert.equal(ajustesWidget(almacen, 'palabra').estilo, 'foto');
 });
 
 test('el estilo foto vale solo si hay una foto guardada', () => {

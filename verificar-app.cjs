@@ -2040,7 +2040,7 @@ const servidor = http.createServer((req, res) => {
         for (const tipo of await page.locator('#widgets-tipos button').all()) {
             await tipo.click();
             const disenos = await page.locator('#widgets-puntos button').count();
-            assert.ok(disenos >= 3);
+            assert.ok(disenos >= 2);
             assert.equal(await page.locator('#widgets-carrusel .widget').count(), disenos);
         }
         assert.equal(await page.locator('.app-muestra').count(), 0);

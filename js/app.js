@@ -22,7 +22,7 @@ import { moodDeTitulo, moodDeBeat, tiemposEn, leerCantidadEfectos, guardarCantid
 import { leerLink, esLista, formatoTiempo, fraccionDe, segundosEn, imantar, LADO_YOUTUBE, urlWidgetSoundCloud, resolverLinkSoundCloud, plegarVideo, alternarReproduccion, pausarAlOcultar, tarjetaGrande, portadaSoundCloud } from './logica/musica.js';
 import { leerRecientes, agregarReciente, quitarReciente, titularReciente, sufijoReciente, tituloDeArchivo } from './logica/recientes.js';
 import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/apariencia.js';
-import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
+import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, guardarFotoWidgets, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
 import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
@@ -4022,7 +4022,12 @@ const palabraHoy = () => {
     if (palabraDeHoy?.dia !== hoy) palabraDeHoy = { dia: hoy, palabra: palabraDelDia(palabrasSimples, Date.now(), p => rimasDe(p, 'consonante', 4).length >= 4) };
     return palabraDeHoy.palabra;
 };
-const rimasDe = (palabra, tipo, cuantas) => buscarRimas(palabra, indiceRimas(), { tipo }).filter(r => !r.includes(' ')).slice(0, cuantas);
+// Sin repetir la misma palabra con y sin tilde («este» y «éste»).
+const sinTilde = p => p.normalize('NFD').replace(/[\u0301\u0300\u0308]/g, '').normalize('NFC');
+const rimasDe = (palabra, tipo, cuantas) => {
+    const vistas = new Set();
+    return buscarRimas(palabra, indiceRimas(), { tipo }).filter(r => !r.includes(' ') && !vistas.has(sinTilde(r)) && vistas.add(sinTilde(r))).slice(0, cuantas);
+};
 const cabeza = (icono, texto) => `<span class="widget-cabeza">${icono ? ICONOS_WIDGET[icono] : ''}${escapar(texto)}</span>`;
 // Un botón de la muestra: data-accion dice qué abre (y data-dato, con qué).
 const tocable = (accion, dato, clase, html, etiqueta) =>
@@ -4061,22 +4066,25 @@ const CONTENIDO_WIDGET = {
     // Palabra del día: la palabra entera (sin separar ni marcar sílabas) y sus rimas consonantes.
     palabra({ tamano, diseno }) {
         const palabra = palabraHoy();
-        if (diseno === 'grande') {
-            const rimas = rimasDe(palabra, 'consonante', 2);
-            return tocable('rimas', palabra, 'widget-todo widget-centrado', cabeza('chispa', 'Palabra del día') +
-                `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(tamano === 'chico' ? 30 : 46, Math.floor((tamano === 'chico' ? 200 : 440) / palabra.length))}px">${escapar(palabra)}</span></b>` +
-                ''); // Una sola palabra, sin «rima con…» abajo (pedido de Swa).
+        // Hoja: como la hoja de un almanaque, con el día arriba en una franja violeta y la palabra abajo.
+        if (diseno === 'hoja') {
+            const hoy = new Date();
+            const dia = hoy.toLocaleDateString('es-AR', { weekday: 'long' });
+            const mes = hoy.toLocaleDateString('es-AR', { month: tamano === 'chico' ? 'short' : 'long' }).replace('.', '');
+            return tocable('rimas', palabra, 'widget-todo widget-hoja', `<span class="widget-hoja-franja"><b>${hoy.getDate()}</b><span>${escapar(dia)}<br>${escapar(mes)}</span></span>` +
+                `<b class="widget-hoja-palabra"><span style="font-size:${Math.min(tamano === 'chico' ? 26 : 36, Math.floor((tamano === 'chico' ? 180 : 400) / palabra.length))}px">${escapar(palabra)}</span></b>`);
         }
         if (diseno === 'rimas') {
             const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 4 : 8);
             return tocable('rimas', palabra, 'widget-titulo-rimas', `<b>${escapar(palabra)}</b>`) +
                 `<ul class="widget-lista-rimas">${rimas.map(r => `<li>${tocable('rimas', r, '', escapar(r))}</li>`).join('')}</ul>`;
         }
-        const rimas = rimasDe(palabra, 'consonante', tamano === 'chico' ? 1 : 6);
         if (tamano === 'chico') {
-            return tocable('rimas', palabra, 'widget-todo', cabeza('chispa', 'Palabra') + `<b class="widget-palabra">${escapar(palabra)}</b>` +
-                `<span class="widget-pie">${rimas[0] ? `rima con ${escapar(rimas[0])}` : 'Buscá sus rimas'}</span>`);
+            // Solo la palabra, grande y centrada, sin «rima con…» (pedido de Swa).
+            return tocable('rimas', palabra, 'widget-todo widget-centrado', cabeza('chispa', 'Palabra del día') +
+                `<b class="widget-palabra-enorme"><span style="font-size:${Math.min(30, Math.floor(200 / palabra.length))}px">${escapar(palabra)}</span></b>`);
         }
+        const rimas = rimasDe(palabra, 'consonante', 6);
         return cabeza('chispa', 'Palabra del día') + `<div class="widget-dos">
             ${tocable('rimas', palabra, 'widget-izquierda', `<b class="widget-palabra">${escapar(palabra)}</b>`)}
             <div class="widget-rimas">${rimas.map(r => tocable('rimas', r, 'widget-rima', escapar(r))).join('')}</div></div>`;
@@ -4411,7 +4419,7 @@ function renderizarFilaFoto(ajustes) {
     const elegida = ajustes.estilo === 'foto';
     const miniatura = foto ? `<span class="miniatura-foto" style="background-image:url(${foto.src})"></span>`
         : `<span class="miniatura-foto">${ICONO_FOTO}</span>`;
-    const subtitulo = elegida ? 'Es el fondo de este widget' : foto ? 'Tocá para usarla de fondo' : 'Elegí una foto de tu iPhone';
+    const subtitulo = elegida ? 'Es el fondo de tus widgets' : foto ? 'Tocá para usarla de fondo' : 'Elegí una foto de tu iPhone';
     $('widgets-foto').className = `foto-widgets${elegida ? ' elegida' : ''}`;
     $('widgets-foto').innerHTML = `<button type="button" class="boton-foto-widget" id="widgets-foto-elegir">${miniatura}
             <span class="texto-foto"><b>Foto</b><span>${subtitulo}</span></span>${foto ? '' : '<span class="chevron">›</span>'}</button>
@@ -4495,9 +4503,9 @@ $('cerrar-foto-widget').addEventListener('click', cerrarAjusteFoto);
 $('hoja-foto-widget').addEventListener('click', e => { if (e.target === $('hoja-foto-widget')) cerrarAjusteFoto(); });
 $('foto-widget-listo').addEventListener('click', () => {
     try {
-        guardarAjusteWidget(localStorage, widgetElegido, { estilo: 'foto', foto: fotoEnAjuste });
+        guardarFotoWidgets(localStorage, fotoEnAjuste);
     } catch {
-        alert('No hay lugar para guardar la foto. Probá con otra o sacá la de otro widget.');
+        alert('No hay lugar para guardar la foto. Probá con otra.');
         return;
     }
     cerrarAjusteFoto();
