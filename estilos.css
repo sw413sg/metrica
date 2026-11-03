@@ -2111,6 +2111,8 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 }
 .cambio-rev .chip-simples { align-self: flex-end; margin-left: 0; flex: none; height: 36px; padding: 0 16px; background: var(--destacado-suave); color: var(--destacado); }
 .cambio-rev.hecho { opacity: .55; }
+.cambio-rev[hidden] { display: none; }
+#revision-puntos { margin-top: 12px; }
 /* «Generar sugerencias con IA»: con el borde de la palabra tocada, como «Desamor» prendido. */
 .generar-rev { position: relative; margin-left: 0; align-self: center; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; font-size: 16px; box-shadow: 0 0 10px color-mix(in srgb, var(--destacado) 35%, transparent); }
 .generar-rev::before {
