@@ -75,7 +75,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
 // La app manda los versos con su número de renglón, sus sílabas y su estrofa; el modelo devuelve
 // cambios chicos: una palabra (o unas pocas) de un verso por otra.
 export const VERSOS_REVISION = 80;
-export const CAMBIOS_REVISION = 3; // «Lo que cambiaría»: 3 como mucho (pedido de Swa)
+export const CAMBIOS_REVISION = 2; // «Lo que cambiaría»: 2 como mucho, así la hoja no queda muy alta (pedido de Swa)
 
 export function revisionValida(revision) {
     const versos = revision?.versos;
