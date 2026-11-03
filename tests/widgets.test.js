@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { WIDGETS, ajustesWidget, guardarAjusteWidget, frasesDelWidget, tamanoAlEstirar, siguienteTamano, ajustarFoto, FOTO_CENTRADA, racha, ajustesBloqueo, guardarAjusteBloqueo, letraDelWidget, palabraDelDia, ultimaSemana } from '../js/logica/widgets.js';
+import { WIDGETS, ajustesWidget, guardarAjusteWidget, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, tamanoAlEstirar, siguienteTamano, ajustarFoto, FOTO_CENTRADA, racha, ajustesBloqueo, guardarAjusteBloqueo, letraDelWidget, palabraDelDia, ultimaSemana } from '../js/logica/widgets.js';
 
 function almacenDePrueba() {
     const datos = new Map();
@@ -17,8 +17,9 @@ test('ya no están Freestyle ni Consigna del día', () => {
 
 test('ajustesWidget arranca chico, en vidrio y con el primer diseño, y guarda lo que se cambia por widget', () => {
     const almacen = almacenDePrueba();
-    assert.deepEqual(ajustesWidget(almacen, 'baul'), { estilo: 'vidrio', tamano: 'chico', diseno: 'lista', mostrarFrases: true, soloSinUsar: false });
+    assert.deepEqual(ajustesWidget(almacen, 'baul'), { estilo: 'vidrio', tamano: 'chico', diseno: 'campo' });
     assert.equal(ajustesWidget(almacen, 'letra').letra, 'ultima');
+    assert.equal(ajustesWidget(almacen, 'letra').mostrarContenido, true);
     guardarAjusteWidget(almacen, 'baul', { tamano: 'grande', estilo: 'violeta' });
     assert.equal(ajustesWidget(almacen, 'baul').tamano, 'grande');
     assert.equal(ajustesWidget(almacen, 'baul').estilo, 'violeta');
@@ -36,7 +37,7 @@ test('cada widget tiene varios diseños, y uno que no existe vuelve al primero',
     for (const widget of WIDGETS) assert.ok(widget.disenos.length >= 3, widget.id);
     const almacen = almacenDePrueba();
     assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'libreta' }).diseno, 'libreta');
-    assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'otro' }).diseno, 'lista');
+    assert.equal(guardarAjusteWidget(almacen, 'baul', { diseno: 'otro' }).diseno, 'campo');
 });
 
 test('el estilo foto vale solo si hay una foto guardada', () => {
@@ -70,18 +71,11 @@ test('si lo guardado está roto, arranca de cero', () => {
     assert.equal(ajustesWidget(almacen, 'baul').tamano, 'chico');
 });
 
-test('frasesDelWidget muestra las últimas según el tamaño, y puede ocultarlas o dejar solo las sin usar', () => {
-    const frases = [
-        { texto: 'a', creada: 1, usada: false },
-        { texto: 'b', creada: 2, usada: true },
-        { texto: 'c', creada: 3, usada: false },
-    ];
-    assert.deepEqual(frasesDelWidget(frases, { tamano: 'chico' }), ['c']);
-    assert.deepEqual(frasesDelWidget(frases, { tamano: 'mediano' }), ['c', 'b']);
-    assert.deepEqual(frasesDelWidget(frases, { tamano: 'grande' }), ['c', 'b', 'a']);
-    assert.equal(frasesDelWidget([...frases, ...frases, ...frases], { tamano: 'grande' }).length, 5);
-    assert.deepEqual(frasesDelWidget(frases, { tamano: 'grande', soloSinUsar: true }), ['c', 'a']);
-    assert.deepEqual(frasesDelWidget(frases, { tamano: 'grande', mostrarFrases: false }), []);
+test('frasesDeHoy cuenta solo las anotadas hoy', () => {
+    const hoy = new Date(2026, 10, 3, 20).getTime();
+    const frases = [{ creada: new Date(2026, 10, 3, 1).getTime() }, { creada: new Date(2026, 10, 3, 19).getTime() }, { creada: new Date(2026, 10, 2, 23).getTime() }, {}];
+    assert.equal(frasesDeHoy(frases, hoy), 2);
+    assert.equal(frasesDeHoy([], hoy), 0);
 });
 
 test('racha cuenta los días seguidos y no se corta si hoy todavía no se escribió', () => {
@@ -109,8 +103,9 @@ test('letraDelWidget: la última editada o la elegida, con renglones según el t
         { id: 'a', titulo: 'Vieja', texto: 'uno', editada: 1 },
         { id: 'b', titulo: '', texto: '[Intro]\nprimer verso\n\nsegundo verso\ntercero\ncuarto', editada: 2 },
     ];
-    assert.deepEqual(letraDelWidget(letras), { id: 'b', titulo: 'Sin título', renglones: ['primer verso', 'segundo verso', 'tercero'], ultimo: 'cuarto', versos: 4 });
-    assert.equal(letraDelWidget(letras, { tamano: 'grande' }).renglones.length, 4);
+    assert.deepEqual(letraDelWidget(letras), { id: 'b', titulo: 'Sin título', renglones: ['primer verso'], ultimo: 'cuarto', versos: 4 });
+    assert.equal(letraDelWidget(letras, { tamano: 'mediano' }).renglones.length, 2);
+    assert.equal(letraDelWidget(letras, { tamano: 'grande' }).renglones.length, 3);
     assert.equal(letraDelWidget(letras, { letra: 'a' }).titulo, 'Vieja');
     assert.equal(letraDelWidget(letras, { letra: 'borrada' }).id, 'b');
     assert.equal(letraDelWidget([]), null);
@@ -120,6 +115,11 @@ test('palabraDelDia es la misma todo el día', () => {
     const palabras = ['casa', 'luna', 'calle', 'noche', 'barrio'];
     assert.equal(palabraDelDia(palabras, new Date(2026, 9, 27, 1).getTime()), palabraDelDia(palabras, new Date(2026, 9, 27, 23).getTime()));
     assert.equal(palabraDelDia([]), null);
+    // Si la del día no sirve (por ejemplo, sin rimas), toma la que sigue, la misma todo el día.
+    const dia = new Date(2026, 9, 27, 1).getTime();
+    const sinLuna = palabraDelDia(palabras, dia, p => p !== palabraDelDia(palabras, dia));
+    assert.notEqual(sinLuna, palabraDelDia(palabras, dia));
+    assert.equal(sinLuna, palabraDelDia(palabras, new Date(2026, 9, 27, 22).getTime(), p => p !== palabraDelDia(palabras, dia)));
 });
 
 test('ultimaSemana: 7 días hasta hoy con su inicial', () => {
@@ -128,4 +128,25 @@ test('ultimaSemana: 7 días hasta hoy con su inicial', () => {
     assert.deepEqual(semana.map(d => d.inicial).join(''), 'MJVSDLM');
     assert.deepEqual(semana.map(d => d.escribio), [false, false, false, false, false, true, true]);
     assert.equal(semana[6].hoy, true);
+});
+
+test('la viñeta de la esquina sale hasta que se usa una vez', () => {
+    const almacen = almacenDePrueba();
+    assert.equal(esquinaUsada(almacen), false);
+    marcarEsquinaUsada(almacen);
+    assert.equal(esquinaUsada(almacen), true);
+    assert.equal(ajustesWidget(almacen, 'baul').diseno, 'campo');
+});
+
+test('mesDeRacha: un punto por día del mes, con hoy, los escritos y los que faltan', () => {
+    const hoy = new Date(2026, 10, 3, 20).getTime(); // martes 3 de noviembre
+    const mes = mesDeRacha([new Date(2026, 10, 1, 9).getTime(), hoy, new Date(2026, 9, 31, 9).getTime()], hoy);
+    assert.equal(mes.nombre, 'noviembre');
+    assert.equal(mes.dias.length, 30);
+    assert.equal(mes.hueco, 6); // el 1 de noviembre de 2026 es domingo
+    assert.deepEqual(mes.dias.filter(d => d.escribio).map(d => d.numero), [1, 3]);
+    assert.equal(mes.escritos, 2);
+    assert.equal(mes.dias[2].hoy, true);
+    assert.equal(mes.dias[3].futuro, true);
+    assert.equal(mesDeRacha([], new Date(2028, 1, 10).getTime()).dias.length, 29);
 });
