@@ -1428,6 +1428,8 @@ function botonGenerarRevision() {
     $('revision-lista').replaceChildren();
     $('revision-puntos').replaceChildren();
     $('revision-nota').textContent = '';
+    // El cupo se ve recién al generar (pedido de Swa), salvo que ya no quede: así se entiende por qué no se puede.
+    $('revision-cupo-caja').hidden = cupoIA(localStorage, letraActual?.id).quedan > 0;
     estadoRevision();
 }
 
@@ -1481,6 +1483,7 @@ async function revisarLetra() {
     const generacion = ++generacionRevision;
     const lista = $('revision-lista');
     $('revision-puntos').replaceChildren();
+    $('revision-cupo-caja').hidden = false;
     const revision = letraParaRevisar(editorTexto.value, { corregir: bienEscrita });
     $('revision-nota').textContent = '';
     if (!revision) {
