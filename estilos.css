@@ -2015,6 +2015,8 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .cabeza-ia .titulo-azar { white-space: nowrap; }
 .cupo-ia { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 12px 12px 0; font-size: 13px; color: var(--texto-2); white-space: nowrap; }
 .cupo-ia .estrella-ia { width: 14px; height: 14px; }
+.cupo-ia[hidden] { display: none; }
+.cupo-revision { margin-top: 18px; }
 .barra-cupo { width: 44px; height: 4px; border-radius: 2px; background: var(--separador); overflow: hidden; flex: none; }
 .barra-cupo span { display: block; height: 100%; width: 100%; border-radius: inherit; background: var(--destacado); transition: width .4s ease; }
 /* La palabra que rima, con el efecto de la palabra tocada. */
