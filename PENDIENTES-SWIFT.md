@@ -16,6 +16,8 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - «Ilimitado» de Freestyle abre el paywall de StoreKit; Share Extension para pasar a Letras una nota compartida desde Keep (`notaCompartida`); avisos push de iCloud (`aps-environment`) (metrica-swift #10).
 - Generales: gestos de los bordes (volver atrás y cambiar de sección), tab bar flotante, granulado del fondo, polvo del Boombap 1 detrás de las cajas de Rimas y las tarjetas de Letras cuando suena música (`PolvoMusica`) y el brillo animado que cruza las terminaciones violetas, la palabra tocada y el «+» (metrica-swift #12). `theme-color` no hace falta en nativo: la barra de estado toma el fondo sola.
 
+- Widgets al día con la web 1.5.3 a 1.5.7: baúl solo para anotar (Cofre, Botón, Libreta, Hoy), Palabra del día sin sílabas con Clásico, Hoja y Rimas, Seguí escribiendo con Tarjeta y «Contenido», Racha Mes, viñeta «Probá otro tamaño!» y una sola foto para todos (metrica-swift #19).
+
 ## Falta portar
 
 ### Letras y editor
@@ -32,13 +34,6 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Sin portar a propósito: la flecha de forzar actualización (en nativo actualiza el App Store) y «Versión anterior».
 
 ### Widgets
-- 1.5.3: el widget «Baúl de frases» es para anotar rápido, no para leer el baúl (pedido de Swa): no muestra frases guardadas, todo el widget abre el baúl con el teclado listo, sin «Mostrar frases» ni «Solo las sin usar», y sus diseños pasan a Campo (un campo vacío con cursor), Botón (un «+» grande), Libreta (renglones vacíos) y Hoy (cuántas anotaste hoy, `frasesDeHoy`). El rectangular de la pantalla bloqueada dice «Anotá una frase…» en vez de la última frase.
-- 1.5.5: Widgets (pedidos de Swa): el baúl no tiene campo con cursor, todos sus diseños son botones (Campo pasa a Cofre: el cofre y «+ Anotá una frase»; Libreta con renglones vacíos); Palabra del día Grande muestra una sola palabra, sin «rima con…»; «Mostrar contenido» de Seguí escribiendo es una pastilla «Contenido» con interruptor chico al lado del nombre del diseño (sin la nota de deslizar); la viñeta «Probá otro tamaño!» va abajo de la esquina con la puntita hacia ella.
-- 1.5.7: Widgets (pedidos de Swa): sin «Deslizá para ver otro diseño»; la viñeta «Probá otro tamaño!» es chica, parpadea y va a la derecha de la esquina (en mediano y grande, abajo); Palabra del día sin el diseño Grande (era casi igual a Clásico) y Clásico chico es solo la palabra, grande y centrada, sin «rima con…»; las rimas del widget no repiten la misma palabra con y sin tilde; Racha Mes: las 6 semanas entran enteras (puntos de 10 en chico y 13 en mediano). Palabra del día suma el diseño Hoja (almanaque con el día en una franja violeta). La foto propia es una sola para todos los widgets: elegirla o ajustarla la pone de fondo en todos (`guardarFotoWidgets`).
-- 1.5.3: la esquina para cambiar el tamaño en Ajustes > Widgets lleva el efecto de la palabra tocada y, hasta que se la toca una vez, una viñeta tenue «Probá otro tamaño!» (`esquinaUsada` en `metrica.widgets`).
-- 1.5.3: Racha suma el diseño «Mes»: un punto por día del mes, de lunes a domingo, con hoy marcado y los días que faltan en contorno (`mesDeRacha`).
-- 1.5.3: Seguí escribiendo muestra solo el título y un poco del comienzo (1, 2 o 3 renglones según el tamaño); los diseños pasan a Renglones, Título y Tarjeta (sale «Último verso»), y al lado del cambio de diseño va el switch «Mostrar contenido» (`mostrarContenido`), que apagado deja solo el título.
-- 1.5.3: Palabra del día no separa ni marca sílabas (sale el diseño «Sílabas» y la tónica en violeta) y muestra solo rimas consonantes: sale el menú de Contenido consonantes/asonantes (`tipoRima`).
 - Los toques de Freestyle y Grabar (widgets, control y Botón de acción) solo abren la pestaña: falta que arranquen la ronda o Acapella con el REC prendido cuando se porte Freestyle.
 - Probar en el iPhone, con el App Group firmado, que los widgets se actualicen y que el control abra la acción.
 
