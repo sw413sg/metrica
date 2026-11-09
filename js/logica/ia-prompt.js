@@ -4,6 +4,8 @@
 // el mensaje de verdad, así el servidor no sirve para pedirle cualquier cosa al modelo.
 
 export const MODELO_IA = 'gpt-6.1-terra';
+// Cuánto gasta cada consulta de la cuota del mes (pedido de Swa): la letra entera piensa más y lee todo.
+export const GASTO_IA = { frase: 1, temas: 1, revision: 3 };
 // Cuántas pide la app: 3 o 4 por frase. Se piden algunas de más porque el motor descarta las que no cumplen.
 export const SUGERENCIAS_IA = 4;
 export const PEDIDAS_IA = 6;

@@ -4,7 +4,7 @@
 // - POST /ia: «Mejorar frase» y «Lo que cambiaría». Recibe el pedido que arma la app, arma el mensaje
 //   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y cuenta
 //   el uso de cada persona por mes en KV.
-import { MODELO_IA, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
+import { MODELO_IA, GASTO_IA, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
 
@@ -61,8 +61,10 @@ async function ia(request, env, responder) {
     const claveDia = `dia:${ahora.slice(0, 10)}`;
     const [usadas, delDia] = (await Promise.all([env.USO.get(clavePersona), env.USO.get(claveDia)])).map(v => Number(v) || 0);
     // TODO cuando se decida el plan: con un comprobante válido de StoreKit, el tope es TOPE_PLAN.
-    const tope = Number(env.CUPO_GRATIS) || 20;
-    if (usadas >= tope) return responder({ error: 'cupo', quedan: 0 }, 429);
+    const tope = Number(env.CUPO_GRATIS) || 500;
+    // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
+    const gasto = revision ? GASTO_IA.revision : temas ? GASTO_IA.temas : GASTO_IA.frase;
+    if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
     const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision)
@@ -77,8 +79,8 @@ async function ia(request, env, responder) {
 
     // Solo cuenta si salió bien.
     const ttl = { expirationTtl: DIAS_KV * 24 * 60 * 60 };
-    await Promise.all([env.USO.put(clavePersona, String(usadas + 1), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
-    return responder({ sugerencias, quedan: tope - usadas - 1 });
+    await Promise.all([env.USO.put(clavePersona, String(usadas + gasto), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
+    return responder({ sugerencias, quedan: tope - usadas - gasto });
 }
 
 // Llama a OpenAI. Devuelve { contenido } o { error } (el error también queda en los logs del Worker,
