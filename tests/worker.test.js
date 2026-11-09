@@ -63,7 +63,7 @@ test('si el modelo falla, no descuenta', async () => {
 });
 
 test('el Worker también revisa la letra entera', async () => {
-    env.CUPO_GRATIS = '10'; // la letra entera gasta 3
+    env.CUPO_GRATIS = '10'; // la letra entera gasta 2 o más
     globalThis.fetch = async (url, opciones) => {
         llamadas.push(JSON.parse(opciones.body));
         return new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":[{"titulo":"Cambiar la palabra «canción» por «pasión»","verso":1,"viejo":"canción","nuevo":"pasión"}]}' } }] }));
@@ -79,14 +79,21 @@ test('el Worker también revisa la letra entera', async () => {
     assert.equal((await pedir({ revision: { versos: 'todo' } })).status, 400);
 });
 
-test('la letra entera gasta 3 de la cuota y no se pide si no alcanza', async () => {
-    env.CUPO_GRATIS = '4';
+test('la letra entera (corta) gasta 2 de la cuota y no se pide si no alcanza', async () => {
+    env.CUPO_GRATIS = '3';
     globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":[{"titulo":"t","verso":1,"viejo":"canción","nuevo":"pasión"}]}' } }] }));
     const revision = { versos: [{ n: 0, texto: 'Te busco en el balcón', silabas: 7, estrofa: 0 }, { n: 1, texto: 'y me quedo con mi canción', silabas: 9, estrofa: 0 }] };
     assert.equal((await (await pedir({ revision })).json()).quedan, 1);
     assert.equal((await pedir({ revision })).status, 429);
     globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":["uno"]}' } }] }));
-    assert.equal((await (await pedir()).json()).quedan, 0);
+    const respuesta = await pedir();
+    assert.equal(respuesta.status, 200);
+    assert.equal((await respuesta.json()).quedan, 0);
+    // Una letra de más de 40 versos gasta 4.
+    globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":[{"titulo":"t","verso":1,"viejo":"canción","nuevo":"pasión"}]}' } }] }));
+    env.CUPO_GRATIS = '100';
+    const larga = { versos: Array.from({ length: 41 }, (_, n) => ({ n, texto: 'y me quedo con mi canción', silabas: 9, estrofa: 0 })) };
+    assert.equal((await (await pedir({ revision: larga })).json()).quedan, 100 - 3 - 4);
 });
 
 test('la app nativa (sin Origin) también puede pedir', async () => {

@@ -17,7 +17,7 @@ Respuestas de error: 404 ruta que no existe, 429 sin cupo, 403 origen no permiti
 ## Costos (estimado del 2026-11-02)
 El modelo piensa antes de contestar y eso se cobra como salida: `ESFUERZO = "low"` en `wrangler.toml` (`reasoning_effort` de OpenAI) le pide que piense poco. Si alguna vez OpenAI no lo acepta para el modelo, el Worker da 502: dejarlo vacío.
 
-GPT-6.1 Terra: USD 1 por millón de tokens de entrada y USD 5 de salida. Un pedido son unos 1.000 de entrada y 500 de salida: **USD 0,0035**. Con la cuota de 500 por mes para todos (la letra entera gasta 3), cada persona que la usa toda cuesta hasta USD 1,75 por mes. Con «Métrica IA» (tentativo, USD 2,99 por mes y tope de 500), el peor caso son USD 1,75 por mes. El plan de Workers gratis alcanza para empezar (100 mil pedidos por día).
+GPT-6.1 Terra: USD 1 por millón de tokens de entrada y USD 5 de salida. Un pedido son unos 1.000 de entrada y 500 de salida: **USD 0,0035**. Con la cuota de 500 por mes para todos (la letra entera gasta de 2 a 4, según sus versos), cada persona que la usa toda cuesta hasta USD 1,75 por mes. Con «Métrica IA» (tentativo, USD 2,99 por mes y tope de 500), el peor caso son USD 1,75 por mes. El plan de Workers gratis alcanza para empezar (100 mil pedidos por día).
 
 ## Desplegar
 Se despliega solo desde GitHub con Workers Builds, sin instalar nada: cada vez que cambia `main`, Cloudflare corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero).

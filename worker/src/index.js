@@ -63,7 +63,7 @@ async function ia(request, env, responder) {
     // TODO cuando se decida el plan: con un comprobante válido de StoreKit, el tope es TOPE_PLAN.
     const tope = Number(env.CUPO_GRATIS) || 500;
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
-    const gasto = revision ? GASTO_IA.revision : temas ? GASTO_IA.temas : GASTO_IA.frase;
+    const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length) : temas ? GASTO_IA.temas : GASTO_IA.frase;
     if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
