@@ -87,6 +87,9 @@ test('cada función va en su ruta, y /salud dice si está todo cargado sin gasta
     assert.equal((await pedir(undefined, {}, '/')).status, 404);
     assert.equal((await pedir(undefined, {}, '/otra')).status, 404);
     const salud = await worker.fetch(new Request('https://metrica.ejemplo/salud'), env);
-    assert.deepEqual(await salud.json(), { ok: true, modelo: 'gpt-6.1-terra', clave: true, kv: true });
+    const datos = await salud.json();
+    assert.deepEqual({ ...datos, nombres: undefined }, { ok: true, modelo: 'gpt-6.1-terra', clave: true, kv: true, nombres: undefined });
+    assert.ok(datos.nombres.includes('OPENAI_API_KEY'));
+    assert.ok(!JSON.stringify(datos).includes('sk-prueba'));
     assert.equal(llamadas.length, 0);
 });
