@@ -88,9 +88,14 @@ export function revisionValida(revision) {
 export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION) {
     const instrucciones = [
         'Sos un compositor de rap y canciones en español rioplatense que revisa la letra de otro, con respeto por su estilo.',
-        `Leé la letra y devolvé hasta ${cantidad} sugerencias concretas, de la más importante a la menos: palabras repetidas sin querer, finales que no riman con su estrofa, palabras flojas o clichés.`,
-        'Cada sugerencia cambia una palabra de un solo verso por otra que tenga sentido en esa frase y que rime: con la palabra que reemplaza (así no se pierden las rimas internas) o, si es la última del verso, con los finales de su estrofa. Que respete las sílabas.',
-        'El título va como «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
+        `Leé la letra y devolvé hasta ${cantidad} sugerencias concretas, de la más importante a la menos. Buscá, en este orden:`,
+        '1. Sentido: frases que no se entienden, que se contradicen o que no siguen la idea de la estrofa.',
+        '2. Métrica despareja: un verso con muchas más o muchas menos sílabas que los otros de su estrofa (cada renglón trae sus sílabas entre paréntesis). Proponé un cambio que lo acerque a los demás.',
+        '3. Frases muy largas o con relleno que se pueden decir con menos palabras.',
+        '4. Palabras repetidas sin querer, finales que no riman con su estrofa, palabras flojas o clichés.',
+        'Cada sugerencia cambia una palabra o unas pocas seguidas (hasta cuatro) de un solo verso, copiadas tal cual en "viejo", por otras que tengan sentido en esa frase. La última palabra de lo nuevo tiene que rimar (al menos asonante) con la última de lo que reemplaza o, si es el final del verso, con los finales de su estrofa.',
+        'Antes de elegir, leé la letra entera y entendé de qué habla. Proponé solo lo que de verdad la mejora: nada de cambios por cambiar. Si está bien, devolvé menos (o ninguna).',
+        'El título dice el motivo en pocas palabras, por ejemplo: «No se entiende la frase», «Este verso es más largo que los otros», «Sobran palabras», «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
         'Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
     ].join('\n');
     let estrofa = revision.versos[0]?.estrofa;
