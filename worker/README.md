@@ -14,6 +14,8 @@ Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se puede
 Respuestas de error: 404 ruta que no existe, 429 sin cupo, 403 origen no permitido, 400 pedido raro, 502 falló el modelo, 503 se llegó al techo del día. Solo cuenta el uso si salió bien.
 
 ## Costos (estimado del 2026-11-02)
+El modelo piensa antes de contestar y eso se cobra como salida: `ESFUERZO = "low"` en `wrangler.toml` (`reasoning_effort` de OpenAI) le pide que piense poco. Si alguna vez OpenAI no lo acepta para el modelo, el Worker da 502: dejarlo vacío.
+
 GPT-6.1 Terra: USD 1 por millón de tokens de entrada y USD 5 de salida. Un pedido son unos 1.000 de entrada y 500 de salida: **USD 0,0035**. Con 20 gratis por mes, cada persona que las usa todas cuesta USD 0,07 por mes. Con «Métrica IA» (tentativo, USD 2,99 por mes y tope de 500), el peor caso son USD 1,75 por mes. El plan de Workers gratis alcanza para empezar (100 mil pedidos por día).
 
 ## Desplegar
