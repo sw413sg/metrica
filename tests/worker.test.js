@@ -23,7 +23,7 @@ beforeEach(() => {
 });
 afterEach(() => { globalThis.fetch = fetchOriginal; });
 
-const pedir = (cuerpo = { pedido }, cabeceras = {}) => worker.fetch(new Request('https://ia.ejemplo/', {
+const pedir = (cuerpo = { pedido }, cabeceras = {}, ruta = '/ia') => worker.fetch(new Request(`https://metrica.ejemplo${ruta}`, {
     method: 'POST', body: JSON.stringify(cuerpo),
     headers: { Origin: 'https://sw413sg.github.io', 'X-Metrica-Id': ID, 'Content-Type': 'application/json', ...cabeceras },
 }), env);
@@ -72,4 +72,21 @@ test('el Worker también revisa la letra entera', async () => {
     assert.deepEqual((await respuesta.json()).sugerencias, [{ titulo: 'Cambiar la palabra «canción» por «pasión»', verso: 1, viejo: 'canción', nuevo: 'pasión' }]);
     assert.match(llamadas[0].messages[1].content, /1 \(9\) y me quedo con mi canción/);
     assert.equal((await pedir({ revision: { versos: 'todo' } })).status, 400);
+});
+
+test('la app nativa (sin Origin) también puede pedir', async () => {
+    const respuesta = await worker.fetch(new Request('https://metrica.ejemplo/ia', {
+        method: 'POST', body: JSON.stringify({ pedido }),
+        headers: { 'X-Metrica-Id': ID, 'Content-Type': 'application/json' },
+    }), env);
+    assert.equal(respuesta.status, 200);
+    assert.equal(llamadas.length, 1);
+});
+
+test('cada función va en su ruta, y /salud dice si está todo cargado sin gastar', async () => {
+    assert.equal((await pedir(undefined, {}, '/')).status, 404);
+    assert.equal((await pedir(undefined, {}, '/otra')).status, 404);
+    const salud = await worker.fetch(new Request('https://metrica.ejemplo/salud'), env);
+    assert.deepEqual(await salud.json(), { ok: true, modelo: 'gpt-6.1-terra', clave: true, kv: true });
+    assert.equal(llamadas.length, 0);
 });
