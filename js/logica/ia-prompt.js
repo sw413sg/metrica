@@ -57,9 +57,11 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
     const { final, internas } = pedido.verso;
     const instrucciones = [
         'Sos un compositor de rap y canciones en español rioplatense que ayuda a escribir.',
-        `Devolvé ${cantidad} frases nuevas relacionadas con la frase elegida: que hablen de lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
-        'Tienen que conservar las rimas de la frase elegida: que la última palabra rime con la suya (mejor consonante, o la misma palabra) y que mantengan sus rimas internas.',
-        'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, y respeta la cantidad de sílabas pedida, con una de diferencia como mucho.',
+        `Escribí ${cantidad} frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
+        'Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
+        'Que sean distintas entre sí: una más directa, una con una metáfora, una más de calle o de barrio, una que cambie el punto de vista.',
+        'La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
+        'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',
         'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
     ].join('\n');
     const lineas = contexto;
