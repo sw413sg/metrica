@@ -3,7 +3,7 @@
 Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se pueden sumar otras (por ejemplo, conectar la web con iCloud) sin tocar las que ya andan:
 
 - `GET /salud`: dice si está desplegado, con qué modelo y si la clave y el KV están cargados (`{ ok, modelo, clave, kv }`). No gasta nada.
-- `POST /ia`: la IA de la libreta: elegís una frase y propone 3 o 4 alternativas relacionadas, con sus mismas rimas internas y finales (además, cambia palabras sueltas y revisa la letra entera). Mientras `ENDPOINT_IA` (en `js/logica/ia.js`) esté vacío, la app usa respuestas simuladas.
+- `POST /ia`: la IA de la libreta: elegís una frase y propone 3 o 4 alternativas relacionadas, con sus mismas rimas internas y finales (además, cambia palabras sueltas y revisa la letra entera). Desplegado en `https://metrica.emas1397.workers.dev` (la web usa `/ia` desde la 1.6.6).
 
 ## Cómo anda
 1. La app arma el pedido con su propio motor (`fraseElegida` en `js/logica/ia.js`): el verso elegido, el anterior, la estrofa, sílabas, rima consonante y asonante de la última palabra y las rimas internas.
@@ -23,7 +23,7 @@ Una sola vez, en el panel de Cloudflare:
 1. Workers & Pages › Create › Import a repository › `sw413sg/metrica`. Nombre `metrica`, carpeta (root directory) `worker`, el resto como viene.
 2. El KV `USO` ya está creado («metrica-uso») y su `id` va en `wrangler.toml` (sin id, wrangler lo creaba en el primer despliegue pero en el segundo fallaba con «already exists»).
 3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá).
-4. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`.
+4. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`. Después de un despliegue, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
 
 Del lado de OpenAI: cargar saldo prepago con la recarga automática apagada (lo cargado es lo máximo que se puede gastar) y una clave de un proyecto «Métrica».
 
