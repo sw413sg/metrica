@@ -30,7 +30,9 @@ export default {
         if (!permitido) return responder({ error: 'origen' }, 403);
         const ruta = new URL(request.url).pathname.replace(/\/+$/, '');
         if (ruta === '/salud' && request.method === 'GET') {
-            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO) });
+            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO),
+                // Solo los nombres de lo cargado (nunca los valores), para ver si falta o se llama distinto.
+                nombres: Object.keys(env).sort() });
         }
         if (ruta === '/ia') {
             if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
