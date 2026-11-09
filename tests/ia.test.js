@@ -136,6 +136,11 @@ test('el prompt lleva las rimas y sílabas del motor, y la respuesta se lee aunq
     assert.match(entrada, /rimas internas: «balcón»/);
     assert.match(entrada, /Sílabas buscadas: 11/);
     assert.match(entrada, /rimar con «canción»/);
+    // La letra entera va de contexto, con el verso de la frase marcado (pedido de Swa).
+    assert.deepEqual(pedido.letra, LETRA.split('\n'));
+    assert.equal(pedido.enLetra, 1);
+    assert.match(entrada, /Letra entera[^\n]*\nTe busco en el balcón sin razón\n>> y me quedo solo con mi canción\n\n\[Estribillo\]\nOtra estrofa acá/);
+    assert.match(instrucciones, /Leé la letra entera/);
     assert.deepEqual(leerRespuesta('Acá van:\n{"sugerencias": ["uno", 2, "dos"]}'), ['uno', 'dos']);
     assert.deepEqual(leerRespuesta('nada'), []);
 });
@@ -145,6 +150,18 @@ test('pedidoValido rechaza pedidos raros o largos', () => {
     assert.equal(pedidoValido(null), false);
     assert.equal(pedidoValido({ ...pedido, verso: { ...pedido.verso, texto: 'x'.repeat(500) } }), false);
     assert.equal(pedidoValido({ ...pedido, estrofa: Array(20).fill('verso') }), false);
+    assert.equal(pedidoValido({ ...pedido, letra: Array(81).fill('verso') }), false);
+    assert.equal(pedidoValido({ ...pedido, enLetra: 9 }), false);
+    assert.ok(pedidoValido({ ...pedido, letra: undefined, enLetra: undefined }));
+});
+
+test('una letra larga manda 80 renglones alrededor del verso', () => {
+    const larga = Array.from({ length: 200 }, (_, n) => `verso numero ${n} que dice algo`).join('\n');
+    const desde = larga.indexOf('verso numero 150');
+    const { pedido } = fraseElegida(larga, desde, desde + 16);
+    assert.equal(pedido.letra.length, 80);
+    assert.equal(pedido.letra[pedido.enLetra], 'verso numero 150 que dice algo');
+    assert.ok(pedidoValido(pedido));
 });
 
 test('palabraElegida: la última rima con el verso anterior, una del medio no', () => {

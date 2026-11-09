@@ -19,6 +19,11 @@ const versoValido = v => v && texto(v.texto) && Number.isInteger(v.silabas) && v
     && (v.final == null || texto(v.final.palabra, 40))
     && (v.internas == null || (Array.isArray(v.internas) && v.internas.length <= 12 && v.internas.every(i => texto(i?.palabra, 40))));
 
+// La letra entera de contexto (renglones vacíos incluidos, separan estrofas) y cuál es el verso.
+const letraValida = (letra, en) => Array.isArray(letra) && letra.length <= VERSOS_REVISION
+    && letra.every(v => typeof v === 'string' && v.length <= LARGO_MAXIMO)
+    && Number.isInteger(en) && en >= 0 && en < letra.length;
+
 // El servidor revisa que el pedido tenga la forma de siempre y no sea largo (si no, no lo manda).
 export function pedidoValido(pedido) {
     return Boolean(pedido && versoValido(pedido.verso)
@@ -26,6 +31,7 @@ export function pedidoValido(pedido) {
         && Array.isArray(pedido.estrofa) && pedido.estrofa.length <= VERSOS_ESTROFA && pedido.estrofa.every(v => texto(v))
         && Number.isInteger(pedido.objetivo?.silabas)
         && (pedido.enVerso == null || texto(pedido.enVerso))
+        && (pedido.letra == null || letraValida(pedido.letra, pedido.enLetra))
         && (pedido.palabra == null || (texto(pedido.palabra.texto, 40) && typeof pedido.palabra.final === 'boolean')));
 }
 
@@ -39,6 +45,11 @@ const describir = v => {
 // { instrucciones, entrada }: el mensaje de sistema y el del usuario, en texto.
 export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA) {
     const contexto = [];
+    // La letra entera va primero y solo de contexto: el tema, el tono y lo que ya se dijo (pedido de Swa).
+    if (pedido.letra?.some(v => v.trim())) {
+        const letra = pedido.letra.map((v, n) => n === pedido.enLetra ? `>> ${v}` : v).join('\n').replace(/\n{3,}/g, '\n\n');
+        contexto.push(`Letra entera, solo para entender de qué habla y qué ya se dijo (el verso marcado con >> es el de la frase):\n${letra.trim()}`);
+    }
     if (pedido.estrofa.length) contexto.push(`Estrofa:\n${pedido.estrofa.join('\n')}`);
     if (pedido.anterior) contexto.push(`Verso anterior: ${describir(pedido.anterior)}.`);
     if (pedido.palabra) {
@@ -48,6 +59,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
             pedido.palabra.final && pedido.objetivo.rimaCon
                 ? `Es la última del verso: tienen que rimar con «${pedido.objetivo.rimaCon}» (mejor consonante, si no asonante).`
                 : 'Va en el medio del verso: mejor si suenan con las rimas internas de la estrofa.',
+            'Que siga el tema y el tono de la letra, sin repetir palabras que ya están en ella.',
             'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
         ].join('\n');
         contexto.push(`Verso: ${describir(pedido.verso)}.`, `Palabra para cambiar: «${pedido.palabra.texto}».`);
@@ -59,6 +71,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
         'Sos un compositor de rap y canciones en español rioplatense que ayuda a escribir.',
         `Escribí ${cantidad} frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
         'Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
+        'Leé la letra entera: que sigan su tema, su historia y su tono, sin repetir imágenes ni palabras fuertes que ya usa.',
         'Que sean distintas entre sí: una más directa, una con una metáfora, una más de calle o de barrio, una que cambie el punto de vista.',
         'La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
         'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',

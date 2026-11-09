@@ -82,10 +82,19 @@ export function fraseElegida(texto, inicio, fin, { corregir = p => p, distancia 
             ...(enVerso !== verso.texto ? { enVerso } : {}),
             anterior: anterior == null ? null : describir(versos[anterior], anterior),
             estrofa: mismaEstrofa.slice(Math.max(0, posicion - 6), posicion + 2).map(j => versos[j].trim()),
+            // La letra entera, solo de contexto: de qué trata y qué imágenes ya se usaron (pedido de Swa).
+            // Hasta 80 renglones alrededor del verso, cada uno cortado a 140 letras.
+            ...letraDeContexto(versos, i),
             // Que suene como la frase: sus sílabas y que termine rimando con su última palabra.
             objetivo: { silabas: verso.silabas, rimaCon: verso.final.palabra },
         },
     };
+}
+
+function letraDeContexto(versos, i) {
+    const desde = Math.max(0, Math.min(i - 40, versos.length - VERSOS_REVISION));
+    const letra = versos.slice(desde, desde + VERSOS_REVISION).map(v => v.trim().slice(0, 140));
+    return { letra, enLetra: i - desde };
 }
 
 // La palabra tocada (de `inicio` a `fin`): el pedido de su verso, con la palabra y si es la última
