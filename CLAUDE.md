@@ -70,7 +70,7 @@ Pendiente: nada de la lista del lanzamiento.
 - Sin definir: una web conectada a la app.
 
 ## Monetización
-Modelo: app gratis que funciona completa, más un pago único "Métrica Extras" (USD 4,99), sin suscripción. Lo decidió Swa (2026-10-21): el pago quita la publicidad y desbloquea los temas de la libreta y los widgets. Las funciones básicas (rimas incluidas) nunca se bloquean.
+Modelo: app gratis que funciona completa, más un pago único "Métrica Extras" (USD 4,99), sin suscripción. Actualizado por Swa el 2026-11-09 (en Swift): se llama «Métrica +» y cuesta USD 9,99 de pago único, o «Métrica + IA», una suscripción de USD 2,99 por mes que trae todo Métrica + y 500 consultas de IA por mes (gratis, 20). El paywall muestra las dos opciones. Lo decidió Swa (2026-10-21): el pago quita la publicidad y desbloquea los temas de la libreta y los widgets. Las funciones básicas (rimas incluidas) nunca se bloquean.
 
 En la web está todo simulado: `js/logica/compra.js` (con tests) guarda la compra en localStorage y decide qué temas están disponibles y si se muestra publicidad; en SwiftUI pasa a StoreKit 2 (`Product.purchase()` y `Transaction.currentEntitlements`). El paywall es una hoja (`#paywall`, equivale a `.sheet`) que se abre desde un tema con candado (en la ruedita de la libreta) o desde el banner de publicidad. La publicidad es un espacio vacío de prueba (sin redes de anuncios) en Rimas. Los widgets se configuran en Ajustes > Widgets (y tienen su vista previa en el paywall): se hacen de verdad con WidgetKit en la app nativa. En Ajustes, "Volver a la versión gratis" sirve para probar.
 
