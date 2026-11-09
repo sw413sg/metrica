@@ -8,7 +8,8 @@ import { contarSilabasVerso } from './silabas.js';
 import { esSeparador } from './secciones.js';
 import { SUGERENCIAS_IA, PEDIDAS_IA, PALABRAS_IA, VERSOS_REVISION, CAMBIOS_REVISION } from './ia-prompt.js';
 
-// La dirección del Worker cuando esté desplegado (ver worker/README.md). Vacía: simulado.
+// La dirección de la IA en el Worker cuando esté desplegado (https://metrica.<cuenta>.workers.dev/ia,
+// ver worker/README.md). Vacía: simulado.
 // Para probar uno sin publicar, se puede poner en localStorage 'metrica.ia-endpoint'.
 export const ENDPOINT_IA = '';
 const CLAVE_ENDPOINT = 'metrica.ia-endpoint';

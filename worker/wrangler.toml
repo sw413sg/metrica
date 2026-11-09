@@ -1,22 +1,26 @@
-# Worker de «Mejorar frase» (ver README.md). No está desplegado: falta crear el KV y cargar la clave.
-name = "metrica-ia"
+# Worker de Métrica (ver README.md): por ahora, la IA en /ia. Se despliega solo desde GitHub
+# (Workers Builds, carpeta `worker`) cada vez que cambia main.
+name = "metrica"
 main = "src/index.js"
 compatibility_date = "2026-11-01"
+workers_dev = true
+
+[observability]
+enabled = true
 
 [vars]
-# Desde dónde se lo puede llamar (separados por coma).
+# Desde qué páginas se lo puede llamar (separados por coma). La app nativa no manda Origin y pasa igual.
 ORIGENES = "https://sw413sg.github.io"
 # Confirmar el nombre exacto del modelo en la consola de OpenAI.
 MODELO = "gpt-6.1-terra"
 # Sin decidir (Swa): 20 gratis por mes; con «Métrica IA», 500.
 CUPO_GRATIS = "20"
 TOPE_PLAN = "500"
-# Techo de pedidos de todos juntos en un día (unos USD 17,50 a USD 0,0035 cada uno).
-TOPE_DIA = "5000"
+# Techo de pedidos de todos juntos en un día: 1000 son unos USD 3,50. Subirlo cuando salga al público.
+TOPE_DIA = "1000"
 
-# El id sale de `npx wrangler kv namespace create USO`.
+# El contador de uso. Sin `id`, wrangler crea el KV solo en el primer despliegue.
 [[kv_namespaces]]
 binding = "USO"
-id = "COMPLETAR"
 
-# La clave de OpenAI NO va acá: `npx wrangler secret put OPENAI_API_KEY`.
+# La clave de OpenAI NO va acá: se carga como secret OPENAI_API_KEY en el panel de Cloudflare.
