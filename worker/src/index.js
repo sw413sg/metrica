@@ -71,7 +71,10 @@ async function ia(request, env, responder) {
                 model: env.MODELO || MODELO_IA,
                 messages: [{ role: 'system', content: instrucciones }, { role: 'user', content: entrada }],
                 response_format: { type: 'json_object' },
-                max_completion_tokens: revision ? 900 : 600,
+                // Lo que piensa el modelo antes de contestar también se cobra y sale de este tope:
+                // por eso se le pide que piense poco (ESFUERZO, «low») y el tope deja lugar para eso.
+                ...(env.ESFUERZO ? { reasoning_effort: env.ESFUERZO } : {}),
+                max_completion_tokens: revision ? 1500 : 1000,
                 user: id,
             }),
         });

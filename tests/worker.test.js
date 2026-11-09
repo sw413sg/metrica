@@ -11,7 +11,7 @@ let env, llamadas, fetchOriginal;
 beforeEach(() => {
     const kv = new Map();
     env = {
-        ORIGENES: 'https://sw413sg.github.io', CUPO_GRATIS: '2', TOPE_DIA: '100', OPENAI_API_KEY: 'sk-prueba',
+        ORIGENES: 'https://sw413sg.github.io', ESFUERZO: 'low', CUPO_GRATIS: '2', TOPE_DIA: '100', OPENAI_API_KEY: 'sk-prueba',
         USO: { get: async k => kv.get(k) ?? null, put: async (k, v) => kv.set(k, v) },
     };
     llamadas = [];
@@ -35,6 +35,7 @@ test('el Worker arma el mensaje, llama al modelo con la clave y descuenta el cup
     assert.equal(llamadas[0].url, 'https://api.openai.com/v1/chat/completions');
     assert.equal(llamadas[0].clave, 'Bearer sk-prueba');
     assert.equal(llamadas[0].cuerpo.model, 'gpt-6.1-terra');
+    assert.equal(llamadas[0].cuerpo.reasoning_effort, 'low');
     assert.match(llamadas[0].cuerpo.messages[1].content, /rimar con «canción»/);
     assert.equal(respuesta.headers.get('Access-Control-Allow-Origin'), 'https://sw413sg.github.io');
 });
@@ -92,4 +93,10 @@ test('cada función va en su ruta, y /salud dice si está todo cargado sin gasta
     assert.ok(datos.nombres.includes('OPENAI_API_KEY'));
     assert.ok(!JSON.stringify(datos).includes('sk-prueba'));
     assert.equal(llamadas.length, 0);
+});
+
+test('sin ESFUERZO no se manda reasoning_effort (queda el de OpenAI)', async () => {
+    delete env.ESFUERZO;
+    await pedir();
+    assert.equal('reasoning_effort' in llamadas[0].cuerpo, false);
 });
