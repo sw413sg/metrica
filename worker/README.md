@@ -21,7 +21,7 @@ Se despliega solo desde GitHub con Workers Builds, sin instalar nada: cada vez q
 
 Una sola vez, en el panel de Cloudflare:
 1. Workers & Pages › Create › Import a repository › `sw413sg/metrica`. Nombre `metrica`, carpeta (root directory) `worker`, el resto como viene.
-2. El KV `USO` se crea solo en el primer despliegue (wrangler 4, «automatic provisioning»). Si el despliegue falla por el KV: Storage & Databases › Workers KV › Create, y poner su `id` en `wrangler.toml`.
+2. El KV `USO` ya está creado («metrica-uso») y su `id` va en `wrangler.toml` (sin id, wrangler lo creaba en el primer despliegue pero en el segundo fallaba con «already exists»).
 3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá).
 4. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`.
 
