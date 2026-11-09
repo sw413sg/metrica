@@ -19,8 +19,9 @@ ESFUERZO = "low"
 # «Lo que cambiaría» lee la letra entera y tiene que entenderla: piensa un poco más (un pedido por letra).
 ESFUERZO_REVISION = "medium"
 # Sin decidir (Swa): 20 gratis por mes; con «Métrica IA», 500.
-CUPO_GRATIS = "500"
+CUPO_GRATIS = "20"
 TOPE_PLAN = "500"
+PLAN_SIN_VERIFICAR = "si"
 # Techo de pedidos de todos juntos en un día: 1000 son unos USD 3,50. Subirlo cuando salga al público.
 TOPE_DIA = "1000"
 

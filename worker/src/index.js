@@ -19,7 +19,7 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-Plan',
             Vary: 'Origin',
         };
         const responder = (datos, status = 200) => new Response(JSON.stringify(datos), {
@@ -60,8 +60,11 @@ async function ia(request, env, responder) {
     const clavePersona = `uso:${ahora.slice(0, 7)}:${id}`;
     const claveDia = `dia:${ahora.slice(0, 10)}`;
     const [usadas, delDia] = (await Promise.all([env.USO.get(clavePersona), env.USO.get(claveDia)])).map(v => Number(v) || 0);
-    // TODO cuando se decida el plan: con un comprobante válido de StoreKit, el tope es TOPE_PLAN.
-    const tope = Number(env.CUPO_GRATIS) || 500;
+    // Con Métrica + IA (suscripción `metrica.ia`), TOPE_PLAN; si no, CUPO_GRATIS. TODO antes del App
+    // Store: verificar el comprobante firmado de StoreKit en vez de creerle a la cabecera (mientras
+    // tanto, PLAN_SIN_VERIFICAR = "si" la acepta, para probar en TestFlight).
+    const plan = request.headers.get('X-Metrica-Plan') === 'metrica.ia' && env.PLAN_SIN_VERIFICAR === 'si';
+    const tope = plan ? Number(env.TOPE_PLAN) || 500 : Number(env.CUPO_GRATIS) || 20;
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
     const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length) : temas ? GASTO_IA.temas : GASTO_IA.frase;
     if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);

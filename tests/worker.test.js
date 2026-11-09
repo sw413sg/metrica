@@ -146,3 +146,11 @@ test('el Worker también propone de qué hablar en una canción, sin repetir las
     assert.equal((await pedir({ temas: { vistas: 'todo' } })).status, 400);
     assert.equal((await pedir({ temas: { vistas: Array(21).fill('idea') } })).status, 400);
 });
+
+test('con Métrica + IA el tope es TOPE_PLAN, solo si se acepta la cabecera sin verificar', async () => {
+    env.CUPO_GRATIS = '2'; env.TOPE_PLAN = '500';
+    const conPlan = { 'X-Metrica-Plan': 'metrica.ia' };
+    assert.equal((await (await pedir(undefined, conPlan)).json()).quedan, 1);
+    env.PLAN_SIN_VERIFICAR = 'si';
+    assert.equal((await (await pedir(undefined, conPlan)).json()).quedan, 498);
+});
