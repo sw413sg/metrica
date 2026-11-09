@@ -2,16 +2,15 @@
 // a través de un Worker de Cloudflare, ver worker/README.md) propone 3 o 4 alternativas relacionadas,
 // con las mismas rimas internas y finales de la frase. La app arma el pedido con lo que ya calcula el
 // motor propio (sílabas, consonante y asonante, internas) y después valida y ordena lo que vuelve.
-// Mientras no haya servidor (ENDPOINT_IA vacío), las respuestas son simuladas.
+// Sin servidor (ENDPOINT_IA vacío), las respuestas serían simuladas.
 import { claveConsonante, claveAsonante, rimasInternas, numerarEstrofas } from './rimas.js';
 import { contarSilabasVerso } from './silabas.js';
 import { esSeparador } from './secciones.js';
 import { SUGERENCIAS_IA, PEDIDAS_IA, PALABRAS_IA, VERSOS_REVISION, CAMBIOS_REVISION } from './ia-prompt.js';
 
-// La dirección de la IA en el Worker cuando esté desplegado (https://metrica.<cuenta>.workers.dev/ia,
-// ver worker/README.md). Vacía: simulado.
-// Para probar uno sin publicar, se puede poner en localStorage 'metrica.ia-endpoint'.
-export const ENDPOINT_IA = '';
+// La dirección de la IA en el Worker de Cloudflare (ver worker/README.md). Vacía, sería simulado.
+// Para probar otro sin publicar, se puede poner en localStorage 'metrica.ia-endpoint'.
+export const ENDPOINT_IA = 'https://metrica.emas1397.workers.dev/ia';
 const CLAVE_ENDPOINT = 'metrica.ia-endpoint';
 const CLAVE_ID = 'metrica.ia-id';
 const CLAVE_USO = 'metrica.ia-uso';

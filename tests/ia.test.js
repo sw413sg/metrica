@@ -107,8 +107,8 @@ test('idDeUsuario se crea una vez y queda', () => {
 });
 
 test('pedirSugerencias: sin endpoint, simuladas; con endpoint, al Worker', async () => {
-    assert.equal(ENDPOINT_IA, '');
-    assert.equal(endpointIA(almacenNuevo()), '');
+    assert.equal(ENDPOINT_IA, 'https://metrica.emas1397.workers.dev/ia');
+    assert.equal(endpointIA(almacenNuevo()), ENDPOINT_IA);
     const { pedido } = elegir('y me quedo solo con mi canción');
     assert.deepEqual(await pedirSugerencias(pedido, { simular: () => ['a'] }), { sugerencias: ['a'], simulada: true });
     let enviado;
