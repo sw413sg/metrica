@@ -34,6 +34,7 @@ export default {
                 // Solo los nombres de lo cargado (nunca los valores), para ver si falta o se llama distinto.
                 nombres: Object.keys(env).sort() });
         }
+        if (ruta === '/probar' && request.method === 'GET') return probar(env, responder);
         if (ruta === '/ia') {
             if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
             return ia(request, env, responder);
@@ -62,6 +63,23 @@ async function ia(request, env, responder) {
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
     const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision) : promptDeSugerencias(cuerpo.pedido);
+    const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 1500 : 1000, id);
+    if (error) return responder({ error: 'modelo' }, 502);
+    const sugerencias = revision ? leerRevision(contenido) : leerRespuesta(contenido).slice(0, 10);
+    if (!sugerencias.length) {
+        console.log('El modelo no devolvió sugerencias que se puedan leer:', contenido.slice(0, 300));
+        return responder({ error: 'modelo' }, 502);
+    }
+
+    // Solo cuenta si salió bien.
+    const ttl = { expirationTtl: DIAS_KV * 24 * 60 * 60 };
+    await Promise.all([env.USO.put(clavePersona, String(usadas + 1), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
+    return responder({ sugerencias, quedan: tope - usadas - 1 });
+}
+
+// Llama a OpenAI. Devuelve { contenido } o { error } (el error también queda en los logs del Worker,
+// Observability en el panel de Cloudflare, para saber por qué falló sin adivinar).
+async function llamarModelo(env, instrucciones, entrada, tope, id) {
     let respuesta;
     try {
         respuesta = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -74,21 +92,33 @@ async function ia(request, env, responder) {
                 // Lo que piensa el modelo antes de contestar también se cobra y sale de este tope:
                 // por eso se le pide que piense poco (ESFUERZO, «low») y el tope deja lugar para eso.
                 ...(env.ESFUERZO ? { reasoning_effort: env.ESFUERZO } : {}),
-                max_completion_tokens: revision ? 1500 : 1000,
+                max_completion_tokens: tope,
                 user: id,
             }),
         });
-    } catch {
-        return responder({ error: 'modelo' }, 502);
+    } catch (e) {
+        console.log('No se pudo llegar a OpenAI:', String(e));
+        return { error: `red: ${String(e)}` };
     }
-    if (!respuesta.ok) return responder({ error: 'modelo' }, 502);
+    if (!respuesta.ok) {
+        const texto = await respuesta.text().catch(() => '');
+        let mensaje = texto.slice(0, 300);
+        try { mensaje = JSON.parse(texto).error?.message ?? mensaje; } catch { /* queda el texto */ }
+        console.log(`OpenAI respondió ${respuesta.status}:`, mensaje);
+        return { error: `${respuesta.status}: ${mensaje}` };
+    }
     const datos = await respuesta.json().catch(() => ({}));
-    const contenido = datos.choices?.[0]?.message?.content ?? '';
-    const sugerencias = revision ? leerRevision(contenido) : leerRespuesta(contenido).slice(0, 10);
-    if (!sugerencias.length) return responder({ error: 'modelo' }, 502);
+    return { contenido: datos.choices?.[0]?.message?.content ?? '' };
+}
 
-    // Solo cuenta si salió bien.
-    const ttl = { expirationTtl: DIAS_KV * 24 * 60 * 60 };
-    await Promise.all([env.USO.put(clavePersona, String(usadas + 1), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
-    return responder({ sugerencias, quedan: tope - usadas - 1 });
+// GET /probar: un pedido mínimo a OpenAI para ver desde el navegador si la clave, el modelo y los
+// parámetros andan (dice el error de OpenAI tal cual, sin la clave). Cuenta en el techo del día y
+// tiene su propio tope chico, así no sirve para gastar.
+async function probar(env, responder) {
+    const clave = `probar:${new Date().toISOString().slice(0, 10)}`;
+    const hechas = Number(await env.USO.get(clave)) || 0;
+    if (hechas >= 30) return responder({ ok: false, error: 'Ya se probó mucho hoy.' }, 429);
+    await env.USO.put(clave, String(hechas + 1), { expirationTtl: 2 * 24 * 60 * 60 });
+    const { contenido, error } = await llamarModelo(env, 'Respondé solo con JSON.', 'Devolvé {"sugerencias": ["hola"]}.', 300, 'prueba000000000000');
+    return error ? responder({ ok: false, error }, 502) : responder({ ok: true, respuesta: contenido });
 }

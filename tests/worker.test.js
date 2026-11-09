@@ -95,6 +95,16 @@ test('cada función va en su ruta, y /salud dice si está todo cargado sin gasta
     assert.equal(llamadas.length, 0);
 });
 
+test('/probar dice el error de OpenAI tal cual y tiene tope propio', async () => {
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: { message: 'Unsupported value: reasoning_effort' } }), { status: 400 });
+    const probar = () => worker.fetch(new Request('https://metrica.ejemplo/probar'), env);
+    assert.deepEqual(await (await probar()).json(), { ok: false, error: '400: Unsupported value: reasoning_effort' });
+    globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":["hola"]}' } }] }));
+    assert.deepEqual(await (await probar()).json(), { ok: true, respuesta: '{"sugerencias":["hola"]}' });
+    for (let i = 0; i < 28; i++) await probar();
+    assert.equal((await probar()).status, 429);
+});
+
 test('sin ESFUERZO no se manda reasoning_effort (queda el de OpenAI)', async () => {
     delete env.ESFUERZO;
     await pedir();
