@@ -3,6 +3,7 @@
 Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se pueden sumar otras (por ejemplo, conectar la web con iCloud) sin tocar las que ya andan:
 
 - `GET /salud`: dice si está desplegado, con qué modelo y si la clave y el KV están cargados (`{ ok, modelo, clave, kv }`). No gasta nada.
+- `GET /probar`: un pedido mínimo a OpenAI; dice `{ ok: true }` o el error de OpenAI tal cual (sin la clave). Tope de 30 por día. Los errores también quedan en Observability.
 - `POST /ia`: la IA de la libreta: elegís una frase y propone 3 o 4 alternativas relacionadas, con sus mismas rimas internas y finales (además, cambia palabras sueltas y revisa la letra entera). Desplegado en `https://metrica.emas1397.workers.dev` (la web usa `/ia` desde la 1.6.6).
 
 ## Cómo anda
