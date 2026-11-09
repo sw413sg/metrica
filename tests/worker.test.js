@@ -11,7 +11,7 @@ let env, llamadas, fetchOriginal;
 beforeEach(() => {
     const kv = new Map();
     env = {
-        ORIGENES: 'https://sw413sg.github.io', ESFUERZO: 'low', CUPO_GRATIS: '2', TOPE_DIA: '100', OPENAI_API_KEY: 'sk-prueba',
+        ORIGENES: 'https://sw413sg.github.io', ESFUERZO: 'low', ESFUERZO_REVISION: 'medium', CUPO_GRATIS: '2', TOPE_DIA: '100', OPENAI_API_KEY: 'sk-prueba',
         USO: { get: async k => kv.get(k) ?? null, put: async (k, v) => kv.set(k, v) },
     };
     llamadas = [];
@@ -72,6 +72,9 @@ test('el Worker también revisa la letra entera', async () => {
     assert.equal(respuesta.status, 200);
     assert.deepEqual((await respuesta.json()).sugerencias, [{ titulo: 'Cambiar la palabra «canción» por «pasión»', verso: 1, viejo: 'canción', nuevo: 'pasión' }]);
     assert.match(llamadas[0].messages[1].content, /1 \(9\) y me quedo con mi canción/);
+    // La letra entera piensa más (ESFUERZO_REVISION) y busca sentido y métrica despareja.
+    assert.equal(llamadas[0].reasoning_effort, 'medium');
+    assert.match(llamadas[0].messages[0].content, /Métrica despareja/);
     assert.equal((await pedir({ revision: { versos: 'todo' } })).status, 400);
 });
 

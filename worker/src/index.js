@@ -63,7 +63,7 @@ async function ia(request, env, responder) {
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
     const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision) : promptDeSugerencias(cuerpo.pedido);
-    const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 1500 : 1000, id);
+    const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 3000 : 1000, id, revision ? env.ESFUERZO_REVISION : env.ESFUERZO);
     if (error) return responder({ error: 'modelo' }, 502);
     const sugerencias = revision ? leerRevision(contenido) : leerRespuesta(contenido).slice(0, 10);
     if (!sugerencias.length) {
@@ -79,7 +79,7 @@ async function ia(request, env, responder) {
 
 // Llama a OpenAI. Devuelve { contenido } o { error } (el error también queda en los logs del Worker,
 // Observability en el panel de Cloudflare, para saber por qué falló sin adivinar).
-async function llamarModelo(env, instrucciones, entrada, tope, id) {
+async function llamarModelo(env, instrucciones, entrada, tope, id, esfuerzo = env.ESFUERZO) {
     let respuesta;
     try {
         respuesta = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -91,7 +91,7 @@ async function llamarModelo(env, instrucciones, entrada, tope, id) {
                 response_format: { type: 'json_object' },
                 // Lo que piensa el modelo antes de contestar también se cobra y sale de este tope:
                 // por eso se le pide que piense poco (ESFUERZO, «low») y el tope deja lugar para eso.
-                ...(env.ESFUERZO ? { reasoning_effort: env.ESFUERZO } : {}),
+                ...(esfuerzo ? { reasoning_effort: esfuerzo } : {}),
                 max_completion_tokens: tope,
                 user: id,
             }),

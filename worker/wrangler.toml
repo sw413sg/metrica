@@ -16,6 +16,8 @@ MODELO = "gpt-6.1-terra"
 # Cuánto piensa el modelo antes de contestar (lo que piensa se cobra como salida): «low» gasta menos.
 # Vacío, usa el de OpenAI por defecto.
 ESFUERZO = "low"
+# «Lo que cambiaría» lee la letra entera y tiene que entenderla: piensa un poco más (un pedido por letra).
+ESFUERZO_REVISION = "medium"
 # Sin decidir (Swa): 20 gratis por mes; con «Métrica IA», 500.
 CUPO_GRATIS = "20"
 TOPE_PLAN = "500"
