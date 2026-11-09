@@ -113,3 +113,18 @@ test('sin ESFUERZO no se manda reasoning_effort (queda el de OpenAI)', async () 
     await pedir();
     assert.equal('reasoning_effort' in llamadas[0].cuerpo, false);
 });
+
+test('el Worker también propone de qué hablar en una canción, sin repetir las ya vistas', async () => {
+    globalThis.fetch = async (url, opciones) => {
+        llamadas.push(JSON.parse(opciones.body));
+        return new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":["«Contá la última noche en el barrio antes de mudarte»","Contá la última noche en el barrio antes de mudarte","Escribile a tu abuela lo que nunca le dijiste"]}' } }] }));
+    };
+    const respuesta = await pedir({ temas: { vistas: ['Hablá del primer sueldo'] } });
+    assert.equal(respuesta.status, 200);
+    assert.deepEqual((await respuesta.json()).sugerencias, ['Contá la última noche en el barrio antes de mudarte', 'Escribile a tu abuela lo que nunca le dijiste']);
+    assert.match(llamadas[0].messages[0].content, /ideas de qué hablar en una canción/);
+    assert.match(llamadas[0].messages[1].content, /- Hablá del primer sueldo/);
+    assert.equal(llamadas[0].reasoning_effort, 'low');
+    assert.equal((await pedir({ temas: { vistas: 'todo' } })).status, 400);
+    assert.equal((await pedir({ temas: { vistas: Array(21).fill('idea') } })).status, 400);
+});

@@ -4,7 +4,7 @@
 // - POST /ia: «Mejorar frase» y «Lo que cambiaría». Recibe el pedido que arma la app, arma el mensaje
 //   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y cuenta
 //   el uso de cada persona por mes en KV.
-import { MODELO_IA, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision } from '../../js/logica/ia-prompt.js';
+import { MODELO_IA, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
 
@@ -48,9 +48,12 @@ async function ia(request, env, responder) {
     if (!/^[a-z0-9]{16,64}$/.test(id)) return responder({ error: 'id' }, 400);
     let cuerpo;
     try { cuerpo = await request.json(); } catch { return responder({ error: 'json' }, 400); }
-    // Dos clases de pedido: mejorar una frase o palabra (`pedido`) o revisar la letra entera (`revision`).
+    // Tres clases de pedido: mejorar una frase o palabra (`pedido`), revisar la letra entera (`revision`)
+    // o ideas de qué hablar en una canción (`temas`).
     const revision = cuerpo?.revision != null;
-    if (revision ? !revisionValida(cuerpo.revision) : !pedidoValido(cuerpo?.pedido)) return responder({ error: 'pedido' }, 400);
+    const temas = !revision && cuerpo?.temas != null;
+    const valido = revision ? revisionValida(cuerpo.revision) : temas ? temasValido(cuerpo.temas) : pedidoValido(cuerpo?.pedido);
+    if (!valido) return responder({ error: 'pedido' }, 400);
 
     // Límite por persona y por mes, y un techo de todo el día para que la cuenta no se dispare.
     const ahora = new Date().toISOString();
@@ -62,10 +65,11 @@ async function ia(request, env, responder) {
     if (usadas >= tope) return responder({ error: 'cupo', quedan: 0 }, 429);
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
-    const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision) : promptDeSugerencias(cuerpo.pedido);
+    const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision)
+        : temas ? promptDeTemas(cuerpo.temas) : promptDeSugerencias(cuerpo.pedido);
     const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 3000 : 1000, id, revision ? env.ESFUERZO_REVISION : env.ESFUERZO);
     if (error) return responder({ error: 'modelo' }, 502);
-    const sugerencias = revision ? leerRevision(contenido) : leerRespuesta(contenido).slice(0, 10);
+    const sugerencias = revision ? leerRevision(contenido) : temas ? leerTemas(contenido) : leerRespuesta(contenido).slice(0, 10);
     if (!sugerencias.length) {
         console.log('El modelo no devolvió sugerencias que se puedan leer:', contenido.slice(0, 300));
         return responder({ error: 'modelo' }, 502);

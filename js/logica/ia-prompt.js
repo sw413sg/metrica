@@ -142,3 +142,38 @@ export function leerRespuesta(contenido) {
         return [];
     }
 }
+
+// ---------- Temas: de qué hablar en una canción (pestaña «Sugerencias IA» de la letra vacía y el baúl) ----------
+// La app manda solo las ideas que ya se vieron (para no repetir); vuelven ideas de una frase.
+export const TEMAS_IA = 4;
+const TEMAS_VISTOS = 20;
+const LARGO_TEMA = 200;
+
+export function temasValido(temas) {
+    const vistas = temas?.vistas ?? [];
+    return Boolean(temas && typeof temas === 'object' && Array.isArray(vistas) && vistas.length <= TEMAS_VISTOS
+        && vistas.every(v => texto(v, LARGO_TEMA)));
+}
+
+export function promptDeTemas(temas, cantidad = TEMAS_IA) {
+    const instrucciones = [
+        'Sos un compositor de rap y canciones en español rioplatense que ayuda a alguien a arrancar una letra nueva.',
+        `Proponé ${cantidad} ideas de qué hablar en una canción. Cada una es un tema concreto con su ángulo: una situación, un momento, una persona o un lugar, no una palabra suelta ni algo genérico como «el amor» o «la vida».`,
+        'Cosas que una persona común vivió o puede vivir: amor y desamor, el barrio, la familia, los amigos, el laburo, la plata que no alcanza, salir de noche, superarse, extrañar, viajar. Nada de lujos ni de vidas que casi nadie vive (ser millonario, autos caros, fama).',
+        'Que sean distintas entre sí en tema y en tono: una tierna, una con bronca, una de fiesta, una que dé nostalgia.',
+        'Cada una es una sola frase en segunda persona que invite a escribir, de 25 palabras como mucho, sin comillas, sin numerar y sin explicar nada (por ejemplo: «Contá la última vez que viste a alguien sin saber que era la última»).',
+        'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+    ].join('\n');
+    const lineas = [`Dame ${cantidad} ideas de qué hablar en una canción.`];
+    if (temas.vistas?.length) lineas.push(`Que no se parezcan a estas, que ya vio:\n${temas.vistas.map(v => `- ${v}`).join('\n')}`);
+    return { instrucciones, entrada: lineas.join('\n\n') };
+}
+
+// Las ideas que vuelven: frases con algo, no muy largas, sin repetir. Hasta 4.
+export function leerTemas(contenido) {
+    const vistas = new Set();
+    return leerRespuesta(contenido)
+        .map(t => t.trim().replace(/^[«"“]+|[»"”]+$/g, '').trim())
+        .filter(t => t && t.length <= LARGO_TEMA && !vistas.has(t.toLowerCase()) && vistas.add(t.toLowerCase()))
+        .slice(0, TEMAS_IA);
+}
