@@ -8,25 +8,52 @@ Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se puede
 
 ## Cómo anda
 1. La app arma el pedido con su propio motor (`fraseElegida` en `js/logica/ia.js`): el verso elegido, el anterior, la estrofa, sílabas, rima consonante y asonante de la última palabra y las rimas internas.
-2. Lo manda por POST a `/ia`, con un id anónimo del teléfono en `X-Metrica-Id`.
-3. El Worker revisa el origen (la web manda su `Origin`, que tiene que estar en `ORIGENES`; la app nativa no manda ninguno y pasa), que el pedido tenga la forma de siempre (`pedidoValido`), que la persona tenga cupo este mes (KV `USO`) y que no se haya pasado el techo del día. Arma el mensaje con `promptDeSugerencias` (`js/logica/ia-prompt.js`, el mismo archivo que usa la app y los tests) y llama a OpenAI con la clave guardada como secret. Así no sirve para pedirle cualquier otra cosa al modelo.
-4. Devuelve `{ sugerencias: [...], quedan }`. La app las valida y ordena con su motor (`validarSugerencias`): primero las que riman consonante, después asonante, después las de sílabas más parecidas.
+2. Lo manda por POST a `/ia`, con un id anónimo del teléfono en `X-Metrica-Id` y, si hay compras, los JWS de StoreKit 2 en `X-Metrica-JWS` (uno o varios `jwsRepresentation`, separados por coma).
+3. El Worker revisa el origen (la web manda su `Origin`, que tiene que estar en `ORIGENES`; la app nativa no manda ninguno y pasa), que el pedido tenga la forma de siempre (`pedidoValido`), que la persona tenga cuota (KV `USO`) y que no se haya pasado el techo del día. `X-Metrica-Plan` y `X-Metrica-Extra` se ignoran. Arma el mensaje con `promptDeSugerencias` (`js/logica/ia-prompt.js`, el mismo archivo que usa la app y los tests) y llama a OpenAI con la clave guardada como secret. Así no sirve para pedirle cualquier otra cosa al modelo.
+4. Devuelve `{ sugerencias: [...], quedan }` y el header `X-Metrica-Restantes` (lo que queda después de esa consulta). La app las valida y ordena con su motor (`validarSugerencias`): primero las que riman consonante, después asonante, después las de sílabas más parecidas.
 
-Respuestas de error: 404 ruta que no existe, 429 sin cupo, 403 origen no permitido, 400 pedido raro, 502 falló el modelo, 503 se llegó al techo del día. Solo cuenta el uso si salió bien.
+Respuestas de error: 404 ruta que no existe, 402 sin cuota (con `X-Metrica-Restantes`), 401 JWS que no verifica o productId desconocido, 403 origen no permitido, 400 pedido raro, 502 falló el modelo, 503 se llegó al techo del día. Solo descuenta si salió bien. Una suscripción vencida no es un error: queda en el cupo gratis.
 
 ## Costos (estimado del 2026-11-02)
 El modelo piensa antes de contestar y eso se cobra como salida: `ESFUERZO = "low"` en `wrangler.toml` (`reasoning_effort` de OpenAI) le pide que piense poco. Si alguna vez OpenAI no lo acepta para el modelo, el Worker da 502: dejarlo vacío.
 
 GPT-6.1 Terra: USD 1 por millón de tokens de entrada y USD 5 de salida. Un pedido son unos 1.000 de entrada y 500 de salida: **USD 0,0035**. Con 20 gratis por mes, cada persona que las usa todas cuesta unos USD 0,07 por mes; con «Métrica + IA» (USD 2,99 por mes y 300 por mes; la letra entera gasta de 2 a 4, según sus versos), el peor caso son unos USD 1,05 por mes. El plan de Workers gratis alcanza para empezar (100 mil pedidos por día).
 
-## Desplegar
-Se despliega solo desde GitHub con Workers Builds, sin instalar nada: cada vez que cambia `main`, Cloudflare corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero).
+## Cuota
+La compra no se cree por una cabecera. Cada JWS de `X-Metrica-JWS` se verifica en `worker/src/verificar.js`:
 
-Una sola vez, en el panel de Cloudflare:
+- `alg` ES256 y la firma cierra con la clave de la hoja.
+- La cadena `x5c` (hoja e intermedias) llega hasta **Apple Root CA - G3**, embebida en `worker/src/raiz-apple.js`. Una raíz que venga dentro del JWS no alcanza.
+- La hoja trae el OID `1.2.840.113635.100.6.11.1` (firma de compras de App Store) y los certificados están vigentes.
+- `bundleId` igual a `BUNDLE_ID`. `productId` conocido (`worker/src/cuota.js`). Si `revocationDate` está, no suma. La suscripción (`metrica.ia`) además pide `expiresDate` en el futuro.
+- Sandbox y Production valen los dos (TestFlight firma igual, con la misma raíz).
+
+Qué suma, una vez verificado:
+
+| Compra | productId | Cuota |
+| --- | --- | --- |
+| Sin compra | — | `CUPO_GRATIS` (20) por mes, por `X-Metrica-Id`, y como mucho `TOPE_IP` (100) por mes en la misma IP |
+| Métrica + | `metrica.extras` | 100 de regalo, una sola vez, no se renuevan con el mes |
+| Métrica + IA | `metrica.ia` | 300 por mes (reemplaza a las 20, no se suman) |
+| Más IA | `metrica.ia.mas` y `metrica.ia.mas.<cantidad>` o `metrica.ia.mas<cantidad>` | 300, 800, 1.650, 5.000 u 8.500, una sola vez por `transactionId` |
+
+El regalo y los paquetes quedan en la clave `cuota:bolsa:<transactionId>` hasta que se gastan. No lleva vencimiento: si se borrara, el mismo JWS volvería a sumar. La suscripción va en `cuota:mes:<aaaa-mm>:sub:<originalTransactionId>`, así una renovación no reinicia el mes. El cupo gratis va en `cuota:mes:<aaaa-mm>:id:<id>` y el tope de IP en `cuota:mes:<aaaa-mm>:ip:<ip>`. Primero se gasta el mes (se renueva) y después el regalo y los paquetes.
+
+Hasta que la app mande `X-Metrica-JWS`, aunque tenga la suscripción cuenta como gratis: las cabeceras viejas ya no alcanzan. En la web sigue simulado.
+
+`PRUEBA=si` junto con `RAIZ_DE_PRUEBA` cambia la raíz por una CA de los tests. No definirlo en Cloudflare.
+
+## Desplegar
+Se despliega solo desde GitHub con Workers Builds, sin instalar nada: cada vez que cambia `main`, Cloudflare corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero). Este cambio no se despliega solo: hay que mergearlo a `main` o correr wrangler a mano. No crea recursos nuevos.
+
+KV: no hay que crear otro namespace. El binding `USO` (namespace «metrica-uso», id en `wrangler.toml`) es el mismo de antes y ahora también guarda la bolsa de cada `transactionId`.
+
+Una sola vez, en el panel de Cloudflare (ya hecho el 2026-11-09; se repite solo si se arma el Worker de cero):
 1. Workers & Pages › Create › Import a repository › `sw413sg/metrica`. Nombre `metrica`, carpeta (root directory) `worker`, el resto como viene.
 2. El KV `USO` ya está creado («metrica-uso») y su `id` va en `wrangler.toml` (sin id, wrangler lo creaba en el primer despliegue pero en el segundo fallaba con «already exists»).
-3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá).
-4. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`. Después de un despliegue, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
+3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá). Al desplegar esta versión se van `PLAN_SIN_VERIFICAR` y `TOPE_PLAN`, y entran `BUNDLE_ID` y `TOPE_IP`.
+4. Confirmar que `BUNDLE_ID` es el del target de Xcode. En el repo Swift no se pudo leer desde acá; quedó `com.sw413sg.metrica`. Si el de la app es otro, la compra verificada no va a sumar (401) hasta cambiarlo en `wrangler.toml`.
+5. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`. Después de un despliegue, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
 
 Del lado de OpenAI: cargar saldo prepago con la recarga automática apagada (lo cargado es lo máximo que se puede gastar) y una clave de un proyecto «Métrica».
 
@@ -35,9 +62,9 @@ Después, poner `https://metrica.<cuenta>.workers.dev/ia` en `ENDPOINT_IA` de `j
 Con la terminal también se puede: `cd worker && npx wrangler login && npx wrangler secret put OPENAI_API_KEY && npx wrangler deploy`. Para probarlo en la compu: `npx wrangler dev` y poner `http://localhost:8787/ia` en `metrica.ia-endpoint` (sumando `http://localhost:8080` a `ORIGENES`).
 
 ## Lo que falta antes de cobrar
-- **El plan:** sin pagar, `CUPO_GRATIS` (20 por mes); con «Métrica + IA» (suscripción `metrica.ia`, USD 2,99 por mes), `TOPE_PLAN` (300), más las consultas de más del mes que manda la app en `X-Metrica-Extra` (también sin plan): los paquetes de «Más IA» (compras consumibles `metrica.ia.mas*`, de USD 1,99 a 49,99) y las 100 de regalo con Métrica + (techo `TOPE_EXTRA`, 20000). La app manda el país del iPhone en `X-Metrica-Pais` (código ISO): Métrica IA habla rioplatense solo con `AR`. Hoy la app manda `X-Metrica-Plan: metrica.ia` y, con `PLAN_SIN_VERIFICAR = "si"`, el Worker le cree (para probar en TestFlight). Falta, antes del App Store: la compra de «Métrica + IA» (StoreKit 2, suscripción) manda el comprobante firmado (`jwsRepresentation` de la transacción) y el Worker lo verifica con la clave pública de Apple antes de usar `TOPE_PLAN`. En la web queda simulado.
-- **El id anónimo** se puede borrar para tener 20 más. Para la app nativa, sumar App Attest (`DCAppAttestService`) o atar el cupo a la cuenta de iCloud; mientras tanto, el techo del día limita el gasto.
-- **KV no cuenta exacto** si llegan dos pedidos al mismo tiempo (puede dejar pasar alguno de más). Si hace falta exacto, pasar el contador a un Durable Object.
+- **El id anónimo** del cupo gratis se puede borrar para tener 20 más, hasta el tope de la IP. Para la app nativa, sumar App Attest (`DCAppAttestService`) o atar el cupo a la cuenta de iCloud; mientras tanto, el tope de la IP y el techo del día limitan el gasto. La cuota paga va por `transactionId` / `originalTransactionId`, no por el id del teléfono.
+- **KV no es exacto** si llegan dos pedidos al mismo tiempo (puede dejar pasar alguno de más, o en el primer uso de un paquete anotar de menos). Un segundo pedido con el mismo JWS no vuelve a sumar el paquete. Si hace falta exacto bajo concurrencia, pasar el contador a un Durable Object.
 - Confirmar el nombre exacto del modelo (`MODELO` en `wrangler.toml`) y si conviene la Responses API en vez de Chat Completions.
+- La app manda el país del iPhone en `X-Metrica-Pais` (código ISO): Métrica IA habla rioplatense solo con `AR`.
 
 **Costo:** las instrucciones son siempre iguales y lo que cambia en cada pedido (los caminos al azar, los puntos de partida de las ideas, los renglones ya propuestos) va al final de la entrada, después de la letra. Con `prompt_cache_key` por persona, OpenAI reusa lo ya leído (instrucciones y letra, cuando pasan de unos 1.000 tokens) y lo cobra a una fracción del precio: sirve sobre todo al refrescar alternativas o tocar «¿Qué más cambiaría?» en la misma letra.

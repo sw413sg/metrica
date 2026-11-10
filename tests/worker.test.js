@@ -1,17 +1,22 @@
-import { test, beforeEach, afterEach } from 'node:test';
+import { test, before, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker/src/index.js';
 import { fraseElegida } from '../js/logica/ia.js';
+import { crearCadena, romperFirma } from './cadena-prueba.js';
 
 const LETRA = 'Te busco en el balcón sin razón\ny me quedo solo con mi canción';
 const { pedido } = fraseElegida(LETRA, LETRA.indexOf('me quedo'), LETRA.length);
 const ID = 'abcdefghij0123456789';
-let env, llamadas, fetchOriginal;
+const OTRO = 'zzzzzzzzzzzzzzzz';
+let env, llamadas, fetchOriginal, cadena;
+
+before(async () => { cadena = crearCadena(); });
 
 beforeEach(() => {
     const kv = new Map();
     env = {
-        ORIGENES: 'https://sw413sg.github.io', ESFUERZO: 'low', ESFUERZO_REVISION: 'medium', CUPO_GRATIS: '2', TOPE_DIA: '100', OPENAI_API_KEY: 'sk-prueba',
+        ORIGENES: 'https://sw413sg.github.io', ESFUERZO: 'low', ESFUERZO_REVISION: 'medium', CUPO_GRATIS: '2', TOPE_DIA: '100', TOPE_IP: '100',
+        OPENAI_API_KEY: 'sk-prueba', BUNDLE_ID: 'app.metrica.prueba',
         USO: { get: async k => kv.get(k) ?? null, put: async (k, v) => kv.set(k, v) },
     };
     llamadas = [];
@@ -38,13 +43,16 @@ test('el Worker arma el mensaje, llama al modelo con la clave y descuenta el cup
     assert.equal(llamadas[0].cuerpo.reasoning_effort, 'low');
     assert.match(llamadas[0].cuerpo.messages[1].content, /rimar con «canción»/);
     assert.equal(respuesta.headers.get('Access-Control-Allow-Origin'), 'https://sw413sg.github.io');
+    assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '1');
 });
 
 test('el Worker corta al llegar al cupo del mes', async () => {
     await pedir();
     await pedir();
     const respuesta = await pedir();
-    assert.equal(respuesta.status, 429);
+    assert.equal(respuesta.status, 402);
+    assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '0');
+    assert.equal((await respuesta.json()).error, 'cupo');
     assert.equal(llamadas.length, 2);
 });
 
@@ -84,7 +92,7 @@ test('la letra entera (corta) gasta 2 de la cuota y no se pide si no alcanza', a
     globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":[{"titulo":"t","verso":1,"viejo":"canción","nuevo":"pasión"}]}' } }] }));
     const revision = { versos: [{ n: 0, texto: 'Te busco en el balcón', silabas: 7, estrofa: 0 }, { n: 1, texto: 'y me quedo con mi canción', silabas: 9, estrofa: 0 }] };
     assert.equal((await (await pedir({ revision })).json()).quedan, 1);
-    assert.equal((await pedir({ revision })).status, 429);
+    assert.equal((await pedir({ revision })).status, 402);
     globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":["uno"]}' } }] }));
     const respuesta = await pedir();
     assert.equal(respuesta.status, 200);
@@ -111,14 +119,80 @@ test('la letra entera sin cambios no gasta, hasta 10 por mes', async () => {
     assert.equal((await pedir({ revision })).status, 502);
 });
 
-test('los paquetes de «Más IA» y el regalo de Métrica + suman al tope (también sin plan)', async () => {
-    env.PLAN_SIN_VERIFICAR = 'si';
-    env.TOPE_PLAN = '1';
-    const plan = { 'X-Metrica-Plan': 'metrica.ia' };
-    assert.equal((await (await pedir(undefined, { ...plan, 'X-Metrica-Extra': '300' })).json()).quedan, 300);
-    assert.equal((await (await pedir(undefined, { 'X-Metrica-Extra': '300' })).json()).quedan, 2 + 300 - 2);
-    assert.equal((await pedir(undefined, plan)).status, 429);
-    assert.equal((await (await pedir(undefined, { ...plan, 'X-Metrica-Extra': '999999' })).json()).quedan, 20001 - 3);
+test('X-Metrica-Plan y X-Metrica-Extra no suman cuota', async () => {
+    const respuesta = await pedir(undefined, { 'X-Metrica-Plan': 'metrica.ia', 'X-Metrica-Extra': '999999' });
+    assert.equal(respuesta.status, 200);
+    assert.equal((await respuesta.json()).quedan, 1);
+});
+
+function conRaiz() {
+    env.PRUEBA = 'si';
+    env.RAIZ_DE_PRUEBA = cadena.raizB64;
+    env.CUPO_GRATIS = '0';
+}
+
+test('un JWS válido de la suscripción da 300 y el header de restantes', async () => {
+    conRaiz();
+    const jws = cadena.jws({ transactionId: 'sub1', originalTransactionId: 'sub1' });
+    const respuesta = await pedir(undefined, { 'X-Metrica-JWS': jws });
+    assert.equal(respuesta.status, 200);
+    assert.equal((await respuesta.json()).quedan, 299);
+    assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '299');
+    assert.equal((await (await pedir(undefined, { 'X-Metrica-JWS': jws })).json()).quedan, 298);
+});
+
+test('una firma mala se rechaza y no llama a OpenAI', async () => {
+    conRaiz();
+    const jws = romperFirma(cadena.jws({ transactionId: 'sub2', originalTransactionId: 'sub2' }));
+    const respuesta = await pedir(undefined, { 'X-Metrica-JWS': jws });
+    assert.equal(respuesta.status, 401);
+    assert.equal((await respuesta.json()).error, 'firma');
+    assert.equal(llamadas.length, 0);
+});
+
+test('una cadena que no llega a Apple Root CA - G3 se rechaza', async () => {
+    const jws = cadena.jws({ transactionId: 'sub3', originalTransactionId: 'sub3' });
+    const respuesta = await pedir(undefined, { 'X-Metrica-JWS': jws });
+    assert.equal(respuesta.status, 401);
+    assert.equal((await respuesta.json()).error, 'firma');
+    assert.equal(llamadas.length, 0);
+});
+
+test('una suscripción vencida no da las 300', async () => {
+    conRaiz();
+    env.CUPO_GRATIS = '2';
+    const jws = cadena.jws({ transactionId: 'sub4', originalTransactionId: 'sub4', expiresDate: Date.now() - 60_000 });
+    const respuesta = await pedir(undefined, { 'X-Metrica-JWS': jws });
+    assert.equal(respuesta.status, 200);
+    assert.equal((await respuesta.json()).quedan, 1);
+});
+
+test('el mismo transactionId de un paquete no suma dos veces', async () => {
+    conRaiz();
+    const jws = cadena.jws({
+        productId: 'metrica.ia.mas', type: 'Consumable', transactionId: 'paq1', originalTransactionId: 'paq1',
+    });
+    const primera = await pedir(undefined, { 'X-Metrica-JWS': jws });
+    assert.equal((await primera.json()).quedan, 299);
+    const segunda = await pedir(undefined, { 'X-Metrica-JWS': jws });
+    assert.equal((await segunda.json()).quedan, 298);
+    // Otro id, el mismo JWS: comparte la bolsa, no la vuelve a llenar.
+    const otra = await pedir(undefined, { 'X-Metrica-JWS': jws, 'X-Metrica-Id': OTRO });
+    assert.equal((await otra.json()).quedan, 297);
+});
+
+test('sin cuota responde 402 y X-Metrica-Restantes en 0', async () => {
+    conRaiz();
+    const jws = cadena.jws({
+        productId: 'metrica.ia.mas800', type: 'Consumable', transactionId: 'paq2', originalTransactionId: 'paq2',
+    });
+    env.USO.put = async () => {};
+    env.USO.get = async () => '0';
+    // La bolsa en "0" ya se gastó; sin gratis no queda nada.
+    const respuesta = await pedir(undefined, { 'X-Metrica-JWS': jws });
+    assert.equal(respuesta.status, 402);
+    assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '0');
+    assert.equal(llamadas.length, 0);
 });
 
 test('la app nativa (sin Origin) también puede pedir', async () => {
@@ -172,10 +246,20 @@ test('el Worker también propone de qué hablar en una canción, sin repetir las
     assert.equal((await pedir({ temas: { vistas: Array(21).fill('idea') } })).status, 400);
 });
 
-test('con Métrica + IA el tope es TOPE_PLAN, solo si se acepta la cabecera sin verificar', async () => {
-    env.CUPO_GRATIS = '2'; env.TOPE_PLAN = '500';
-    const conPlan = { 'X-Metrica-Plan': 'metrica.ia' };
-    assert.equal((await (await pedir(undefined, conPlan)).json()).quedan, 1);
-    env.PLAN_SIN_VERIFICAR = 'si';
-    assert.equal((await (await pedir(undefined, conPlan)).json()).quedan, 498);
+test('el cupo gratis se cuenta por id y tiene tope por IP; una compra verificada no', async () => {
+    env.CUPO_GRATIS = '5';
+    env.TOPE_IP = '1';
+    const ip = { 'CF-Connecting-IP': '203.0.113.8' };
+    const primera = await pedir(undefined, ip);
+    assert.equal(primera.headers.get('X-Metrica-Restantes'), '0');
+    const mismaIp = await pedir(undefined, { ...ip, 'X-Metrica-Id': OTRO });
+    assert.equal(mismaIp.status, 402);
+    assert.equal(llamadas.length, 1);
+    const otraIp = await pedir(undefined, { 'CF-Connecting-IP': '203.0.113.9', 'X-Metrica-Id': OTRO });
+    assert.equal(otraIp.status, 200);
+    conRaiz();
+    env.TOPE_IP = '0';
+    const jws = cadena.jws({ transactionId: 'sub5', originalTransactionId: 'sub5' });
+    const paga = await pedir(undefined, { ...ip, 'X-Metrica-JWS': jws });
+    assert.equal((await paga.json()).quedan, 299);
 });

@@ -125,6 +125,7 @@ test('pedirSugerencias avisa sin conexión, sin cupo o con error del servidor', 
     const { pedido } = elegir('y me quedo solo con mi canción');
     const con = respuesta => ({ endpoint: 'https://ia.ejemplo', fetch: async () => respuesta });
     await assert.rejects(pedirSugerencias(pedido, { endpoint: 'https://ia.ejemplo', fetch: async () => { throw new TypeError(); } }), { motivo: 'red' });
+    await assert.rejects(pedirSugerencias(pedido, con({ ok: false, status: 402 })), { motivo: 'cupo' });
     await assert.rejects(pedirSugerencias(pedido, con({ ok: false, status: 429 })), { motivo: 'cupo' });
     await assert.rejects(pedirSugerencias(pedido, con({ ok: false, status: 500 })), { motivo: 'servidor' });
 });
