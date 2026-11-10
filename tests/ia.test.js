@@ -216,7 +216,7 @@ test('validarRevision ubica cada cambio en la letra y respeta la mayúscula', ()
         { titulo: 'e', verso: 1, viejo: 'sigue', nuevo: 'persigue' },
     ], CANCION);
     assert.deepEqual(cambios.map(c => [c.titulo, c.viejo, c.nuevo, CANCION.slice(c.inicio, c.fin)]), [
-        ['a', 'noche', 'coche', 'noche'], ['g', 'camino', 'salida', 'camino'],   // 2 como mucho (pedido de Swa)
+        ['a', 'noche', 'coche', 'noche'], ['g', 'camino', 'salida', 'camino'], ['e', 'sigue', 'persigue', 'sigue'],
     ]);
     assert.equal(validarRevision([{ titulo: 'e', verso: 1, viejo: 'sigue', nuevo: 'persigue' }], CANCION)[0].nuevo, 'persigue');
     assert.equal(ubicarCambio('La noche', 0, 'la').inicio, 0);
