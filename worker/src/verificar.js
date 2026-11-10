@@ -239,6 +239,8 @@ export async function verificarJws(token, { raiz = APPLE_RAIZ, bundleId, ahora }
                 revocationDate: payload.revocationDate ?? null,
                 quantity: payload.quantity ?? null,
                 environment: typeof payload.environment === 'string' ? payload.environment : '',
+                // Solo lo trae el AppTransaction (la «prueba de instalación»): Production, Sandbox (TestFlight) o Xcode.
+                receiptType: typeof payload.receiptType === 'string' ? payload.receiptType : '',
             },
         };
     } catch {

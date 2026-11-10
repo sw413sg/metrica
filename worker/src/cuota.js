@@ -85,6 +85,10 @@ export function totalUsable(cuenta) {
             suma += toma;
             ip -= toma;
             sandboxDia -= toma;
+        } else if (pool.prueba) {
+            const toma = Math.min(queda, sandboxDia);
+            suma += toma;
+            sandboxDia -= toma;
         } else suma += queda;
     }
     return suma;
@@ -99,7 +103,7 @@ async function usadas(kv, clave) {
 // Arma las bolsas de esta persona. La suscripción reemplaza al cupo gratis (no se suman).
 // El regalo y los paquetes quedan en una bolsa por transactionId: si la clave ya existe,
 // se usa lo que queda y no se vuelve a sumar el paquete.
-export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0, sandboxDiaTope = 0, claveDia = '' }) {
+export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0, sandboxDiaTope = 0, claveDia = '', prueba = '', topePrueba = 300, regaloPrueba = 100 }) {
     const reales = compras.filter(c => !c.sandbox);
     const deSandbox = compras.filter(c => c.sandbox);
     const subs = reales.filter(c => c.tipo === 'suscripcion');
@@ -115,6 +119,11 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
     if (sub) {
         const clave = `cuota:mes:${mes}:sub:${sub.originalTransactionId}`;
         pools.push({ tipo: 'mes', clave, tope: sub.consultas, usadas: await usadas(kv, clave) });
+    } else if (prueba === 'metrica.ia') {
+        // La «Compra de prueba» de TestFlight (sin productos en App Store Connect): el AppTransaction
+        // firmado por Apple dice que es TestFlight. Da la cuota del plan, con el tope de Sandbox del día.
+        const clave = `cuota:mes:${mes}:prueba:${id}`;
+        pools.push({ tipo: 'prueba', prueba: true, clave, tope: topePrueba, usadas: await usadas(kv, clave) });
     } else if (deSandbox.length) {
         // El tope va por el recibo (originalTransactionId), no por el id del teléfono.
         const vistos = new Set();
@@ -148,6 +157,13 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
         const restante = guardado == null ? compra.consultas : Math.max(0, Number(guardado) || 0);
         pools.push({ tipo: 'bolsa', bolsa: true, clave, restante, nueva: guardado == null, transactionId: compra.transactionId, delId: compra.guardada });
     }
+    if (prueba === 'metrica.extras' && !sub) {
+        // El regalo de Métrica + en la compra de prueba: una bolsa por id, que no se renueva.
+        const clave = `cuota:bolsa:prueba:${id}`;
+        const guardado = await kv.get(clave);
+        const restante = guardado == null ? regaloPrueba : Math.max(0, Number(guardado) || 0);
+        pools.push({ tipo: 'bolsa', bolsa: true, prueba: true, clave, restante, nueva: guardado == null, delId: true });
+    }
     const ipClave = `cuota:mes:${mes}:ip:${ip}`;
     const sandboxDiaClave = `sandbox:${claveDia}`;
     return {
@@ -180,10 +196,16 @@ export async function descontar(kv, cuenta, gasto, ttl) {
         const queda = restanteDe(pool);
         const puede = pool.tipo === 'gratis' ? Math.min(queda, ipLibre)
             : pool.tipo === 'sandbox' ? Math.min(queda, ipLibre, sandboxDiaLibre)
+            : pool.prueba ? Math.min(queda, sandboxDiaLibre)
             : queda;
         const toma = Math.min(puede, falta);
         if (!toma) continue;
         falta -= toma;
+        if (pool.prueba) {
+            cuenta.sandboxDiaUsadas += toma;
+            sandboxDiaLibre -= toma;
+            tocoSandboxDia = true;
+        }
         if (pool.bolsa) {
             pool.restante -= toma;
             // Sin vencimiento: si la clave se borrara, el mismo JWS volvería a sumar el paquete.

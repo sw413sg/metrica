@@ -390,3 +390,29 @@ test('el cupo gratis se cuenta por id y tiene tope por IP; una compra verificada
     const paga = await pedir(undefined, { ...ip, 'X-Metrica-JWS': jws });
     assert.equal((await paga.json()).quedan, 299);
 });
+
+test('la compra de prueba de TestFlight da 300 con un AppTransaction de Sandbox', async () => {
+    conRaiz();
+    const appTx = cadena.jws({ productId: undefined, transactionId: undefined, type: undefined, receiptType: 'Sandbox' });
+    const respuesta = await pedir(undefined, { 'X-Metrica-Simulada': 'metrica.ia', 'X-Metrica-Prueba': appTx });
+    assert.equal(respuesta.status, 200);
+    assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '299');
+});
+
+test('la compra de prueba con Métrica + da 100 de regalo, y el cupo gratis aparte', async () => {
+    conRaiz();
+    env.CUPO_GRATIS = '2';
+    const appTx = cadena.jws({ productId: undefined, transactionId: undefined, type: undefined, receiptType: 'Sandbox' });
+    const respuesta = await pedir(undefined, { 'X-Metrica-Simulada': 'metrica.extras', 'X-Metrica-Prueba': appTx });
+    assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '101');
+});
+
+test('un AppTransaction del App Store (Production) no da la compra de prueba', async () => {
+    conRaiz();
+    const appTx = cadena.jws({ productId: undefined, transactionId: undefined, type: undefined, receiptType: 'Production' });
+    const respuesta = await pedir(undefined, { 'X-Metrica-Simulada': 'metrica.ia', 'X-Metrica-Prueba': appTx });
+    assert.equal(respuesta.status, 402);
+    // Y sin la firma de Apple, tampoco.
+    const falso = romperFirma(cadena.jws({ receiptType: 'Sandbox' }));
+    assert.equal((await pedir(undefined, { 'X-Metrica-Simulada': 'metrica.ia', 'X-Metrica-Prueba': falso })).status, 402);
+});
