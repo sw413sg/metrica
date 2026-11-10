@@ -128,22 +128,32 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
         const clave = `cuota:mes:${mes}:id:${id}`;
         pools.push({ tipo: 'gratis', clave, tope: cupoGratis, usadas: await usadas(kv, clave) });
     }
-    const bolsas = reales
-        .filter(c => c.tipo === 'plus' || c.tipo === 'paquete')
-        .sort((a, b) => (a.transactionId < b.transactionId ? -1 : 1));
+    // Los paquetes ya vistos de este id: la app cierra la transacción del paquete apenas el Worker
+    // contesta y no vuelve a mandar su JWS, así que lo que queda se busca por el id.
+    const claveDelId = `cuota:bolsas:id:${id}`;
+    let delId = [];
+    try { delId = JSON.parse(await kv.get(claveDelId) ?? '[]'); } catch { delId = []; }
+    if (!Array.isArray(delId)) delId = [];
+    const porTx = new Map();
+    for (const tid of delId) if (typeof tid === 'string') porTx.set(tid, { transactionId: tid, consultas: 0, guardada: true });
+    for (const c of reales) {
+        if (c.tipo === 'plus' || c.tipo === 'paquete') porTx.set(c.transactionId, { ...c, guardada: porTx.has(c.transactionId) });
+    }
+    const bolsas = [...porTx.values()].sort((a, b) => (a.transactionId < b.transactionId ? -1 : 1));
     for (const compra of bolsas) {
         const clave = `cuota:bolsa:${compra.transactionId}`;
         const guardado = await kv.get(clave);
         // null: primera vez que vemos esta transacción, y vale el paquete entero.
         // "0" o cualquier número: ya se acreditó y esto es lo que queda.
         const restante = guardado == null ? compra.consultas : Math.max(0, Number(guardado) || 0);
-        pools.push({ tipo: 'bolsa', bolsa: true, clave, restante });
+        pools.push({ tipo: 'bolsa', bolsa: true, clave, restante, nueva: guardado == null, transactionId: compra.transactionId, delId: compra.guardada });
     }
     const ipClave = `cuota:mes:${mes}:ip:${ip}`;
     const sandboxDiaClave = `sandbox:${claveDia}`;
     return {
         pools,
         ipClave,
+        claveDelId,
         ipTope: topeIp,
         ipUsadas: await usadas(kv, ipClave),
         sandboxDiaClave,
@@ -207,6 +217,19 @@ export async function operarCuota(kv, pedido) {
     const quedan = totalUsable(cuenta);
     if (pedido.accion === 'mirar') return { quedan, dia };
     if (dia >= pedido.topeDia) return { error: 'ocupado', quedan };
+    // Un paquete que llega por primera vez se anota ya, aunque este pedido lo pague el mes: la app
+    // cierra la transacción cuando ve X-Metrica-Restantes y no vuelve a mandar ese JWS. Si no quedara
+    // anotado acá, el paquete se perdía entero.
+    await Promise.all(cuenta.pools.filter(p => p.nueva).map(p => {
+        p.nueva = false;
+        return kv.put(p.clave, String(p.restante));
+    }));
+    const sinId = cuenta.pools.filter(p => p.bolsa && !p.delId);
+    if (sinId.length) {
+        const lista = cuenta.pools.filter(p => p.bolsa).map(p => p.transactionId);
+        await kv.put(cuenta.claveDelId, JSON.stringify(lista));
+        for (const p of sinId) p.delId = true;
+    }
     if (pedido.accion === 'vacia') {
         const hechas = await Promise.all(cuenta.clavesVacias.map(async k => Number(await kv.get(k)) || 0));
         if (Math.max(0, ...hechas) >= pedido.limiteVacias) return { ok: false, quedan };
