@@ -6,7 +6,8 @@
 export const MODELO_IA = 'gpt-6.1-terra';
 // Cuánto gasta cada consulta de la cuota del mes (pedido de Swa). La letra entera piensa más y lee
 // todo, así que gasta según sus versos: 2 hasta 20, 3 hasta 40 y 4 si es más larga.
-export const GASTO_IA = { frase: 1, temas: 1, revision: versos => versos <= 20 ? 2 : versos <= 40 ? 3 : 4 };
+// «¿Qué más cambiaría?» (con `ya`) gasta 1 menos, como mínimo 1: la letra ya está en la caché de OpenAI.
+export const GASTO_IA = { frase: 1, temas: 1, revision: (versos, otraVez = false) => Math.max(otraVez ? 1 : 2, (versos <= 20 ? 2 : versos <= 40 ? 3 : 4) - (otraVez ? 1 : 0)) };
 // «¿Qué cambiaría Métrica IA?» que no encuentra nada no gasta cuota (pedido de Swa), pero igual cuesta
 // tokens: hasta estas por mes y por persona; después gasta como cualquier otra.
 export const REVISIONES_SIN_CAMBIOS = 10;

@@ -259,3 +259,9 @@ test('las ideas salen de puntos de partida al azar, distintos en cada pedido', a
     assert.notEqual(uno, otro);
     assert.equal(SEMILLAS_TEMAS.filter(t => uno.includes(t)).length, 4);
 });
+
+test('«¿Qué más cambiaría?» gasta uno menos', async () => {
+    const { GASTO_IA } = await import('../js/logica/ia-prompt.js');
+    assert.deepEqual([10, 30, 80].map(v => GASTO_IA.revision(v, true)), [1, 2, 3]);
+    assert.deepEqual([10, 30, 80].map(v => GASTO_IA.revision(v)), [2, 3, 4]);
+});
