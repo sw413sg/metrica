@@ -23,11 +23,11 @@ BUNDLE_ID = "com.sw413sg.metrica"
 # 20 gratis por mes, contados por X-Metrica-Id. Las 300 de la suscripción, las 100 de Métrica +
 # y los paquetes están en el código (worker/src/cuota.js), no acá: un cambio de variable no los infla.
 CUPO_GRATIS = "20"
-# Tope de esas consultas gratis por IP y por mes, para que rotar el id no sea infinito.
-# Solo frena el cupo gratis; una compra verificada no. En una NAT de operador puede hacer falta subirlo.
+# Tope por IP y por mes del cupo gratis y de Sandbox. Una compra de Production no entra.
+# En una NAT de operador puede hacer falta subirlo.
 TOPE_IP = "100"
 # App Review y TestFlight compran en Sandbox contra este servidor. No se les da la cuota real
-# del producto: cualquier compra Sandbox comparte este tope por mes y por X-Metrica-Id.
+# del producto: el mismo recibo (originalTransactionId) comparte este tope por mes, aunque rote el id.
 SANDBOX_CONSULTAS_MES = "30"
 # Tope de todas las consultas Sandbox juntas, por día, en todo el servidor.
 SANDBOX_TOPE_GLOBAL_DIA = "300"
