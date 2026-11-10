@@ -129,6 +129,9 @@ async function llamarModelo(env, instrucciones, entrada, tope, id, esfuerzo = en
                 ...(esfuerzo ? { reasoning_effort: esfuerzo } : {}),
                 max_completion_tokens: tope,
                 user: id,
+                // Las instrucciones son siempre las mismas y la letra se repite entre pedidos de una misma
+                // persona: con esta clave OpenAI reusa lo ya leído y lo cobra mucho más barato.
+                prompt_cache_key: `metrica-${id}`,
             }),
         });
     } catch (e) {

@@ -113,7 +113,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
         'Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
         'Cada una tiene que tener sentido completo por sí sola y encajar gramaticalmente en el verso donde va: nada de frases cortadas, palabras sueltas al final ni ideas que no se entienden.',
         'Leé la letra entera: que sigan su tema, su historia y su tono, sin repetir imágenes ni palabras fuertes que ya usa.',
-        `Que sean distintas entre sí; por ejemplo: ${caminos.join(', ')}.`,
+        'Que sean distintas entre sí, por los caminos que se piden al final.',
         'La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
         'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',
         'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
@@ -122,8 +122,12 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
     if (pedido.enVerso) lineas.push(`La frase está en el verso: «${pedido.enVerso}».`);
     lineas.push(`Frase elegida: ${describir(pedido.verso)}.`);
     lineas.push(`Sílabas buscadas: ${pedido.objetivo.silabas}.`);
+    // Lo que cambia en cada pedido va al final: así el comienzo (instrucciones y letra) se repite igual
+    // y OpenAI lo cobra más barato con su caché.
+    const caminosPedidos = `Caminos para esta vez: ${caminos.join(', ')}.`;
     lineas.push(`La última palabra tiene que rimar con «${final.palabra}» (consonante «-${final.consonante}»).`);
     if (internas.length) lineas.push(`Rimas internas para mantener: ${internas.map(i => `«${i.palabra}»`).join(', ')}.`);
+    lineas.push(caminosPedidos);
     return { instrucciones, entrada: lineas.join('\n\n') };
 }
 
@@ -164,7 +168,8 @@ export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION, { pais }
         estrofa = v.estrofa;
         return `${corte}${v.n} (${v.silabas}) ${v.texto}`;
     });
-    return { instrucciones: instrucciones + yaPropuestos, entrada: `Letra (número de renglón, sílabas y verso):\n${lineas.join('\n')}` };
+    // Los renglones ya propuestos van al final, así la letra repetida aprovecha la caché de OpenAI.
+    return { instrucciones, entrada: `Letra (número de renglón, sílabas y verso):\n${lineas.join('\n')}${yaPropuestos ? `\n${yaPropuestos}` : ''}` };
 }
 
 // La lista de cambios que contesta el modelo, solo con los campos que sirven.
@@ -226,12 +231,13 @@ export function promptDeTemas(temas, cantidad = TEMAS_IA, { pais, azar = Math.ra
         'Ahora ayudás a alguien a arrancar una letra nueva.',
         `Proponé ${cantidad} ideas de qué hablar en una canción. Cada una es un tema concreto con su ángulo: una situación, un momento, una persona o un lugar, no una palabra suelta ni algo genérico como «el amor» o «la vida».`,
         'Cosas que una persona común vivió o puede vivir. Nada de lujos ni de vidas que casi nadie vive (ser millonario, autos caros, fama).',
-        `Para esta vez, una idea por cada punto de partida, en este orden: ${semillas.map((t, n) => `${t} (${tonos[n]})`).join('; ')}. Tomalos como punto de partida, no como frase: buscá un ángulo propio y sorprendente.`,
+        'Hacé una idea por cada punto de partida que se pide, en ese orden. Tomalos como punto de partida, no como frase: buscá un ángulo propio y sorprendente.',
         'Cada una es una sola frase en segunda persona que invite a escribir, de 25 palabras como mucho, sin comillas, sin numerar y sin explicar nada.',
         'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
     ].join('\n');
     const lineas = [`Dame ${cantidad} ideas de qué hablar en una canción.`];
     if (temas.vistas?.length) lineas.push(`Que no se parezcan a estas, que ya vio:\n${temas.vistas.map(v => `- ${v}`).join('\n')}`);
+    lineas.push(`Puntos de partida para esta vez: ${semillas.map((t, n) => `${t} (${tonos[n]})`).join('; ')}.`);
     return { instrucciones, entrada: lineas.join('\n\n') };
 }
 
