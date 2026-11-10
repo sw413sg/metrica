@@ -68,13 +68,24 @@ function restanteDe(pool) {
     return pool.bolsa ? Math.max(0, pool.restante) : Math.max(0, pool.tope - pool.usadas);
 }
 
-// Lo que esta persona puede gastar ahora. El cupo gratis además no puede pasar el tope de la IP.
+// Lo que se puede gastar ahora. Gratis y Sandbox comparten el tope de la IP.
+// Sandbox, además, no pasa el tope global del día.
 export function totalUsable(cuenta) {
     let ip = Math.max(0, cuenta.ipTope - cuenta.ipUsadas);
+    let sandboxDia = Math.max(0, cuenta.sandboxDiaTope - cuenta.sandboxDiaUsadas);
     let suma = 0;
     for (const pool of cuenta.pools) {
-        if (pool.tipo === 'gratis') suma += Math.min(restanteDe(pool), ip);
-        else suma += restanteDe(pool);
+        const queda = restanteDe(pool);
+        if (pool.tipo === 'gratis') {
+            const toma = Math.min(queda, ip);
+            suma += toma;
+            ip -= toma;
+        } else if (pool.tipo === 'sandbox') {
+            const toma = Math.min(queda, ip, sandboxDia);
+            suma += toma;
+            ip -= toma;
+            sandboxDia -= toma;
+        } else suma += queda;
     }
     return suma;
 }
@@ -88,9 +99,9 @@ async function usadas(kv, clave) {
 // Arma las bolsas de esta persona. La suscripción reemplaza al cupo gratis (no se suman).
 // El regalo y los paquetes quedan en una bolsa por transactionId: si la clave ya existe,
 // se usa lo que queda y no se vuelve a sumar el paquete.
-export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0 }) {
+export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0, sandboxDiaTope = 0, claveDia = '' }) {
     const reales = compras.filter(c => !c.sandbox);
-    const haySandbox = compras.some(c => c.sandbox);
+    const deSandbox = compras.filter(c => c.sandbox);
     const subs = reales.filter(c => c.tipo === 'suscripcion');
     let sub = null;
     if (subs.length) {
@@ -104,10 +115,15 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
     if (sub) {
         const clave = `cuota:mes:${mes}:sub:${sub.originalTransactionId}`;
         pools.push({ tipo: 'mes', clave, tope: sub.consultas, usadas: await usadas(kv, clave) });
-    } else if (haySandbox) {
-        // Un tope chico para todas las compras de Sandbox juntas, por id y por mes.
-        const clave = `cuota:mes:${mes}:sandbox:${id}`;
-        pools.push({ tipo: 'sandbox', clave, tope: sandboxTope, usadas: await usadas(kv, clave) });
+    } else if (deSandbox.length) {
+        // El tope va por el recibo (originalTransactionId), no por el id del teléfono.
+        const vistos = new Set();
+        for (const compra of deSandbox) {
+            if (vistos.has(compra.originalTransactionId)) continue;
+            vistos.add(compra.originalTransactionId);
+            const clave = `cuota:mes:${mes}:sandbox:${compra.originalTransactionId}`;
+            pools.push({ tipo: 'sandbox', clave, tope: sandboxTope, usadas: await usadas(kv, clave) });
+        }
     } else {
         const clave = `cuota:mes:${mes}:id:${id}`;
         pools.push({ tipo: 'gratis', clave, tope: cupoGratis, usadas: await usadas(kv, clave) });
@@ -124,11 +140,15 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
         pools.push({ tipo: 'bolsa', bolsa: true, clave, restante });
     }
     const ipClave = `cuota:mes:${mes}:ip:${ip}`;
+    const sandboxDiaClave = `sandbox:${claveDia}`;
     return {
         pools,
         ipClave,
         ipTope: topeIp,
         ipUsadas: await usadas(kv, ipClave),
+        sandboxDiaClave,
+        sandboxDiaTope,
+        sandboxDiaUsadas: await usadas(kv, sandboxDiaClave),
         clavesVacias: sub
             ? [`vacias:${mes}:sub:${sub.originalTransactionId}`]
             : [`vacias:${mes}:id:${id}`, `vacias:${mes}:ip:${ip}`],
@@ -141,10 +161,16 @@ export async function descontar(kv, cuenta, gasto, ttl) {
     if (totalUsable(cuenta) < gasto) return null;
     let falta = gasto;
     let ipLibre = Math.max(0, cuenta.ipTope - cuenta.ipUsadas);
+    let sandboxDiaLibre = Math.max(0, cuenta.sandboxDiaTope - cuenta.sandboxDiaUsadas);
     const escrituras = [];
+    let tocoIp = false;
+    let tocoSandboxDia = false;
     for (const pool of cuenta.pools) {
         if (!falta) break;
-        const puede = pool.tipo === 'gratis' ? Math.min(restanteDe(pool), ipLibre) : restanteDe(pool);
+        const queda = restanteDe(pool);
+        const puede = pool.tipo === 'gratis' ? Math.min(queda, ipLibre)
+            : pool.tipo === 'sandbox' ? Math.min(queda, ipLibre, sandboxDiaLibre)
+            : queda;
         const toma = Math.min(puede, falta);
         if (!toma) continue;
         falta -= toma;
@@ -155,13 +181,20 @@ export async function descontar(kv, cuenta, gasto, ttl) {
         } else {
             pool.usadas += toma;
             escrituras.push(kv.put(pool.clave, String(pool.usadas), { expirationTtl: ttl }));
-            if (pool.tipo === 'gratis') {
+            if (pool.tipo === 'gratis' || pool.tipo === 'sandbox') {
                 cuenta.ipUsadas += toma;
                 ipLibre -= toma;
-                escrituras.push(kv.put(cuenta.ipClave, String(cuenta.ipUsadas), { expirationTtl: ttl }));
+                tocoIp = true;
+            }
+            if (pool.tipo === 'sandbox') {
+                cuenta.sandboxDiaUsadas += toma;
+                sandboxDiaLibre -= toma;
+                tocoSandboxDia = true;
             }
         }
     }
+    if (tocoIp) escrituras.push(kv.put(cuenta.ipClave, String(cuenta.ipUsadas), { expirationTtl: ttl }));
+    if (tocoSandboxDia) escrituras.push(kv.put(cuenta.sandboxDiaClave, String(cuenta.sandboxDiaUsadas), { expirationTtl: ttl }));
     await Promise.all(escrituras);
     return totalUsable(cuenta);
 }

@@ -87,7 +87,9 @@ async function ia(request, env, responder) {
     const base = {
         mes, id, ip: ipDe(request), compras: compras.lista, claveDia,
         cupoGratis: entero(env.CUPO_GRATIS, 20), topeIp: entero(env.TOPE_IP, 100),
-        sandboxTope: entero(env.SANDBOX_CONSULTAS_MES, 30), topeDia: entero(env.TOPE_DIA, 5000),
+        sandboxTope: entero(env.SANDBOX_CONSULTAS_MES, 30),
+        sandboxDiaTope: entero(env.SANDBOX_TOPE_GLOBAL_DIA, 300),
+        topeDia: entero(env.TOPE_DIA, 5000),
         limiteVacias: REVISIONES_SIN_CAMBIOS, ttl: TTL,
     };
     const vista = await pedirCuota(env, { ...base, accion: 'mirar' });

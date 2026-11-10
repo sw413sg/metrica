@@ -29,6 +29,8 @@ TOPE_IP = "100"
 # App Review y TestFlight compran en Sandbox contra este servidor. No se les da la cuota real
 # del producto: cualquier compra Sandbox comparte este tope por mes y por X-Metrica-Id.
 SANDBOX_CONSULTAS_MES = "30"
+# Tope de todas las consultas Sandbox juntas, por día, en todo el servidor.
+SANDBOX_TOPE_GLOBAL_DIA = "300"
 # Techo de pedidos de todos juntos en un día: 1000 son unos USD 3,50. Subirlo cuando salga al público.
 TOPE_DIA = "1000"
 

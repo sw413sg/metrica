@@ -33,12 +33,12 @@ Qué suma, una vez verificado:
 | Compra | productId | Cuota |
 | --- | --- | --- |
 | Sin compra | — | `CUPO_GRATIS` (20) por mes, por `X-Metrica-Id`, y como mucho `TOPE_IP` (100) por mes en la misma IP |
-| Sandbox (App Review, TestFlight) | cualquiera de los de arriba, con `environment: Sandbox` | `SANDBOX_CONSULTAS_MES` (30) por mes y por id, para todas juntas. No suma 100, 300 ni los paquetes |
+| Sandbox (App Review, TestFlight) | cualquiera de los de arriba, con `environment: Sandbox` | `SANDBOX_CONSULTAS_MES` (30) por mes y por `originalTransactionId` (el mismo recibo comparte los 30 aunque rote el id). También cuenta en el tope por IP y en `SANDBOX_TOPE_GLOBAL_DIA` (300) de todas las consultas Sandbox del día. No suma 100, 300 ni los paquetes |
 | Métrica + | `metrica.extras` | 100 de regalo, una sola vez, no se renuevan con el mes |
 | Métrica + IA | `metrica.ia` | 300 por mes (reemplaza a las 20, no se suman) |
 | Más IA | `metrica.ia.mas`, `metrica.ia.mas5`, `metrica.ia.mas10`, `metrica.ia.mas30`, `metrica.ia.mas50` | 300, 800, 1.650, 5.000 y 8.500, una sola vez por `transactionId` |
 
-El regalo y los paquetes quedan en la clave `cuota:bolsa:<transactionId>` hasta que se gastan. No lleva vencimiento: si se borrara, el mismo JWS volvería a sumar. La suscripción va en `cuota:mes:<aaaa-mm>:sub:<originalTransactionId>`, así una renovación no reinicia el mes. El cupo gratis va en `cuota:mes:<aaaa-mm>:id:<id>`, el de Sandbox en `cuota:mes:<aaaa-mm>:sandbox:<id>` y el tope de IP en `cuota:mes:<aaaa-mm>:ip:<ip>`. Primero se gasta el mes (se renueva) y después el regalo y los paquetes.
+El regalo y los paquetes quedan en la clave `cuota:bolsa:<transactionId>` hasta que se gastan. No lleva vencimiento: si se borrara, el mismo JWS volvería a sumar. La suscripción va en `cuota:mes:<aaaa-mm>:sub:<originalTransactionId>`, así una renovación no reinicia el mes. El cupo gratis va en `cuota:mes:<aaaa-mm>:id:<id>`, el de Sandbox en `cuota:mes:<aaaa-mm>:sandbox:<originalTransactionId>`, el tope de IP (gratis y Sandbox) en `cuota:mes:<aaaa-mm>:ip:<ip>` y el tope global de Sandbox en `sandbox:dia:<aaaa-mm-dd>`. Primero se gasta el mes (se renueva) y después el regalo y los paquetes.
 
 Esas claves no viven en el KV: las guarda el Durable Object `Cuota` (binding `CUOTA`), un solo objeto para todos. Leer, chequear y descontar es una transacción, así dos pedidos a la vez no se pisan la bolsa.
 
@@ -56,7 +56,7 @@ Durable Object: tampoco se crea a mano en el panel. El `wrangler.toml` declara e
 Una sola vez, en el panel de Cloudflare (ya hecho el 2026-11-09; se repite solo si se arma el Worker de cero):
 1. Workers & Pages › Create › Import a repository › `sw413sg/metrica`. Nombre `metrica`, carpeta (root directory) `worker`, el resto como viene.
 2. El KV `USO` ya está creado («metrica-uso») y su `id` va en `wrangler.toml` (sin id, wrangler lo creaba en el primer despliegue pero en el segundo fallaba con «already exists»).
-3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá). Al desplegar esta versión se van `PLAN_SIN_VERIFICAR` y `TOPE_PLAN`, y entran `BUNDLE_ID`, `TOPE_IP` y `SANDBOX_CONSULTAS_MES`. El Durable Object `CUOTA` lo registra la migration del mismo deploy.
+3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá). Al desplegar esta versión se van `PLAN_SIN_VERIFICAR` y `TOPE_PLAN`, y entran `BUNDLE_ID`, `TOPE_IP`, `SANDBOX_CONSULTAS_MES` y `SANDBOX_TOPE_GLOBAL_DIA`. El Durable Object `CUOTA` lo registra la migration del mismo deploy. Los contadores del mes arrancan de cero en ese primer deploy: el DO no lee el KV `USO`, así que quien ya gastó sus 20 gratis las vuelve a tener. No se arrastran los usos viejos.
 4. `BUNDLE_ID` es `com.sw413sg.metrica` (el del target de Xcode).
 5. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true`, `"kv":true` y `"cuota":true`. Después del merge a `main`, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
 
