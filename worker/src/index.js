@@ -4,7 +4,7 @@
 // - POST /ia: «Mejorar frase» y «Lo que cambiaría». Recibe el pedido que arma la app, arma el mensaje
 //   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y cuenta
 //   el uso de cada persona por mes en KV.
-import { MODELO_IA, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision } from '../../js/logica/ia-prompt.js';
+import { MODELO_IA, GASTO_IA, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
 
@@ -19,7 +19,7 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-Plan',
             Vary: 'Origin',
         };
         const responder = (datos, status = 200) => new Response(JSON.stringify(datos), {
@@ -48,24 +48,33 @@ async function ia(request, env, responder) {
     if (!/^[a-z0-9]{16,64}$/.test(id)) return responder({ error: 'id' }, 400);
     let cuerpo;
     try { cuerpo = await request.json(); } catch { return responder({ error: 'json' }, 400); }
-    // Dos clases de pedido: mejorar una frase o palabra (`pedido`) o revisar la letra entera (`revision`).
+    // Tres clases de pedido: mejorar una frase o palabra (`pedido`), revisar la letra entera (`revision`)
+    // o ideas de qué hablar en una canción (`temas`).
     const revision = cuerpo?.revision != null;
-    if (revision ? !revisionValida(cuerpo.revision) : !pedidoValido(cuerpo?.pedido)) return responder({ error: 'pedido' }, 400);
+    const temas = !revision && cuerpo?.temas != null;
+    const valido = revision ? revisionValida(cuerpo.revision) : temas ? temasValido(cuerpo.temas) : pedidoValido(cuerpo?.pedido);
+    if (!valido) return responder({ error: 'pedido' }, 400);
 
     // Límite por persona y por mes, y un techo de todo el día para que la cuenta no se dispare.
     const ahora = new Date().toISOString();
     const clavePersona = `uso:${ahora.slice(0, 7)}:${id}`;
     const claveDia = `dia:${ahora.slice(0, 10)}`;
     const [usadas, delDia] = (await Promise.all([env.USO.get(clavePersona), env.USO.get(claveDia)])).map(v => Number(v) || 0);
-    // TODO cuando se decida el plan: con un comprobante válido de StoreKit, el tope es TOPE_PLAN.
-    const tope = Number(env.CUPO_GRATIS) || 20;
-    if (usadas >= tope) return responder({ error: 'cupo', quedan: 0 }, 429);
+    // Con Métrica + IA (suscripción `metrica.ia`), TOPE_PLAN; si no, CUPO_GRATIS. TODO antes del App
+    // Store: verificar el comprobante firmado de StoreKit en vez de creerle a la cabecera (mientras
+    // tanto, PLAN_SIN_VERIFICAR = "si" la acepta, para probar en TestFlight).
+    const plan = request.headers.get('X-Metrica-Plan') === 'metrica.ia' && env.PLAN_SIN_VERIFICAR === 'si';
+    const tope = plan ? Number(env.TOPE_PLAN) || 500 : Number(env.CUPO_GRATIS) || 20;
+    // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
+    const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length) : temas ? GASTO_IA.temas : GASTO_IA.frase;
+    if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
-    const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision) : promptDeSugerencias(cuerpo.pedido);
+    const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision)
+        : temas ? promptDeTemas(cuerpo.temas) : promptDeSugerencias(cuerpo.pedido);
     const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 3000 : 1000, id, revision ? env.ESFUERZO_REVISION : env.ESFUERZO);
     if (error) return responder({ error: 'modelo' }, 502);
-    const sugerencias = revision ? leerRevision(contenido) : leerRespuesta(contenido).slice(0, 10);
+    const sugerencias = revision ? leerRevision(contenido) : temas ? leerTemas(contenido) : leerRespuesta(contenido).slice(0, 10);
     if (!sugerencias.length) {
         console.log('El modelo no devolvió sugerencias que se puedan leer:', contenido.slice(0, 300));
         return responder({ error: 'modelo' }, 502);
@@ -73,8 +82,8 @@ async function ia(request, env, responder) {
 
     // Solo cuenta si salió bien.
     const ttl = { expirationTtl: DIAS_KV * 24 * 60 * 60 };
-    await Promise.all([env.USO.put(clavePersona, String(usadas + 1), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
-    return responder({ sugerencias, quedan: tope - usadas - 1 });
+    await Promise.all([env.USO.put(clavePersona, String(usadas + gasto), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
+    return responder({ sugerencias, quedan: tope - usadas - gasto });
 }
 
 // Llama a OpenAI. Devuelve { contenido } o { error } (el error también queda en los logs del Worker,

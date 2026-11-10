@@ -4,6 +4,9 @@
 // el mensaje de verdad, así el servidor no sirve para pedirle cualquier cosa al modelo.
 
 export const MODELO_IA = 'gpt-6.1-terra';
+// Cuánto gasta cada consulta de la cuota del mes (pedido de Swa). La letra entera piensa más y lee
+// todo, así que gasta según sus versos: 2 hasta 20, 3 hasta 40 y 4 si es más larga.
+export const GASTO_IA = { frase: 1, temas: 1, revision: versos => versos <= 20 ? 2 : versos <= 40 ? 3 : 4 };
 // Cuántas pide la app: 3 o 4 por frase. Se piden algunas de más porque el motor descarta las que no cumplen.
 export const SUGERENCIAS_IA = 4;
 export const PEDIDAS_IA = 6;
@@ -19,6 +22,11 @@ const versoValido = v => v && texto(v.texto) && Number.isInteger(v.silabas) && v
     && (v.final == null || texto(v.final.palabra, 40))
     && (v.internas == null || (Array.isArray(v.internas) && v.internas.length <= 12 && v.internas.every(i => texto(i?.palabra, 40))));
 
+// La letra entera de contexto (renglones vacíos incluidos, separan estrofas) y cuál es el verso.
+const letraValida = (letra, en) => Array.isArray(letra) && letra.length <= VERSOS_REVISION
+    && letra.every(v => typeof v === 'string' && v.length <= LARGO_MAXIMO)
+    && Number.isInteger(en) && en >= 0 && en < letra.length;
+
 // El servidor revisa que el pedido tenga la forma de siempre y no sea largo (si no, no lo manda).
 export function pedidoValido(pedido) {
     return Boolean(pedido && versoValido(pedido.verso)
@@ -26,6 +34,7 @@ export function pedidoValido(pedido) {
         && Array.isArray(pedido.estrofa) && pedido.estrofa.length <= VERSOS_ESTROFA && pedido.estrofa.every(v => texto(v))
         && Number.isInteger(pedido.objetivo?.silabas)
         && (pedido.enVerso == null || texto(pedido.enVerso))
+        && (pedido.letra == null || letraValida(pedido.letra, pedido.enLetra))
         && (pedido.palabra == null || (texto(pedido.palabra.texto, 40) && typeof pedido.palabra.final === 'boolean')));
 }
 
@@ -39,6 +48,11 @@ const describir = v => {
 // { instrucciones, entrada }: el mensaje de sistema y el del usuario, en texto.
 export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA) {
     const contexto = [];
+    // La letra entera va primero y solo de contexto: el tema, el tono y lo que ya se dijo (pedido de Swa).
+    if (pedido.letra?.some(v => v.trim())) {
+        const letra = pedido.letra.map((v, n) => n === pedido.enLetra ? `>> ${v}` : v).join('\n').replace(/\n{3,}/g, '\n\n');
+        contexto.push(`Letra entera, solo para entender de qué habla y qué ya se dijo (el verso marcado con >> es el de la frase):\n${letra.trim()}`);
+    }
     if (pedido.estrofa.length) contexto.push(`Estrofa:\n${pedido.estrofa.join('\n')}`);
     if (pedido.anterior) contexto.push(`Verso anterior: ${describir(pedido.anterior)}.`);
     if (pedido.palabra) {
@@ -48,6 +62,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
             pedido.palabra.final && pedido.objetivo.rimaCon
                 ? `Es la última del verso: tienen que rimar con «${pedido.objetivo.rimaCon}» (mejor consonante, si no asonante).`
                 : 'Va en el medio del verso: mejor si suenan con las rimas internas de la estrofa.',
+            'Que siga el tema y el tono de la letra, sin repetir palabras que ya están en ella.',
             'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
         ].join('\n');
         contexto.push(`Verso: ${describir(pedido.verso)}.`, `Palabra para cambiar: «${pedido.palabra.texto}».`);
@@ -59,6 +74,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
         'Sos un compositor de rap y canciones en español rioplatense que ayuda a escribir.',
         `Escribí ${cantidad} frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
         'Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
+        'Leé la letra entera: que sigan su tema, su historia y su tono, sin repetir imágenes ni palabras fuertes que ya usa.',
         'Que sean distintas entre sí: una más directa, una con una metáfora, una más de calle o de barrio, una que cambie el punto de vista.',
         'La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
         'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',
@@ -128,4 +144,39 @@ export function leerRespuesta(contenido) {
     } catch {
         return [];
     }
+}
+
+// ---------- Temas: de qué hablar en una canción (pestaña «Sugerencias IA» de la letra vacía y el baúl) ----------
+// La app manda solo las ideas que ya se vieron (para no repetir); vuelven ideas de una frase.
+export const TEMAS_IA = 4;
+const TEMAS_VISTOS = 20;
+const LARGO_TEMA = 200;
+
+export function temasValido(temas) {
+    const vistas = temas?.vistas ?? [];
+    return Boolean(temas && typeof temas === 'object' && Array.isArray(vistas) && vistas.length <= TEMAS_VISTOS
+        && vistas.every(v => texto(v, LARGO_TEMA)));
+}
+
+export function promptDeTemas(temas, cantidad = TEMAS_IA) {
+    const instrucciones = [
+        'Sos un compositor de rap y canciones en español rioplatense que ayuda a alguien a arrancar una letra nueva.',
+        `Proponé ${cantidad} ideas de qué hablar en una canción. Cada una es un tema concreto con su ángulo: una situación, un momento, una persona o un lugar, no una palabra suelta ni algo genérico como «el amor» o «la vida».`,
+        'Cosas que una persona común vivió o puede vivir: amor y desamor, el barrio, la familia, los amigos, el laburo, la plata que no alcanza, salir de noche, superarse, extrañar, viajar. Nada de lujos ni de vidas que casi nadie vive (ser millonario, autos caros, fama).',
+        'Que sean distintas entre sí en tema y en tono: una tierna, una con bronca, una de fiesta, una que dé nostalgia.',
+        'Cada una es una sola frase en segunda persona que invite a escribir, de 25 palabras como mucho, sin comillas, sin numerar y sin explicar nada (por ejemplo: «Contá la última vez que viste a alguien sin saber que era la última»).',
+        'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+    ].join('\n');
+    const lineas = [`Dame ${cantidad} ideas de qué hablar en una canción.`];
+    if (temas.vistas?.length) lineas.push(`Que no se parezcan a estas, que ya vio:\n${temas.vistas.map(v => `- ${v}`).join('\n')}`);
+    return { instrucciones, entrada: lineas.join('\n\n') };
+}
+
+// Las ideas que vuelven: frases con algo, no muy largas, sin repetir. Hasta 4.
+export function leerTemas(contenido) {
+    const vistas = new Set();
+    return leerRespuesta(contenido)
+        .map(t => t.trim().replace(/^[«"“]+|[»"”]+$/g, '').trim())
+        .filter(t => t && t.length <= LARGO_TEMA && !vistas.has(t.toLowerCase()) && vistas.add(t.toLowerCase()))
+        .slice(0, TEMAS_IA);
 }
