@@ -68,7 +68,8 @@ export function pedidoValido(pedido) {
         && Number.isInteger(pedido.objetivo?.silabas)
         && (pedido.enVerso == null || texto(pedido.enVerso))
         && (pedido.letra == null || letraValida(pedido.letra, pedido.enLetra))
-        && (pedido.palabra == null || (texto(pedido.palabra.texto, 40) && typeof pedido.palabra.final === 'boolean')));
+        && (pedido.palabra == null || (texto(pedido.palabra.texto, 40) && typeof pedido.palabra.final === 'boolean'))
+        && baseValida(pedido.base));
 }
 
 const describir = v => {
@@ -85,6 +86,7 @@ const describir = v => {
 // frases de esa letra vuelven a usar lo que ya leyó. Lo que cambia en cada pedido va al final.
 const TAREAS = [
     'Te van a pedir una de estas tareas (dice cuál al final del mensaje):',
+    'Si después de la letra vienen «Cambios desde que leíste la letra», esos renglones ahora dicen eso: usá siempre la versión nueva (también para copiar "viejo").',
     '',
     'TAREA «frase»: reescribir una frase de su letra.',
     '- Escribí frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.',
@@ -141,6 +143,41 @@ function bloqueDeLetra(renglones) {
     return `Letra (número de renglón y verso):\n${lineas.join('\n')}`;
 }
 
+// La letra como la leyó la IA la última vez que se mandó entera (`base`, renglones como `letra`).
+const baseValida = base => base == null || (Array.isArray(base) && base.length <= VERSOS_REVISION
+    && base.every(v => typeof v === 'string' && v.length <= LARGO_MAXIMO));
+
+// ---------- Cuándo se vuelve a mandar la letra entera (pedido de Swa) ----------
+// Si se cambia una palabra, mandar la letra de nuevo haría que OpenAI la lea otra vez entera (lo caro).
+// Por eso se manda la letra como la vio la última vez (`base`, que ya está en su caché) y aparte solo
+// los renglones que cambiaron. Se vuelve a mandar entera (y pasa a ser la nueva base) si cambiaron más
+// renglones de los que dice REENVIO_LETRA, o si pasó más de una hora (la caché de OpenAI ya se borró).
+export const REENVIO_LETRA = { renglones: 8, parte: 0.25, minutos: 60 };
+
+// Los renglones distintos entre la base y la letra de ahora, por número: [{ n, texto }] ('' si se borró).
+export function cambiosDeLetra(base, actual) {
+    const antes = new Map(renglonesDeLetra(base).map(v => [v.n, v.texto]));
+    const ahora = new Map(renglonesDeLetra(actual).map(v => [v.n, v.texto]));
+    const numeros = [...new Set([...antes.keys(), ...ahora.keys()])].sort((a, b) => a - b);
+    return numeros.filter(n => antes.get(n) !== ahora.get(n)).map(n => ({ n, texto: ahora.get(n) ?? '' }));
+}
+
+// Si conviene seguir con la base: pocos renglones cambiados (8 como mucho, y no más de un cuarto de
+// la letra, con un mínimo de 2) y la base de hace menos de una hora.
+export function convieneBase(base, actual, minutos = 0, reenvio = REENVIO_LETRA) {
+    if (!Array.isArray(base) || !base.length || minutos > reenvio.minutos) return false;
+    const renglones = renglonesDeLetra(actual).length;
+    const tope = Math.min(reenvio.renglones, Math.max(2, Math.ceil(renglones * reenvio.parte)));
+    return cambiosDeLetra(base, actual).length <= tope;
+}
+
+// Lo que cambió desde la base, para el modelo: va justo después de la letra.
+function textoDeCambios(cambios) {
+    if (!cambios.length) return null;
+    return `Cambios desde que leíste la letra (mandan sobre lo de arriba):\n${cambios
+        .map(c => c.texto ? `${c.n} ahora dice: ${c.texto}` : `${c.n} se borró`).join('\n')}`;
+}
+
 const separador = v => /^\s*\[[^\]\n]+\]\s*$/.test(v);
 
 // La letra de contexto de una frase (strings, renglones vacíos incluidos) con el mismo formato que la
@@ -159,8 +196,11 @@ function renglonesDeLetra(letra) {
 export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA, { pais, azar = Math.random } = {}) {
     const lineas = [];
     const renglones = pedido.letra ? renglonesDeLetra(pedido.letra) : [];
+    const base = pedido.letra && pedido.base?.length ? pedido.base : null;
     // La letra entera va primero (y escrita igual que en «¿Qué cambiaría?»): el tema, el tono y lo que ya se dijo.
-    if (renglones.length) lineas.push(bloqueDeLetra(renglones));
+    // Con base, la que ya leyó y después solo lo que cambió.
+    if (base) lineas.push(bloqueDeLetra(renglonesDeLetra(base)), textoDeCambios(cambiosDeLetra(base, pedido.letra)));
+    else if (renglones.length) lineas.push(bloqueDeLetra(renglones));
     else if (pedido.estrofa.length) lineas.push(`Estrofa:\n${pedido.estrofa.join('\n')}`);
     const enLetra = renglones.some(v => v.n === pedido.enLetra) ? pedido.enLetra : null;
     if (pedido.palabra) {
@@ -172,7 +212,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
             ? `Es la última del verso: tienen que rimar con «${pedido.objetivo.rimaCon}».`
             : 'Va en el medio del verso.');
         lineas.push(`Devolvé ${cantidad} palabras.`);
-        return { instrucciones: instruccionesIA(pais), entrada: lineas.join('\n\n') };
+        return { instrucciones: instruccionesIA(pais), entrada: lineas.filter(Boolean).join('\n\n') };
     }
     // La frase seleccionada: frases relacionadas con ella y con sus propias rimas (pedido de Swa).
     const { final, internas } = pedido.verso;
@@ -189,7 +229,7 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
     if (internas.length) lineas.push(`Rimas internas para mantener: ${internas.map(i => `«${i.palabra}»`).join(', ')}.`);
     lineas.push(`Caminos para esta vez: ${caminos.join(', ')}.`);
     lineas.push(`Escribí ${cantidad} frases.`);
-    return { instrucciones: instruccionesIA(pais), entrada: lineas.join('\n\n') };
+    return { instrucciones: instruccionesIA(pais), entrada: lineas.filter(Boolean).join('\n\n') };
 }
 
 // ---------- Sugerencias de la letra entera (pestaña «Sugerencias» de «¿Por dónde empiezo?») ----------
@@ -202,18 +242,31 @@ export function revisionValida(revision) {
     const versos = revision?.versos;
     return Boolean(Array.isArray(versos) && versos.length && versos.length <= VERSOS_REVISION
         && versos.every(v => v && Number.isInteger(v.n) && v.n >= 0 && texto(v.texto) && Number.isInteger(v.silabas) && Number.isInteger(v.estrofa))
+        && baseValida(revision.base)
         && (revision.ya === undefined || revision.ya === null || (Array.isArray(revision.ya) && revision.ya.length <= VERSOS_REVISION
             && revision.ya.every(n => Number.isInteger(n) && n >= 0))));
 }
 
+// Como cambiosDeLetra, pero la letra de ahora viene en los versos de la revisión ({ n, texto }).
+function cambiosDeRevision(base, versos) {
+    const antes = new Map(renglonesDeLetra(base).map(v => [v.n, v.texto]));
+    const ahora = new Map(versos.map(v => [v.n, v.texto]));
+    const numeros = [...new Set([...antes.keys(), ...ahora.keys()])].sort((a, b) => a - b);
+    return numeros.filter(n => antes.get(n) !== ahora.get(n)).map(n => ({ n, texto: ahora.get(n) ?? '' }));
+}
+
 export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION, { pais } = {}) {
-    const lineas = [bloqueDeLetra(revision.versos), 'TAREA «revision».'];
+    const base = revision.base?.length ? revision.base : null;
+    const lineas = base
+        ? [bloqueDeLetra(renglonesDeLetra(base)), textoDeCambios(cambiosDeRevision(base, revision.versos))]
+        : [bloqueDeLetra(revision.versos)];
+    lineas.push('TAREA «revision».');
     lineas.push(`Sílabas de cada renglón: ${revision.versos.map(v => `${v.n}: ${v.silabas}`).join(', ')}.`);
     // «¿Qué más cambiaría Métrica IA?»: los renglones donde ya propuso algo no se repiten (pedido de Swa).
     const ya = Array.isArray(revision.ya) ? revision.ya : [];
     if (ya.length) lineas.push(`Ya propusiste cambios en los renglones ${ya.join(', ')}: no propongas nada en esos renglones.`);
     lineas.push(`Devolvé hasta ${cantidad} sugerencias.`);
-    return { instrucciones: instruccionesIA(pais), entrada: lineas.join('\n\n') };
+    return { instrucciones: instruccionesIA(pais), entrada: lineas.filter(Boolean).join('\n\n') };
 }
 
 // La lista de cambios que contesta el modelo, solo con los campos que sirven.
