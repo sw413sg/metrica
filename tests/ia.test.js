@@ -240,3 +240,20 @@ test('«¿Qué más cambiaría?» avisa los renglones ya propuestos', () => {
     assert.equal(revisionValida({ ...revision, ya: [-1] }), false);
     assert.equal(revisionValida({ ...revision, ya: 'x' }), false);
 });
+
+test('Métrica IA habla rioplatense solo en Argentina', async () => {
+    const { personalidad } = await import('../js/logica/ia-prompt.js');
+    assert.match(personalidad('AR'), /rioplatense/);
+    assert.match(personalidad('MX'), /sin lunfardo argentino ni voseo/);
+    assert.match(personalidad('MX'), /código MX/);
+    assert.match(personalidad(undefined), /sin lunfardo/);
+    assert.doesNotMatch(personalidad('<script>'), /script/);
+});
+
+test('las ideas salen de puntos de partida al azar, distintos en cada pedido', async () => {
+    const { promptDeTemas, SEMILLAS_TEMAS } = await import('../js/logica/ia-prompt.js');
+    const uno = promptDeTemas({ vistas: [] }, 4, { azar: () => 0.1 }).instrucciones;
+    const otro = promptDeTemas({ vistas: [] }, 4, { azar: () => 0.9 }).instrucciones;
+    assert.notEqual(uno, otro);
+    assert.equal(SEMILLAS_TEMAS.filter(t => uno.includes(t)).length, 4);
+});

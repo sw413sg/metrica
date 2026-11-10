@@ -111,14 +111,14 @@ test('la letra entera sin cambios no gasta, hasta 10 por mes', async () => {
     assert.equal((await pedir({ revision })).status, 502);
 });
 
-test('con Métrica + IA, los paquetes de «Más IA» suman al tope (sin plan, no)', async () => {
+test('los paquetes de «Más IA» y el regalo de Métrica + suman al tope (también sin plan)', async () => {
     env.PLAN_SIN_VERIFICAR = 'si';
     env.TOPE_PLAN = '1';
     const plan = { 'X-Metrica-Plan': 'metrica.ia' };
     assert.equal((await (await pedir(undefined, { ...plan, 'X-Metrica-Extra': '300' })).json()).quedan, 300);
-    assert.equal((await (await pedir(undefined, { 'X-Metrica-Extra': '300' })).json()).quedan, 0);
+    assert.equal((await (await pedir(undefined, { 'X-Metrica-Extra': '300' })).json()).quedan, 2 + 300 - 2);
     assert.equal((await pedir(undefined, plan)).status, 429);
-    assert.equal((await (await pedir(undefined, { ...plan, 'X-Metrica-Extra': '999999' })).json()).quedan, 3001 - 3);
+    assert.equal((await (await pedir(undefined, { ...plan, 'X-Metrica-Extra': '999999' })).json()).quedan, 20001 - 3);
 });
 
 test('la app nativa (sin Origin) también puede pedir', async () => {

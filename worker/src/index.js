@@ -19,7 +19,7 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-Plan, X-Metrica-Extra',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-Plan, X-Metrica-Extra, X-Metrica-Pais',
             Vary: 'Origin',
         };
         const responder = (datos, status = 200) => new Response(JSON.stringify(datos), {
@@ -64,17 +64,19 @@ async function ia(request, env, responder) {
     // Store: verificar el comprobante firmado de StoreKit en vez de creerle a la cabecera (mientras
     // tanto, PLAN_SIN_VERIFICAR = "si" la acepta, para probar en TestFlight).
     const plan = request.headers.get('X-Metrica-Plan') === 'metrica.ia' && env.PLAN_SIN_VERIFICAR === 'si';
-    // «Más IA»: las consultas de más compradas este mes (paquetes de 300, compra consumible
-    // `metrica.ia.mas`), también sin verificar por ahora y con un techo.
-    const extra = plan ? Math.min(Math.max(0, Math.floor(Number(request.headers.get('X-Metrica-Extra')) || 0)), Number(env.TOPE_EXTRA) || 3000) : 0;
+    // Las consultas de más de este mes: los paquetes de «Más IA» (compras consumibles `metrica.ia.mas*`)
+    // y las de regalo de Métrica + (también sin plan), sin verificar por ahora y con un techo.
+    const extra = Math.min(Math.max(0, Math.floor(Number(request.headers.get('X-Metrica-Extra')) || 0)), Number(env.TOPE_EXTRA) || 20000);
     const tope = (plan ? Number(env.TOPE_PLAN) || 300 : Number(env.CUPO_GRATIS) || 20) + extra;
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
     const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length) : temas ? GASTO_IA.temas : GASTO_IA.frase;
     if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
-    const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision)
-        : temas ? promptDeTemas(cuerpo.temas) : promptDeSugerencias(cuerpo.pedido);
+    // El país del iPhone, para la voz de Métrica IA (rioplatense solo en Argentina; pedido de Swa).
+    const opciones = { pais: (request.headers.get('X-Metrica-Pais') ?? '').toUpperCase() };
+    const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision, undefined, opciones)
+        : temas ? promptDeTemas(cuerpo.temas, undefined, opciones) : promptDeSugerencias(cuerpo.pedido, undefined, opciones);
     const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 3000 : 1600, id, revision ? env.ESFUERZO_REVISION : env.ESFUERZO);
     if (error) return responder({ error: 'modelo' }, 502);
     const ya = new Set(revision && Array.isArray(cuerpo.revision.ya) ? cuerpo.revision.ya : []);
