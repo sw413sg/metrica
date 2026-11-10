@@ -24,7 +24,7 @@ La app nativa se porta 1 a 1 en **[sw413sg/metrica-swift](https://github.com/sw4
 - Probar en el iPhone que el texto de la libreta quede centrado en su renglón con cada fuente (va con `baselineOffset`).
 - IA: en Swift está simulada, como en la web. Falta conectarla al mismo Worker (`worker/`), con el comprobante de StoreKit para el plan y App Attest para el id.
 - 1.6.2: en «Lo que cambiaría» (estrella de arriba > Sugerencias), el cupo («Quedan N de 10…» con la barrita) va sin estrellita, con más aire arriba (18) y recién después de tocar «Generar sugerencias con IA»; antes no se ve, salvo que ya no quede ninguno (pedido de Swa).
-- Probar en el iPhone la estrellita de la palabra tocada dos veces y su viñeta, y la selección de una frase con «Alternativas IA».
+- Probar en el iPhone la estrellita de la palabra tocada dos veces y su viñeta, y la selección de una frase con «¿Qué cambiaría Métrica IA?».
 
 ### Freestyle y Grabar
 - Descargar: en Swift baja M4A (AAC) en vez de MP3; si hace falta MP3, sumar un codificador.
