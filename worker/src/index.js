@@ -5,7 +5,7 @@
 //   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y descuenta
 //   la cuota en KV. La compra se lee de X-Metrica-JWS (StoreKit 2), no de X-Metrica-Plan.
 import { MODELO_IA, GASTO_IA, PEDIDAS_IA, REVISIONES_SIN_CAMBIOS, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
-import { clasificar } from './cuota.js';
+import { clasificar, PRODUCTOS } from './cuota.js';
 import { Cuota, NOMBRE_CUOTA } from './cuota-do.js';
 import { APPLE_RAIZ, desdeBase64, verificarJws } from './verificar.js';
 
@@ -37,7 +37,7 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Prueba, X-Metrica-Simulada, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Prueba, X-Metrica-Simulada, X-Metrica-Paquetes-Prueba, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
             'Access-Control-Expose-Headers': 'X-Metrica-Restantes',
             Vary: 'Origin',
         };
@@ -86,7 +86,7 @@ async function ia(request, env, responder) {
     if (compras.error) return responder({ error: compras.error }, 401);
     const prueba = await leerPrueba(request, env, ahora);
     const base = {
-        mes, id, ip: ipDe(request), compras: compras.lista, claveDia, prueba,
+        mes, id, ip: ipDe(request), compras: compras.lista, claveDia, prueba: prueba.plan, paquetesPrueba: prueba.paquetes,
         cupoGratis: entero(env.CUPO_GRATIS, 20), topeIp: entero(env.TOPE_IP, 100),
         sandboxTope: entero(env.SANDBOX_CONSULTAS_MES, 30),
         sandboxDiaTope: entero(env.SANDBOX_TOPE_GLOBAL_DIA, 300),
@@ -96,7 +96,9 @@ async function ia(request, env, responder) {
     const vista = await pedirCuota(env, { ...base, accion: 'mirar' });
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
     const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length, Array.isArray(cuerpo.revision.ya) && cuerpo.revision.ya.length > 0) : temas ? GASTO_IA.temas : GASTO_IA.frase;
-    if (vista.quedan < gasto) return conRestantes(responder, { error: 'cupo', quedan: vista.quedan }, 402, vista.quedan);
+    // Con la cuota de la persona alcanza, pero se llegó al tope de Sandbox del día: «ocupado», no «sin cuota».
+    if (vista.quedan < gasto && mostrado(vista) >= gasto) return responder({ error: 'ocupado' }, 503);
+    if (vista.quedan < gasto) return conRestantes(responder, { error: 'cupo', quedan: mostrado(vista) }, 402, mostrado(vista));
     if (vista.dia >= base.topeDia) return responder({ error: 'ocupado' }, 503);
 
     // El país del iPhone, para la voz de Métrica IA (rioplatense solo en Argentina; pedido de Swa).
@@ -117,13 +119,16 @@ async function ia(request, env, responder) {
     // Solo cuenta si salió bien, y el descuento es una transacción del Durable Object.
     if (sinCambios) {
         const vacia = await pedirCuota(env, { ...base, accion: 'vacia' });
-        if (vacia.ok) return conRestantes(responder, { sugerencias: [], quedan: vacia.quedan }, 200, vacia.quedan);
+        if (vacia.ok) return conRestantes(responder, { sugerencias: [], quedan: mostrado(vacia) }, 200, mostrado(vacia));
     }
     const cobro = await pedirCuota(env, { ...base, accion: 'gastar', gasto });
     if (cobro.error === 'ocupado') return responder({ error: 'ocupado' }, 503);
-    if (cobro.error === 'cupo') return conRestantes(responder, { error: 'cupo', quedan: cobro.quedan }, 402, cobro.quedan);
-    return conRestantes(responder, { sugerencias, quedan: cobro.quedan }, 200, cobro.quedan);
+    if (cobro.error === 'cupo') return conRestantes(responder, { error: 'cupo', quedan: mostrado(cobro) }, 402, mostrado(cobro));
+    return conRestantes(responder, { sugerencias, quedan: mostrado(cobro) }, 200, mostrado(cobro));
 }
+
+// Lo que se le dice a la persona que le queda (sin el tope global de Sandbox del día).
+const mostrado = respuesta => respuesta.mostrar ?? respuesta.quedan;
 
 async function pedirCuota(env, pedido) {
     const stub = env.CUOTA.get(env.CUOTA.idFromName(NOMBRE_CUOTA));
@@ -135,16 +140,34 @@ function conRestantes(responder, datos, status, restantes) {
     return responder(datos, status, { 'X-Metrica-Restantes': String(restantes) });
 }
 
-// La «Compra de prueba» de TestFlight: X-Metrica-Simulada dice el plan (metrica.ia o metrica.extras) y
-// X-Metrica-Prueba trae el AppTransaction de StoreKit, firmado por Apple, que dice que la app es de
+// La «Compra de prueba» de TestFlight: X-Metrica-Simulada dice el plan (metrica.ia o metrica.extras),
+// X-Metrica-Paquetes-Prueba los paquetes de «Más IA» simulados («productId:idLocal», separados por coma)
+// y X-Metrica-Prueba trae el AppTransaction de StoreKit, firmado por Apple, que dice que la app es de
 // TestFlight (receiptType Sandbox). Sin eso no vale: en el App Store el AppTransaction dice Production.
 async function leerPrueba(request, env, ahora) {
-    const plan = request.headers.get('X-Metrica-Simulada') ?? '';
+    const nada = { plan: '', paquetes: [] };
+    const pedido = request.headers.get('X-Metrica-Simulada') ?? '';
+    const plan = ['metrica.ia', 'metrica.extras'].includes(pedido) ? pedido : '';
+    const paquetes = leerPaquetesPrueba(request.headers.get('X-Metrica-Paquetes-Prueba') ?? '');
     const token = (request.headers.get('X-Metrica-Prueba') ?? '').trim();
-    if (!['metrica.ia', 'metrica.extras'].includes(plan) || !token || token.length > 20_000) return '';
+    if ((!plan && !paquetes.length) || !token || token.length > 20_000) return nada;
     const raiz = env.PRUEBA === 'si' && env.RAIZ_DE_PRUEBA ? desdeBase64(env.RAIZ_DE_PRUEBA) : APPLE_RAIZ;
     const verificado = await verificarJws(token, { raiz, bundleId: env.BUNDLE_ID || 'com.sw413sg.metrica', ahora });
-    return verificado.ok && verificado.transaccion.receiptType === 'Sandbox' ? plan : '';
+    return verificado.ok && verificado.transaccion.receiptType === 'Sandbox' ? { plan, paquetes } : nada;
+}
+
+// Hasta 20 paquetes de prueba, cada uno con un id que la app inventa al «comprarlo» (así cuenta una vez).
+export function leerPaquetesPrueba(crudo) {
+    const lista = [];
+    const vistos = new Set();
+    for (const parte of String(crudo).split(',').slice(0, 20)) {
+        const [producto, idLocal] = parte.trim().split(':');
+        if (!PRODUCTOS[producto] || PRODUCTOS[producto].tipo !== 'paquete') continue;
+        if (!/^[A-Za-z0-9]{8,40}$/.test(idLocal ?? '') || vistos.has(idLocal)) continue;
+        vistos.add(idLocal);
+        lista.push({ producto, idLocal, consultas: PRODUCTOS[producto].consultas });
+    }
+    return lista;
 }
 
 // Los JWS de X-Metrica-JWS. Vacío: sin compra (cupo gratis). Uno malo: 401, no se lo trata como gratis.

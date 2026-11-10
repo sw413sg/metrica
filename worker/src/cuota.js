@@ -70,9 +70,11 @@ function restanteDe(pool) {
 
 // Lo que se puede gastar ahora. Gratis y Sandbox comparten el tope de la IP.
 // Sandbox, además, no pasa el tope global del día.
-export function totalUsable(cuenta) {
+// `conDia` en false: lo que se le muestra a la persona, sin el tope global de Sandbox del día (es un freno
+// del servidor para las pruebas, no su cuota; si lo pasa, el Worker contesta «ocupado»).
+export function totalUsable(cuenta, conDia = true) {
     let ip = Math.max(0, cuenta.ipTope - cuenta.ipUsadas);
-    let sandboxDia = Math.max(0, cuenta.sandboxDiaTope - cuenta.sandboxDiaUsadas);
+    let sandboxDia = conDia ? Math.max(0, cuenta.sandboxDiaTope - cuenta.sandboxDiaUsadas) : Infinity;
     let suma = 0;
     for (const pool of cuenta.pools) {
         const queda = restanteDe(pool);
@@ -103,7 +105,7 @@ async function usadas(kv, clave) {
 // Arma las bolsas de esta persona. La suscripción reemplaza al cupo gratis (no se suman).
 // El regalo y los paquetes quedan en una bolsa por transactionId: si la clave ya existe,
 // se usa lo que queda y no se vuelve a sumar el paquete.
-export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0, sandboxDiaTope = 0, claveDia = '', prueba = '', topePrueba = 300, regaloPrueba = 100 }) {
+export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0, sandboxDiaTope = 0, claveDia = '', prueba = '', paquetesPrueba = [], topePrueba = 300, regaloPrueba = 100 }) {
     const reales = compras.filter(c => !c.sandbox);
     const deSandbox = compras.filter(c => c.sandbox);
     const subs = reales.filter(c => c.tipo === 'suscripcion');
@@ -162,6 +164,14 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
         const clave = `cuota:bolsa:prueba:${id}`;
         const guardado = await kv.get(clave);
         const restante = guardado == null ? regaloPrueba : Math.max(0, Number(guardado) || 0);
+        pools.push({ tipo: 'bolsa', bolsa: true, prueba: true, clave, restante, nueva: guardado == null, delId: true });
+    }
+    // Los paquetes de «Más IA» de la compra de prueba (TestFlight): una bolsa por id y paquete, que cuenta
+    // en el tope de Sandbox del día como el resto de la prueba.
+    for (const paquete of paquetesPrueba) {
+        const clave = `cuota:bolsa:prueba-paquete:${id}:${paquete.idLocal}`;
+        const guardado = await kv.get(clave);
+        const restante = guardado == null ? paquete.consultas : Math.max(0, Number(guardado) || 0);
         pools.push({ tipo: 'bolsa', bolsa: true, prueba: true, clave, restante, nueva: guardado == null, delId: true });
     }
     const ipClave = `cuota:mes:${mes}:ip:${ip}`;
@@ -237,7 +247,8 @@ export async function operarCuota(kv, pedido) {
     const cuenta = await prepararCuenta(kv, pedido);
     const dia = Number(await kv.get(pedido.claveDia)) || 0;
     const quedan = totalUsable(cuenta);
-    if (pedido.accion === 'mirar') return { quedan, dia };
+    const mostrar = totalUsable(cuenta, false);
+    if (pedido.accion === 'mirar') return { quedan, mostrar, dia };
     if (dia >= pedido.topeDia) return { error: 'ocupado', quedan };
     // Un paquete que llega por primera vez se anota ya, aunque este pedido lo pague el mes: la app
     // cierra la transacción cuando ve X-Metrica-Restantes y no vuelve a mandar ese JWS. Si no quedara
@@ -259,10 +270,10 @@ export async function operarCuota(kv, pedido) {
             ...cuenta.clavesVacias.map((k, i) => kv.put(k, String(hechas[i] + 1))),
             kv.put(pedido.claveDia, String(dia + 1)),
         ]);
-        return { ok: true, quedan };
+        return { ok: true, quedan, mostrar };
     }
     const despues = await descontar(kv, cuenta, pedido.gasto, pedido.ttl);
-    if (despues == null) return { error: 'cupo', quedan };
+    if (despues == null) return { error: 'cupo', quedan, mostrar };
     await kv.put(pedido.claveDia, String(dia + 1));
-    return { quedan: despues };
+    return { quedan: despues, mostrar: totalUsable(cuenta, false) };
 }

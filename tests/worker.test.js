@@ -293,13 +293,15 @@ test('el tope global de Sandbox por día corta, y Production sigue', async () =>
     });
     const primero = await pedir(undefined, { 'CF-Connecting-IP': '198.51.100.1', 'X-Metrica-JWS': uno });
     assert.equal(primero.status, 200);
-    assert.equal(primero.headers.get('X-Metrica-Restantes'), '0');
+    // Lo que se muestra es la cuota de la persona (30 de Sandbox), no el freno global del día.
+    assert.equal(primero.headers.get('X-Metrica-Restantes'), '29');
     const dos = cadena.jws({
         productId: 'metrica.ia.mas50', type: 'Consumable', transactionId: 'sbdia2', originalTransactionId: 'sbdia2',
         environment: 'Sandbox',
     });
     const cortado = await pedir(undefined, { 'CF-Connecting-IP': '198.51.100.2', 'X-Metrica-Id': OTRO, 'X-Metrica-JWS': dos });
-    assert.equal(cortado.status, 402);
+    // Pasado el freno del día, «ocupado» (no «sin cuota»): la persona sí tiene cuota.
+    assert.equal(cortado.status, 503);
     const real = cadena.jws({
         productId: 'metrica.ia', type: 'Auto-Renewable Subscription', transactionId: 'subdia', originalTransactionId: 'subdia',
     });
@@ -405,6 +407,24 @@ test('la compra de prueba con Métrica + da 100 de regalo, y el cupo gratis apar
     const appTx = cadena.jws({ productId: undefined, transactionId: undefined, type: undefined, receiptType: 'Sandbox' });
     const respuesta = await pedir(undefined, { 'X-Metrica-Simulada': 'metrica.extras', 'X-Metrica-Prueba': appTx });
     assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '101');
+});
+
+test('los paquetes de prueba de TestFlight suman una vez cada uno, con un AppTransaction de Sandbox', async () => {
+    conRaiz();
+    env.CUPO_GRATIS = '2';
+    const appTx = cadena.jws({ productId: undefined, transactionId: undefined, type: undefined, receiptType: 'Sandbox' });
+    const cabeceras = { 'X-Metrica-Simulada': 'metrica.ia', 'X-Metrica-Paquetes-Prueba': 'metrica.ia.mas:paquete00001,otro.producto:paquete00002', 'X-Metrica-Prueba': appTx };
+    // El plan de prueba (300) y el paquete (300); el producto que no es de Métrica no cuenta. Lo que se
+    // muestra no corta en el tope de Sandbox del día (300), que es un freno del servidor.
+    const primera = await pedir(undefined, cabeceras);
+    assert.equal(primera.headers.get('X-Metrica-Restantes'), '599');
+    // Mandar el mismo id otra vez no lo vuelve a sumar.
+    const segunda = await pedir(undefined, cabeceras);
+    assert.equal(segunda.headers.get('X-Metrica-Restantes'), '598');
+    // Sin la firma de Apple, el paquete no vale.
+    const falso = romperFirma(cadena.jws({ receiptType: 'Sandbox' }));
+    const sinFirma = await pedir(undefined, { 'X-Metrica-Id': 'b'.repeat(16), 'X-Metrica-Paquetes-Prueba': 'metrica.ia.mas:paquete00003', 'X-Metrica-Prueba': falso });
+    assert.equal(sinFirma.headers.get('X-Metrica-Restantes'), '1');
 });
 
 test('un AppTransaction del App Store (Production) no da la compra de prueba', async () => {
