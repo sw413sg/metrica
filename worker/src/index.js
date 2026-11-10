@@ -69,7 +69,7 @@ async function ia(request, env, responder) {
     const extra = Math.min(Math.max(0, Math.floor(Number(request.headers.get('X-Metrica-Extra')) || 0)), Number(env.TOPE_EXTRA) || 20000);
     const tope = (plan ? Number(env.TOPE_PLAN) || 300 : Number(env.CUPO_GRATIS) || 20) + extra;
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
-    const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length) : temas ? GASTO_IA.temas : GASTO_IA.frase;
+    const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length, Array.isArray(cuerpo.revision.ya) && cuerpo.revision.ya.length > 0) : temas ? GASTO_IA.temas : GASTO_IA.frase;
     if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);
     if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
 
@@ -129,6 +129,9 @@ async function llamarModelo(env, instrucciones, entrada, tope, id, esfuerzo = en
                 ...(esfuerzo ? { reasoning_effort: esfuerzo } : {}),
                 max_completion_tokens: tope,
                 user: id,
+                // Las instrucciones son siempre las mismas y la letra se repite entre pedidos de una misma
+                // persona: con esta clave OpenAI reusa lo ya leído y lo cobra mucho más barato.
+                prompt_cache_key: `metrica-${id}`,
             }),
         });
     } catch (e) {

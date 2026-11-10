@@ -39,3 +39,5 @@ Con la terminal también se puede: `cd worker && npx wrangler login && npx wrang
 - **El id anónimo** se puede borrar para tener 20 más. Para la app nativa, sumar App Attest (`DCAppAttestService`) o atar el cupo a la cuenta de iCloud; mientras tanto, el techo del día limita el gasto.
 - **KV no cuenta exacto** si llegan dos pedidos al mismo tiempo (puede dejar pasar alguno de más). Si hace falta exacto, pasar el contador a un Durable Object.
 - Confirmar el nombre exacto del modelo (`MODELO` en `wrangler.toml`) y si conviene la Responses API en vez de Chat Completions.
+
+**Costo:** las instrucciones son siempre iguales y lo que cambia en cada pedido (los caminos al azar, los puntos de partida de las ideas, los renglones ya propuestos) va al final de la entrada, después de la letra. Con `prompt_cache_key` por persona, OpenAI reusa lo ya leído (instrucciones y letra, cuando pasan de unos 1.000 tokens) y lo cobra a una fracción del precio: sirve sobre todo al refrescar alternativas o tocar «¿Qué más cambiaría?» en la misma letra.

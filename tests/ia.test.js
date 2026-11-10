@@ -235,8 +235,8 @@ test('el prompt de la revisión lleva los renglones y la respuesta se filtra', (
 test('«¿Qué más cambiaría?» avisa los renglones ya propuestos', () => {
     const revision = { ...letraParaRevisar('uno dos tres\n\ncuatro cinco'), ya: [0, 2] };
     assert.ok(revisionValida(revision));
-    assert.match(promptDeRevision(revision).instrucciones, /renglones 0, 2: no propongas/);
-    assert.doesNotMatch(promptDeRevision(letraParaRevisar('uno')).instrucciones, /Ya propusiste/);
+    assert.match(promptDeRevision(revision).entrada, /renglones 0, 2: no propongas/);
+    assert.doesNotMatch(promptDeRevision(letraParaRevisar("uno")).entrada, /Ya propusiste/);
     assert.equal(revisionValida({ ...revision, ya: [-1] }), false);
     assert.equal(revisionValida({ ...revision, ya: 'x' }), false);
 });
@@ -252,8 +252,16 @@ test('Métrica IA habla rioplatense solo en Argentina', async () => {
 
 test('las ideas salen de puntos de partida al azar, distintos en cada pedido', async () => {
     const { promptDeTemas, SEMILLAS_TEMAS } = await import('../js/logica/ia-prompt.js');
-    const uno = promptDeTemas({ vistas: [] }, 4, { azar: () => 0.1 }).instrucciones;
-    const otro = promptDeTemas({ vistas: [] }, 4, { azar: () => 0.9 }).instrucciones;
+    const uno = promptDeTemas({ vistas: [] }, 4, { azar: () => 0.1 }).entrada;
+    const otro = promptDeTemas({ vistas: [] }, 4, { azar: () => 0.9 }).entrada;
+    // Las instrucciones no cambian entre pedidos, para aprovechar la caché de OpenAI.
+    assert.equal(promptDeTemas({ vistas: [] }, 4, { azar: () => 0.1 }).instrucciones, promptDeTemas({ vistas: [] }, 4, { azar: () => 0.9 }).instrucciones);
     assert.notEqual(uno, otro);
     assert.equal(SEMILLAS_TEMAS.filter(t => uno.includes(t)).length, 4);
+});
+
+test('«¿Qué más cambiaría?» gasta uno menos', async () => {
+    const { GASTO_IA } = await import('../js/logica/ia-prompt.js');
+    assert.deepEqual([10, 30, 80].map(v => GASTO_IA.revision(v, true)), [1, 2, 3]);
+    assert.deepEqual([10, 30, 80].map(v => GASTO_IA.revision(v)), [2, 3, 4]);
 });
