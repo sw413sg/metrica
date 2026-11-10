@@ -96,6 +96,21 @@ test('la letra entera (corta) gasta 2 de la cuota y no se pide si no alcanza', a
     assert.equal((await (await pedir({ revision: larga })).json()).quedan, 100 - 3 - 4);
 });
 
+test('la letra entera sin cambios no gasta, hasta 10 por mes', async () => {
+    env.CUPO_GRATIS = '20';
+    globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: '{"sugerencias":[]}' } }] }));
+    const revision = { versos: [{ n: 0, texto: 'Te busco en el balcón', silabas: 7, estrofa: 0 }, { n: 1, texto: 'y me quedo con mi canción', silabas: 9, estrofa: 0 }] };
+    for (let i = 0; i < 10; i++) {
+        const respuesta = await pedir({ revision });
+        assert.equal(respuesta.status, 200);
+        assert.deepEqual(await respuesta.json(), { sugerencias: [], quedan: 20 });
+    }
+    assert.equal((await (await pedir({ revision })).json()).quedan, 18);
+    // Un texto que no se puede leer sigue siendo un error, y no gasta.
+    globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: 'nada' } }] }));
+    assert.equal((await pedir({ revision })).status, 502);
+});
+
 test('la app nativa (sin Origin) también puede pedir', async () => {
     const respuesta = await worker.fetch(new Request('https://metrica.ejemplo/ia', {
         method: 'POST', body: JSON.stringify({ pedido }),

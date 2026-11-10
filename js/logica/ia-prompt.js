@@ -7,9 +7,13 @@ export const MODELO_IA = 'gpt-6.1-terra';
 // Cuánto gasta cada consulta de la cuota del mes (pedido de Swa). La letra entera piensa más y lee
 // todo, así que gasta según sus versos: 2 hasta 20, 3 hasta 40 y 4 si es más larga.
 export const GASTO_IA = { frase: 1, temas: 1, revision: versos => versos <= 20 ? 2 : versos <= 40 ? 3 : 4 };
-// Cuántas pide la app: 3 o 4 por frase. Se piden algunas de más porque el motor descarta las que no cumplen.
-export const SUGERENCIAS_IA = 4;
-export const PEDIDAS_IA = 6;
+// «¿Qué cambiaría Métrica IA?» que no encuentra nada no gasta cuota (pedido de Swa), pero igual cuesta
+// tokens: hasta estas por mes y por persona; después gasta como cualquier otra.
+export const REVISIONES_SIN_CAMBIOS = 10;
+// Cuántas muestra la app por frase: hasta 10 por pedido, porque pedir más casi no cambia el costo
+// (pedido de Swa). Se piden algunas de más porque el motor descarta las que no cumplen.
+export const SUGERENCIAS_IA = 10;
+export const PEDIDAS_IA = 14;
 
 // Una palabra sola (la tocada): cuántas alternativas se piden para pasar con las flechas de la viñeta.
 export const PALABRAS_IA = 8;

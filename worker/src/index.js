@@ -4,7 +4,7 @@
 // - POST /ia: «Mejorar frase» y «Lo que cambiaría». Recibe el pedido que arma la app, arma el mensaje
 //   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y cuenta
 //   el uso de cada persona por mes en KV.
-import { MODELO_IA, GASTO_IA, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
+import { MODELO_IA, GASTO_IA, PEDIDAS_IA, REVISIONES_SIN_CAMBIOS, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
 
@@ -72,18 +72,38 @@ async function ia(request, env, responder) {
 
     const { instrucciones, entrada } = revision ? promptDeRevision(cuerpo.revision)
         : temas ? promptDeTemas(cuerpo.temas) : promptDeSugerencias(cuerpo.pedido);
-    const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 3000 : 1000, id, revision ? env.ESFUERZO_REVISION : env.ESFUERZO);
+    const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 3000 : 1600, id, revision ? env.ESFUERZO_REVISION : env.ESFUERZO);
     if (error) return responder({ error: 'modelo' }, 502);
-    const sugerencias = revision ? leerRevision(contenido) : temas ? leerTemas(contenido) : leerRespuesta(contenido).slice(0, 10);
-    if (!sugerencias.length) {
+    const sugerencias = revision ? leerRevision(contenido) : temas ? leerTemas(contenido) : leerRespuesta(contenido).slice(0, PEDIDAS_IA);
+    // La letra entera puede volver sin cambios (estaba bien): no es un error.
+    const sinCambios = revision && !sugerencias.length && contestoLista(contenido);
+    if (!sugerencias.length && !sinCambios) {
         console.log('El modelo no devolvió sugerencias que se puedan leer:', contenido.slice(0, 300));
         return responder({ error: 'modelo' }, 502);
     }
 
     // Solo cuenta si salió bien.
     const ttl = { expirationTtl: DIAS_KV * 24 * 60 * 60 };
+    // Sin cambios no gasta cuota, hasta REVISIONES_SIN_CAMBIOS por mes (pedido de Swa).
+    if (sinCambios) {
+        const claveVacias = `vacias:${ahora.slice(0, 7)}:${id}`;
+        const vacias = Number(await env.USO.get(claveVacias)) || 0;
+        if (vacias < REVISIONES_SIN_CAMBIOS) {
+            await Promise.all([env.USO.put(claveVacias, String(vacias + 1), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
+            return responder({ sugerencias: [], quedan: tope - usadas });
+        }
+    }
     await Promise.all([env.USO.put(clavePersona, String(usadas + gasto), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
     return responder({ sugerencias, quedan: tope - usadas - gasto });
+}
+
+// Si el modelo contestó la lista, aunque venga vacía (no un texto que no se puede leer).
+function contestoLista(contenido) {
+    try {
+        return Array.isArray(JSON.parse(String(contenido).match(/\{[\s\S]*\}/)?.[0] ?? '').sugerencias);
+    } catch {
+        return false;
+    }
 }
 
 // Llama a OpenAI. Devuelve { contenido } o { error } (el error también queda en los logs del Worker,
