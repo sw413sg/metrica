@@ -37,7 +37,7 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Prueba, X-Metrica-Simulada, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
             'Access-Control-Expose-Headers': 'X-Metrica-Restantes',
             Vary: 'Origin',
         };
@@ -84,8 +84,9 @@ async function ia(request, env, responder) {
     if (!env.CUOTA) return responder({ error: 'cuota' }, 503);
     const compras = await leerCompras(request, env, ahora);
     if (compras.error) return responder({ error: compras.error }, 401);
+    const prueba = await leerPrueba(request, env, ahora);
     const base = {
-        mes, id, ip: ipDe(request), compras: compras.lista, claveDia,
+        mes, id, ip: ipDe(request), compras: compras.lista, claveDia, prueba,
         cupoGratis: entero(env.CUPO_GRATIS, 20), topeIp: entero(env.TOPE_IP, 100),
         sandboxTope: entero(env.SANDBOX_CONSULTAS_MES, 30),
         sandboxDiaTope: entero(env.SANDBOX_TOPE_GLOBAL_DIA, 300),
@@ -132,6 +133,18 @@ async function pedirCuota(env, pedido) {
 
 function conRestantes(responder, datos, status, restantes) {
     return responder(datos, status, { 'X-Metrica-Restantes': String(restantes) });
+}
+
+// La «Compra de prueba» de TestFlight: X-Metrica-Simulada dice el plan (metrica.ia o metrica.extras) y
+// X-Metrica-Prueba trae el AppTransaction de StoreKit, firmado por Apple, que dice que la app es de
+// TestFlight (receiptType Sandbox). Sin eso no vale: en el App Store el AppTransaction dice Production.
+async function leerPrueba(request, env, ahora) {
+    const plan = request.headers.get('X-Metrica-Simulada') ?? '';
+    const token = (request.headers.get('X-Metrica-Prueba') ?? '').trim();
+    if (!['metrica.ia', 'metrica.extras'].includes(plan) || !token || token.length > 20_000) return '';
+    const raiz = env.PRUEBA === 'si' && env.RAIZ_DE_PRUEBA ? desdeBase64(env.RAIZ_DE_PRUEBA) : APPLE_RAIZ;
+    const verificado = await verificarJws(token, { raiz, bundleId: env.BUNDLE_ID || 'com.sw413sg.metrica', ahora });
+    return verificado.ok && verificado.transaccion.receiptType === 'Sandbox' ? plan : '';
 }
 
 // Los JWS de X-Metrica-JWS. Vacío: sin compra (cupo gratis). Uno malo: 401, no se lo trata como gratis.
