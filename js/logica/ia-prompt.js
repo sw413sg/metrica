@@ -18,6 +18,34 @@ export const PEDIDAS_IA = 14;
 // Una palabra sola (la tocada): cuántas alternativas se piden para pasar con las flechas de la viñeta.
 export const PALABRAS_IA = 8;
 
+// ---------- Métrica IA: personalidad y voz (pedido de Swa) ----------
+// Una sola personalidad para todo: compañera de escritura con oído de rapero, honesta y cálida, que
+// respeta el estilo de quien escribe. El país sale del iPhone (cabecera X-Metrica-Pais, código ISO):
+// solo con Argentina habla rioplatense con voseo y lunfardo; si no, español neutro de ese país.
+export function personalidad(pais) {
+    const codigo = typeof pais === 'string' && /^[A-Z]{2}$/.test(pais) ? pais : '';
+    const voz = codigo === 'AR'
+        ? 'La persona es de Argentina: hablale de vos, en rioplatense, y podés usar lunfardo si la letra lo usa.'
+        : `La persona escribe en español${codigo ? ` (su iPhone está en el país con código ${codigo})` : ''}: usá un español neutro y natural de su región, sin lunfardo argentino ni voseo, salvo que su letra los use.`;
+    return [
+        'Sos Métrica IA, la compañera de escritura de Métrica, una app para escribir canciones y rap en español.',
+        'Tu personalidad: oído fino para la rima y la métrica, directa y cálida, honesta sin ser cruel, con ganas de que la letra quede mejor pero siempre respetando la voz, el tema y el estilo de quien escribe. Nunca suenes a manual ni a robot.',
+        voz,
+        'En lo que va dentro de la letra (frases, versos, palabras), seguí el registro y el vocabulario de la propia letra antes que el tuyo.',
+    ].join('\n');
+}
+
+// Para que cada pedido salga distinto (pedido de Swa: nada de patrones repetidos, como que la primera
+// idea sea siempre de una abuela). Mezcla con `azar` (Math.random en el Worker; fijo en los tests).
+export function mezclar(lista, azar = Math.random) {
+    const copia = [...lista];
+    for (let i = copia.length - 1; i > 0; i--) {
+        const j = Math.floor(azar() * (i + 1));
+        [copia[i], copia[j]] = [copia[j], copia[i]];
+    }
+    return copia;
+}
+
 const LARGO_MAXIMO = 140;
 const VERSOS_ESTROFA = 8;
 
@@ -50,7 +78,7 @@ const describir = v => {
 };
 
 // { instrucciones, entrada }: el mensaje de sistema y el del usuario, en texto.
-export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA) {
+export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA, { pais, azar = Math.random } = {}) {
     const contexto = [];
     // La letra entera va primero y solo de contexto: el tema, el tono y lo que ya se dijo (pedido de Swa).
     if (pedido.letra?.some(v => v.trim())) {
@@ -61,7 +89,8 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
     if (pedido.anterior) contexto.push(`Verso anterior: ${describir(pedido.anterior)}.`);
     if (pedido.palabra) {
         const instrucciones = [
-            'Sos un compositor de rap y canciones en español rioplatense que ayuda a elegir una palabra.',
+            personalidad(pais),
+            'Ahora ayudás a elegir una palabra.',
             `Devolvé ${cantidad} palabras sueltas que puedan reemplazar a la elegida en su verso, que encajen con el sentido y suenen bien.`,
             pedido.palabra.final && pedido.objetivo.rimaCon
                 ? `Es la última del verso: tienen que rimar con «${pedido.objetivo.rimaCon}» (mejor consonante, si no asonante).`
@@ -74,12 +103,17 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
     }
     // La frase seleccionada: frases relacionadas con ella y con sus propias rimas (pedido de Swa).
     const { final, internas } = pedido.verso;
+    // Los caminos para reescribirla, en otro orden cada vez, así no salen siempre iguales.
+    const caminos = mezclar(['más directa', 'con una metáfora', 'con una imagen concreta de la vida diaria', 'que cambie el punto de vista',
+        'más íntima', 'con más actitud', 'con un giro inesperado al final', 'con un detalle sensorial (un olor, un sonido, una textura)'], azar).slice(0, 4);
     const instrucciones = [
-        'Sos un compositor de rap y canciones en español rioplatense que ayuda a escribir.',
+        personalidad(pais),
+        'Ahora ayudás a reescribir una frase de su letra.',
         `Escribí ${cantidad} frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
         'Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
+        'Cada una tiene que tener sentido completo por sí sola y encajar gramaticalmente en el verso donde va: nada de frases cortadas, palabras sueltas al final ni ideas que no se entienden.',
         'Leé la letra entera: que sigan su tema, su historia y su tono, sin repetir imágenes ni palabras fuertes que ya usa.',
-        'Que sean distintas entre sí: una más directa, una con una metáfora, una más de calle o de barrio, una que cambie el punto de vista.',
+        `Que sean distintas entre sí; por ejemplo: ${caminos.join(', ')}.`,
         'La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
         'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',
         'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
@@ -107,9 +141,10 @@ export function revisionValida(revision) {
             && revision.ya.every(n => Number.isInteger(n) && n >= 0))));
 }
 
-export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION) {
+export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION, { pais } = {}) {
     const instrucciones = [
-        'Sos un compositor de rap y canciones en español rioplatense que revisa la letra de otro, con respeto por su estilo.',
+        personalidad(pais),
+        'Ahora revisás su letra entera, como una amiga que sabe: con respeto por su estilo.',
         `Leé la letra y devolvé hasta ${cantidad} sugerencias concretas, de la más importante a la menos. Buscá, en este orden:`,
         '1. Sentido: frases que no se entienden, que se contradicen o que no siguen la idea de la estrofa.',
         '2. Métrica despareja: un verso con muchas más o muchas menos sílabas que los otros de su estrofa (cada renglón trae sus sílabas entre paréntesis). Proponé un cambio que lo acerque a los demás.',
@@ -117,7 +152,7 @@ export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION) {
         '4. Palabras repetidas sin querer, finales que no riman con su estrofa, palabras flojas o clichés.',
         'Cada sugerencia cambia una palabra o unas pocas seguidas (hasta cuatro) de un solo verso, copiadas tal cual en "viejo", por otras que tengan sentido en esa frase. La última palabra de lo nuevo tiene que rimar (al menos asonante) con la última de lo que reemplaza o, si es el final del verso, con los finales de su estrofa.',
         'Antes de elegir, leé la letra entera y entendé de qué habla. Proponé solo lo que de verdad la mejora: nada de cambios por cambiar. Si está bien, devolvé menos (o ninguna).',
-        'El título dice el motivo en pocas palabras, por ejemplo: «No se entiende la frase», «Este verso es más largo que los otros», «Sobran palabras», «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
+        'El título dice el motivo en pocas palabras y con tu voz (cercana, nunca de manual), por ejemplo: «No se entiende la frase», «Este verso es más largo que los otros», «Sobran palabras», «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
         'Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
     ].join('\n');
     // «¿Qué más cambiaría Métrica IA?»: los renglones donde ya propuso algo no se repiten (pedido de Swa).
@@ -167,13 +202,32 @@ export function temasValido(temas) {
         && vistas.every(v => texto(v, LARGO_TEMA)));
 }
 
-export function promptDeTemas(temas, cantidad = TEMAS_IA) {
+// De dónde sale cada idea: se eligen al azar en cada pedido, así no se repite siempre lo mismo (pedido de
+// Swa: la primera idea salía siempre de una abuela). Cosas que una persona común vivió o puede vivir:
+// nada de lujos ni de vidas que casi nadie vive.
+export const SEMILLAS_TEMAS = [
+    'un amor que empieza', 'un desamor reciente', 'alguien que te gusta y no lo sabe', 'una pelea de pareja', 'volver con un ex',
+    'una amistad que se rompió', 'el mejor amigo de toda la vida', 'un amigo que te falló', 'la primera vez que saliste solo de noche',
+    'una fiesta que se descontroló', 'la vuelta a casa de madrugada', 'el colectivo o el subte de todos los días', 'un trabajo que odiás',
+    'la plata que no alcanza', 'un sueño que todavía no se cumplió', 'entrenar o prepararte para algo', 'una revancha', 'un error que te enseñó algo',
+    'el barrio donde creciste', 'una calle de noche', 'la escuela o el secundario', 'una mudanza', 'un viaje en ruta', 'una ciudad nueva',
+    'el mar o un río', 'un día de lluvia', 'el verano', 'un domingo aburrido', 'una canción que te recuerda a alguien', 'tu primer instrumento o tu primer beat',
+    'la presión de las redes', 'el celular a las 3 de la mañana', 'la ansiedad antes de algo importante', 'estar solo y estar bien', 'sentirte fuera de lugar',
+    'tu vieja o tu viejo', 'un hermano o una hermana', 'una mascota', 'alguien que ya no está', 'una promesa que no cumpliste',
+    'el orgullo de dónde venís', 'alguien que no creyó en vos', 'una noche sin dormir', 'un recuerdo de la infancia', 'el primer sueldo',
+    'una despedida en un aeropuerto o una terminal', 'una cita que salió mal', 'un mensaje que nunca mandaste', 'bailar hasta que cierren', 'un secreto',
+];
+
+export function promptDeTemas(temas, cantidad = TEMAS_IA, { pais, azar = Math.random } = {}) {
+    const semillas = mezclar(SEMILLAS_TEMAS, azar).slice(0, cantidad);
+    const tonos = mezclar(['tierna', 'con bronca', 'de fiesta', 'nostálgica', 'con humor', 'oscura', 'esperanzada', 'con actitud'], azar).slice(0, cantidad);
     const instrucciones = [
-        'Sos un compositor de rap y canciones en español rioplatense que ayuda a alguien a arrancar una letra nueva.',
+        personalidad(pais),
+        'Ahora ayudás a alguien a arrancar una letra nueva.',
         `Proponé ${cantidad} ideas de qué hablar en una canción. Cada una es un tema concreto con su ángulo: una situación, un momento, una persona o un lugar, no una palabra suelta ni algo genérico como «el amor» o «la vida».`,
-        'Cosas que una persona común vivió o puede vivir: amor y desamor, el barrio, la familia, los amigos, el laburo, la plata que no alcanza, salir de noche, superarse, extrañar, viajar. Nada de lujos ni de vidas que casi nadie vive (ser millonario, autos caros, fama).',
-        'Que sean distintas entre sí en tema y en tono: una tierna, una con bronca, una de fiesta, una que dé nostalgia.',
-        'Cada una es una sola frase en segunda persona que invite a escribir, de 25 palabras como mucho, sin comillas, sin numerar y sin explicar nada (por ejemplo: «Contá la última vez que viste a alguien sin saber que era la última»).',
+        'Cosas que una persona común vivió o puede vivir. Nada de lujos ni de vidas que casi nadie vive (ser millonario, autos caros, fama).',
+        `Para esta vez, una idea por cada punto de partida, en este orden: ${semillas.map((t, n) => `${t} (${tonos[n]})`).join('; ')}. Tomalos como punto de partida, no como frase: buscá un ángulo propio y sorprendente.`,
+        'Cada una es una sola frase en segunda persona que invite a escribir, de 25 palabras como mucho, sin comillas, sin numerar y sin explicar nada.',
         'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
     ].join('\n');
     const lineas = [`Dame ${cantidad} ideas de qué hablar en una canción.`];
