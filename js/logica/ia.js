@@ -367,8 +367,8 @@ export const textoSinCupo = ({ porLetra }) => porLetra
 // ---------- Cliente del Worker ----------
 export const endpointIA = almacen => almacen.getItem(CLAVE_ENDPOINT) || ENDPOINT_IA;
 
-// Un id anónimo por teléfono, para que el Worker cuente el uso de cada uno (en la app nativa
-// se suma el comprobante de StoreKit para el plan; ver worker/README.md).
+// Un id anónimo por teléfono, para el cupo gratis. La app nativa manda además X-Metrica-JWS
+// (el jwsRepresentation de StoreKit); el Worker verifica la compra y la cuota (ver worker/README.md).
 export function idDeUsuario(almacen, azar = Math.random) {
     let id = almacen.getItem(CLAVE_ID);
     if (!id) {
@@ -403,7 +403,7 @@ async function llamarIA(cuerpo, { endpoint = '', id = '', fetch = globalThis.fet
     } catch {
         throw errorIA('red');
     }
-    if (respuesta.status === 429) throw errorIA('cupo');
+    if (respuesta.status === 402 || respuesta.status === 429) throw errorIA('cupo');
     if (!respuesta.ok) throw errorIA('servidor');
     const datos = await respuesta.json().catch(() => ({}));
     if (!Array.isArray(datos.sugerencias)) throw errorIA('servidor');

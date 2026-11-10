@@ -1,0 +1,223 @@
+// Cuánto da cada compra. Ids de App/Extras.storekit (app Swift) y cantidades de CLAUDE.md.
+// Métrica + (`metrica.extras`, pago único) regala 100 una sola vez. Métrica + IA son 300 por mes.
+// Los cinco paquetes de «Más IA» son exactamente estos; cualquier otro productId se rechaza.
+const PAQUETES = {
+    'metrica.ia.mas': 300,
+    'metrica.ia.mas5': 800,
+    'metrica.ia.mas10': 1650,
+    'metrica.ia.mas30': 5000,
+    'metrica.ia.mas50': 8500,
+};
+
+export const PRODUCTOS = {
+    'metrica.extras': { tipo: 'plus', consultas: 100 },
+    'metrica.ia': { tipo: 'suscripcion', consultas: 300 },
+};
+for (const [id, consultas] of Object.entries(PAQUETES)) {
+    PRODUCTOS[id] = { tipo: 'paquete', consultas };
+}
+
+const TIPO = {
+    plus: 'Non-Consumable',
+    suscripcion: 'Auto-Renewable Subscription',
+    paquete: 'Consumable',
+};
+
+const ID_TX = /^[A-Za-z0-9]{1,64}$/;
+
+function fechaApple(valor) {
+    if (valor == null || valor === '') return null;
+    const n = Number(valor);
+    if (!Number.isFinite(n)) return null;
+    // StoreKit manda milisegundos. Si viniera en segundos (menor a 1e12), se pasa.
+    return n < 1e12 ? n * 1000 : n;
+}
+
+// { ok, compra } si suma, { ok, inactiva } si está firmada pero no da cuota
+// (revocada o suscripción vencida), { ok: false, error } si el producto no es de Métrica.
+export function clasificar(tx, ahora) {
+    const producto = PRODUCTOS[tx.productId];
+    if (!producto) return { ok: false, error: 'producto' };
+    if (tx.type !== TIPO[producto.tipo]) return { ok: false, error: 'firma' };
+    if (!ID_TX.test(tx.transactionId)) return { ok: false, error: 'firma' };
+    const original = tx.originalTransactionId || tx.transactionId;
+    if (!ID_TX.test(original)) return { ok: false, error: 'firma' };
+    if (tx.revocationDate != null && tx.revocationDate !== '') return { ok: true, inactiva: true };
+    if (producto.tipo === 'suscripcion') {
+        const vence = fechaApple(tx.expiresDate);
+        if (vence == null || vence <= ahora) return { ok: true, inactiva: true };
+    }
+    let consultas = producto.consultas;
+    if (producto.tipo === 'paquete') {
+        const cantidad = tx.quantity == null ? 1 : Number(tx.quantity);
+        if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 10) return { ok: false, error: 'firma' };
+        consultas *= cantidad;
+    }
+    return {
+        ok: true,
+        compra: {
+            tipo: producto.tipo, consultas, transactionId: tx.transactionId, originalTransactionId: original,
+            vence: producto.tipo === 'suscripcion' ? fechaApple(tx.expiresDate) : 0,
+            // Sandbox (y cualquier cosa que no sea Production) no usa la cuota real del producto.
+            sandbox: tx.environment !== 'Production',
+        },
+    };
+}
+
+function restanteDe(pool) {
+    return pool.bolsa ? Math.max(0, pool.restante) : Math.max(0, pool.tope - pool.usadas);
+}
+
+// Lo que se puede gastar ahora. Gratis y Sandbox comparten el tope de la IP.
+// Sandbox, además, no pasa el tope global del día.
+export function totalUsable(cuenta) {
+    let ip = Math.max(0, cuenta.ipTope - cuenta.ipUsadas);
+    let sandboxDia = Math.max(0, cuenta.sandboxDiaTope - cuenta.sandboxDiaUsadas);
+    let suma = 0;
+    for (const pool of cuenta.pools) {
+        const queda = restanteDe(pool);
+        if (pool.tipo === 'gratis') {
+            const toma = Math.min(queda, ip);
+            suma += toma;
+            ip -= toma;
+        } else if (pool.tipo === 'sandbox') {
+            const toma = Math.min(queda, ip, sandboxDia);
+            suma += toma;
+            ip -= toma;
+            sandboxDia -= toma;
+        } else suma += queda;
+    }
+    return suma;
+}
+
+async function usadas(kv, clave) {
+    const valor = await kv.get(clave);
+    const n = Number(valor);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+// Arma las bolsas de esta persona. La suscripción reemplaza al cupo gratis (no se suman).
+// El regalo y los paquetes quedan en una bolsa por transactionId: si la clave ya existe,
+// se usa lo que queda y no se vuelve a sumar el paquete.
+export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0, sandboxDiaTope = 0, claveDia = '' }) {
+    const reales = compras.filter(c => !c.sandbox);
+    const deSandbox = compras.filter(c => c.sandbox);
+    const subs = reales.filter(c => c.tipo === 'suscripcion');
+    let sub = null;
+    if (subs.length) {
+        for (const candidata of subs) {
+            const clave = `cuota:mes:${mes}:sub:${candidata.originalTransactionId}`;
+            if (await kv.get(clave) != null) { sub = candidata; break; }
+        }
+        sub ??= subs.reduce((a, b) => (a.vence > b.vence ? a : b));
+    }
+    const pools = [];
+    if (sub) {
+        const clave = `cuota:mes:${mes}:sub:${sub.originalTransactionId}`;
+        pools.push({ tipo: 'mes', clave, tope: sub.consultas, usadas: await usadas(kv, clave) });
+    } else if (deSandbox.length) {
+        // El tope va por el recibo (originalTransactionId), no por el id del teléfono.
+        const vistos = new Set();
+        for (const compra of deSandbox) {
+            if (vistos.has(compra.originalTransactionId)) continue;
+            vistos.add(compra.originalTransactionId);
+            const clave = `cuota:mes:${mes}:sandbox:${compra.originalTransactionId}`;
+            pools.push({ tipo: 'sandbox', clave, tope: sandboxTope, usadas: await usadas(kv, clave) });
+        }
+    } else {
+        const clave = `cuota:mes:${mes}:id:${id}`;
+        pools.push({ tipo: 'gratis', clave, tope: cupoGratis, usadas: await usadas(kv, clave) });
+    }
+    const bolsas = reales
+        .filter(c => c.tipo === 'plus' || c.tipo === 'paquete')
+        .sort((a, b) => (a.transactionId < b.transactionId ? -1 : 1));
+    for (const compra of bolsas) {
+        const clave = `cuota:bolsa:${compra.transactionId}`;
+        const guardado = await kv.get(clave);
+        // null: primera vez que vemos esta transacción, y vale el paquete entero.
+        // "0" o cualquier número: ya se acreditó y esto es lo que queda.
+        const restante = guardado == null ? compra.consultas : Math.max(0, Number(guardado) || 0);
+        pools.push({ tipo: 'bolsa', bolsa: true, clave, restante });
+    }
+    const ipClave = `cuota:mes:${mes}:ip:${ip}`;
+    const sandboxDiaClave = `sandbox:${claveDia}`;
+    return {
+        pools,
+        ipClave,
+        ipTope: topeIp,
+        ipUsadas: await usadas(kv, ipClave),
+        sandboxDiaClave,
+        sandboxDiaTope,
+        sandboxDiaUsadas: await usadas(kv, sandboxDiaClave),
+        clavesVacias: sub
+            ? [`vacias:${mes}:sub:${sub.originalTransactionId}`]
+            : [`vacias:${mes}:id:${id}`, `vacias:${mes}:ip:${ip}`],
+    };
+}
+
+// Descuenta `gasto` (primero el mes, que se renueva; después el regalo y los paquetes).
+// Devuelve lo que queda, o null si no alcanza (y no escribe nada).
+export async function descontar(kv, cuenta, gasto, ttl) {
+    if (totalUsable(cuenta) < gasto) return null;
+    let falta = gasto;
+    let ipLibre = Math.max(0, cuenta.ipTope - cuenta.ipUsadas);
+    let sandboxDiaLibre = Math.max(0, cuenta.sandboxDiaTope - cuenta.sandboxDiaUsadas);
+    const escrituras = [];
+    let tocoIp = false;
+    let tocoSandboxDia = false;
+    for (const pool of cuenta.pools) {
+        if (!falta) break;
+        const queda = restanteDe(pool);
+        const puede = pool.tipo === 'gratis' ? Math.min(queda, ipLibre)
+            : pool.tipo === 'sandbox' ? Math.min(queda, ipLibre, sandboxDiaLibre)
+            : queda;
+        const toma = Math.min(puede, falta);
+        if (!toma) continue;
+        falta -= toma;
+        if (pool.bolsa) {
+            pool.restante -= toma;
+            // Sin vencimiento: si la clave se borrara, el mismo JWS volvería a sumar el paquete.
+            escrituras.push(kv.put(pool.clave, String(pool.restante)));
+        } else {
+            pool.usadas += toma;
+            escrituras.push(kv.put(pool.clave, String(pool.usadas), { expirationTtl: ttl }));
+            if (pool.tipo === 'gratis' || pool.tipo === 'sandbox') {
+                cuenta.ipUsadas += toma;
+                ipLibre -= toma;
+                tocoIp = true;
+            }
+            if (pool.tipo === 'sandbox') {
+                cuenta.sandboxDiaUsadas += toma;
+                sandboxDiaLibre -= toma;
+                tocoSandboxDia = true;
+            }
+        }
+    }
+    if (tocoIp) escrituras.push(kv.put(cuenta.ipClave, String(cuenta.ipUsadas), { expirationTtl: ttl }));
+    if (tocoSandboxDia) escrituras.push(kv.put(cuenta.sandboxDiaClave, String(cuenta.sandboxDiaUsadas), { expirationTtl: ttl }));
+    await Promise.all(escrituras);
+    return totalUsable(cuenta);
+}
+
+// Un paso de la cuota, para correrlo adentro de la transacción del Durable Object.
+// accion: mirar (no escribe), vacia (la revisión sin cambios) o gastar.
+export async function operarCuota(kv, pedido) {
+    const cuenta = await prepararCuenta(kv, pedido);
+    const dia = Number(await kv.get(pedido.claveDia)) || 0;
+    const quedan = totalUsable(cuenta);
+    if (pedido.accion === 'mirar') return { quedan, dia };
+    if (dia >= pedido.topeDia) return { error: 'ocupado', quedan };
+    if (pedido.accion === 'vacia') {
+        const hechas = await Promise.all(cuenta.clavesVacias.map(async k => Number(await kv.get(k)) || 0));
+        if (Math.max(0, ...hechas) >= pedido.limiteVacias) return { ok: false, quedan };
+        await Promise.all([
+            ...cuenta.clavesVacias.map((k, i) => kv.put(k, String(hechas[i] + 1))),
+            kv.put(pedido.claveDia, String(dia + 1)),
+        ]);
+        return { ok: true, quedan };
+    }
+    const despues = await descontar(kv, cuenta, pedido.gasto, pedido.ttl);
+    if (despues == null) return { error: 'cupo', quedan };
+    await kv.put(pedido.claveDia, String(dia + 1));
+    return { quedan: despues };
+}

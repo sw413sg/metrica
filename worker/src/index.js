@@ -2,11 +2,29 @@
 // otras (por ejemplo, conectar la web con iCloud) sin tocar las que ya andan:
 // - GET /salud: para ver que está desplegado (no gasta nada).
 // - POST /ia: «Mejorar frase» y «Lo que cambiaría». Recibe el pedido que arma la app, arma el mensaje
-//   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y cuenta
-//   el uso de cada persona por mes en KV.
+//   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y descuenta
+//   la cuota en KV. La compra se lee de X-Metrica-JWS (StoreKit 2), no de X-Metrica-Plan.
 import { MODELO_IA, GASTO_IA, PEDIDAS_IA, REVISIONES_SIN_CAMBIOS, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
+import { clasificar } from './cuota.js';
+import { Cuota, NOMBRE_CUOTA } from './cuota-do.js';
+import { APPLE_RAIZ, desdeBase64, verificarJws } from './verificar.js';
+
+export { Cuota };
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
+const TTL = DIAS_KV * 24 * 60 * 60;
+
+function entero(valor, porDefecto) {
+    if (valor == null || valor === '') return porDefecto;
+    const n = Number(valor);
+    return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : porDefecto;
+}
+
+// Solo CF-Connecting-IP (Cloudflare lo pisa). Si no está, todos los que no lo traen comparten tope.
+function ipDe(request) {
+    const ip = request.headers.get('CF-Connecting-IP') ?? '';
+    return /^[A-Za-z0-9.:]{1,64}$/.test(ip) ? ip : 'sin-ip';
+}
 
 export default {
     async fetch(request, env) {
@@ -19,18 +37,19 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-Plan, X-Metrica-Extra, X-Metrica-Pais',
+            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
+            'Access-Control-Expose-Headers': 'X-Metrica-Restantes',
             Vary: 'Origin',
         };
-        const responder = (datos, status = 200) => new Response(JSON.stringify(datos), {
-            status, headers: { ...cors, 'Content-Type': 'application/json' },
+        const responder = (datos, status = 200, extra) => new Response(JSON.stringify(datos), {
+            status, headers: { ...cors, 'Content-Type': 'application/json', ...extra },
         });
 
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
         if (!permitido) return responder({ error: 'origen' }, 403);
         const ruta = new URL(request.url).pathname.replace(/\/+$/, '');
         if (ruta === '/salud' && request.method === 'GET') {
-            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO),
+            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO), cuota: Boolean(env.CUOTA),
                 // Solo los nombres de lo cargado (nunca los valores), para ver si falta o se llama distinto.
                 nombres: Object.keys(env).sort() });
         }
@@ -55,23 +74,29 @@ async function ia(request, env, responder) {
     const valido = revision ? revisionValida(cuerpo.revision) : temas ? temasValido(cuerpo.temas) : pedidoValido(cuerpo?.pedido);
     if (!valido) return responder({ error: 'pedido' }, 400);
 
-    // Límite por persona y por mes, y un techo de todo el día para que la cuenta no se dispare.
-    const ahora = new Date().toISOString();
-    const clavePersona = `uso:${ahora.slice(0, 7)}:${id}`;
-    const claveDia = `dia:${ahora.slice(0, 10)}`;
-    const [usadas, delDia] = (await Promise.all([env.USO.get(clavePersona), env.USO.get(claveDia)])).map(v => Number(v) || 0);
-    // Con Métrica + IA (suscripción `metrica.ia`), TOPE_PLAN; si no, CUPO_GRATIS. TODO antes del App
-    // Store: verificar el comprobante firmado de StoreKit en vez de creerle a la cabecera (mientras
-    // tanto, PLAN_SIN_VERIFICAR = "si" la acepta, para probar en TestFlight).
-    const plan = request.headers.get('X-Metrica-Plan') === 'metrica.ia' && env.PLAN_SIN_VERIFICAR === 'si';
-    // Las consultas de más de este mes: los paquetes de «Más IA» (compras consumibles `metrica.ia.mas*`)
-    // y las de regalo de Métrica + (también sin plan), sin verificar por ahora y con un techo.
-    const extra = Math.min(Math.max(0, Math.floor(Number(request.headers.get('X-Metrica-Extra')) || 0)), Number(env.TOPE_EXTRA) || 20000);
-    const tope = (plan ? Number(env.TOPE_PLAN) || 300 : Number(env.CUPO_GRATIS) || 20) + extra;
+    // La cuota la decide el servidor. X-Metrica-Plan y X-Metrica-Extra se ignoran: cualquiera podía
+    // mandarlos y gastar OpenAI. La compra llega en X-Metrica-JWS (uno o varios JWS de StoreKit, separados
+    // por coma) y se verifica contra Apple Root CA - G3.
+    const ahoraFecha = new Date();
+    const ahora = ahoraFecha.getTime();
+    const mes = ahoraFecha.toISOString().slice(0, 7);
+    const claveDia = `dia:${ahoraFecha.toISOString().slice(0, 10)}`;
+    if (!env.CUOTA) return responder({ error: 'cuota' }, 503);
+    const compras = await leerCompras(request, env, ahora);
+    if (compras.error) return responder({ error: compras.error }, 401);
+    const base = {
+        mes, id, ip: ipDe(request), compras: compras.lista, claveDia,
+        cupoGratis: entero(env.CUPO_GRATIS, 20), topeIp: entero(env.TOPE_IP, 100),
+        sandboxTope: entero(env.SANDBOX_CONSULTAS_MES, 30),
+        sandboxDiaTope: entero(env.SANDBOX_TOPE_GLOBAL_DIA, 300),
+        topeDia: entero(env.TOPE_DIA, 5000),
+        limiteVacias: REVISIONES_SIN_CAMBIOS, ttl: TTL,
+    };
+    const vista = await pedirCuota(env, { ...base, accion: 'mirar' });
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
     const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length, Array.isArray(cuerpo.revision.ya) && cuerpo.revision.ya.length > 0) : temas ? GASTO_IA.temas : GASTO_IA.frase;
-    if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);
-    if (delDia >= (Number(env.TOPE_DIA) || 5000)) return responder({ error: 'ocupado' }, 503);
+    if (vista.quedan < gasto) return conRestantes(responder, { error: 'cupo', quedan: vista.quedan }, 402, vista.quedan);
+    if (vista.dia >= base.topeDia) return responder({ error: 'ocupado' }, 503);
 
     // El país del iPhone, para la voz de Métrica IA (rioplatense solo en Argentina; pedido de Swa).
     const opciones = { pais: (request.headers.get('X-Metrica-Pais') ?? '').toUpperCase() };
@@ -88,19 +113,48 @@ async function ia(request, env, responder) {
         return responder({ error: 'modelo' }, 502);
     }
 
-    // Solo cuenta si salió bien.
-    const ttl = { expirationTtl: DIAS_KV * 24 * 60 * 60 };
-    // Sin cambios no gasta cuota, hasta REVISIONES_SIN_CAMBIOS por mes (pedido de Swa).
+    // Solo cuenta si salió bien, y el descuento es una transacción del Durable Object.
     if (sinCambios) {
-        const claveVacias = `vacias:${ahora.slice(0, 7)}:${id}`;
-        const vacias = Number(await env.USO.get(claveVacias)) || 0;
-        if (vacias < REVISIONES_SIN_CAMBIOS) {
-            await Promise.all([env.USO.put(claveVacias, String(vacias + 1), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
-            return responder({ sugerencias: [], quedan: tope - usadas });
-        }
+        const vacia = await pedirCuota(env, { ...base, accion: 'vacia' });
+        if (vacia.ok) return conRestantes(responder, { sugerencias: [], quedan: vacia.quedan }, 200, vacia.quedan);
     }
-    await Promise.all([env.USO.put(clavePersona, String(usadas + gasto), ttl), env.USO.put(claveDia, String(delDia + 1), ttl)]);
-    return responder({ sugerencias, quedan: tope - usadas - gasto });
+    const cobro = await pedirCuota(env, { ...base, accion: 'gastar', gasto });
+    if (cobro.error === 'ocupado') return responder({ error: 'ocupado' }, 503);
+    if (cobro.error === 'cupo') return conRestantes(responder, { error: 'cupo', quedan: cobro.quedan }, 402, cobro.quedan);
+    return conRestantes(responder, { sugerencias, quedan: cobro.quedan }, 200, cobro.quedan);
+}
+
+async function pedirCuota(env, pedido) {
+    const stub = env.CUOTA.get(env.CUOTA.idFromName(NOMBRE_CUOTA));
+    const respuesta = await stub.fetch('https://cuota.internal/', { method: 'POST', body: JSON.stringify(pedido) });
+    return respuesta.json();
+}
+
+function conRestantes(responder, datos, status, restantes) {
+    return responder(datos, status, { 'X-Metrica-Restantes': String(restantes) });
+}
+
+// Los JWS de X-Metrica-JWS. Vacío: sin compra (cupo gratis). Uno malo: 401, no se lo trata como gratis.
+async function leerCompras(request, env, ahora) {
+    const crudo = request.headers.get('X-Metrica-JWS') ?? '';
+    if (crudo.length > 80_000) return { error: 'firma' };
+    const tokens = crudo.split(',').map(t => t.trim()).filter(Boolean);
+    if (tokens.length > 12) return { error: 'firma' };
+    // RAIZ_DE_PRUEBA solo corre si PRUEBA=si (los tests). En producción no se define y vale la raíz de Apple.
+    const raiz = env.PRUEBA === 'si' && env.RAIZ_DE_PRUEBA ? desdeBase64(env.RAIZ_DE_PRUEBA) : APPLE_RAIZ;
+    const bundleId = env.BUNDLE_ID || 'com.sw413sg.metrica';
+    const lista = [];
+    const vistos = new Set();
+    for (const token of tokens) {
+        const verificado = await verificarJws(token, { raiz, bundleId, ahora });
+        if (!verificado.ok) return { error: verificado.error };
+        const clasificado = clasificar(verificado.transaccion, ahora);
+        if (!clasificado.ok) return { error: clasificado.error };
+        if (clasificado.inactiva || vistos.has(clasificado.compra.transactionId)) continue;
+        vistos.add(clasificado.compra.transactionId);
+        lista.push(clasificado.compra);
+    }
+    return { lista };
 }
 
 // Si el modelo contestó la lista, aunque venga vacía (no un texto que no se puede leer).
