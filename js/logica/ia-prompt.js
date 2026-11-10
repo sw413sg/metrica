@@ -78,58 +78,118 @@ const describir = v => {
     return partes.join('; ');
 };
 
+// ---------- Lo mismo para todos los pedidos, para la caché de OpenAI (pedido de Swa) ----------
+// OpenAI cobra mucho más barato lo que ya leyó si el comienzo del mensaje es idéntico. Por eso todos
+// los pedidos (frase, palabra, letra entera e ideas) llevan las mismas instrucciones, con todas las
+// tareas, y la letra va primero y escrita siempre igual: después de «¿Qué cambiaría Métrica IA?», las
+// frases de esa letra vuelven a usar lo que ya leyó. Lo que cambia en cada pedido va al final.
+const TAREAS = [
+    'Te van a pedir una de estas tareas (dice cuál al final del mensaje):',
+    '',
+    'TAREA «frase»: reescribir una frase de su letra.',
+    '- Escribí frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.',
+    '- Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
+    '- Cada una tiene que tener sentido completo por sí sola y encajar gramaticalmente en el verso donde va: nada de frases cortadas, palabras sueltas al final ni ideas que no se entienden.',
+    '- Leé la letra entera: que sigan su tema, su historia y su tono, sin repetir imágenes ni palabras fuertes que ya usa.',
+    '- Que sean distintas entre sí, por los caminos que se piden.',
+    '- La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
+    '- Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',
+    '- Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+    '',
+    'TAREA «palabra»: elegir una palabra.',
+    '- Devolvé palabras sueltas que puedan reemplazar a la elegida en su verso, que encajen con el sentido y suenen bien.',
+    '- Si es la última del verso, tienen que rimar con la que se pide (mejor consonante, si no asonante); si va en el medio, mejor si suenan con las rimas internas de la estrofa.',
+    '- Que siga el tema y el tono de la letra, sin repetir palabras que ya están en ella.',
+    '- Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+    '',
+    'TAREA «revision»: revisar su letra entera, como una amiga que sabe, con respeto por su estilo.',
+    '- Leé la letra y devolvé sugerencias concretas, de la más importante a la menos. Buscá, en este orden:',
+    '  1. Repeticiones: palabras o imágenes que se repiten sin querer en la letra (no las que se repiten a propósito, como en un estribillo).',
+    '  2. Palabras que cambiarías: flojas, gastadas, clichés o que no suenan bien ahí, por otras con más fuerza o más precisas, que sigan el tema.',
+    '  3. Frases enteras que cambiarías: un verso que no se entiende, que no sigue la idea de la estrofa, con relleno o sin fuerza, reescrito entero con otra imagen.',
+    '  4. Métrica despareja: un verso con muchas más o muchas menos sílabas que los otros de su estrofa (las sílabas de cada renglón van en el pedido).',
+    '  5. Finales que no riman con su estrofa.',
+    '- NO propongas cambios de gramática, de puntuación, de mayúsculas, de tildes ni conectores o palabras que «faltan» (un «y», un «que», un artículo): en una letra se escribe así a propósito, y eso no la mejora.',
+    '- Muchas veces una frase está escrita de una forma rara porque así entra en la métrica y el ritmo de la estrofa: respetalo. Lo nuevo tiene que tener casi las mismas sílabas que lo que reemplaza (una de diferencia como mucho), salvo cuando el problema es justamente la métrica despareja, y tiene que sonar bien cantado en ese lugar.',
+    '- Cada sugerencia cambia, de un solo verso, una palabra, unas pocas seguidas o el verso entero, copiadas tal cual en "viejo", por otras que tengan sentido en esa frase. La última palabra de lo nuevo tiene que rimar (al menos asonante) con la última de lo que reemplaza o, si es el final del verso, con los finales de su estrofa.',
+    '- Antes de elegir, leé la letra entera y entendé de qué habla. Proponé solo lo que de verdad la mejora: nada de cambios por cambiar. Si está bien, devolvé menos (o ninguna).',
+    '- El título dice el motivo en pocas palabras y con tu voz (cercana, nunca de manual), por ejemplo: «No se entiende la frase», «Este verso es más largo que los otros», «Esta frase puede pegar más fuerte», «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
+    '- Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
+    '',
+    'TAREA «ideas»: ayudar a alguien a arrancar una letra nueva.',
+    '- Proponé ideas de qué hablar en una canción. Cada una es un tema concreto con su ángulo: una situación, un momento, una persona o un lugar, no una palabra suelta ni algo genérico como «el amor» o «la vida».',
+    '- Cosas que una persona común vivió o puede vivir. Nada de lujos ni de vidas que casi nadie vive (ser millonario, autos caros, fama).',
+    '- Hacé una idea por cada punto de partida que se pide, en ese orden. Tomalos como punto de partida, no como frase: buscá un ángulo propio y sorprendente.',
+    '- Cada una es una sola frase en segunda persona que invite a escribir, de 25 palabras como mucho, sin comillas, sin numerar y sin explicar nada.',
+    '- Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+].join('\n');
+
+// Las instrucciones: iguales en todos los pedidos de una persona (solo cambian con el país).
+export function instruccionesIA(pais) {
+    return `${personalidad(pais)}\n\n${TAREAS}`;
+}
+
+// La letra, escrita igual venga de donde venga: «número texto», un renglón vacío entre estrofas y sin
+// las marcas de parte ([Estribillo]) ni los renglones sin letras. `renglones`: [{ n, texto, estrofa }].
+function bloqueDeLetra(renglones) {
+    let estrofa = renglones[0]?.estrofa;
+    const lineas = renglones.map(v => {
+        const corte = v.estrofa !== estrofa ? '\n' : '';
+        estrofa = v.estrofa;
+        return `${corte}${v.n} ${v.texto}`;
+    });
+    return `Letra (número de renglón y verso):\n${lineas.join('\n')}`;
+}
+
+const separador = v => /^\s*\[[^\]\n]+\]\s*$/.test(v);
+
+// La letra de contexto de una frase (strings, renglones vacíos incluidos) con el mismo formato que la
+// de «¿Qué cambiaría?» (letraParaRevisar en js/logica/ia.js): mismos números y mismos cortes.
+function renglonesDeLetra(letra) {
+    let estrofa = 0;
+    const renglones = [];
+    letra.forEach((v, n) => {
+        if (separador(v) || !/\p{L}/u.test(v)) { estrofa++; return; }
+        renglones.push({ n, texto: v.trim(), estrofa });
+    });
+    return renglones;
+}
+
 // { instrucciones, entrada }: el mensaje de sistema y el del usuario, en texto.
 export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA, { pais, azar = Math.random } = {}) {
-    const contexto = [];
-    // La letra entera va primero y solo de contexto: el tema, el tono y lo que ya se dijo (pedido de Swa).
-    if (pedido.letra?.some(v => v.trim())) {
-        const letra = pedido.letra.map((v, n) => n === pedido.enLetra ? `>> ${v}` : v).join('\n').replace(/\n{3,}/g, '\n\n');
-        contexto.push(`Letra entera, solo para entender de qué habla y qué ya se dijo (el verso marcado con >> es el de la frase):\n${letra.trim()}`);
-    }
-    if (pedido.estrofa.length) contexto.push(`Estrofa:\n${pedido.estrofa.join('\n')}`);
-    if (pedido.anterior) contexto.push(`Verso anterior: ${describir(pedido.anterior)}.`);
+    const lineas = [];
+    const renglones = pedido.letra ? renglonesDeLetra(pedido.letra) : [];
+    // La letra entera va primero (y escrita igual que en «¿Qué cambiaría?»): el tema, el tono y lo que ya se dijo.
+    if (renglones.length) lineas.push(bloqueDeLetra(renglones));
+    else if (pedido.estrofa.length) lineas.push(`Estrofa:\n${pedido.estrofa.join('\n')}`);
+    const enLetra = renglones.some(v => v.n === pedido.enLetra) ? pedido.enLetra : null;
     if (pedido.palabra) {
-        const instrucciones = [
-            personalidad(pais),
-            'Ahora ayudás a elegir una palabra.',
-            `Devolvé ${cantidad} palabras sueltas que puedan reemplazar a la elegida en su verso, que encajen con el sentido y suenen bien.`,
-            pedido.palabra.final && pedido.objetivo.rimaCon
-                ? `Es la última del verso: tienen que rimar con «${pedido.objetivo.rimaCon}» (mejor consonante, si no asonante).`
-                : 'Va en el medio del verso: mejor si suenan con las rimas internas de la estrofa.',
-            'Que siga el tema y el tono de la letra, sin repetir palabras que ya están en ella.',
-            'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
-        ].join('\n');
-        contexto.push(`Verso: ${describir(pedido.verso)}.`, `Palabra para cambiar: «${pedido.palabra.texto}».`);
-        return { instrucciones, entrada: contexto.join('\n\n') };
+        lineas.push('TAREA «palabra».');
+        if (enLetra != null) lineas.push(`Está en el renglón ${enLetra}.`);
+        if (pedido.anterior) lineas.push(`Verso anterior: ${describir(pedido.anterior)}.`);
+        lineas.push(`Verso: ${describir(pedido.verso)}.`, `Palabra para cambiar: «${pedido.palabra.texto}».`);
+        lineas.push(pedido.palabra.final && pedido.objetivo.rimaCon
+            ? `Es la última del verso: tienen que rimar con «${pedido.objetivo.rimaCon}».`
+            : 'Va en el medio del verso.');
+        lineas.push(`Devolvé ${cantidad} palabras.`);
+        return { instrucciones: instruccionesIA(pais), entrada: lineas.join('\n\n') };
     }
     // La frase seleccionada: frases relacionadas con ella y con sus propias rimas (pedido de Swa).
     const { final, internas } = pedido.verso;
     // Los caminos para reescribirla, en otro orden cada vez, así no salen siempre iguales.
     const caminos = mezclar(['más directa', 'con una metáfora', 'con una imagen concreta de la vida diaria', 'que cambie el punto de vista',
         'más íntima', 'con más actitud', 'con un giro inesperado al final', 'con un detalle sensorial (un olor, un sonido, una textura)'], azar).slice(0, 4);
-    const instrucciones = [
-        personalidad(pais),
-        'Ahora ayudás a reescribir una frase de su letra.',
-        `Escribí ${cantidad} frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.`,
-        'Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
-        'Cada una tiene que tener sentido completo por sí sola y encajar gramaticalmente en el verso donde va: nada de frases cortadas, palabras sueltas al final ni ideas que no se entienden.',
-        'Leé la letra entera: que sigan su tema, su historia y su tono, sin repetir imágenes ni palabras fuertes que ya usa.',
-        'Que sean distintas entre sí, por los caminos que se piden al final.',
-        'La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
-        'Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',
-        'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
-    ].join('\n');
-    const lineas = contexto;
-    if (pedido.enVerso) lineas.push(`La frase está en el verso: «${pedido.enVerso}».`);
+    lineas.push('TAREA «frase».');
+    if (pedido.anterior) lineas.push(`Verso anterior: ${describir(pedido.anterior)}.`);
+    if (pedido.enVerso) lineas.push(`La frase está en el verso${enLetra != null ? ` del renglón ${enLetra}` : ''}: «${pedido.enVerso}».`);
+    else if (enLetra != null) lineas.push(`La frase es el renglón ${enLetra}.`);
     lineas.push(`Frase elegida: ${describir(pedido.verso)}.`);
     lineas.push(`Sílabas buscadas: ${pedido.objetivo.silabas}.`);
-    // Lo que cambia en cada pedido va al final: así el comienzo (instrucciones y letra) se repite igual
-    // y OpenAI lo cobra más barato con su caché.
-    const caminosPedidos = `Caminos para esta vez: ${caminos.join(', ')}.`;
     lineas.push(`La última palabra tiene que rimar con «${final.palabra}» (consonante «-${final.consonante}»).`);
     if (internas.length) lineas.push(`Rimas internas para mantener: ${internas.map(i => `«${i.palabra}»`).join(', ')}.`);
-    lineas.push(caminosPedidos);
-    return { instrucciones, entrada: lineas.join('\n\n') };
+    lineas.push(`Caminos para esta vez: ${caminos.join(', ')}.`);
+    lineas.push(`Escribí ${cantidad} frases.`);
+    return { instrucciones: instruccionesIA(pais), entrada: lineas.join('\n\n') };
 }
 
 // ---------- Sugerencias de la letra entera (pestaña «Sugerencias» de «¿Por dónde empiezo?») ----------
@@ -147,33 +207,13 @@ export function revisionValida(revision) {
 }
 
 export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION, { pais } = {}) {
-    const instrucciones = [
-        personalidad(pais),
-        'Ahora revisás su letra entera, como una amiga que sabe: con respeto por su estilo.',
-        `Leé la letra y devolvé hasta ${cantidad} sugerencias concretas, de la más importante a la menos. Buscá, en este orden:`,
-        '1. Repeticiones: palabras o imágenes que se repiten sin querer en la letra (no las que se repiten a propósito, como en un estribillo).',
-        '2. Palabras que cambiarías: flojas, gastadas, clichés o que no suenan bien ahí, por otras con más fuerza o más precisas, que sigan el tema.',
-        '3. Frases enteras que cambiarías: un verso que no se entiende, que no sigue la idea de la estrofa, con relleno o sin fuerza, reescrito entero con otra imagen.',
-        '4. Métrica despareja: un verso con muchas más o muchas menos sílabas que los otros de su estrofa (cada renglón trae sus sílabas entre paréntesis).',
-        '5. Finales que no riman con su estrofa.',
-        'NO propongas cambios de gramática, de puntuación, de mayúsculas, de tildes ni conectores o palabras que «faltan» (un «y», un «que», un artículo): en una letra se escribe así a propósito, y eso no la mejora.',
-        'Muchas veces una frase está escrita de una forma rara porque así entra en la métrica y el ritmo de la estrofa: respetalo. Lo nuevo tiene que tener casi las mismas sílabas que lo que reemplaza (una de diferencia como mucho), salvo cuando el problema es justamente la métrica despareja, y tiene que sonar bien cantado en ese lugar.',
-        'Cada sugerencia cambia, de un solo verso, una palabra, unas pocas seguidas o el verso entero, copiadas tal cual en "viejo", por otras que tengan sentido en esa frase. La última palabra de lo nuevo tiene que rimar (al menos asonante) con la última de lo que reemplaza o, si es el final del verso, con los finales de su estrofa.',
-        'Antes de elegir, leé la letra entera y entendé de qué habla. Proponé solo lo que de verdad la mejora: nada de cambios por cambiar. Si está bien, devolvé menos (o ninguna).',
-        'El título dice el motivo en pocas palabras y con tu voz (cercana, nunca de manual), por ejemplo: «No se entiende la frase», «Este verso es más largo que los otros», «Esta frase puede pegar más fuerte», «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
-        'Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
-    ].join('\n');
+    const lineas = [bloqueDeLetra(revision.versos), 'TAREA «revision».'];
+    lineas.push(`Sílabas de cada renglón: ${revision.versos.map(v => `${v.n}: ${v.silabas}`).join(', ')}.`);
     // «¿Qué más cambiaría Métrica IA?»: los renglones donde ya propuso algo no se repiten (pedido de Swa).
     const ya = Array.isArray(revision.ya) ? revision.ya : [];
-    const yaPropuestos = ya.length ? `\nYa propusiste cambios en los renglones ${ya.join(', ')}: no propongas nada en esos renglones.` : '';
-    let estrofa = revision.versos[0]?.estrofa;
-    const lineas = revision.versos.map(v => {
-        const corte = v.estrofa !== estrofa ? '\n' : '';
-        estrofa = v.estrofa;
-        return `${corte}${v.n} (${v.silabas}) ${v.texto}`;
-    });
-    // Los renglones ya propuestos van al final, así la letra repetida aprovecha la caché de OpenAI.
-    return { instrucciones, entrada: `Letra (número de renglón, sílabas y verso):\n${lineas.join('\n')}${yaPropuestos ? `\n${yaPropuestos}` : ''}` };
+    if (ya.length) lineas.push(`Ya propusiste cambios en los renglones ${ya.join(', ')}: no propongas nada en esos renglones.`);
+    lineas.push(`Devolvé hasta ${cantidad} sugerencias.`);
+    return { instrucciones: instruccionesIA(pais), entrada: lineas.join('\n\n') };
 }
 
 // La lista de cambios que contesta el modelo, solo con los campos que sirven.
@@ -230,19 +270,10 @@ export const SEMILLAS_TEMAS = [
 export function promptDeTemas(temas, cantidad = TEMAS_IA, { pais, azar = Math.random } = {}) {
     const semillas = mezclar(SEMILLAS_TEMAS, azar).slice(0, cantidad);
     const tonos = mezclar(['tierna', 'con bronca', 'de fiesta', 'nostálgica', 'con humor', 'oscura', 'esperanzada', 'con actitud'], azar).slice(0, cantidad);
-    const instrucciones = [
-        personalidad(pais),
-        'Ahora ayudás a alguien a arrancar una letra nueva.',
-        `Proponé ${cantidad} ideas de qué hablar en una canción. Cada una es un tema concreto con su ángulo: una situación, un momento, una persona o un lugar, no una palabra suelta ni algo genérico como «el amor» o «la vida».`,
-        'Cosas que una persona común vivió o puede vivir. Nada de lujos ni de vidas que casi nadie vive (ser millonario, autos caros, fama).',
-        'Hacé una idea por cada punto de partida que se pide, en ese orden. Tomalos como punto de partida, no como frase: buscá un ángulo propio y sorprendente.',
-        'Cada una es una sola frase en segunda persona que invite a escribir, de 25 palabras como mucho, sin comillas, sin numerar y sin explicar nada.',
-        'Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
-    ].join('\n');
-    const lineas = [`Dame ${cantidad} ideas de qué hablar en una canción.`];
+    const lineas = ['TAREA «ideas».', `Dame ${cantidad} ideas de qué hablar en una canción.`];
     if (temas.vistas?.length) lineas.push(`Que no se parezcan a estas, que ya vio:\n${temas.vistas.map(v => `- ${v}`).join('\n')}`);
     lineas.push(`Puntos de partida para esta vez: ${semillas.map((t, n) => `${t} (${tonos[n]})`).join('; ')}.`);
-    return { instrucciones, entrada: lineas.join('\n\n') };
+    return { instrucciones: instruccionesIA(pais), entrada: lineas.join('\n\n') };
 }
 
 // Las ideas que vuelven: frases con algo, no muy largas, sin repetir. Hasta 4.

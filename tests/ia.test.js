@@ -140,7 +140,8 @@ test('el prompt lleva las rimas y sílabas del motor, y la respuesta se lee aunq
     // La letra entera va de contexto, con el verso de la frase marcado (pedido de Swa).
     assert.deepEqual(pedido.letra, LETRA.split('\n'));
     assert.equal(pedido.enLetra, 1);
-    assert.match(entrada, /Letra entera[^\n]*\nTe busco en el balcón sin razón\n>> y me quedo solo con mi canción\n\n\[Estribillo\]\nOtra estrofa acá/);
+    assert.match(entrada, /^Letra[^\n]*\n0 Te busco en el balcón sin razón\n1 y me quedo solo con mi canción\n\n4 Otra estrofa acá/);
+    assert.match(entrada, /renglón 1/);
     assert.match(instrucciones, /Leé la letra entera/);
     assert.deepEqual(leerRespuesta('Acá van:\n{"sugerencias": ["uno", 2, "dos"]}'), ['uno', 'dos']);
     assert.deepEqual(leerRespuesta('nada'), []);
@@ -227,7 +228,8 @@ test('validarRevision ubica cada cambio en la letra y respeta la mayúscula', ()
 
 test('el prompt de la revisión lleva los renglones y la respuesta se filtra', () => {
     const { entrada } = promptDeRevision(letraParaRevisar('uno dos tres\n\ncuatro cinco'));
-    assert.match(entrada, /^Letra.*\n0 \(5\) uno dos tres\n\n2 \(4\) cuatro cinco$/s);
+    assert.match(entrada, /^Letra[^\n]*\n0 uno dos tres\n\n2 cuatro cinco\n/);
+    assert.match(entrada, /Sílabas de cada renglón: 0: 5, 2: 4\./);
     assert.deepEqual(leerRevision('{"sugerencias":[{"titulo":"t","verso":1,"viejo":"a","nuevo":"b","extra":1},{"titulo":"t"}]}'),
         [{ titulo: 't', verso: 1, viejo: 'a', nuevo: 'b' }]);
     assert.equal(revisionValida({ versos: [] }), false);
@@ -240,6 +242,15 @@ test('«¿Qué más cambiaría?» avisa los renglones ya propuestos', () => {
     assert.doesNotMatch(promptDeRevision(letraParaRevisar("uno")).entrada, /Ya propusiste/);
     assert.equal(revisionValida({ ...revision, ya: [-1] }), false);
     assert.equal(revisionValida({ ...revision, ya: 'x' }), false);
+});
+
+test('frase y letra entera comparten el comienzo, así OpenAI reusa la letra ya leída', () => {
+    const { pedido } = elegir('y me quedo solo con mi canción');
+    const frase = promptDeSugerencias(pedido, undefined, { azar: () => 0.3 });
+    const revision = promptDeRevision(letraParaRevisar(LETRA));
+    assert.equal(frase.instrucciones, revision.instrucciones);
+    const letra = revision.entrada.slice(0, revision.entrada.indexOf('TAREA'));
+    assert.ok(frase.entrada.startsWith(letra), frase.entrada);
 });
 
 test('Métrica IA habla rioplatense solo en Argentina', async () => {
