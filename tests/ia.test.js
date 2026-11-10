@@ -253,6 +253,28 @@ test('frase y letra entera comparten el comienzo, así OpenAI reusa la letra ya 
     assert.ok(frase.entrada.startsWith(letra), frase.entrada);
 });
 
+test('con base, va la letra que ya leyó y solo los renglones que cambiaron', async () => {
+    const { cambiosDeLetra, convieneBase, REENVIO_LETRA } = await import('../js/logica/ia-prompt.js');
+    const base = LETRA.split('\n');
+    const ahora = [...base];
+    ahora[1] = 'y me quedo solo con mi guitarra';
+    assert.deepEqual(cambiosDeLetra(base, ahora), [{ n: 1, texto: 'y me quedo solo con mi guitarra' }]);
+    assert.ok(convieneBase(base, ahora, 10));
+    assert.equal(convieneBase(base, ahora, REENVIO_LETRA.minutos + 1), false);
+    assert.equal(convieneBase(base, ['a b', 'c d', '', '', 'e f'], 0), false);
+    assert.equal(convieneBase(null, ahora), false);
+    // La revisión con base empieza igual que con la letra vieja: OpenAI reusa lo ya leído.
+    const vieja = promptDeRevision(letraParaRevisar(LETRA)).entrada;
+    const revision = { ...letraParaRevisar(ahora.join('\n')), base };
+    assert.ok(revisionValida(revision));
+    const nueva = promptDeRevision(revision).entrada;
+    assert.ok(nueva.startsWith(vieja.slice(0, vieja.indexOf('TAREA'))));
+    assert.match(nueva, /Cambios desde que leíste la letra[^\n]*\n1 ahora dice: y me quedo solo con mi guitarra/);
+    const { pedido } = elegir('y me quedo solo con mi canción');
+    assert.ok(pedidoValido({ ...pedido, base }));
+    assert.equal(pedidoValido({ ...pedido, base: [1] }), false);
+});
+
 test('Métrica IA habla rioplatense solo en Argentina', async () => {
     const { personalidad } = await import('../js/logica/ia-prompt.js');
     assert.match(personalidad('AR'), /rioplatense/);
