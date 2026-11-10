@@ -102,7 +102,9 @@ export const CAMBIOS_REVISION = 6; // «Lo que cambiaría»: uno por página con
 export function revisionValida(revision) {
     const versos = revision?.versos;
     return Boolean(Array.isArray(versos) && versos.length && versos.length <= VERSOS_REVISION
-        && versos.every(v => v && Number.isInteger(v.n) && v.n >= 0 && texto(v.texto) && Number.isInteger(v.silabas) && Number.isInteger(v.estrofa)));
+        && versos.every(v => v && Number.isInteger(v.n) && v.n >= 0 && texto(v.texto) && Number.isInteger(v.silabas) && Number.isInteger(v.estrofa))
+        && (revision.ya === undefined || revision.ya === null || (Array.isArray(revision.ya) && revision.ya.length <= VERSOS_REVISION
+            && revision.ya.every(n => Number.isInteger(n) && n >= 0))));
 }
 
 export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION) {
@@ -118,13 +120,16 @@ export function promptDeRevision(revision, cantidad = CAMBIOS_REVISION) {
         'El título dice el motivo en pocas palabras, por ejemplo: «No se entiende la frase», «Este verso es más largo que los otros», «Sobran palabras», «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
         'Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
     ].join('\n');
+    // «¿Qué más cambiaría Métrica IA?»: los renglones donde ya propuso algo no se repiten (pedido de Swa).
+    const ya = Array.isArray(revision.ya) ? revision.ya : [];
+    const yaPropuestos = ya.length ? `\nYa propusiste cambios en los renglones ${ya.join(', ')}: no propongas nada en esos renglones.` : '';
     let estrofa = revision.versos[0]?.estrofa;
     const lineas = revision.versos.map(v => {
         const corte = v.estrofa !== estrofa ? '\n' : '';
         estrofa = v.estrofa;
         return `${corte}${v.n} (${v.silabas}) ${v.texto}`;
     });
-    return { instrucciones, entrada: `Letra (número de renglón, sílabas y verso):\n${lineas.join('\n')}` };
+    return { instrucciones: instrucciones + yaPropuestos, entrada: `Letra (número de renglón, sílabas y verso):\n${lineas.join('\n')}` };
 }
 
 // La lista de cambios que contesta el modelo, solo con los campos que sirven.

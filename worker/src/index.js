@@ -77,7 +77,8 @@ async function ia(request, env, responder) {
         : temas ? promptDeTemas(cuerpo.temas) : promptDeSugerencias(cuerpo.pedido);
     const { contenido, error } = await llamarModelo(env, instrucciones, entrada, revision ? 3000 : 1600, id, revision ? env.ESFUERZO_REVISION : env.ESFUERZO);
     if (error) return responder({ error: 'modelo' }, 502);
-    const sugerencias = revision ? leerRevision(contenido) : temas ? leerTemas(contenido) : leerRespuesta(contenido).slice(0, PEDIDAS_IA);
+    const ya = new Set(revision && Array.isArray(cuerpo.revision.ya) ? cuerpo.revision.ya : []);
+    const sugerencias = revision ? leerRevision(contenido).filter(s => !ya.has(s.verso)) : temas ? leerTemas(contenido) : leerRespuesta(contenido).slice(0, PEDIDAS_IA);
     // La letra entera puede volver sin cambios (estaba bien): no es un error.
     const sinCambios = revision && !sugerencias.length && contestoLista(contenido);
     if (!sugerencias.length && !sinCambios) {
