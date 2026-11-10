@@ -64,7 +64,7 @@ async function ia(request, env, responder) {
     // Store: verificar el comprobante firmado de StoreKit en vez de creerle a la cabecera (mientras
     // tanto, PLAN_SIN_VERIFICAR = "si" la acepta, para probar en TestFlight).
     const plan = request.headers.get('X-Metrica-Plan') === 'metrica.ia' && env.PLAN_SIN_VERIFICAR === 'si';
-    const tope = plan ? Number(env.TOPE_PLAN) || 500 : Number(env.CUPO_GRATIS) || 20;
+    const tope = plan ? Number(env.TOPE_PLAN) || 300 : Number(env.CUPO_GRATIS) || 20;
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
     const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length) : temas ? GASTO_IA.temas : GASTO_IA.frase;
     if (usadas + gasto > tope) return responder({ error: 'cupo', quedan: Math.max(0, tope - usadas) }, 429);

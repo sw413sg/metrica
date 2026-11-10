@@ -17,7 +17,7 @@ Respuestas de error: 404 ruta que no existe, 429 sin cupo, 403 origen no permiti
 ## Costos (estimado del 2026-11-02)
 El modelo piensa antes de contestar y eso se cobra como salida: `ESFUERZO = "low"` en `wrangler.toml` (`reasoning_effort` de OpenAI) le pide que piense poco. Si alguna vez OpenAI no lo acepta para el modelo, el Worker da 502: dejarlo vacío.
 
-GPT-6.1 Terra: USD 1 por millón de tokens de entrada y USD 5 de salida. Un pedido son unos 1.000 de entrada y 500 de salida: **USD 0,0035**. Con 20 gratis por mes, cada persona que las usa todas cuesta unos USD 0,07 por mes; con «Métrica + IA» (500 por mes; la letra entera gasta de 2 a 4, según sus versos), hasta USD 1,75. Con «Métrica IA» (tentativo, USD 2,99 por mes y tope de 500), el peor caso son USD 1,75 por mes. El plan de Workers gratis alcanza para empezar (100 mil pedidos por día).
+GPT-6.1 Terra: USD 1 por millón de tokens de entrada y USD 5 de salida. Un pedido son unos 1.000 de entrada y 500 de salida: **USD 0,0035**. Con 20 gratis por mes, cada persona que las usa todas cuesta unos USD 0,07 por mes; con «Métrica + IA» (USD 2,99 por mes y 300 por mes; la letra entera gasta de 2 a 4, según sus versos), el peor caso son unos USD 1,05 por mes. El plan de Workers gratis alcanza para empezar (100 mil pedidos por día).
 
 ## Desplegar
 Se despliega solo desde GitHub con Workers Builds, sin instalar nada: cada vez que cambia `main`, Cloudflare corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero).
@@ -35,7 +35,7 @@ Después, poner `https://metrica.<cuenta>.workers.dev/ia` en `ENDPOINT_IA` de `j
 Con la terminal también se puede: `cd worker && npx wrangler login && npx wrangler secret put OPENAI_API_KEY && npx wrangler deploy`. Para probarlo en la compu: `npx wrangler dev` y poner `http://localhost:8787/ia` en `metrica.ia-endpoint` (sumando `http://localhost:8080` a `ORIGENES`).
 
 ## Lo que falta antes de cobrar
-- **El plan:** sin pagar, `CUPO_GRATIS` (20 por mes); con «Métrica + IA» (suscripción `metrica.ia`, USD 2,99 por mes), `TOPE_PLAN` (500). Hoy la app manda `X-Metrica-Plan: metrica.ia` y, con `PLAN_SIN_VERIFICAR = "si"`, el Worker le cree (para probar en TestFlight). Falta, antes del App Store: la compra de «Métrica + IA» (StoreKit 2, suscripción) manda el comprobante firmado (`jwsRepresentation` de la transacción) y el Worker lo verifica con la clave pública de Apple antes de usar `TOPE_PLAN`. En la web queda simulado.
+- **El plan:** sin pagar, `CUPO_GRATIS` (20 por mes); con «Métrica + IA» (suscripción `metrica.ia`, USD 2,99 por mes), `TOPE_PLAN` (300). Hoy la app manda `X-Metrica-Plan: metrica.ia` y, con `PLAN_SIN_VERIFICAR = "si"`, el Worker le cree (para probar en TestFlight). Falta, antes del App Store: la compra de «Métrica + IA» (StoreKit 2, suscripción) manda el comprobante firmado (`jwsRepresentation` de la transacción) y el Worker lo verifica con la clave pública de Apple antes de usar `TOPE_PLAN`. En la web queda simulado.
 - **El id anónimo** se puede borrar para tener 20 más. Para la app nativa, sumar App Attest (`DCAppAttestService`) o atar el cupo a la cuenta de iCloud; mientras tanto, el techo del día limita el gasto.
 - **KV no cuenta exacto** si llegan dos pedidos al mismo tiempo (puede dejar pasar alguno de más). Si hace falta exacto, pasar el contador a un Durable Object.
 - Confirmar el nombre exacto del modelo (`MODELO` en `wrangler.toml`) y si conviene la Responses API en vez de Chat Completions.
