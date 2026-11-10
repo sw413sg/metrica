@@ -25,11 +25,22 @@ test('la suscripción son 300 por mes y el regalo de Métrica + no se renueva ni
     assert.equal(totalUsable(cuenta), 360);
 });
 
-test('un paquete revocado o de otro producto no da consultas', () => {
+test('los cinco paquetes de Más IA son los de Extras.storekit', () => {
     const ahora = Date.now();
-    const base = { transactionId: '7', originalTransactionId: '7', type: 'Consumable', productId: 'metrica.ia.mas' };
-    assert.equal(clasificar({ ...base, revocationDate: ahora }, ahora).inactiva, true);
-    assert.equal(clasificar({ ...base, productId: 'metrica.ia.mas999' }, ahora).error, 'producto');
+    const base = { transactionId: '7', originalTransactionId: '7', type: 'Consumable' };
+    const esperados = {
+        'metrica.ia.mas': 300,
+        'metrica.ia.mas5': 800,
+        'metrica.ia.mas10': 1650,
+        'metrica.ia.mas30': 5000,
+        'metrica.ia.mas50': 8500,
+    };
+    for (const [productId, consultas] of Object.entries(esperados)) {
+        assert.equal(clasificar({ ...base, productId }, ahora).compra.consultas, consultas);
+    }
+    assert.equal(clasificar({ ...base, productId: 'metrica.ia.mas', revocationDate: ahora }, ahora).inactiva, true);
+    assert.equal(clasificar({ ...base, productId: 'metrica.ia.mas800' }, ahora).error, 'producto');
+    assert.equal(clasificar({ ...base, productId: 'metrica.ia.mas.800' }, ahora).error, 'producto');
     assert.equal(clasificar({ ...base, productId: 'metrica.ia', type: 'Auto-Renewable Subscription', expiresDate: ahora - 1000 }, ahora).inactiva, true);
     assert.equal(clasificar({ ...base, productId: 'metrica.extras', type: 'Non-Consumable' }, ahora).compra.consultas, 100);
 });

@@ -18,7 +18,7 @@ MODELO = "gpt-6.1-terra"
 ESFUERZO = "low"
 # «Lo que cambiaría» lee la letra entera y tiene que entenderla: piensa un poco más (un pedido por letra).
 ESFUERZO_REVISION = "medium"
-# Bundle id de la app (el del target de Xcode). Si no coincide con el del JWS, la compra no cuenta.
+# Bundle id de la app (target de Xcode, confirmado). Si no coincide con el del JWS, la compra no cuenta.
 BUNDLE_ID = "com.sw413sg.metrica"
 # 20 gratis por mes, contados por X-Metrica-Id. Las 300 de la suscripción, las 100 de Métrica +
 # y los paquetes están en el código (worker/src/cuota.js), no acá: un cambio de variable no los infla.

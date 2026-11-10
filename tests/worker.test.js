@@ -184,7 +184,7 @@ test('el mismo transactionId de un paquete no suma dos veces', async () => {
 test('sin cuota responde 402 y X-Metrica-Restantes en 0', async () => {
     conRaiz();
     const jws = cadena.jws({
-        productId: 'metrica.ia.mas800', type: 'Consumable', transactionId: 'paq2', originalTransactionId: 'paq2',
+        productId: 'metrica.ia.mas5', type: 'Consumable', transactionId: 'paq2', originalTransactionId: 'paq2',
     });
     env.USO.put = async () => {};
     env.USO.get = async () => '0';

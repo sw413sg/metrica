@@ -35,7 +35,7 @@ Qué suma, una vez verificado:
 | Sin compra | — | `CUPO_GRATIS` (20) por mes, por `X-Metrica-Id`, y como mucho `TOPE_IP` (100) por mes en la misma IP |
 | Métrica + | `metrica.extras` | 100 de regalo, una sola vez, no se renuevan con el mes |
 | Métrica + IA | `metrica.ia` | 300 por mes (reemplaza a las 20, no se suman) |
-| Más IA | `metrica.ia.mas` y `metrica.ia.mas.<cantidad>` o `metrica.ia.mas<cantidad>` | 300, 800, 1.650, 5.000 u 8.500, una sola vez por `transactionId` |
+| Más IA | `metrica.ia.mas`, `metrica.ia.mas5`, `metrica.ia.mas10`, `metrica.ia.mas30`, `metrica.ia.mas50` | 300, 800, 1.650, 5.000 y 8.500, una sola vez por `transactionId` |
 
 El regalo y los paquetes quedan en la clave `cuota:bolsa:<transactionId>` hasta que se gastan. No lleva vencimiento: si se borrara, el mismo JWS volvería a sumar. La suscripción va en `cuota:mes:<aaaa-mm>:sub:<originalTransactionId>`, así una renovación no reinicia el mes. El cupo gratis va en `cuota:mes:<aaaa-mm>:id:<id>` y el tope de IP en `cuota:mes:<aaaa-mm>:ip:<ip>`. Primero se gasta el mes (se renueva) y después el regalo y los paquetes.
 
@@ -44,7 +44,7 @@ Hasta que la app mande `X-Metrica-JWS`, aunque tenga la suscripción cuenta como
 `PRUEBA=si` junto con `RAIZ_DE_PRUEBA` cambia la raíz por una CA de los tests. No definirlo en Cloudflare.
 
 ## Desplegar
-Se despliega solo desde GitHub con Workers Builds, sin instalar nada: cada vez que cambia `main`, Cloudflare corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero). Este cambio no se despliega solo: hay que mergearlo a `main` o correr wrangler a mano. No crea recursos nuevos.
+**Mergear a `main` despliega solo.** Workers Builds, en cada push a `main`, corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero). No hace falta correr wrangler a mano para publicar: con el merge alcanza, y el tráfico puede tardar unos minutos en pasar a la versión nueva. No crea recursos nuevos.
 
 KV: no hay que crear otro namespace. El binding `USO` (namespace «metrica-uso», id en `wrangler.toml`) es el mismo de antes y ahora también guarda la bolsa de cada `transactionId`.
 
@@ -52,14 +52,14 @@ Una sola vez, en el panel de Cloudflare (ya hecho el 2026-11-09; se repite solo 
 1. Workers & Pages › Create › Import a repository › `sw413sg/metrica`. Nombre `metrica`, carpeta (root directory) `worker`, el resto como viene.
 2. El KV `USO` ya está creado («metrica-uso») y su `id` va en `wrangler.toml` (sin id, wrangler lo creaba en el primer despliegue pero en el segundo fallaba con «already exists»).
 3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá). Al desplegar esta versión se van `PLAN_SIN_VERIFICAR` y `TOPE_PLAN`, y entran `BUNDLE_ID` y `TOPE_IP`.
-4. Confirmar que `BUNDLE_ID` es el del target de Xcode. En el repo Swift no se pudo leer desde acá; quedó `com.sw413sg.metrica`. Si el de la app es otro, la compra verificada no va a sumar (401) hasta cambiarlo en `wrangler.toml`.
-5. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`. Después de un despliegue, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
+4. `BUNDLE_ID` es `com.sw413sg.metrica` (el del target de Xcode).
+5. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`. Después del merge a `main`, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
 
 Del lado de OpenAI: cargar saldo prepago con la recarga automática apagada (lo cargado es lo máximo que se puede gastar) y una clave de un proyecto «Métrica».
 
 Después, poner `https://metrica.<cuenta>.workers.dev/ia` en `ENDPOINT_IA` de `js/logica/ia.js` y en `IA.swift` (o, para probar sin publicar, en `localStorage['metrica.ia-endpoint']` desde la consola de Safari) y subir la versión.
 
-Con la terminal también se puede: `cd worker && npx wrangler login && npx wrangler secret put OPENAI_API_KEY && npx wrangler deploy`. Para probarlo en la compu: `npx wrangler dev` y poner `http://localhost:8787/ia` en `metrica.ia-endpoint` (sumando `http://localhost:8080` a `ORIGENES`).
+Publicar es el merge a `main`. `cd worker && npx wrangler deploy` solo hace falta si se quiere subir sin ese merge. Para probarlo en la compu: `npx wrangler dev` y poner `http://localhost:8787/ia` en `metrica.ia-endpoint` (sumando `http://localhost:8080` a `ORIGENES`).
 
 ## Lo que falta antes de cobrar
 - **El id anónimo** del cupo gratis se puede borrar para tener 20 más, hasta el tope de la IP. Para la app nativa, sumar App Attest (`DCAppAttestService`) o atar el cupo a la cuenta de iCloud; mientras tanto, el tope de la IP y el techo del día limitan el gasto. La cuota paga va por `transactionId` / `originalTransactionId`, no por el id del teléfono.

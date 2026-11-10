@@ -45,8 +45,8 @@ test('un certificado vencido no verifica, aunque el payload diga que la suscripc
 
 test('la raíz P-384 (como Apple Root CA - G3) también cierra la cadena de una hoja P-256', async () => {
     const cadena = crearCadena({ curvaRaiz: 'P-384', curvaIntermedia: 'P-384' });
-    const token = cadena.jws({ productId: 'metrica.ia.mas.800', type: 'Consumable', transactionId: '55', originalTransactionId: '55' });
+    const token = cadena.jws({ productId: 'metrica.ia.mas5', type: 'Consumable', transactionId: '55', originalTransactionId: '55' });
     const r = await verificarJws(token, { raiz: cadena.raizDer, bundleId: cadena.bundleId, ahora: Date.now() });
     assert.equal(r.ok, true);
-    assert.equal(r.transaccion.productId, 'metrica.ia.mas.800');
+    assert.equal(r.transaccion.productId, 'metrica.ia.mas5');
 });

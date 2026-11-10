@@ -1,25 +1,20 @@
-// Cuánto da cada compra de la app. Las cantidades están en CLAUDE.md (pedido de Swa):
-// Métrica + (pago único) regala 100 una sola vez; Métrica + IA son 300 por mes;
-// los cinco paquetes de «Más IA» suman 300, 800, 1.650, 5.000 y 8.500.
-// El id del pago único es `metrica.extras` (PENDIENTES-SWIFT.md y compra.js: el id de
-// StoreKit no se renombra; en la tienda se muestra como «Métrica +»).
-// El de 300 consultas está escrito como `metrica.ia.mas`. Los otros cuatro no están
-// escritos enteros en este repo (la app Swift es privada): se aceptan las dos formas
-// del prefijo `metrica.ia.mas*` con la cantidad. Cualquier otro productId se rechaza.
-const PAQUETES = [
-    [300, ['metrica.ia.mas', 'metrica.ia.mas.300', 'metrica.ia.mas300']],
-    [800, ['metrica.ia.mas.800', 'metrica.ia.mas800']],
-    [1650, ['metrica.ia.mas.1650', 'metrica.ia.mas1650']],
-    [5000, ['metrica.ia.mas.5000', 'metrica.ia.mas5000']],
-    [8500, ['metrica.ia.mas.8500', 'metrica.ia.mas8500']],
-];
+// Cuánto da cada compra. Ids de App/Extras.storekit (app Swift) y cantidades de CLAUDE.md.
+// Métrica + (`metrica.extras`, pago único) regala 100 una sola vez. Métrica + IA son 300 por mes.
+// Los cinco paquetes de «Más IA» son exactamente estos; cualquier otro productId se rechaza.
+const PAQUETES = {
+    'metrica.ia.mas': 300,
+    'metrica.ia.mas5': 800,
+    'metrica.ia.mas10': 1650,
+    'metrica.ia.mas30': 5000,
+    'metrica.ia.mas50': 8500,
+};
 
 export const PRODUCTOS = {
     'metrica.extras': { tipo: 'plus', consultas: 100 },
     'metrica.ia': { tipo: 'suscripcion', consultas: 300 },
 };
-for (const [consultas, ids] of PAQUETES) {
-    for (const id of ids) PRODUCTOS[id] = { tipo: 'paquete', consultas };
+for (const [id, consultas] of Object.entries(PAQUETES)) {
+    PRODUCTOS[id] = { tipo: 'paquete', consultas };
 }
 
 const TIPO = {
