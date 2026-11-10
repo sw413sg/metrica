@@ -66,10 +66,10 @@ test('validarSugerencias ordena por rima, sílabas e internas y saca repetidas',
     assert.equal(lista[0].silabas, 9); // la más cerca de las 11 de la frase
 });
 
-test('validarSugerencias deja 4 como mucho', () => {
+test('validarSugerencias deja 10 como mucho', () => {
     const { pedido } = elegir('y me quedo solo con mi canción');
-    const muchas = ['pasión', 'perdón', 'ilusión', 'corazón', 'balcón', 'canción'].map(p => `vuelvo solo por ${p}`);
-    assert.equal(validarSugerencias(muchas, pedido).length, 4);
+    const muchas = ['pasión', 'perdón', 'ilusión', 'corazón', 'balcón', 'razón', 'emoción', 'traición', 'estación', 'renglón', 'rincón', 'opción', 'misión', 'pulmón'].map(p => `vuelvo solo por ${p}`);
+    assert.equal(validarSugerencias(muchas, pedido).length, 10);
 });
 
 test('sugerenciasSimuladas: la misma idea con sinónimos y la última rimando con la de la frase', () => {
