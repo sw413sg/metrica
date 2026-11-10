@@ -113,7 +113,7 @@ test('el Worker también revisa la letra entera', async () => {
     const respuesta = await pedir({ revision });
     assert.equal(respuesta.status, 200);
     assert.deepEqual((await respuesta.json()).sugerencias, [{ titulo: 'Cambiar la palabra «canción» por «pasión»', verso: 1, viejo: 'canción', nuevo: 'pasión' }]);
-    assert.match(llamadas[0].messages[1].content, /1 \(9\) y me quedo con mi canción/);
+    assert.match(llamadas[0].messages[1].content, /1 y me quedo con mi canción[\s\S]*1: 9/);
     // La letra entera piensa más (ESFUERZO_REVISION) y busca sentido y métrica despareja.
     assert.equal(llamadas[0].reasoning_effort, 'medium');
     assert.match(llamadas[0].messages[0].content, /Métrica despareja/);
