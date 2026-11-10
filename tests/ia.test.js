@@ -231,3 +231,12 @@ test('el prompt de la revisión lleva los renglones y la respuesta se filtra', (
         [{ titulo: 't', verso: 1, viejo: 'a', nuevo: 'b' }]);
     assert.equal(revisionValida({ versos: [] }), false);
 });
+
+test('«¿Qué más cambiaría?» avisa los renglones ya propuestos', () => {
+    const revision = { ...letraParaRevisar('uno dos tres\n\ncuatro cinco'), ya: [0, 2] };
+    assert.ok(revisionValida(revision));
+    assert.match(promptDeRevision(revision).instrucciones, /renglones 0, 2: no propongas/);
+    assert.doesNotMatch(promptDeRevision(letraParaRevisar('uno')).instrucciones, /Ya propusiste/);
+    assert.equal(revisionValida({ ...revision, ya: [-1] }), false);
+    assert.equal(revisionValida({ ...revision, ya: 'x' }), false);
+});
