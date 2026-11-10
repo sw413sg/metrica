@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { prepararCuenta, descontar, totalUsable, clasificar } from '../worker/src/cuota.js';
+import { prepararCuenta, descontar, totalUsable, clasificar, operarCuota } from '../worker/src/cuota.js';
 
 function kvDe() {
     const datos = new Map();
@@ -43,4 +43,23 @@ test('los cinco paquetes de Más IA son los de Extras.storekit', () => {
     assert.equal(clasificar({ ...base, productId: 'metrica.ia.mas.800' }, ahora).error, 'producto');
     assert.equal(clasificar({ ...base, productId: 'metrica.ia', type: 'Auto-Renewable Subscription', expiresDate: ahora - 1000 }, ahora).inactiva, true);
     assert.equal(clasificar({ ...base, productId: 'metrica.extras', type: 'Non-Consumable' }, ahora).compra.consultas, 100);
+});
+
+test('un paquete queda anotado aunque el pedido lo pague el mes (la app cierra la transacción)', async () => {
+    const kv = kvDe();
+    const paquete = { tipo: 'paquete', consultas: 300, transactionId: 'p1', originalTransactionId: 'p1' };
+    const base = { mes: '2026-11', id: ID, ip: '1.1.1.1', cupoGratis: 20, topeIp: 100, claveDia: 'dia:x', topeDia: 1000, ttl: 99999, limiteVacias: 10 };
+    // Con cuota del mes, el gasto sale del mes, pero la bolsa del paquete ya queda guardada.
+    const r = await operarCuota(kv, { ...base, compras: [paquete], accion: 'gastar', gasto: 1 });
+    assert.equal(r.quedan, 319);
+    assert.equal(await kv.get('cuota:bolsa:p1'), '300');
+    // El próximo pedido ya no trae el JWS (la app cerró la transacción): las 300 siguen estando.
+    const sinJws = await operarCuota(kv, { ...base, compras: [], accion: 'gastar', gasto: 19 });
+    assert.equal(sinJws.quedan, 300);
+    const delPaquete = await operarCuota(kv, { ...base, compras: [], accion: 'gastar', gasto: 2 });
+    assert.equal(delPaquete.quedan, 298);
+    assert.equal(await kv.get('cuota:bolsa:p1'), '298');
+    // Y si vuelve a llegar el mismo JWS, no se suma dos veces.
+    const otraVez = await operarCuota(kv, { ...base, compras: [paquete], accion: 'mirar' });
+    assert.equal(otraVez.quedan, 298);
 });
