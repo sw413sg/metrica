@@ -249,7 +249,7 @@ export function validarRevision(lista, texto) {
     const cambios = [];
     for (const { titulo, verso, viejo, nuevo } of lista) {
         const limpio = String(nuevo ?? '').trim();
-        if (!limpio || limpio.length > 60 || limpio.toLowerCase() === String(viejo).trim().toLowerCase()) continue;
+        if (!limpio || limpio.length > 140 || limpio.toLowerCase() === String(viejo).trim().toLowerCase()) continue;
         const lugar = ubicarCambio(texto, verso, String(viejo).trim());
         if (!lugar || vistos.has(lugar.inicio)) continue;
         vistos.add(lugar.inicio);
