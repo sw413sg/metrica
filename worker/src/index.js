@@ -5,8 +5,11 @@
 //   (el mismo de js/logica/ia-prompt.js), llama a OpenAI con la clave guardada como secret y descuenta
 //   la cuota en KV. La compra se lee de X-Metrica-JWS (StoreKit 2), no de X-Metrica-Plan.
 import { MODELO_IA, GASTO_IA, PEDIDAS_IA, REVISIONES_SIN_CAMBIOS, pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision, temasValido, promptDeTemas, leerTemas } from '../../js/logica/ia-prompt.js';
-import { clasificar, prepararCuenta, descontar, totalUsable } from './cuota.js';
+import { clasificar } from './cuota.js';
+import { Cuota, NOMBRE_CUOTA } from './cuota-do.js';
 import { APPLE_RAIZ, desdeBase64, verificarJws } from './verificar.js';
+
+export { Cuota };
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
 const TTL = DIAS_KV * 24 * 60 * 60;
@@ -46,7 +49,7 @@ export default {
         if (!permitido) return responder({ error: 'origen' }, 403);
         const ruta = new URL(request.url).pathname.replace(/\/+$/, '');
         if (ruta === '/salud' && request.method === 'GET') {
-            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO),
+            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO), cuota: Boolean(env.CUOTA),
                 // Solo los nombres de lo cargado (nunca los valores), para ver si falta o se llama distinto.
                 nombres: Object.keys(env).sort() });
         }
@@ -78,18 +81,20 @@ async function ia(request, env, responder) {
     const ahora = ahoraFecha.getTime();
     const mes = ahoraFecha.toISOString().slice(0, 7);
     const claveDia = `dia:${ahoraFecha.toISOString().slice(0, 10)}`;
+    if (!env.CUOTA) return responder({ error: 'cuota' }, 503);
     const compras = await leerCompras(request, env, ahora);
     if (compras.error) return responder({ error: compras.error }, 401);
-    const cuenta = await prepararCuenta(env.USO, {
-        mes, id, ip: ipDe(request), compras: compras.lista,
+    const base = {
+        mes, id, ip: ipDe(request), compras: compras.lista, claveDia,
         cupoGratis: entero(env.CUPO_GRATIS, 20), topeIp: entero(env.TOPE_IP, 100),
-    });
-    const delDia = Number(await env.USO.get(claveDia)) || 0;
+        sandboxTope: entero(env.SANDBOX_CONSULTAS_MES, 30), topeDia: entero(env.TOPE_DIA, 5000),
+        limiteVacias: REVISIONES_SIN_CAMBIOS, ttl: TTL,
+    };
+    const vista = await pedirCuota(env, { ...base, accion: 'mirar' });
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
     const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length, Array.isArray(cuerpo.revision.ya) && cuerpo.revision.ya.length > 0) : temas ? GASTO_IA.temas : GASTO_IA.frase;
-    const quedanAntes = totalUsable(cuenta);
-    if (quedanAntes < gasto) return conRestantes(responder, { error: 'cupo', quedan: quedanAntes }, 402, quedanAntes);
-    if (delDia >= entero(env.TOPE_DIA, 5000)) return responder({ error: 'ocupado' }, 503);
+    if (vista.quedan < gasto) return conRestantes(responder, { error: 'cupo', quedan: vista.quedan }, 402, vista.quedan);
+    if (vista.dia >= base.topeDia) return responder({ error: 'ocupado' }, 503);
 
     // El país del iPhone, para la voz de Métrica IA (rioplatense solo en Argentina; pedido de Swa).
     const opciones = { pais: (request.headers.get('X-Metrica-Pais') ?? '').toUpperCase() };
@@ -106,24 +111,21 @@ async function ia(request, env, responder) {
         return responder({ error: 'modelo' }, 502);
     }
 
-    // Solo cuenta si salió bien.
-    const ttl = { expirationTtl: TTL };
-    // Sin cambios no gasta cuota, hasta REVISIONES_SIN_CAMBIOS por mes (pedido de Swa).
-    // Sin compra se cuenta por id y por IP, así rotar X-Metrica-Id no da revisiones de más.
+    // Solo cuenta si salió bien, y el descuento es una transacción del Durable Object.
     if (sinCambios) {
-        const hechas = await Promise.all(cuenta.clavesVacias.map(async k => Number(await env.USO.get(k)) || 0));
-        if (Math.max(0, ...hechas) < REVISIONES_SIN_CAMBIOS) {
-            await Promise.all([
-                ...cuenta.clavesVacias.map((k, i) => env.USO.put(k, String(hechas[i] + 1), ttl)),
-                env.USO.put(claveDia, String(delDia + 1), ttl),
-            ]);
-            return conRestantes(responder, { sugerencias: [], quedan: quedanAntes }, 200, quedanAntes);
-        }
+        const vacia = await pedirCuota(env, { ...base, accion: 'vacia' });
+        if (vacia.ok) return conRestantes(responder, { sugerencias: [], quedan: vacia.quedan }, 200, vacia.quedan);
     }
-    const quedan = await descontar(env.USO, cuenta, gasto, TTL);
-    if (quedan == null) return conRestantes(responder, { error: 'cupo', quedan: totalUsable(cuenta) }, 402, totalUsable(cuenta));
-    await env.USO.put(claveDia, String(delDia + 1), ttl);
-    return conRestantes(responder, { sugerencias, quedan }, 200, quedan);
+    const cobro = await pedirCuota(env, { ...base, accion: 'gastar', gasto });
+    if (cobro.error === 'ocupado') return responder({ error: 'ocupado' }, 503);
+    if (cobro.error === 'cupo') return conRestantes(responder, { error: 'cupo', quedan: cobro.quedan }, 402, cobro.quedan);
+    return conRestantes(responder, { sugerencias, quedan: cobro.quedan }, 200, cobro.quedan);
+}
+
+async function pedirCuota(env, pedido) {
+    const stub = env.CUOTA.get(env.CUOTA.idFromName(NOMBRE_CUOTA));
+    const respuesta = await stub.fetch('https://cuota.internal/', { method: 'POST', body: JSON.stringify(pedido) });
+    return respuesta.json();
 }
 
 function conRestantes(responder, datos, status, restantes) {

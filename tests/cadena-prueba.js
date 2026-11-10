@@ -62,6 +62,7 @@ function extension(oidPuntos, valor, critico = false) {
 
 const EXT_CA = extension('2.5.29.19', seq(tlv(0x01, Buffer.from([0xff]))), true);
 const EXT_APPLE = extension('1.2.840.113635.100.6.11.1', Buffer.from([0x05, 0x00]));
+const EXT_WWDR = extension('1.2.840.113635.100.6.2.1', Buffer.from([0x05, 0x00]));
 
 function derARaw(der, tam) {
     let i = 0;
@@ -112,7 +113,7 @@ function b64url(buf) {
 }
 
 // { raizDer, raizB64, bundleId, jws(campos) }. La hoja es siempre P-256 (el JWS es ES256).
-export function crearCadena({ curvaRaiz = 'P-256', curvaIntermedia = 'P-256', notBefore = Date.UTC(2024, 0, 1), notAfter = Date.UTC(2035, 0, 1) } = {}) {
+export function crearCadena({ curvaRaiz = 'P-256', curvaIntermedia = 'P-256', notBefore = Date.UTC(2024, 0, 1), notAfter = Date.UTC(2035, 0, 1), oidIntermedio = true } = {}) {
     const raiz = par(curvaRaiz);
     const media = par(curvaIntermedia);
     const hoja = par('P-256');
@@ -124,7 +125,7 @@ export function crearCadena({ curvaRaiz = 'P-256', curvaIntermedia = 'P-256', no
     });
     const certMedia = emitir({
         serial: 2, emisor: nombreRaiz, sujeto: nombreMedia, publica: media.publicKey, firmante: raiz.privateKey,
-        curvaFirmante: curvaRaiz, notBefore, notAfter, extensiones: [EXT_CA],
+        curvaFirmante: curvaRaiz, notBefore, notAfter, extensiones: oidIntermedio ? [EXT_CA, EXT_WWDR] : [EXT_CA],
     });
     const certHoja = emitir({
         serial: 3, emisor: nombreMedia, sujeto: nombre('Hoja de prueba'), publica: hoja.publicKey, firmante: media.privateKey,
@@ -140,7 +141,7 @@ export function crearCadena({ curvaRaiz = 'P-256', curvaIntermedia = 'P-256', no
             type: 'Auto-Renewable Subscription',
             expiresDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
             purchaseDate: Date.now(),
-            environment: 'Sandbox',
+            environment: 'Production',
             ...campos,
         };
         const header = { alg: 'ES256', x5c: [certHoja, certMedia].map(c => c.toString('base64')) };

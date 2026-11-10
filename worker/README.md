@@ -24,7 +24,7 @@ La compra no se cree por una cabecera. Cada JWS de `X-Metrica-JWS` se verifica e
 
 - `alg` ES256 y la firma cierra con la clave de la hoja.
 - La cadena `x5c` (hoja e intermedias) llega hasta **Apple Root CA - G3**, embebida en `worker/src/raiz-apple.js`. Una raíz que venga dentro del JWS no alcanza.
-- La hoja trae el OID `1.2.840.113635.100.6.11.1` (firma de compras de App Store) y los certificados están vigentes.
+- La hoja trae el OID `1.2.840.113635.100.6.11.1` (firma de compras) y cada intermedio el `1.2.840.113635.100.6.2.1`. Los certificados están vigentes.
 - `bundleId` igual a `BUNDLE_ID`. `productId` conocido (`worker/src/cuota.js`). Si `revocationDate` está, no suma. La suscripción (`metrica.ia`) además pide `expiresDate` en el futuro.
 - Sandbox y Production valen los dos (TestFlight firma igual, con la misma raíz).
 
@@ -33,27 +33,32 @@ Qué suma, una vez verificado:
 | Compra | productId | Cuota |
 | --- | --- | --- |
 | Sin compra | — | `CUPO_GRATIS` (20) por mes, por `X-Metrica-Id`, y como mucho `TOPE_IP` (100) por mes en la misma IP |
+| Sandbox (App Review, TestFlight) | cualquiera de los de arriba, con `environment: Sandbox` | `SANDBOX_CONSULTAS_MES` (30) por mes y por id, para todas juntas. No suma 100, 300 ni los paquetes |
 | Métrica + | `metrica.extras` | 100 de regalo, una sola vez, no se renuevan con el mes |
 | Métrica + IA | `metrica.ia` | 300 por mes (reemplaza a las 20, no se suman) |
 | Más IA | `metrica.ia.mas`, `metrica.ia.mas5`, `metrica.ia.mas10`, `metrica.ia.mas30`, `metrica.ia.mas50` | 300, 800, 1.650, 5.000 y 8.500, una sola vez por `transactionId` |
 
-El regalo y los paquetes quedan en la clave `cuota:bolsa:<transactionId>` hasta que se gastan. No lleva vencimiento: si se borrara, el mismo JWS volvería a sumar. La suscripción va en `cuota:mes:<aaaa-mm>:sub:<originalTransactionId>`, así una renovación no reinicia el mes. El cupo gratis va en `cuota:mes:<aaaa-mm>:id:<id>` y el tope de IP en `cuota:mes:<aaaa-mm>:ip:<ip>`. Primero se gasta el mes (se renueva) y después el regalo y los paquetes.
+El regalo y los paquetes quedan en la clave `cuota:bolsa:<transactionId>` hasta que se gastan. No lleva vencimiento: si se borrara, el mismo JWS volvería a sumar. La suscripción va en `cuota:mes:<aaaa-mm>:sub:<originalTransactionId>`, así una renovación no reinicia el mes. El cupo gratis va en `cuota:mes:<aaaa-mm>:id:<id>`, el de Sandbox en `cuota:mes:<aaaa-mm>:sandbox:<id>` y el tope de IP en `cuota:mes:<aaaa-mm>:ip:<ip>`. Primero se gasta el mes (se renueva) y después el regalo y los paquetes.
+
+Esas claves no viven en el KV: las guarda el Durable Object `Cuota` (binding `CUOTA`), un solo objeto para todos. Leer, chequear y descontar es una transacción, así dos pedidos a la vez no se pisan la bolsa.
 
 Hasta que la app mande `X-Metrica-JWS`, aunque tenga la suscripción cuenta como gratis: las cabeceras viejas ya no alcanzan. En la web sigue simulado.
 
 `PRUEBA=si` junto con `RAIZ_DE_PRUEBA` cambia la raíz por una CA de los tests. No definirlo en Cloudflare.
 
 ## Desplegar
-**Mergear a `main` despliega solo.** Workers Builds, en cada push a `main`, corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero). No hace falta correr wrangler a mano para publicar: con el merge alcanza, y el tráfico puede tardar unos minutos en pasar a la versión nueva. No crea recursos nuevos.
+**Mergear a `main` despliega solo.** Workers Builds, en cada push a `main`, corre `npx wrangler deploy` en la carpeta `worker` (el `import` de `../../js/logica/ia-prompt.js` anda porque baja el repo entero). No hace falta correr wrangler a mano ni crear nada en el panel: con el merge alcanza (también aplica la migration del Durable Object), y el tráfico puede tardar unos minutos en pasar a la versión nueva.
 
-KV: no hay que crear otro namespace. El binding `USO` (namespace «metrica-uso», id en `wrangler.toml`) es el mismo de antes y ahora también guarda la bolsa de cada `transactionId`.
+KV: no hay que crear otro namespace. El binding `USO` (namespace «metrica-uso», id en `wrangler.toml`) queda para el contador de `/probar`.
+
+Durable Object: tampoco se crea a mano en el panel. El `wrangler.toml` declara el binding `CUOTA` (clase `Cuota`) y la migration `v1` con `new_sqlite_classes`. **El deploy del merge a `main` aplica esa migration y deja el binding listo.** La instancia (`metrica-cuota`) nace sola en el primer pedido a `/ia`. Si el deploy dice que la migration ya existe, no hay que repetirla.
 
 Una sola vez, en el panel de Cloudflare (ya hecho el 2026-11-09; se repite solo si se arma el Worker de cero):
 1. Workers & Pages › Create › Import a repository › `sw413sg/metrica`. Nombre `metrica`, carpeta (root directory) `worker`, el resto como viene.
 2. El KV `USO` ya está creado («metrica-uso») y su `id` va en `wrangler.toml` (sin id, wrangler lo creaba en el primer despliegue pero en el segundo fallaba con «already exists»).
-3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá). Al desplegar esta versión se van `PLAN_SIN_VERIFICAR` y `TOPE_PLAN`, y entran `BUNDLE_ID` y `TOPE_IP`.
+3. En el Worker › Settings › Variables and Secrets › Add: tipo **Secret**, nombre `OPENAI_API_KEY`, la clave de OpenAI. No va al repo ni al chat. Los secrets no se pisan con cada despliegue; las variables de `[vars]` sí (se cambian acá). Al desplegar esta versión se van `PLAN_SIN_VERIFICAR` y `TOPE_PLAN`, y entran `BUNDLE_ID`, `TOPE_IP` y `SANDBOX_CONSULTAS_MES`. El Durable Object `CUOTA` lo registra la migration del mismo deploy.
 4. `BUNDLE_ID` es `com.sw413sg.metrica` (el del target de Xcode).
-5. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true` y `"kv":true`. Después del merge a `main`, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
+5. Abrir `https://metrica.<cuenta>.workers.dev/salud`: tiene que decir `"clave":true`, `"kv":true` y `"cuota":true`. Después del merge a `main`, Cloudflare puede tardar unos minutos en pasar el tráfico a la versión nueva (mientras, `/salud` responde la vieja).
 
 Del lado de OpenAI: cargar saldo prepago con la recarga automática apagada (lo cargado es lo máximo que se puede gastar) y una clave de un proyecto «Métrica».
 
@@ -63,7 +68,7 @@ Publicar es el merge a `main`. `cd worker && npx wrangler deploy` solo hace falt
 
 ## Lo que falta antes de cobrar
 - **El id anónimo** del cupo gratis se puede borrar para tener 20 más, hasta el tope de la IP. Para la app nativa, sumar App Attest (`DCAppAttestService`) o atar el cupo a la cuenta de iCloud; mientras tanto, el tope de la IP y el techo del día limitan el gasto. La cuota paga va por `transactionId` / `originalTransactionId`, no por el id del teléfono.
-- **KV no es exacto** si llegan dos pedidos al mismo tiempo (puede dejar pasar alguno de más, o en el primer uso de un paquete anotar de menos). Un segundo pedido con el mismo JWS no vuelve a sumar el paquete. Si hace falta exacto bajo concurrencia, pasar el contador a un Durable Object.
+- La primera vez que un `transactionId` llega al servidor se acredita el paquete entero. Si en el teléfono ya se había gastado una parte (la cuota vieja era local), esa parte vuelve a estar disponible.
 - Confirmar el nombre exacto del modelo (`MODELO` en `wrangler.toml`) y si conviene la Responses API en vez de Chat Completions.
 - La app manda el país del iPhone en `X-Metrica-Pais` (código ISO): Métrica IA habla rioplatense solo con `AR`.
 

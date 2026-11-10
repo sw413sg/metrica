@@ -26,10 +26,22 @@ CUPO_GRATIS = "20"
 # Tope de esas consultas gratis por IP y por mes, para que rotar el id no sea infinito.
 # Solo frena el cupo gratis; una compra verificada no. En una NAT de operador puede hacer falta subirlo.
 TOPE_IP = "100"
+# App Review y TestFlight compran en Sandbox contra este servidor. No se les da la cuota real
+# del producto: cualquier compra Sandbox comparte este tope por mes y por X-Metrica-Id.
+SANDBOX_CONSULTAS_MES = "30"
 # Techo de pedidos de todos juntos en un día: 1000 son unos USD 3,50. Subirlo cuando salga al público.
 TOPE_DIA = "1000"
 
-# El contador de uso (KV «metrica-uso», creado en el primer despliegue).
+# La cuota (bolsas, mes, IP). La clase se registra con el deploy; la instancia nace en el primer pedido.
+[[durable_objects.bindings]]
+name = "CUOTA"
+class_name = "Cuota"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Cuota"]
+
+# El contador de /probar (KV «metrica-uso», creado en el primer despliegue).
 [[kv_namespaces]]
 binding = "USO"
 id = "a3fd4b83900d4b47ae6c1ee8937454eb"

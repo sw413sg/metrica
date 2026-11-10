@@ -4,7 +4,8 @@
 // Apple es P-384 / SHA-384; la hoja que firma la transacción es P-256.
 import { APPLE_RAIZ_B64 } from './raiz-apple.js';
 
-const OID_APPLE = '1.2.840.113635.100.6.11.1';
+const OID_APPLE = '1.2.840.113635.100.6.11.1'; // hoja: firma de compras
+const OID_WWDR = '1.2.840.113635.100.6.2.1'; // intermedio: Apple Worldwide Developer Relations
 const OID_CA = '2.5.29.19';
 const CURVAS = {
     '1.2.840.10045.3.1.7': { nombre: 'P-256', tam: 32 },
@@ -136,6 +137,7 @@ export function parsearCert(der) {
     };
     parseado.ca = esCa(parseado);
     parseado.oidApple = Boolean(extension(parseado, OID_APPLE));
+    parseado.oidWwdr = Boolean(extension(parseado, OID_WWDR));
     return parseado;
 }
 
@@ -203,10 +205,11 @@ export async function verificarJws(token, { raiz = APPLE_RAIZ, bundleId, ahora }
         const certs = header.x5c.map(c => parsearCert(desdeBase64(c)));
         const raizCert = parsearCert(raiz);
         while (certs.length && iguales(certs.at(-1).spki, raizCert.spki)) certs.pop();
-        if (!certs.length || !vigente(raizCert, ahora)) return { ok: false, error: 'firma' };
+        // Hace falta un intermedio (no alcanza la hoja firmada directo por la raíz).
+        if (certs.length < 2 || !vigente(raizCert, ahora)) return { ok: false, error: 'firma' };
         for (let i = 0; i < certs.length - 1; i++) {
             const padre = certs[i + 1];
-            if (!padre.ca || !vigente(padre, ahora)) return { ok: false, error: 'firma' };
+            if (!padre.ca || !padre.oidWwdr || !vigente(padre, ahora)) return { ok: false, error: 'firma' };
             const ok = await verificarFirma(padre.spki, padre.curva, padre.tam, certs[i].hash, certs[i].firma, certs[i].tbs);
             if (!ok) return { ok: false, error: 'firma' };
         }
@@ -235,6 +238,7 @@ export async function verificarJws(token, { raiz = APPLE_RAIZ, bundleId, ahora }
                 expiresDate: payload.expiresDate ?? null,
                 revocationDate: payload.revocationDate ?? null,
                 quantity: payload.quantity ?? null,
+                environment: typeof payload.environment === 'string' ? payload.environment : '',
             },
         };
     } catch {

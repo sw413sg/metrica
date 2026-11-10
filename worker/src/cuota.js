@@ -58,6 +58,8 @@ export function clasificar(tx, ahora) {
         compra: {
             tipo: producto.tipo, consultas, transactionId: tx.transactionId, originalTransactionId: original,
             vence: producto.tipo === 'suscripcion' ? fechaApple(tx.expiresDate) : 0,
+            // Sandbox (y cualquier cosa que no sea Production) no usa la cuota real del producto.
+            sandbox: tx.environment !== 'Production',
         },
     };
 }
@@ -86,8 +88,10 @@ async function usadas(kv, clave) {
 // Arma las bolsas de esta persona. La suscripción reemplaza al cupo gratis (no se suman).
 // El regalo y los paquetes quedan en una bolsa por transactionId: si la clave ya existe,
 // se usa lo que queda y no se vuelve a sumar el paquete.
-export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp }) {
-    const subs = compras.filter(c => c.tipo === 'suscripcion');
+export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, topeIp, sandboxTope = 0 }) {
+    const reales = compras.filter(c => !c.sandbox);
+    const haySandbox = compras.some(c => c.sandbox);
+    const subs = reales.filter(c => c.tipo === 'suscripcion');
     let sub = null;
     if (subs.length) {
         for (const candidata of subs) {
@@ -100,11 +104,15 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
     if (sub) {
         const clave = `cuota:mes:${mes}:sub:${sub.originalTransactionId}`;
         pools.push({ tipo: 'mes', clave, tope: sub.consultas, usadas: await usadas(kv, clave) });
+    } else if (haySandbox) {
+        // Un tope chico para todas las compras de Sandbox juntas, por id y por mes.
+        const clave = `cuota:mes:${mes}:sandbox:${id}`;
+        pools.push({ tipo: 'sandbox', clave, tope: sandboxTope, usadas: await usadas(kv, clave) });
     } else {
         const clave = `cuota:mes:${mes}:id:${id}`;
         pools.push({ tipo: 'gratis', clave, tope: cupoGratis, usadas: await usadas(kv, clave) });
     }
-    const bolsas = compras
+    const bolsas = reales
         .filter(c => c.tipo === 'plus' || c.tipo === 'paquete')
         .sort((a, b) => (a.transactionId < b.transactionId ? -1 : 1));
     for (const compra of bolsas) {
@@ -156,4 +164,27 @@ export async function descontar(kv, cuenta, gasto, ttl) {
     }
     await Promise.all(escrituras);
     return totalUsable(cuenta);
+}
+
+// Un paso de la cuota, para correrlo adentro de la transacción del Durable Object.
+// accion: mirar (no escribe), vacia (la revisión sin cambios) o gastar.
+export async function operarCuota(kv, pedido) {
+    const cuenta = await prepararCuenta(kv, pedido);
+    const dia = Number(await kv.get(pedido.claveDia)) || 0;
+    const quedan = totalUsable(cuenta);
+    if (pedido.accion === 'mirar') return { quedan, dia };
+    if (dia >= pedido.topeDia) return { error: 'ocupado', quedan };
+    if (pedido.accion === 'vacia') {
+        const hechas = await Promise.all(cuenta.clavesVacias.map(async k => Number(await kv.get(k)) || 0));
+        if (Math.max(0, ...hechas) >= pedido.limiteVacias) return { ok: false, quedan };
+        await Promise.all([
+            ...cuenta.clavesVacias.map((k, i) => kv.put(k, String(hechas[i] + 1))),
+            kv.put(pedido.claveDia, String(dia + 1)),
+        ]);
+        return { ok: true, quedan };
+    }
+    const despues = await descontar(kv, cuenta, pedido.gasto, pedido.ttl);
+    if (despues == null) return { error: 'cupo', quedan };
+    await kv.put(pedido.claveDia, String(dia + 1));
+    return { quedan: despues };
 }

@@ -43,6 +43,12 @@ test('un certificado vencido no verifica, aunque el payload diga que la suscripc
     assert.deepEqual(r, { ok: false, error: 'firma' });
 });
 
+test('el intermedio sin el OID de Apple no verifica', async () => {
+    const cadena = crearCadena({ oidIntermedio: false });
+    const r = await verificarJws(cadena.jws(), { raiz: cadena.raizDer, bundleId: cadena.bundleId, ahora: Date.now() });
+    assert.deepEqual(r, { ok: false, error: 'firma' });
+});
+
 test('la raíz P-384 (como Apple Root CA - G3) también cierra la cadena de una hoja P-256', async () => {
     const cadena = crearCadena({ curvaRaiz: 'P-384', curvaIntermedia: 'P-384' });
     const token = cadena.jws({ productId: 'metrica.ia.mas5', type: 'Consumable', transactionId: '55', originalTransactionId: '55' });
