@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /app.html
+Disallow: /generador.html
+Disallow: /prueba-mic.html
+
+Sitemap: https://metricarimas.com/sitemap.xml
