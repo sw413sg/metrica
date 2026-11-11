@@ -28,7 +28,7 @@ function armarZip(archivos) {
     return Buffer.concat([...partes, i, u32(0x06054b50), u16(0), u16(0), u16(indice.length), u16(indice.length), u32(i.length), u32(lugar), u16(0)]);
 }
 const servidor = http.createServer((req, res) => {
-    const archivo = path.join(__dirname, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/app.html'));
+    const archivo = path.join(__dirname, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
     fs.readFile(archivo, (err, datos) => {
         if (err) { res.writeHead(404); return res.end(); }
         if (archivo.endsWith('sw.js')) datos = datos + versionNueva;
@@ -39,7 +39,7 @@ const servidor = http.createServer((req, res) => {
 
 (async () => {
     await new Promise(r => servidor.listen(0, r));
-    const url = `http://localhost:${servidor.address().port}/`;
+    const url = `http://localhost:${servidor.address().port}/app/`;
     const browser = await chromium.launch();
     for (const tema of ['light', 'dark']) {
         const page = await browser.newPage({viewport: {width: 390, height: 844}, colorScheme: tema, hasTouch: true, isMobile: true});

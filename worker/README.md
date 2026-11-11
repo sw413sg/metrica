@@ -4,6 +4,7 @@ Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se puede
 
 - `GET /salud`: dice si está desplegado, con qué modelo y si la clave y el KV están cargados (`{ ok, modelo, clave, kv }`). No gasta nada.
 - `GET /probar`: un pedido mínimo a OpenAI; dice `{ ok: true }` o el error de OpenAI tal cual (sin la clave). Tope de 30 por día. Los errores también quedan en Observability.
+- `POST /web/...`: **Métrica web**, la web vinculada con el iPhone por un QR, como WhatsApp Web (`worker/src/enlace.js`, ver abajo).
 - `POST /ia`: la IA de la libreta: elegís una frase y propone 3 o 4 alternativas relacionadas, con sus mismas rimas internas y finales (además, cambia palabras sueltas y revisa la letra entera). Desplegado en `https://metrica.emas1397.workers.dev` (la web usa `/ia` desde la 1.6.6).
 
 ## Cómo anda
@@ -74,3 +75,15 @@ Publicar es el merge a `main`. `cd worker && npx wrangler deploy` solo hace falt
 - La app manda el país del iPhone en `X-Metrica-Pais` (código ISO): Métrica IA habla rioplatense solo con `AR`.
 
 **Costo:** las instrucciones son siempre iguales y lo que cambia en cada pedido (los caminos al azar, los puntos de partida de las ideas, los renglones ya propuestos) va al final de la entrada, después de la letra. Con `prompt_cache_key` por persona, OpenAI reusa lo ya leído (instrucciones y letra, cuando pasan de unos 1.000 tokens) y lo cobra a una fracción del precio: sirve sobre todo al refrescar alternativas o tocar «¿Qué más cambiaría?» en la misma letra.
+
+## Métrica web (vincular con QR)
+La web (`metricarimas.com/app/`, `js/web.js`) y el iPhone (`EnlaceWeb.swift` en metrica-swift) se pasan letras, frases, carpetas y palabras guardadas por acá, **cifradas de punta a punta**: el Worker guarda bytes que no puede abrir.
+
+1. La web pide un código (`/web/qr`, 30 por hora por IP) y muestra el QR `metrica-web:1:<código>:<clave pública ECDH P-256>`. El código vence a los 60 s y sirve una vez; después de 3, la web pide tocar «Cargar otro código».
+2. El iPhone lo escanea y manda a `/web/vincular` su espacio, su token, su clave pública y la clave de sus datos cifrada con la clave compartida (HKDF-SHA256 del secreto ECDH, con el código de sal). El Worker crea la sesión de la web y lo deja en el buzón del código.
+3. La web lo retira (`/web/qr/estado`) y desde ahí trae y manda con `Authorization: Bearer <espacio>.<token>` (`/web/traer`, `/web/guardar`). Cada registro llega como `{ c: HMAC del nombre, d: AES-GCM de {n, j} }`.
+4. El iPhone ve las sesiones (`/web/sesiones`), cierra una (`/web/cerrar`) o borra todo (`/web/borrar`). La web cierra la suya con `/web/cerrar`.
+
+Límites (pedido de Swa): gratis, una computadora a la vez y la sesión se cierra a los 3 días sin uso; con Métrica+, hasta 5 y 14 días (`PLANES_WEB`; el plan lo dice el iPhone al vincular). Un espacio sin uso en 30 días se borra entero (alarma del Durable Object). Solo se guardan hashes de los tokens.
+
+Durable Objects: `ENLACES` (clase `Enlaces`, uno solo para los códigos) y `ESPACIO` (clase `Espacio`, uno por iPhone), con la migration `v2`. Como `CUOTA`, el deploy del merge a `main` los registra solos. `/salud` dice `"enlace": true` cuando están.

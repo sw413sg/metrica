@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /app.html
+Disallow: /app/
 Disallow: /generador.html
 Disallow: /prueba-mic.html
 

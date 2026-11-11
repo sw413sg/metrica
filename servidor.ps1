@@ -21,14 +21,14 @@ if (-not $servidor) { Write-Host 'No encontré un puerto libre entre 8080 y 8099
 $direccion = "http://localhost:$puerto/"
 Write-Host "Métrica está andando en $direccion"
 Write-Host 'Cerrá esta ventana para apagarla.'
-try { Start-Process $direccion } catch { }
+try { Start-Process "$($direccion)app/" } catch { }
 
 while ($servidor.IsListening) {
     $contexto = $servidor.GetContext()
     $respuesta = $contexto.Response
     try {
         $ruta = [Uri]::UnescapeDataString($contexto.Request.Url.AbsolutePath).TrimStart('/')
-        if ($ruta -eq '' -or $ruta.EndsWith('/')) { $ruta += 'app.html' }
+        if ($ruta -eq '' -or $ruta.EndsWith('/')) { $ruta += 'index.html' }
         $archivo = [IO.Path]::GetFullPath((Join-Path $raiz $ruta))
         if ($archivo.StartsWith($raiz, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $archivo -PathType Leaf)) {
             $bytes = [IO.File]::ReadAllBytes($archivo)

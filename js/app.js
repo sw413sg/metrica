@@ -28,6 +28,7 @@ import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, l
 import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
+import { estaVinculada, planDelIphone, vincular, sincronizar, cerrarSesion } from './web.js';
 const $ = id => document.getElementById(id);
 const COLORES_RIMA = 12;
 
@@ -3709,6 +3710,13 @@ function renderizarExtras() {
     document.querySelectorAll('.publicidad').forEach(p => { p.hidden = !mostrarPublicidad(localStorage); });
     $('comprar-extras').textContent = extras ? 'Ya tenés Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
     $('comprar-extras').disabled = extras;
+    // Vinculada al iPhone, la compra es la del iPhone (StoreKit): acá no se simula ni se borra.
+    const vinculada = estaVinculada();
+    if (vinculada && !extras) $('comprar-extras').textContent = 'Cómprala en la app del iPhone';
+    $('comprar-extras').disabled = extras || vinculada;
+    $('restaurar-compra').hidden = vinculada;
+    $('borrar-compra').closest('.lista-agrupada').hidden = vinculada;
+    $('borrar-compra').closest('.lista-agrupada').previousElementSibling.hidden = vinculada;
     renderizarTemas();
     if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
 }
@@ -3774,7 +3782,9 @@ function abrirPaywall() {
     $('widget-palabra').textContent = palabra;
     $('widget-rimas').textContent = `rima con ${buscarRimas(palabra, indiceRimas())[0] ?? '…'}`;
     $('widget-letra').textContent = listarLetras(localStorage)[0]?.titulo || 'Tu última letra';
-    $('paywall-nota').textContent = 'Prueba: la compra es simulada, no se cobra nada.';
+    $('paywall-nota').textContent = estaVinculada()
+        ? 'Métrica+ se compra en la app Métrica del iPhone. Al comprarla, esta web se desbloquea sola.'
+        : 'Prueba: la compra es simulada, no se cobra nada.';
     $('paywall').hidden = false;
 }
 
@@ -5181,6 +5191,95 @@ function sincronizarTemasConModo() {
     if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
 }
 modoOscuroDelSistema.addEventListener('change', sincronizarTemasConModo);
+
+// ---------- Métrica web (vincular con el iPhone por QR, js/web.js) ----------
+// Como WhatsApp Web: en una pantalla ancha sin nada vinculado se ve sola; si no, desde Ajustes.
+let cortarVinculo = null;
+function renderizarWeb() {
+    const vinculada = estaVinculada();
+    $('web-sin-vincular').hidden = vinculada;
+    $('web-vinculada').hidden = !vinculada;
+    $('web-cerrar-celda').hidden = !vinculada;
+    $('web-plan').textContent = planDelIphone().extras ? 'Métrica+' : 'Gratis';
+}
+
+function avisoVincular(estado, texto = '') {
+    $('vincular-qr').dataset.estado = estado;
+    $('vincular-aviso-texto').textContent = texto;
+    $('vincular-otro').textContent = estado === 'error' ? 'Volver a intentar' : 'Cargar otro código';
+}
+
+function abrirVincular() {
+    $('vincular').hidden = false;
+    cortarVinculo?.();
+    avisoVincular('cargando', 'Cargando el código…');
+    cortarVinculo = vincular({
+        pintar: svg => { $('vincular-codigo').innerHTML = svg; avisoVincular('listo'); },
+        escaneado: () => avisoVincular('escaneado', 'Vinculando…'),
+        listo: () => {
+            cerrarVincular();
+            renderizarWeb();
+            renderizarExtras();
+            sincronizarWeb();
+        },
+        vencido: () => avisoVincular('vencido', 'El código venció.'),
+        error: () => avisoVincular('error', 'No hay conexión con Métrica.'),
+    });
+}
+
+function cerrarVincular() {
+    cortarVinculo?.();
+    cortarVinculo = null;
+    $('vincular').hidden = true;
+}
+
+// Lo que llega del iPhone se ve enseguida: las letras, el baúl, las guardadas y la letra abierta
+// (si no se está escribiendo en ella: lo de acá, editado después, gana).
+function alCambiarDesdeIphone() {
+    renderizarLetras();
+    renderizarBaul();
+    renderizarGuardadas();
+    renderizarExtras();
+    renderizarWeb();
+    if (!letraActual) return;
+    const nueva = listarLetras(localStorage).find(l => l.id === letraActual.id);
+    const escribiendo = [editorTexto, $('editor-titulo')].includes(document.activeElement);
+    if (nueva && !escribiendo && (nueva.texto !== editorTexto.value || nueva.titulo !== $('editor-titulo').value)) {
+        letraActual = nueva;
+        $('editor-titulo').value = nueva.titulo;
+        editorTexto.value = nueva.texto;
+        actualizarEditor();
+    }
+}
+
+function sincronizarWeb() {
+    if (!estaVinculada() || document.visibilityState !== 'visible') return;
+    sincronizar({
+        alCambiar: alCambiarDesdeIphone,
+        alCerrar: () => { letraActual = null; mostrarVista('vista-lista-letras'); alCambiarDesdeIphone(); },
+    });
+}
+
+$('abrir-vincular').addEventListener('click', abrirVincular);
+$('vincular-otro').addEventListener('click', abrirVincular);
+$('vincular-sin').addEventListener('click', () => {
+    try { localStorage.setItem('metrica.web-sin-vincular', '1'); } catch {}
+    cerrarVincular();
+});
+$('web-cerrar').addEventListener('click', () => preguntar({
+    titulo: '¿Cerrar la sesión?', texto: 'Las letras del iPhone se borran de esta computadora. En el iPhone siguen todas.', boton: 'Cerrar sesión', rojo: true,
+}, async ok => {
+    if (!ok) return;
+    await cerrarSesion();
+    letraActual = null;
+    mostrarVista('vista-lista-letras');
+    alCambiarDesdeIphone();
+}));
+setInterval(sincronizarWeb, 4000);
+document.addEventListener('visibilitychange', sincronizarWeb);
+renderizarWeb();
+if (!estaVinculada() && innerWidth >= 700 && !localStorage.getItem('metrica.web-sin-vincular')) abrirVincular();
+sincronizarWeb();
 
 // ---------- Inicio ----------
 renderizarApariencia();
