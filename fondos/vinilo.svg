@@ -1,12 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
-  <!-- Vinilo: medio disco que asoma abajo a la derecha, con sus surcos y la etiqueta. -->
-  <circle cx="300" cy="420" r="150" fill="#0d0b0b" opacity=".75"/>
-  <g fill="none" stroke="#f1e6dc" stroke-width=".8" opacity=".09">
-    <circle cx="300" cy="420" r="140"/><circle cx="300" cy="420" r="128"/><circle cx="300" cy="420" r="116"/>
-    <circle cx="300" cy="420" r="104"/><circle cx="300" cy="420" r="92"/><circle cx="300" cy="420" r="80"/>
-    <circle cx="300" cy="420" r="68"/>
+  <defs><linearGradient id="desv" x1="0" y1="100" x2="0" y2="210" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+  <mask id="desvanecer" maskUnits="userSpaceOnUse" x="-20" y="0" width="430" height="480"><rect x="-20" y="0" width="430" height="480" fill="url(#desv)"/></mask></defs>
+  <g mask="url(#desvanecer)">
+  <defs>
+    <radialGradient id="g1" cx="285" cy="400" r="230" gradientUnits="userSpaceOnUse"><stop offset=".6" stop-color="#e0704f" stop-opacity=".22"/><stop offset="1" stop-color="#e0704f" stop-opacity="0"/></radialGradient>
+    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f08a5d"/><stop offset="1" stop-color="#8f5cf0"/></linearGradient>
+  </defs>
+  <circle cx="285" cy="400" r="230" fill="url(#g1)"/>
+  <circle cx="285" cy="400" r="166" fill="#0b0909"/>
+  <g fill="none" stroke="#f4e9e1" stroke-width=".7" opacity=".13"><circle cx="285" cy="400" r="66"/><circle cx="285" cy="400" r="72.5"/><circle cx="285" cy="400" r="79"/><circle cx="285" cy="400" r="85.5"/><circle cx="285" cy="400" r="92"/><circle cx="285" cy="400" r="98.5"/><circle cx="285" cy="400" r="105"/><circle cx="285" cy="400" r="111.5"/><circle cx="285" cy="400" r="118"/><circle cx="285" cy="400" r="124.5"/><circle cx="285" cy="400" r="131"/><circle cx="285" cy="400" r="137.5"/><circle cx="285" cy="400" r="144"/><circle cx="285" cy="400" r="150.5"/><circle cx="285" cy="400" r="157"/></g>
+  <path d="M285 400 L135 329 A166 166 0 0 1 189 265Z" fill="#fff" opacity=".06"/>
+  <path d="M285 400 L381 535 A166 166 0 0 0 435 471Z" fill="#fff" opacity=".05"/>
+  <circle cx="285" cy="400" r="54" fill="url(#g2)"/>
+  <circle cx="285" cy="400" r="54" fill="none" stroke="#1c1718" stroke-width="1.2" stroke-dasharray="2 5" opacity=".5"/>
+  <path d="M251 386h30M251 394h20" stroke="#1c1718" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
+  <circle cx="285" cy="400" r="5" fill="#1c1718"/>
+  <g stroke="#d9cfc8" stroke-linecap="round" fill="none">
+    <path d="M70 270 L176 372" stroke-width="5"/>
+    <path d="M176 372 l22 10" stroke-width="9" stroke="#f4e9e1"/>
   </g>
-  <path d="M190 330a150 150 0 0 1 60-38" fill="none" stroke="#f1e6dc" stroke-width="3" stroke-linecap="round" opacity=".08"/>
-  <circle cx="300" cy="420" r="46" fill="#c46a4a" opacity=".45"/>
-  <circle cx="300" cy="420" r="4" fill="#1f1b1a"/>
+  <circle cx="64" cy="264" r="15" fill="#2c2526" stroke="#d9cfc8" stroke-width="2"/>
+  <circle cx="64" cy="264" r="5" fill="#e0704f"/>
+  </g>
 </svg>

@@ -2106,7 +2106,7 @@ const servidor = http.createServer((req, res) => {
         await page.locator('#editor-texto').blur();
         await page.screenshot({path: `capturas/editor-madrugada-${tema}.png`});
         // Los otros temas de Extras, cada uno con su ilustración abajo.
-        for (const otro of ['sierra', 'ondas', 'arena', 'partitura', 'vinilo', 'bosque', 'brasa', 'aurora', 'tinta', 'papel', 'menta', 'cielo', 'durazno', 'cafe', 'galaxia', 'nebulosa', 'saturno', 'eclipse', 'luna']) {
+        for (const otro of ['neon', 'ondas', 'arena', 'partitura', 'vinilo', 'bosque', 'brasa', 'aurora', 'marea', 'papel', 'menta', 'cielo', 'durazno', 'cafe', 'galaxia', 'cassette', 'saturno', 'eclipse', 'luna', 'jacaranda', 'terrazo']) {
             await page.evaluate(clave => { document.getElementById('vista-editor').dataset.libreta = clave; }, otro);
             assert.match(await page.evaluate(() => getComputedStyle(document.getElementById('vista-editor')).backgroundImage), new RegExp(`fondos/${otro}\\.svg`));
             await page.screenshot({path: `capturas/editor-${otro}-${tema}.png`});

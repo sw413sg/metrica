@@ -1,6 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
-  <!-- Papel: la esquina de una hoja de cuaderno doblada. -->
-  <path d="M310 460l80-80v80z" fill="#e8dfc8" opacity=".8"/>
-  <path d="M310 460l80-80h-60c-12 0-20 8-20 20z" fill="#f7f1e2"/>
-  <path d="M310 460l80-80" stroke="#cbbf9f" stroke-width="1" opacity=".6"/>
+  <defs><linearGradient id="desv" x1="0" y1="100" x2="0" y2="210" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+  <mask id="desvanecer" maskUnits="userSpaceOnUse" x="-20" y="0" width="430" height="480"><rect x="-20" y="0" width="430" height="480" fill="url(#desv)"/></mask></defs>
+  <g mask="url(#desvanecer)">
+  <defs><linearGradient id="g1" x1="300" y1="370" x2="390" y2="460" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#e9dfc6"/><stop offset="1" stop-color="#fffdf5"/></linearGradient></defs>
+  <path d="M40 200V460" stroke="#e8756a" stroke-width="1.4" opacity=".55"/>
+  <g fill="#d9cfb8"><circle cx="18" cy="250" r="6"/><circle cx="18" cy="330" r="6"/><circle cx="18" cy="410" r="6"/></g>
+  <path d="M390 372L302 460H390Z" fill="#d6ccb4"/>
+  <path d="M390 372L302 460C318 430 340 396 390 372Z" fill="url(#g1)"/>
+  <path d="M390 372C340 396 318 430 302 460" fill="none" stroke="#b8ad92" stroke-width="1"/>
+  <g transform="rotate(-24 190 400)">
+    <rect x="96" y="390" width="170" height="20" fill="#f5b83d"/><rect x="96" y="390" width="170" height="6.6" fill="#ffd166"/><rect x="96" y="403.4" width="170" height="6.6" fill="#e09a22"/>
+    <path d="M96 390l-30 10 30 10z" fill="#f0d9b5"/><path d="M76 396.6l-10 3.4 10 3.4z" fill="#2a2620"/>
+    <rect x="266" y="390" width="14" height="20" fill="#c9c9c9"/><path d="M270 390v20M275 390v20" stroke="#9a9a9a" stroke-width="1"/>
+    <path d="M280 390h14a8 8 0 0 1 8 8v4a8 8 0 0 1-8 8h-14z" fill="#f08a8a"/>
+  </g>
+  <g fill="none" stroke="#2a2620" stroke-width="1.6" stroke-linecap="round" opacity=".5"><path d="M70 300c20-14 30 14 50 0s30 14 50 0"/><path d="M70 318c20-14 30 14 50 0"/></g>
+  <g fill="#f0d9b5" stroke="#d9b98a" stroke-width=".8"><path d="M60 440c8-10 20-8 22 2s-12 12-22-2z"/><path d="M92 448c6-8 16-6 16 2s-10 8-16-2z"/></g>
+  <g fill="#2a2620" opacity=".35"><circle cx="48" cy="432" r="1.2"/><circle cx="118" cy="452" r="1"/><circle cx="80" cy="454" r=".9"/></g>
+  </g>
 </svg>

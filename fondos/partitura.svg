@@ -1,22 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 460">
-  <!-- Partitura: un pentagrama que cruza la hoja en curva, con algunas notas. -->
-  <g fill="none" stroke="#45566b" stroke-width="1.1" opacity=".22">
-    <path d="M-10 330c90-60 190-50 270-10s110 36 140 20"/>
-    <path d="M-10 342c90-60 190-50 270-10s110 36 140 20"/>
-    <path d="M-10 354c90-60 190-50 270-10s110 36 140 20"/>
-    <path d="M-10 366c90-60 190-50 270-10s110 36 140 20"/>
-    <path d="M-10 378c90-60 190-50 270-10s110 36 140 20"/>
-  </g>
-  <g fill="#45566b" opacity=".3">
-    <ellipse cx="74" cy="318" rx="6" ry="4.4" transform="rotate(-24 74 318)"/>
-    <rect x="78.6" y="282" width="1.4" height="34"/>
-    <ellipse cx="128" cy="304" rx="6" ry="4.4" transform="rotate(-24 128 304)"/>
-    <rect x="132.6" y="266" width="1.4" height="36"/>
-    <ellipse cx="160" cy="300" rx="6" ry="4.4" transform="rotate(-24 160 300)"/>
-    <rect x="164.6" y="262" width="1.4" height="36"/>
-    <path d="M133 266l33-4v5l-33 4z"/>
-    <ellipse cx="236" cy="330" rx="6" ry="4.4" transform="rotate(-24 236 330)"/>
-    <rect x="240.6" y="292" width="1.4" height="36"/>
-    <path d="M242 292c6 6 14 8 12 20c-2-8-6-10-12-12z"/>
+  <defs><linearGradient id="desv" x1="0" y1="100" x2="0" y2="210" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#fff"/></linearGradient>
+  <mask id="desvanecer" maskUnits="userSpaceOnUse" x="-20" y="0" width="430" height="480"><rect x="-20" y="0" width="430" height="480" fill="url(#desv)"/></mask></defs>
+  <g mask="url(#desvanecer)">
+  <defs><radialGradient id="g1" cx="250" cy="340" r="180" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8f6bff" stop-opacity=".16"/><stop offset="1" stop-color="#8f6bff" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="250" cy="340" r="180" fill="url(#g1)"/>
+  <g fill="none" stroke="#1f2a36" stroke-width="1.2" opacity=".5"><path d="M-10 337.1L-2 340.8L6 344.6L14 348.3L22 351.8L30 355.1L38 358.3L46 361.1L54 363.6L62 365.7L70 367.4L78 368.7L86 369.6L94 369.9L102 369.8L110 369.3L118 368.3L126 366.8L134 364.9L142 362.6L150 359.9L158 356.9L166 353.7L174 350.2L182 346.5L190 342.7L198 338.9L206 335L214 331.2L222 327.5L230 324L238 320.7L246 317.6L254 314.8L262 312.4L270 310.3L278 308.7L286 307.4L294 306.5L302 306.1L310 306.1L318 306.5L326 307.3L334 308.5L342 310L350 311.8L358 313.9L366 316.2L374 318.7L382 321.3L390 324L398 326.7"/><path d="M-10 350.1L-2 353.8L6 357.6L14 361.3L22 364.8L30 368.1L38 371.3L46 374.1L54 376.6L62 378.7L70 380.4L78 381.7L86 382.6L94 382.9L102 382.8L110 382.3L118 381.3L126 379.8L134 377.9L142 375.6L150 372.9L158 369.9L166 366.7L174 363.2L182 359.5L190 355.7L198 351.9L206 348L214 344.2L222 340.5L230 337L238 333.7L246 330.6L254 327.8L262 325.4L270 323.3L278 321.7L286 320.4L294 319.5L302 319.1L310 319.1L318 319.5L326 320.3L334 321.5L342 323L350 324.8L358 326.9L366 329.2L374 331.7L382 334.3L390 337L398 339.7"/><path d="M-10 363.1L-2 366.8L6 370.6L14 374.3L22 377.8L30 381.1L38 384.3L46 387.1L54 389.6L62 391.7L70 393.4L78 394.7L86 395.6L94 395.9L102 395.8L110 395.3L118 394.3L126 392.8L134 390.9L142 388.6L150 385.9L158 382.9L166 379.7L174 376.2L182 372.5L190 368.7L198 364.9L206 361L214 357.2L222 353.5L230 350L238 346.7L246 343.6L254 340.8L262 338.4L270 336.3L278 334.7L286 333.4L294 332.5L302 332.1L310 332.1L318 332.5L326 333.3L334 334.5L342 336L350 337.8L358 339.9L366 342.2L374 344.7L382 347.3L390 350L398 352.7"/><path d="M-10 376.1L-2 379.8L6 383.6L14 387.3L22 390.8L30 394.1L38 397.3L46 400.1L54 402.6L62 404.7L70 406.4L78 407.7L86 408.6L94 408.9L102 408.8L110 408.3L118 407.3L126 405.8L134 403.9L142 401.6L150 398.9L158 395.9L166 392.7L174 389.2L182 385.5L190 381.7L198 377.9L206 374L214 370.2L222 366.5L230 363L238 359.7L246 356.6L254 353.8L262 351.4L270 349.3L278 347.7L286 346.4L294 345.5L302 345.1L310 345.1L318 345.5L326 346.3L334 347.5L342 349L350 350.8L358 352.9L366 355.2L374 357.7L382 360.3L390 363L398 365.7"/><path d="M-10 389.1L-2 392.8L6 396.6L14 400.3L22 403.8L30 407.1L38 410.3L46 413.1L54 415.6L62 417.7L70 419.4L78 420.7L86 421.6L94 421.9L102 421.8L110 421.3L118 420.3L126 418.8L134 416.9L142 414.6L150 411.9L158 408.9L166 405.7L174 402.2L182 398.5L190 394.7L198 390.9L206 387L214 383.2L222 379.5L230 376L238 372.7L246 369.6L254 366.8L262 364.4L270 362.3L278 360.7L286 359.4L294 358.5L302 358.1L310 358.1L318 358.5L326 359.3L334 360.5L342 362L350 363.8L358 365.9L366 368.2L374 370.7L382 373.3L390 376L398 378.7"/></g>
+  <ellipse cx="50" cy="394.9" rx="8" ry="6" transform="rotate(-20 50 394.9)" fill="#1f2a36"/><path d="M57 392.9V350.9" stroke="#1f2a36" stroke-width="2" fill="none"/><path d="M57 350.9c2 14 16 14 12 30" fill="none" stroke="#1f2a36" stroke-width="2.4" stroke-linecap="round"/>
+  <ellipse cx="104" cy="382.7" rx="8" ry="6" transform="rotate(-20 104 382.7)" fill="#1f2a36"/><path d="M111 380.7V338.7" stroke="#1f2a36" stroke-width="2" fill="none"/><ellipse cx="138" cy="389.8" rx="8" ry="6" transform="rotate(-20 138 389.8)" fill="#1f2a36"/><path d="M145 387.8V345.8" stroke="#1f2a36" stroke-width="2" fill="none"/><path d="M111 338.7L145 345.8v8L111 346.7z" fill="#1f2a36"/>
+  <ellipse cx="196" cy="378.9" rx="8" ry="6" transform="rotate(-20 196 378.9)" fill="#7a4cf0"/><path d="M203 376.9V334.9" stroke="#7a4cf0" stroke-width="2" fill="none"/><path d="M203 334.9c2 14 16 14 12 30" fill="none" stroke="#7a4cf0" stroke-width="2.4" stroke-linecap="round"/>
+  <ellipse cx="250" cy="322.7" rx="8" ry="6" transform="rotate(-20 250 322.7)" fill="#1f2a36"/><path d="M257 320.7V278.7" stroke="#1f2a36" stroke-width="2" fill="none"/><ellipse cx="284" cy="327.2" rx="8" ry="6" transform="rotate(-20 284 327.2)" fill="#1f2a36"/><path d="M291 325.2V283.2" stroke="#1f2a36" stroke-width="2" fill="none"/><ellipse cx="318" cy="319.5" rx="8" ry="6" transform="rotate(-20 318 319.5)" fill="#1f2a36"/><path d="M325 317.5V275.5" stroke="#1f2a36" stroke-width="2" fill="none"/><path d="M257 278.7L325 275.5v8L257 286.7z" fill="#1f2a36"/>
+  <ellipse cx="362" cy="360.6" rx="8" ry="6" transform="rotate(-20 362 360.6)" fill="#1f2a36"/><path d="M369 358.6V316.6" stroke="#1f2a36" stroke-width="2" fill="none"/>
+  <g fill="#7a4cf0" opacity=".7"><path d="M150 250l3 9 9 3-9 3-3 9-3-9-9-3 9-3z"/><path d="M330 236l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></g>
+  <path d="M-10 440c60-20 110 10 180-4s120-26 230-6" fill="none" stroke="#1f2a36" stroke-width="1" opacity=".18"/>
   </g>
 </svg>
