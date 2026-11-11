@@ -109,6 +109,7 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
     const reales = compras.filter(c => !c.sandbox);
     const deSandbox = compras.filter(c => c.sandbox);
     const subs = reales.filter(c => c.tipo === 'suscripcion');
+    const subsSandbox = deSandbox.filter(c => c.tipo === 'suscripcion');
     let sub = null;
     if (subs.length) {
         for (const candidata of subs) {
@@ -121,6 +122,13 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
     if (sub) {
         const clave = `cuota:mes:${mes}:sub:${sub.originalTransactionId}`;
         pools.push({ tipo: 'mes', clave, tope: sub.consultas, usadas: await usadas(kv, clave) });
+    } else if (subsSandbox.length) {
+        // La suscripción comprada en Sandbox (TestFlight con los productos en App Store Connect, App Review):
+        // 300 por mes como la compra de prueba, con el tope de Sandbox del día (pedido de Swa: con 30
+        // parecía que la cuota y los paquetes se perdían). Por recibo, así rotar el id no la renueva.
+        const sandboxSub = subsSandbox.reduce((a, b) => (a.vence > b.vence ? a : b));
+        const clave = `cuota:mes:${mes}:sandbox-sub:${sandboxSub.originalTransactionId}`;
+        pools.push({ tipo: 'prueba', prueba: true, clave, tope: topePrueba, usadas: await usadas(kv, clave) });
     } else if (prueba === 'metrica.ia') {
         // La «Compra de prueba» de TestFlight (sin productos en App Store Connect): el AppTransaction
         // firmado por Apple dice que es TestFlight. Da la cuota del plan, con el tope de Sandbox del día.
@@ -146,8 +154,15 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
     try { delId = JSON.parse(await kv.get(claveDelId) ?? '[]'); } catch { delId = []; }
     if (!Array.isArray(delId)) delId = [];
     const porTx = new Map();
-    for (const tid of delId) if (typeof tid === 'string') porTx.set(tid, { transactionId: tid, consultas: 0, guardada: true });
-    for (const c of reales) {
+    // Los de Sandbox van con «s:» adelante: siguen contando en el tope de Sandbox del día.
+    for (const anotado of delId) {
+        if (typeof anotado !== 'string') continue;
+        const sandbox = anotado.startsWith('s:');
+        const tid = sandbox ? anotado.slice(2) : anotado;
+        porTx.set(tid, { transactionId: tid, consultas: 0, guardada: true, sandbox });
+    }
+    // Los paquetes y el regalo de Sandbox también suman (pedido de Swa), pero con el tope de Sandbox del día.
+    for (const c of compras) {
         if (c.tipo === 'plus' || c.tipo === 'paquete') porTx.set(c.transactionId, { ...c, guardada: porTx.has(c.transactionId) });
     }
     const bolsas = [...porTx.values()].sort((a, b) => (a.transactionId < b.transactionId ? -1 : 1));
@@ -157,7 +172,7 @@ export async function prepararCuenta(kv, { mes, id, ip, compras, cupoGratis, top
         // null: primera vez que vemos esta transacción, y vale el paquete entero.
         // "0" o cualquier número: ya se acreditó y esto es lo que queda.
         const restante = guardado == null ? compra.consultas : Math.max(0, Number(guardado) || 0);
-        pools.push({ tipo: 'bolsa', bolsa: true, clave, restante, nueva: guardado == null, transactionId: compra.transactionId, delId: compra.guardada });
+        pools.push({ tipo: 'bolsa', bolsa: true, prueba: Boolean(compra.sandbox), sandbox: Boolean(compra.sandbox), clave, restante, nueva: guardado == null, transactionId: compra.transactionId, delId: compra.guardada });
     }
     if (prueba === 'metrica.extras' && !sub) {
         // El regalo de Métrica + en la compra de prueba: una bolsa por id, que no se renueva.
@@ -259,7 +274,7 @@ export async function operarCuota(kv, pedido) {
     }));
     const sinId = cuenta.pools.filter(p => p.bolsa && !p.delId);
     if (sinId.length) {
-        const lista = cuenta.pools.filter(p => p.bolsa).map(p => p.transactionId);
+        const lista = cuenta.pools.filter(p => p.bolsa && p.transactionId).map(p => (p.sandbox ? 's:' : '') + p.transactionId);
         await kv.put(cuenta.claveDelId, JSON.stringify(lista));
         for (const p of sinId) p.delId = true;
     }

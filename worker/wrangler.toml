@@ -26,8 +26,8 @@ CUPO_GRATIS = "20"
 # Tope por IP y por mes del cupo gratis y de Sandbox. Una compra de Production no entra.
 # En una NAT de operador puede hacer falta subirlo.
 TOPE_IP = "100"
-# App Review y TestFlight compran en Sandbox contra este servidor. No se les da la cuota real
-# del producto: el mismo recibo (originalTransactionId) comparte este tope por mes, aunque rote el id.
+# App Review y TestFlight compran en Sandbox contra este servidor. La suscripción de Sandbox da 300 y los
+# paquetes suman (con el tope global del día de abajo); sin suscripción, el recibo comparte este tope por mes.
 SANDBOX_CONSULTAS_MES = "30"
 # Tope de todas las consultas Sandbox juntas, por día, en todo el servidor.
 SANDBOX_TOPE_GLOBAL_DIA = "300"
