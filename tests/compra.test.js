@@ -13,7 +13,7 @@ test('sin comprar: hay publicidad y los temas de pago están bloqueados', () => 
     assert.equal(mostrarPublicidad(almacen), true);
     assert.equal(temaDisponible('gris', almacen), true);
     assert.equal(temaDisponible('blanco', almacen), true);
-    assert.equal(temaDisponible('sierra', almacen), false);
+    assert.equal(temaDisponible('bosque', almacen), false);
     assert.equal(temaDisponible('no-existe', almacen), false);
 });
 
@@ -47,7 +47,7 @@ test('un tema de pago en una letra solo vale con Extras', () => {
 test('datos raros no desbloquean nada', () => {
     const almacen = almacenDePrueba({ 'metrica.extras': 'true' });
     assert.equal(tieneExtras(almacen), false);
-    assert.equal(temaDeLetra({ tema: 'sierra' }, almacen), 'gris');
+    assert.equal(temaDeLetra({ tema: 'bosque' }, almacen), 'gris');
     assert.equal(temaDeLetra({ tema: 'inventado' }, almacen), 'gris');
 });
 
@@ -55,9 +55,9 @@ test('siempre hay al menos un tema gratis', () => {
     assert.ok(TEMAS.some(t => !t.extra));
 });
 
-test('gris y blanco son los gratis; los otros veinte, de Extras', () => {
+test('gris y blanco son los gratis; los otros treinta, de Extras', () => {
     assert.deepEqual(TEMAS.filter(t => !t.extra).map(t => t.clave), ['gris', 'blanco']);
-    assert.equal(TEMAS.filter(t => t.extra).length, 20);
+    assert.equal(TEMAS.filter(t => t.extra).length, 30);
 });
 
 test('opacidadDeTema: de 1 a 10, arranca en 10', async () => {
@@ -74,8 +74,9 @@ test('los temas van en dos grupos, oscuros (Gris liso primero) y claros (Blanco 
     const claros = TEMAS.filter(t => !t.oscuro).map(t => t.clave);
     assert.equal(oscuros[0], 'gris');
     assert.equal(claros[0], 'blanco');
-    assert.equal(oscuros.length, 13);
-    assert.equal(claros.length, 9);
+    assert.equal(oscuros.length, 16);
+    // La misma cantidad de claros que de oscuros (pedido de Swa).
+    assert.equal(claros.length, oscuros.length);
 });
 
 test('al cambiar de modo, cada uno vuelve al último tema que usó en ese modo', async () => {
