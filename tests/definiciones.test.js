@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { crearIndiceDefiniciones, buscarDefinicion, corregirParaDiccionario, comoSuena, leerEntrada } from '../js/logica/definiciones.js';
+import { crearIndiceDefiniciones, buscarDefinicion, corregirParaDiccionario, comoSuena, leerEntrada, sinIndicePegado } from '../js/logica/definiciones.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const EJEMPLO = [
@@ -27,6 +27,14 @@ test('lee las categorías, la materia y las acepciones', () => {
         categorias: [{ nombre: 'sustantivo', acepciones: [{ materia: 'Vivienda', texto: 'Edificación destinada a vivienda.' }, { materia: '', texto: 'Domicilio.' }] }],
         formaDe: [],
     });
+});
+
+test('saca el número de entrada pegado a una palabra', () => {
+    assert.equal(sinIndicePegado('Cada una de las divisiones que se hacen al mar1, frecuentemente'), 'Cada una de las divisiones que se hacen al mar, frecuentemente');
+    assert.equal(sinIndicePegado('Fruto del arán1,2.'), 'Fruto del arán.');
+    assert.equal(sinIndicePegado('Pintura. Apariencia de Relieve1 que tiene'), 'Pintura. Apariencia de Relieve que tiene');
+    assert.equal(sinIndicePegado('Solución de almidón1 en agua'), 'Solución de almidón en agua');
+    assert.equal(sinIndicePegado('Fórmula C6H4(OH)2, CO2, CaSO4, Ca2(Mg,Fe)5, 3 km2, un mp3 y la norma iso639-3'), 'Fórmula C6H4(OH)2, CO2, CaSO4, Ca2(Mg,Fe)5, 3 km2, un mp3 y la norma iso639-3');
 });
 
 test('una forma trae las definiciones de sus palabras', () => {
