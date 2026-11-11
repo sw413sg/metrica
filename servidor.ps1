@@ -28,7 +28,7 @@ while ($servidor.IsListening) {
     $respuesta = $contexto.Response
     try {
         $ruta = [Uri]::UnescapeDataString($contexto.Request.Url.AbsolutePath).TrimStart('/')
-        if ($ruta -eq '' -or $ruta.EndsWith('/')) { $ruta += 'index.html' }
+        if ($ruta -eq '' -or $ruta.EndsWith('/')) { $ruta += 'app.html' }
         $archivo = [IO.Path]::GetFullPath((Join-Path $raiz $ruta))
         if ($archivo.StartsWith($raiz, [StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $archivo -PathType Leaf)) {
             $bytes = [IO.File]::ReadAllBytes($archivo)
