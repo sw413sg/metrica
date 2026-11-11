@@ -849,25 +849,27 @@ body.editando .vista#vista-editor {
     top: var(--arriba-visible, 0px); height: var(--alto-visible, 100%);
 }
 
-/* Temas de la libreta. Gris liso (los colores de arriba) y Blanco son gratis; los otros treinta
-   (quince oscuros y quince claros, rediseñados por pedido de Swa) son de Métrica+ y llevan una
+/* Temas de la libreta. Gris liso (los colores de arriba) y Blanco son gratis; los otros (Negro, quince oscuros y quince claros con ilustración, y cuatro de garabatos de Métrica
+   por toda la pantalla, dos y dos; pedidos de Swa) son de Métrica+ y llevan una
    ilustración abajo (fondos/*.svg), quieta mientras el texto pasa por encima. js/app.js pone
    data-libreta en la libreta, en el baúl de frases y en cada muestra (no en la hoja de ajustes):
    todos usan el mismo color y la misma ilustración. */
-[data-libreta="blanco"], [data-libreta="papel"], [data-libreta="jacaranda"], [data-libreta="cielo"],
-[data-libreta="cafe"], [data-libreta="partitura"], [data-libreta="durazno"], [data-libreta="menta"],
-[data-libreta="postal"], [data-libreta="arena"], [data-libreta="luna"], [data-libreta="limon"],
-[data-libreta="cuadriculado"], [data-libreta="acuarela"], [data-libreta="diario"], [data-libreta="terrazo"] {
+[data-libreta="blanco"], [data-libreta="papel"], [data-libreta="apuntes"], [data-libreta="jacaranda"],
+[data-libreta="cielo"], [data-libreta="cafe"], [data-libreta="partitura"], [data-libreta="durazno"],
+[data-libreta="menta"], [data-libreta="postal"], [data-libreta="arena"], [data-libreta="borrador"],
+[data-libreta="luna"], [data-libreta="limon"], [data-libreta="cuadriculado"], [data-libreta="acuarela"],
+[data-libreta="diario"], [data-libreta="terrazo"] {
     color-scheme: light;
     --texto: #1c1530; --texto-2: rgba(60, 50, 90, 0.62); --texto-3: rgba(60, 50, 90, 0.32);
     --separador: rgba(60, 50, 90, 0.12); --vidrio: rgba(255, 255, 255, 0.55); --vidrio-borde: rgba(255, 255, 255, 0.85);
     --vidrio-brillo: rgba(255, 255, 255, 0.9); --relleno: rgba(60, 50, 90, 0.08);
     --acento: #3c4043; --renglon: rgba(60, 60, 67, 0.08); --teclado: #d1d4da;
 }
-[data-libreta="vinilo"], [data-libreta="galaxia"], [data-libreta="neon"], [data-libreta="madrugada"],
-[data-libreta="cassette"], [data-libreta="brasa"], [data-libreta="escenario"], [data-libreta="bosque"],
-[data-libreta="eclipse"], [data-libreta="ondas"], [data-libreta="marea"], [data-libreta="saturno"],
-[data-libreta="tormenta"], [data-libreta="aurora"], [data-libreta="pizarron"] {
+[data-libreta="negro"], [data-libreta="vinilo"], [data-libreta="galaxia"], [data-libreta="garabatos"],
+[data-libreta="neon"], [data-libreta="madrugada"], [data-libreta="cassette"], [data-libreta="brasa"],
+[data-libreta="escenario"], [data-libreta="bosque"], [data-libreta="eclipse"], [data-libreta="trazos"],
+[data-libreta="ondas"], [data-libreta="marea"], [data-libreta="saturno"], [data-libreta="tormenta"],
+[data-libreta="aurora"], [data-libreta="pizarron"] {
     color-scheme: dark;
     --texto: #eef0f4; --texto-2: rgba(238, 240, 244, 0.6); --texto-3: rgba(238, 240, 244, 0.32);
     --separador: rgba(255, 255, 255, 0.1); --vidrio: rgba(255, 255, 255, 0.1); --vidrio-borde: rgba(255, 255, 255, 0.12);
@@ -875,8 +877,10 @@ body.editando .vista#vista-editor {
     --acento: #e8eaed; --renglon: rgba(255, 255, 255, 0.06); --teclado: #2c2c2e;
 }
 [data-libreta="blanco"] { --libreta: #ffffff; }
+[data-libreta="negro"] { --libreta: #000000; --texto: #f2f2f7; --teclado: #1c1c1e; }
 [data-libreta="vinilo"] { --libreta: #1c1718; --texto: #f4e9e1; --teclado: #272021; --ilustracion: url("fondos/vinilo.svg"); }
 [data-libreta="galaxia"] { --libreta: #0c0a1c; --texto: #ebe7ff; --teclado: #17142b; --ilustracion: url("fondos/galaxia.svg"); }
+[data-libreta="garabatos"] { --libreta: #0e1013; --texto: #eef0f4; --teclado: #1a1d21; --ilustracion: url("fondos/garabatos.svg"); }
 [data-libreta="neon"] { --libreta: #0e0b16; --texto: #f3edff; --teclado: #191524; --ilustracion: url("fondos/neon.svg"); }
 [data-libreta="madrugada"] { --libreta: #111830; --texto: #e6ebfa; --teclado: #1b233f; --ilustracion: url("fondos/madrugada.svg"); }
 [data-libreta="cassette"] { --libreta: #1d1826; --texto: #f2ebf8; --teclado: #282233; --ilustracion: url("fondos/cassette.svg"); }
@@ -884,6 +888,7 @@ body.editando .vista#vista-editor {
 [data-libreta="escenario"] { --libreta: #160f1c; --texto: #f7edf5; --teclado: #221828; --ilustracion: url("fondos/escenario.svg"); }
 [data-libreta="bosque"] { --libreta: #0e1f19; --texto: #e4f0ea; --teclado: #172b23; --ilustracion: url("fondos/bosque.svg"); }
 [data-libreta="eclipse"] { --libreta: #07080c; --texto: #f4efe6; --teclado: #13141a; --ilustracion: url("fondos/eclipse.svg"); }
+[data-libreta="trazos"] { --libreta: #150f26; --texto: #efeaff; --teclado: #211936; --ilustracion: url("fondos/trazos.svg"); }
 [data-libreta="ondas"] { --libreta: #131519; --texto: #eef0f4; --teclado: #1e2126; --ilustracion: url("fondos/ondas.svg"); }
 [data-libreta="marea"] { --libreta: #0a1b25; --texto: #e2f2f5; --teclado: #132833; --ilustracion: url("fondos/marea.svg"); }
 [data-libreta="saturno"] { --libreta: #13111a; --texto: #f3ede4; --teclado: #1e1b27; --ilustracion: url("fondos/saturno.svg"); }
@@ -893,6 +898,10 @@ body.editando .vista#vista-editor {
 [data-libreta="papel"] {
     --libreta: #fbf6e9; --texto: #2a2620; --texto-2: rgba(60, 52, 40, 0.62); --texto-3: rgba(60, 52, 40, 0.32);
     --renglon: rgba(70, 110, 170, 0.14); --teclado: #ece5d3; --ilustracion: url("fondos/papel.svg");
+}
+[data-libreta="apuntes"] {
+    --libreta: #efe8dd; --texto: #2e261f; --texto-2: rgba(70, 56, 42, 0.62); --texto-3: rgba(70, 56, 42, 0.32);
+    --renglon: rgba(90, 70, 45, 0.1); --teclado: #e0d7c8; --ilustracion: url("fondos/apuntes.svg");
 }
 [data-libreta="jacaranda"] {
     --libreta: #f2ecfb; --texto: #2a2140; --texto-2: rgba(60, 45, 95, 0.62); --texto-3: rgba(60, 45, 95, 0.32);
@@ -925,6 +934,10 @@ body.editando .vista#vista-editor {
 [data-libreta="arena"] {
     --libreta: #f7ecda; --texto: #3a2e22; --texto-2: rgba(70, 52, 34, 0.62); --texto-3: rgba(70, 52, 34, 0.32);
     --renglon: rgba(120, 90, 50, 0.1); --teclado: #e9dcc5; --ilustracion: url("fondos/arena.svg");
+}
+[data-libreta="borrador"] {
+    --libreta: #efeafb; --texto: #261d3d; --texto-2: rgba(60, 45, 95, 0.62); --texto-3: rgba(60, 45, 95, 0.32);
+    --renglon: rgba(90, 60, 160, 0.1); --teclado: #dfd7f0; --ilustracion: url("fondos/borrador.svg");
 }
 [data-libreta="luna"] {
     --libreta: #eceef3; --texto: #1e2229; --texto-2: rgba(40, 45, 55, 0.62); --texto-3: rgba(40, 45, 55, 0.32);
