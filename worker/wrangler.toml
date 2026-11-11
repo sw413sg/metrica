@@ -10,7 +10,7 @@ enabled = true
 
 [vars]
 # Desde qué páginas se lo puede llamar (separados por coma). La app nativa no manda Origin y pasa igual.
-ORIGENES = "https://sw413sg.github.io"
+ORIGENES = "https://sw413sg.github.io,https://metricarimas.com,https://www.metricarimas.com"
 # Confirmar el nombre exacto del modelo en la consola de OpenAI.
 MODELO = "gpt-6.1-terra"
 # Cuánto piensa el modelo antes de contestar (lo que piensa se cobra como salida): «low» gasta menos.
