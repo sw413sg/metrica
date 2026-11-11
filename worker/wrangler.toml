@@ -43,6 +43,20 @@ class_name = "Cuota"
 tag = "v1"
 new_sqlite_classes = ["Cuota"]
 
+# Métrica web (vincular con QR, worker/src/enlace.js): los códigos del QR en un solo objeto y un
+# objeto por iPhone con sus registros cifrados y las sesiones de la web.
+[[durable_objects.bindings]]
+name = "ENLACES"
+class_name = "Enlaces"
+
+[[durable_objects.bindings]]
+name = "ESPACIO"
+class_name = "Espacio"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Enlaces", "Espacio"]
+
 # El contador de /probar (KV «metrica-uso», creado en el primer despliegue).
 [[kv_namespaces]]
 binding = "USO"

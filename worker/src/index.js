@@ -8,8 +8,9 @@ import { MODELO_IA, GASTO_IA, PEDIDAS_IA, REVISIONES_SIN_CAMBIOS, pedidoValido, 
 import { clasificar, PRODUCTOS } from './cuota.js';
 import { Cuota, NOMBRE_CUOTA } from './cuota-do.js';
 import { APPLE_RAIZ, desdeBase64, verificarJws } from './verificar.js';
+import { Enlaces, Espacio, web } from './enlace.js';
 
-export { Cuota };
+export { Cuota, Enlaces, Espacio };
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
 const TTL = DIAS_KV * 24 * 60 * 60;
@@ -37,7 +38,7 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Prueba, X-Metrica-Simulada, X-Metrica-Paquetes-Prueba, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Prueba, X-Metrica-Simulada, X-Metrica-Paquetes-Prueba, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
             'Access-Control-Expose-Headers': 'X-Metrica-Restantes',
             Vary: 'Origin',
         };
@@ -49,11 +50,13 @@ export default {
         if (!permitido) return responder({ error: 'origen' }, 403);
         const ruta = new URL(request.url).pathname.replace(/\/+$/, '');
         if (ruta === '/salud' && request.method === 'GET') {
-            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO), cuota: Boolean(env.CUOTA),
+            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO), cuota: Boolean(env.CUOTA), enlace: Boolean(env.ENLACES && env.ESPACIO),
                 // Solo los nombres de lo cargado (nunca los valores), para ver si falta o se llama distinto.
                 nombres: Object.keys(env).sort() });
         }
         if (ruta === '/probar' && request.method === 'GET') return probar(env, responder);
+        // Métrica web: vincular la web con el iPhone por QR (worker/src/enlace.js).
+        if (ruta.startsWith('/web/')) return web(request, env, responder, ruta, ipDe(request));
         if (ruta === '/ia') {
             if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
             return ia(request, env, responder);
