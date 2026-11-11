@@ -1,997 +1,502 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-    <title>Métrica</title>
-    <meta name="description" content="Métrica: rimas y letras. Para escribir canciones en español.">
-    <!-- Color de la franja de la hora en Safari: el promedio del fondo con granulado (lo cambia js/app.js si se elige Claro u Oscuro). -->
-    <meta name="theme-color" content="#eaedee" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#202123" media="(prefers-color-scheme: dark)">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Métrica">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="icon" href="assets/logo/icono.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="assets/logo/icono-180.png">
-    <link rel="stylesheet" href="estilos.css">
-    <!-- La apariencia elegida (claro / oscuro / sistema) antes de pintar, para que no parpadee. -->
-    <script>try { document.documentElement.dataset.apariencia = localStorage.getItem('metrica.apariencia') || 'sistema'; } catch {}</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Métrica: rimas y letras</title>
+<meta name="description" content="Métrica es la libreta para escribir canciones en español en el iPhone: cuenta las sílabas de cada verso, pinta lo que rima y te ayuda a seguir cuando te trabas.">
+<meta name="theme-color" content="#141416">
+<meta property="og:title" content="Métrica: rimas y letras">
+<meta property="og:description" content="La libreta para escribir canciones en español: sílabas, rimas, freestyle y Métrica IA.">
+<meta property="og:image" content="https://metricarimas.com/assets/logo/icono-512.png">
+<meta property="og:url" content="https://metricarimas.com/">
+<link rel="icon" href="assets/logo/icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo/icono-180.png">
+<!-- La landing de metricarimas.com: presenta la app de iPhone. La web app de prueba está en app.html. -->
+<style>
+:root {
+    color-scheme: dark;
+    --fondo: #141416;
+    --fondo-2: #1c1c1f;
+    --texto: #f2f2f4;
+    --texto-2: #a1a1aa;
+    --texto-3: #6e6e76;
+    --borde: rgba(255, 255, 255, 0.09);
+    --vidrio: rgba(255, 255, 255, 0.045);
+    --destacado: #9d8bff;
+    --destacado-2: #c7b8ff;
+    --destacado-suave: rgba(157, 139, 255, 0.16);
+    --degrade: linear-gradient(100deg, var(--destacado) 0 23%, #f4ecff 32%, var(--destacado-2) 40%, var(--destacado) 100%) 0 0 / 375% 100%;
+    --ancho: 1080px;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: clip; }
+body {
+    margin: 0; background: var(--fondo); color: var(--texto);
+    font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; overflow-x: clip;
+}
+/* El granulado de la app, al 5%, sobre el fondo liso. */
+body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: -1; opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+a { color: inherit; }
+img { display: block; max-width: 100%; }
+.envoltura { max-width: var(--ancho); margin: 0 auto; padding: 0 20px; }
+
+/* El efecto de la palabra tocada de la libreta: degradé violeta con un brillo que la cruza. */
+.brillo {
+    background: var(--degrade); -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(157, 139, 255, 0.45));
+    animation: brillo 2.6s linear infinite;
+}
+@keyframes brillo { from { background-position: 54.5% 0; } to { background-position: -81.8% 0; } }
+
+/* Barra de arriba, de vidrio. */
+.barra {
+    position: sticky; top: 0; z-index: 10;
+    padding-top: env(safe-area-inset-top);
+    background: rgba(20, 20, 22, 0.72); backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-bottom: 1px solid var(--borde);
+}
+.barra .envoltura { display: flex; align-items: center; gap: 24px; height: 60px; }
+.marca { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 650; font-size: 19px; letter-spacing: -0.01em; }
+.marca img { width: 32px; height: 32px; border-radius: 8px; }
+.barra nav { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
+.barra nav a { text-decoration: none; color: var(--texto-2); }
+.barra nav a:hover { color: var(--texto); }
+
+.boton {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 48px; padding: 0 22px; border-radius: 24px; font-size: 16px; font-weight: 600; text-decoration: none;
+    border: 1px solid var(--borde); background: var(--vidrio); color: var(--texto);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.boton:hover { background: rgba(255, 255, 255, 0.08); }
+.boton.principal { background: var(--texto); color: #111; border-color: transparent; }
+.boton.principal:hover { background: #fff; }
+.boton svg { width: 20px; height: 20px; }
+.boton .pronto { font-weight: 500; opacity: 0.6; }
+
+/* Portada. */
+.portada { position: relative; padding: 72px 0 40px; overflow: hidden; }
+.portada::before {
+    content: ""; position: absolute; z-index: -1; left: 50%; top: -120px; width: 900px; height: 700px; transform: translateX(-30%);
+    background: radial-gradient(closest-side, rgba(123, 97, 255, 0.28), transparent 70%); pointer-events: none;
+}
+.portada .envoltura { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+.etiqueta {
+    display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--destacado); background: var(--destacado-suave); padding: 5px 12px; border-radius: 14px; margin-bottom: 18px;
+}
+h1 { font-size: clamp(42px, 6.4vw, 68px); line-height: 1.04; letter-spacing: -0.035em; margin: 0 0 20px; font-weight: 750; }
+.bajada { font-size: 20px; color: var(--texto-2); max-width: 30em; margin: 0 0 30px; }
+.acciones { display: flex; flex-wrap: wrap; gap: 12px; }
+.nota-chica { font-size: 14px; color: var(--texto-3); margin-top: 16px; }
+
+/* Un iPhone dibujado con CSS, con la captura adentro. */
+.telefono {
+    position: relative; width: 300px; aspect-ratio: 390 / 844; margin: 0 auto;
+    border-radius: 48px; padding: 10px; background: linear-gradient(160deg, #3a3a40, #17171a 40%, #2a2a2f);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 40px 80px -20px rgba(0, 0, 0, 0.7), 0 0 120px -30px rgba(123, 97, 255, 0.45);
+}
+.telefono img { width: 100%; height: 100%; object-fit: cover; border-radius: 38px; background: #202124; }
+.telefono.chico { width: 240px; border-radius: 40px; padding: 8px; }
+.telefono.chico img { border-radius: 32px; }
+
+/* Funciones: texto a un lado y el teléfono al otro, alternados. */
+section { scroll-margin-top: 70px; }
+.funcion { padding: 72px 0; }
+.funcion .envoltura { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+.funcion:nth-of-type(even) .texto { order: 2; }
+.funcion h2, .titulo-seccion { font-size: clamp(32px, 4.4vw, 46px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 16px; font-weight: 720; }
+.funcion p { color: var(--texto-2); font-size: 18px; margin: 0 0 18px; max-width: 32em; }
+.lista { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 12px; }
+.lista li { display: flex; gap: 12px; align-items: flex-start; color: var(--texto); font-size: 16px; }
+.lista li::before {
+    content: ""; flex: none; width: 8px; height: 8px; margin-top: 9px; border-radius: 50%;
+    background: var(--destacado); box-shadow: 0 0 10px var(--destacado);
+}
+.sobre { font-size: 13px; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-3); margin-bottom: 12px; }
+
+/* Los temas: tres teléfonos en abanico. */
+.abanico { display: flex; justify-content: center; align-items: center; }
+.abanico .telefono { width: 200px; border-radius: 34px; padding: 7px; flex: none; }
+.abanico .telefono img { border-radius: 28px; }
+.abanico .telefono:nth-child(1) { transform: rotate(-7deg) translate(30px, 16px); }
+.abanico .telefono:nth-child(2) { z-index: 1; }
+.abanico .telefono:nth-child(3) { transform: rotate(7deg) translate(-30px, 16px); }
+
+/* La hoja de Métrica IA, dibujada con el lenguaje de la app: caja de vidrio con resplandor violeta. */
+.hoja-ia {
+    position: relative; max-width: 380px; margin: 0 auto; padding: 26px 24px 22px; border-radius: 30px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 80px -10px rgba(123, 97, 255, 0.5);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.hoja-ia .encabezado { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-2); margin-bottom: 16px; }
+.hoja-ia .encabezado svg { width: 16px; height: 16px; color: var(--destacado); }
+.hoja-ia .cita { font-style: italic; color: var(--texto-2); font-size: 16px; margin: 0 0 14px; }
+.hoja-ia .alternativa { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 20px; }
+.puntitos { display: flex; justify-content: center; gap: 7px; margin-bottom: 18px; }
+.puntitos i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.22); }
+.puntitos i:first-child { background: var(--destacado); }
+.cupo {
+    display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 22px;
+    background: rgba(255, 255, 255, 0.05); border: 1px solid var(--borde); font-size: 14px; color: var(--texto-2);
+}
+.cupo svg { width: 30px; height: 30px; flex: none; }
+.cupo b { color: var(--texto); font-size: 17px; }
+.cupo .gasto { margin-left: auto; color: var(--texto-3); }
+
+/* Más cosas, en una grilla de tarjetas chicas. */
+.mas { padding: 72px 0; }
+.grilla { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 36px; }
+.tarjeta {
+    padding: 22px; border-radius: 24px; background: var(--vidrio); border: 1px solid var(--borde);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.tarjeta .icono {
+    width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; margin-bottom: 14px;
+    background: var(--destacado-suave); color: var(--destacado);
+}
+.tarjeta .icono svg { width: 22px; height: 22px; }
+.tarjeta h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -0.01em; }
+.tarjeta p { margin: 0; color: var(--texto-2); font-size: 15px; }
+.centrado { text-align: center; }
+.centrado .bajada { margin-left: auto; margin-right: auto; }
+
+/* Precios. */
+.precios { padding: 72px 0; }
+.planes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 36px; align-items: stretch; }
+.plan { display: flex; flex-direction: column; padding: 26px 24px; border-radius: 30px; background: var(--vidrio); border: 1px solid var(--borde); }
+.plan.destacado {
+    background: linear-gradient(180deg, rgba(157, 139, 255, 0.16), rgba(157, 139, 255, 0.04));
+    border-color: rgba(157, 139, 255, 0.4); box-shadow: 0 0 70px -20px rgba(123, 97, 255, 0.6);
+}
+.plan h3 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.plan .precio { margin: 10px 0 2px; font-size: 34px; font-weight: 720; letter-spacing: -0.03em; }
+.plan .precio small { font-size: 15px; font-weight: 500; color: var(--texto-2); letter-spacing: 0; }
+.plan .que { color: var(--texto-3); font-size: 14px; margin-bottom: 18px; }
+.plan ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; font-size: 15px; }
+.plan li { display: flex; gap: 10px; }
+.plan li::before { content: "✓"; color: var(--destacado); font-weight: 700; flex: none; }
+.plan .mas-ia { color: var(--destacado); font-weight: 600; }
+.aclaracion { text-align: center; color: var(--texto-3); font-size: 14px; margin-top: 22px; }
+
+/* Preguntas. */
+.preguntas { padding: 40px 0 72px; }
+.preguntas .envoltura { max-width: 760px; }
+details { border-bottom: 1px solid var(--borde); padding: 18px 0; }
+summary { cursor: pointer; list-style: none; font-size: 18px; font-weight: 600; display: flex; justify-content: space-between; gap: 16px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; color: var(--destacado); font-size: 24px; line-height: 1; transition: transform 0.2s; }
+details[open] summary::after { transform: rotate(45deg); }
+details p { color: var(--texto-2); margin: 12px 0 0; }
+
+/* Cierre y pie. */
+.cierre { padding: 80px 0; text-align: center; position: relative; overflow: hidden; }
+.cierre::before {
+    content: ""; position: absolute; z-index: -1; inset: 0; margin: auto; width: 700px; max-width: 100%; height: 400px;
+    background: radial-gradient(closest-side, rgba(123, 97, 255, 0.22), transparent 70%);
+}
+.cierre img.logo { width: 88px; height: 88px; border-radius: 22px; margin: 0 auto 24px; box-shadow: 0 20px 50px -10px rgba(123, 97, 255, 0.5); }
+.cierre .acciones { justify-content: center; }
+.cierre .bajada { margin-left: auto; margin-right: auto; }
+footer { border-top: 1px solid var(--borde); padding: 28px 0 calc(28px + env(safe-area-inset-bottom)); font-size: 14px; color: var(--texto-3); }
+footer .envoltura { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; }
+footer nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-left: auto; }
+footer a { text-decoration: none; color: var(--texto-2); }
+footer a:hover { color: var(--texto); }
+
+@media (max-width: 860px) {
+    .barra nav a:not(.siempre) { display: none; }
+    .portada { padding-top: 44px; }
+    .portada .envoltura, .funcion .envoltura { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+    .funcion:nth-of-type(even) .texto { order: 0; }
+    .funcion { padding: 48px 0; }
+    .grilla, .planes { grid-template-columns: 1fr; }
+    .telefono { width: 260px; }
+    .abanico .telefono { width: 120px; border-radius: 24px; padding: 5px; }
+    .abanico .telefono:nth-child(2) { width: 150px; }
+    .abanico .telefono img { border-radius: 19px; }
+    .abanico .telefono:nth-child(1) { transform: rotate(-7deg) translateY(8px); margin-right: -24px; }
+    .abanico .telefono:nth-child(3) { transform: rotate(7deg) translateY(8px); margin-left: -24px; }
+    footer nav { margin-left: 0; }
+}
+@media (min-width: 600px) and (max-width: 860px) {
+    .grilla { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .brillo { animation: none; }
+    html { scroll-behavior: auto; }
+}
+</style>
 </head>
 <body>
-    <!-- Cada <section class="pantalla"> equivale a una pestaña del TabView de SwiftUI. -->
-    <main class="app">
 
-        <!-- Letras (NavigationStack: lista -> editor) -->
-        <section class="pantalla activa" id="pantalla-letras" data-pestana="letras">
-            <div class="vista activa" id="vista-lista-letras">
-                <!-- Con música sonando, el mismo polvo de Rimas detrás de las tarjetas (js/efectos.js). -->
-                <canvas class="efecto-fs" id="letras-efecto" aria-hidden="true"></canvas>
-                <header class="barra-nav"></header>
-                <!-- El título y, en la misma línea, el cofre del baúl de frases. -->
-                <div class="fila-titulo">
-                    <h1 class="titulo-grande">Letras</h1>
-                    <div class="acciones-barra">
-                        <!-- La nota musical, también desde Letras: el mismo cajón que en la libreta (pedido de Swa). -->
-                        <button class="boton-barra" id="abrir-musica-letras" aria-label="Escuchar música">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
-                        </button>
-                        <!-- Las grabaciones, también desde Letras (la misma hoja que en Freestyle). -->
-                        <button class="boton-barra boton-grabaciones" data-grabaciones aria-label="Grabaciones">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>
-                        </button>
-                        <!-- El baúl de frases: un cofre como el de Minecraft, con la tapa y la cerradura. -->
-                        <button class="boton-barra boton-baul" id="abrir-baul" aria-label="Baúl de frases">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path class="cerrojo" d="M10.5 8.5h3v4.5h-3z"/></svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="contenido">
-                    <!-- Tacho: aparece al arrastrar una tarjeta; soltarla encima la borra. -->
-                    <div class="tacho" id="tacho" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" class="icono"><path class="tapa-tacho" d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg>
-                        <span>Soltala acá para borrarla</span>
-                    </div>
-                    <div class="grilla-letras">
-                        <button class="tarjeta-nueva" id="nueva-letra" aria-label="Letra nueva">
-                            <span class="mas" aria-hidden="true"><span></span></span>
-                        </button>
-                        <ul id="lista-letras"></ul>
-                    </div>
-                    <p class="nota" id="letras-vacio">Tocá <strong>+</strong> para escribir tu primera letra.</p>
-                </div>
-            </div>
+<header class="barra">
+    <div class="envoltura">
+        <a class="marca" href="#"><img src="assets/logo/icono-180.png" alt="">Métrica</a>
+        <nav>
+            <a href="#funciones">Funciones</a>
+            <a href="#ia">Métrica IA</a>
+            <a href="#precios" class="siempre">Precios</a>
+            <a href="soporte.html" class="siempre">Soporte</a>
+        </nav>
+    </div>
+</header>
 
-            <div class="vista" id="vista-editor">
-                <header class="barra-nav">
-                    <button class="boton-atras" id="editor-atras">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>Letras
-                    </button>
-                    <div class="acciones-barra">
-                        <!-- «¿Por dónde empiezo?» cuando la letra ya tiene algo: el mismo botón, con su estrella -->
-                        <button class="boton-barra boton-tema" id="abrir-tema-libreta" aria-label="¿Por dónde empiezo?" hidden>
-                            <svg viewBox="0 0 24 24" class="icono"><path class="destello" d="M12 3c.6 4.6 4.4 8.4 9 9-4.6.6-8.4 4.4-9 9-.6-4.6-4.4-8.4-9-9 4.6-.6 8.4-4.4 9-9z"/></svg>
-                        </button>
-                        <!-- El baúl de frases, para buscar ideas mientras se escribe -->
-                        <button class="boton-barra boton-baul" id="abrir-baul-libreta" aria-label="Baúl de frases">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path class="cerrojo" d="M10.5 8.5h3v4.5h-3z"/></svg>
-                        </button>
-                        <!-- Música de fondo: pegar un link de YouTube o SoundCloud -->
-                        <button class="boton-barra" id="abrir-musica" aria-label="Escuchar música">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
-                        </button>
-                        <button class="boton-barra" id="alternar-colores" aria-pressed="true" aria-label="Pintar rimas">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/></svg>
-                        </button>
-                        <button class="boton-barra" id="alternar-renglones" aria-pressed="true" aria-label="Mostrar renglones">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                        </button>
-                        <button class="boton-barra" id="abrir-ajustes-libreta" aria-label="Ajustes de la libreta">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M19.04 9.71 L21.77 9.86 L21.77 14.14 L19.04 14.29 L18.59 15.36 L20.42 17.39 L17.39 20.42 L15.36 18.59 L14.29 19.04 L14.14 21.77 L9.86 21.77 L9.71 19.04 L8.64 18.59 L6.61 20.42 L3.58 17.39 L5.41 15.36 L4.96 14.29 L2.23 14.14 L2.23 9.86 L4.96 9.71 L5.41 8.64 L3.58 6.61 L6.61 3.58 L8.64 5.41 L9.71 4.96 L9.86 2.23 L14.14 2.23 L14.29 4.96 L15.36 5.41 L17.39 3.58 L20.42 6.61 L18.59 8.64Z"/><circle cx="12" cy="12" r="3"/></svg>
-                        </button>
-                    </div>
-                </header>
-                <div class="editor">
-                    <input class="editor-titulo" id="editor-titulo" placeholder="Título" autocomplete="off">
-                    <div class="editor-cuerpo">
-                        <!-- Conteo de sílabas por verso -->
-                        <div class="silabas" id="silabas" aria-label="Sílabas por verso"></div>
-                        <!-- Debajo del texto, una copia invisible que pinta las rimas -->
-                        <div class="editor-capas">
-                            <div class="editor-fondo" id="editor-fondo" aria-hidden="true"></div>
-                            <textarea class="editor-texto" id="editor-texto" placeholder="Escribí tu letra acá…" spellcheck="false"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <!-- Sobre el teclado, solo al tocar una palabra (rimas, sinónimos o relacionadas para cambiarla) o un renglón vacío (partes) -->
-                <div class="sugerencias" id="sugerencias" hidden></div>
-                <!-- En una letra vacía, arriba del teclado. -->
-                <button type="button" class="vidrio" id="dame-tema" hidden><span aria-hidden="true">✦</span> ¿Por dónde empiezo?</button>
-            </div>
-            <!-- Baúl de frases: anotar ideas sueltas para usarlas después. Tocar una tarjeta la edita
-                 ahí mismo; mantenerla apretada abre el menú (copiar, marcar como usada, borrar). -->
-            <div class="vista" id="vista-baul">
-                <header class="barra-nav">
-                    <button class="boton-atras" id="baul-atras">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span id="baul-atras-texto">Letras</span>
-                    </button>
-                    <div class="acciones-barra">
-                        <!-- «¿Por dónde empiezo?», la misma estrella de la libreta -->
-                        <button class="boton-barra boton-tema" id="baul-abrir-tema" aria-label="¿Por dónde empiezo?">
-                            <svg viewBox="0 0 24 24" class="icono"><path class="destello" d="M12 3c.6 4.6 4.4 8.4 9 9-4.6.6-8.4 4.4-9 9-.6-4.6-4.4-8.4-9-9 4.6-.6 8.4-4.4 9-9z"/></svg>
-                        </button>
-                        <!-- El pincel: el tema del baúl (uno solo), el tamaño de las tarjetas y separar usadas. -->
-                        <button class="boton-barra" id="baul-abrir-ajustes" aria-label="Apariencia del baúl">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M19 3.6a1.9 1.9 0 0 1 2.7 2.7l-8.8 8.8-2.7-2.7z"/><path d="M9.3 13.3l2.7 2.7c-.3 2.6-2.3 4.6-5.3 4.6H3c1.3-1 1.4-2 1.5-3.2.2-2.4 2.4-4.4 4.8-4.1z"/></svg>
-                        </button>
-                        <button class="boton-barra" id="baul-abrir-busqueda" aria-label="Buscar" aria-expanded="false">
-                            <svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>
-                        </button>
-                    </div>
-                </header>
-                <h1 class="titulo-grande">Baúl de frases</h1>
-                <div class="contenido">
-                    <div class="busqueda-rima busqueda-baul" id="baul-busqueda" hidden>
-                        <span class="lupa-violeta" aria-hidden="true"><span></span></span>
-                        <input id="baul-buscar" type="search" placeholder="Buscar en el baúl" autocomplete="off" autocapitalize="none" enterkeyhint="search">
-                    </div>
-                    <div class="anotar-frase vidrio">
-                        <textarea id="baul-texto" rows="2" placeholder="Anotá una frase…" autocomplete="off"></textarea>
-                        <button type="button" class="guardar-frase" id="baul-guardar" disabled>Guardar</button>
-                    </div>
-                    <div class="filtros-baul" id="baul-filtros" role="radiogroup" aria-label="Mostrar"></div>
-                    <div class="grilla-frases" id="baul-frases">
-                        <div class="columna-frases"></div>
-                        <div class="columna-frases"></div>
-                    </div>
-                    <p class="vacio" id="baul-vacio" hidden></p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Rimas: arriba, 4 terminaciones al azar que cambian solas (o, al buscar, las 4 rimas
-             más usadas de la palabra) y, abajo, el cajón con todas las rimas. -->
-        <section class="pantalla" id="pantalla-rimas" data-pestana="rimas">
-            <!-- Con música sonando, partículas que suben detrás de todo (js/efectos.js, sin resplandor). -->
-            <canvas class="efecto-fs" id="rimas-efecto" aria-hidden="true"></canvas>
-            <header class="barra-nav"></header>
-            <!-- El título y, a la derecha, el libro: pasa a «Diccionario» (busca qué significa la palabra) y vuelve a «Rimas». -->
-            <div class="fila-titulo">
-                <h1 class="titulo-grande" id="titulo-rimas">Rimas</h1>
-                <div class="acciones-barra">
-                    <button class="boton-barra" id="alternar-diccionario" aria-pressed="false" aria-label="Diccionario">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M12 6.5C10 5 7 4.6 3 5v13c4-.4 7 .1 9 1.5 2-1.4 5-1.9 9-1.5V5c-4-.4-7 0-9 1.5z"/><path d="M12 6.5v13"/></svg>
-                    </button>
-                </div>
-            </div>
-            <div class="contenido">
-                <div class="busqueda-rima">
-                    <!-- La lupa va con el efecto de la palabra tocada (degradé violeta con brillo). -->
-                    <span class="lupa-violeta" aria-hidden="true"><span></span></span>
-                    <!-- La pista, con el efecto violeta apagado y tipeada rápido (en vez del placeholder). -->
-                    <span class="pista-rima" id="pista-rima" aria-hidden="true"><span class="brillo-violeta"></span></span>
-                    <input id="buscar-rima" type="search" aria-label="Escribí una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
-                    <button type="button" id="limpiar-rima" aria-label="Borrar" hidden>✕</button>
-                </div>
-                <!-- Cada opción lleva un «?» que abre una viñeta corta que la explica. -->
-                <div class="segmentado" role="tablist" id="tipo-rima">
-                    <div class="opcion-tipo">
-                        <button type="button" role="tab" aria-selected="true" data-tipo="consonante">Consonante</button>
-                        <button type="button" class="ayuda-tipo" data-ayuda="consonante" aria-label="¿Qué es una rima consonante?" aria-expanded="false"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><path d="M12 16.9v.1"/></svg></button>
-                    </div>
-                    <div class="opcion-tipo">
-                        <button type="button" role="tab" aria-selected="false" data-tipo="asonante">Asonante</button>
-                        <button type="button" class="ayuda-tipo" data-ayuda="asonante" aria-label="¿Qué es una rima asonante?" aria-expanded="false"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><path d="M12 16.9v.1"/></svg></button>
-                    </div>
-                </div>
-                <div class="vineta-tipo" id="vineta-tipo" role="tooltip" hidden></div>
-                <!-- Diccionario: lo que significa la palabra escrita (aunque esté mal escrita), en vez de la caja de rimas. -->
-                <div class="caja-azar caja-definicion vidrio" id="caja-definicion" aria-live="polite" hidden></div>
-                <!-- La caja de vidrio de las 4 palabras, como la bandeja de Freestyle. -->
-                <div class="caja-azar vidrio" id="caja-azar">
-                    <div class="cabecera-azar">
-                        <h2 class="titulo-azar" id="encabezado-usadas">Terminaciones al azar</h2>
-                    </div>
-                    <div class="grilla-palabras" id="grilla-palabras"></div>
-                    <!-- Se vacía mientras falta para el cambio. -->
-                    <div class="tiempo-azar" id="tiempo-azar"><span></span></div>
-                    <div class="controles-azar">
-                        <button type="button" class="boton-azar" id="pausar-palabras" aria-label="Pausar" aria-pressed="false"></button>
-                        <!-- Al buscar: sinónimos de la palabra en vez de rimas. -->
-                        <button type="button" class="chip-simples" id="ver-sinonimos" aria-pressed="false">Sinónimos</button>
-                        <button type="button" class="boton-azar" id="refrescar-palabras" aria-label="Refrescar">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>
-                        </button>
-                        <button type="button" class="chip-simples" id="palabras-simples" aria-pressed="false">Palabras simples</button>
-                    </div>
-                </div>
-                <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
-                <button type="button" class="publicidad" data-paywall>Publicidad · <strong>Métrica Extras</strong> la quita</button>
-                <!-- Todas las rimas, en un cajón que muestra 10 y se desliza para ver el resto. -->
-                <div class="cajon-todas vidrio" id="cajon-todas" hidden>
-                    <h2 class="titulo-azar" id="encabezado-resultados">Todas</h2>
-                    <ul class="lista-todas" id="resultados-rimas"></ul>
-                </div>
-                <p class="vacio" id="rimas-vacio" hidden></p>
-                <!-- Palabras que van con la buscada («noche»: oscuridad, luna, madrugada), como «Todas». -->
-                <div class="cajon-todas vidrio" id="cajon-relacionadas" hidden>
-                    <h2 class="titulo-azar" id="encabezado-relacionadas">Palabras relacionadas</h2>
-                    <ul class="lista-todas" id="lista-relacionadas"></ul>
-                </div>
-                <!-- En el diccionario, abajo de las similares: los sinónimos de la palabra (pedido de Swa). -->
-                <div class="cajon-todas vidrio" id="cajon-sinonimos-diccionario" hidden>
-                    <h2 class="titulo-azar" id="encabezado-sinonimos-diccionario">Sinónimos</h2>
-                    <ul class="lista-todas" id="lista-sinonimos-diccionario"></ul>
-                </div>
-                <!-- Las que se guardaron con el botón de cada cajita, cada una con su X para borrarla. -->
-                <div class="cajon-todas vidrio" id="cajon-guardadas" hidden>
-                    <h2 class="titulo-azar">Palabras guardadas</h2>
-                    <ul class="lista-todas" id="lista-guardadas"></ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- Freestyle: aro con la palabra y los segundos que quedan. Bandeja de play y duración. -->
-        <section class="pantalla" id="pantalla-freestyle" data-pestana="freestyle">
-            <!-- Luces: ocupan toda la pantalla, detrás de todo, y se desvanecen antes de llegar abajo. -->
-            <canvas class="efecto-fs" id="fs-efecto" aria-hidden="true"></canvas>
-            <header class="barra-nav"></header>
-            <!-- El título y, en la misma línea, las grabaciones (en SwiftUI: .toolbar). -->
-            <div class="fila-titulo">
-                <h1 class="titulo-grande">Freestyle</h1>
-                <button class="boton-barra boton-grabaciones" id="abrir-grabaciones" data-grabaciones aria-label="Grabaciones">
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4"/></svg>
-                </button>
-            </div>
-            <div class="contenido">
-                <div class="escenario-fs">
-                    <!-- El aro se llena de violeta (en SwiftUI: Circle().trim) y adentro va lo que queda. -->
-                    <div class="reloj" id="fs-reloj">
-                        <div class="aro-centro">
-                            <p class="palabra-fs" id="fs-palabra"></p>
-                            <span class="barra-palabra" id="fs-barra-palabra" aria-hidden="true"></span>
-                            <p class="cuenta-fs" id="fs-cuenta">1:00</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="proximas">
-                    <div class="proxima-item despues">
-                        <span class="etiqueta-proxima">Después</span>
-                        <span class="proxima-palabra" id="fs-despues"></span>
-                    </div>
-                    <div class="proxima-item luego">
-                        <span class="etiqueta-proxima">Y luego</span>
-                        <span class="proxima-palabra" id="fs-luego"></span>
-                    </div>
-                </div>
-                <div class="bandeja-fs vidrio">
-                    <button type="button" class="play-fs" id="fs-play" aria-label="Empezar">
-                        <svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M8 5l11 7-11 7z"/></svg>
-                    </button>
-                    <!-- REC se prende y se apaga (apagado, tachado): prendido, graba al dar play. -->
-                    <button type="button" class="rec-fs" id="fs-rec" aria-label="Grabar al dar play" aria-pressed="false"><span class="punto-rec"></span></button>
-                    <button type="button" class="reiniciar-fs" id="fs-reiniciar" aria-label="Reiniciar el cronómetro">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/></svg>
-                    </button>
-                    <div class="duraciones-fs" id="fs-duraciones" role="radiogroup" aria-label="Duración de la ronda"></div>
-                </div>
-                <!-- Jugando, la bandeja se esconde y queda este resplandor chico: tocarlo pausa. -->
-                <div class="pausar-fs" id="fs-resplandor" aria-hidden="true"></div>
-                <!-- El instrumental en una sola caja de vidrio: los beats, «o usá el tuyo» y el cajón del
-                     link, así se lee como una sola sección y no como botones sueltos (pedido de Swa). -->
-                <div class="instrumental-fs vidrio" id="fs-instrumental">
-                <div id="fs-elegir">
-                    <div class="beats-fs" id="fs-beats" role="radiogroup" aria-label="Beat"></div>
-                    <p class="separador-fs" aria-hidden="true">o usá el tuyo</p>
-                </div>
-                <!-- Cajón del link, abajo de todo y del alto del reproductor de YouTube: link, un
-                     beat del teléfono y los recientes. En SwiftUI: TextField + .fileImporter + DisclosureGroup. -->
-                <div class="cajon-fs vidrio" id="fs-cajon">
-                    <div class="pegar-fs" id="fs-pegar-link">
-                        <textarea id="fs-link" rows="1" placeholder="SoundCloud / YouTube / Playlist" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="go"></textarea>
-                        <button type="button" class="boton-pegar" id="fs-pegar">OK</button>
-                        <button type="button" class="boton-pegar boton-buscar" id="fs-buscar">Buscar</button>
-                    </div>
-                    <!-- Con extensiones además de audio/*: el iPhone dejaba en gris algunos MP3 en Archivos. -->
-                    <input type="file" id="fs-archivo" accept="audio/*,audio/mpeg,audio/mp3,.mp3,.m4a,.aac,.wav,.ogg,.flac" hidden>
-                    <p class="nota texto-rojo" id="fs-link-aviso" hidden></p>
-                    <details class="recientes-fs" id="fs-recientes-caja">
-                        <summary>Recientes</summary>
-                        <ul class="lista-recientes" id="fs-recientes"></ul>
-                    </details>
-                </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Ajustes -->
-        <!-- Ajustes (NavigationStack: Ajustes -> Widgets). -->
-        <section class="pantalla" id="pantalla-ajustes" data-pestana="ajustes">
-            <div class="vista activa" id="vista-ajustes">
-            <header class="barra-nav"></header>
-            <h1 class="titulo-grande">Ajustes</h1>
-            <div class="contenido">
-                <!-- Primero, los widgets: la llave para anotar las frases del día sin abrir la app (pedido
-                     de Swa). Métrica Extras sale de acá por ahora; se abre desde los temas y la publicidad. -->
-                <button class="seccion-widgets" id="abrir-widgets" aria-label="Widgets">
-                    <span class="seccion-widgets-titulo">Widgets<span class="chevron">›</span></span>
-                    <!-- Una muestra de lo que hay adentro, que se funde con Ajustes hacia abajo. -->
-                    <span class="muestras-widgets" aria-hidden="true">
-                        <span class="mini-widget mini-baul">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 10h16v9H4zM4 10V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v2"/><rect x="10.5" y="9" width="3" height="4" rx="1" class="cerradura"/></svg>
-                            <i></i><i></i><i class="corta"></i>
-                            <b>+</b>
-                        </span>
-                        <span class="mini-widget mini-racha">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M12 3c1 4 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-9z"/></svg>
-                            <strong>7</strong>
-                            <span class="semana"><i></i><i></i><i></i><i></i><i></i><i></i><i class="hoy"></i></span>
-                        </span>
-                        <span class="mini-widget mini-accesos">
-                            <i><svg viewBox="0 0 24 24" class="icono"><path d="M12 5v14M5 12h14"/></svg></i>
-                            <i><svg viewBox="0 0 24 24" class="icono"><path d="M5 19l4-1 10-10-3-3L6 15z"/></svg></i>
-                            <i><svg viewBox="0 0 24 24" class="icono"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></i>
-                            <i><svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14l11-7z"/></svg></i>
-                        </span>
+<main>
+    <section class="portada">
+        <div class="envoltura">
+            <div>
+                <span class="etiqueta">Para iPhone</span>
+                <h1>Escribe canciones que <span class="brillo">riman</span>.</h1>
+                <p class="bajada">Métrica es la libreta para escribir letras en español: cuenta las sílabas de cada verso, pinta lo que rima mientras escribes y te da ideas cuando te trabas.</p>
+                <div class="acciones">
+                    <span class="boton principal" aria-disabled="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.3 1.88-3.4 1.96-3.46-1.07-1.56-2.73-1.77-3.32-1.8-1.41-.14-2.76.83-3.47.83-.72 0-1.82-.81-2.99-.79-1.54.02-2.96.9-3.75 2.27-1.6 2.78-.41 6.89 1.15 9.14.76 1.1 1.67 2.34 2.86 2.3 1.15-.05 1.58-.74 2.97-.74 1.38 0 1.77.74 2.98.72 1.24-.02 2.02-1.12 2.77-2.23.87-1.28 1.23-2.52 1.25-2.58-.03-.01-2.39-.92-2.41-3.66zM14.1 5.86c.63-.77 1.06-1.83.94-2.9-.91.04-2.02.61-2.67 1.37-.58.67-1.1 1.76-.96 2.8 1.02.08 2.06-.52 2.69-1.27z"/></svg>
+                        App Store <span class="pronto">· muy pronto</span>
                     </span>
-                </button>
-                <!-- Apariencia de la app (Picker .segmented, en un renglón): aparte de los temas de cada libreta.
-                     Abajo, cuántas luces hay en Freestyle, Rimas y Letras (Stepper en SwiftUI; pedido de Swa). -->
-                <h2 class="encabezado-grupo">Apariencia</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda celda-apariencia"><div class="pastillas-libreta" id="apariencia" role="tablist" aria-label="Apariencia"></div></li>
-                    <li class="celda celda-pasos">
-                        <span class="celda-texto">Efectos</span>
-                        <span class="pasos-libreta"><button type="button" id="menos-efectos" aria-label="Menos">−</button><span class="valor-pasos" id="valor-efectos">5</span><button type="button" id="mas-efectos" aria-label="Más">+</button></span>
-                    </li>
-                </ul>
-                <!-- Freestyle: cada cuánto cambia la palabra (Stepper en SwiftUI, como en la libreta). -->
-                <h2 class="encabezado-grupo">Freestyle</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda celda-pasos">
-                        <span class="celda-texto">Velocidad cambio palabras</span>
-                        <span class="pasos-libreta"><button type="button" id="menos-velocidad" aria-label="Menos">−</button><span class="valor-pasos" id="valor-velocidad">5</span><button type="button" id="mas-velocidad" aria-label="Más">+</button></span>
-                    </li>
-                </ul>
-                <!-- Grabar: con qué micrófono se graba y dónde se escucha, para toda la app (pedido de Swa).
-                     Salida: un selector si el navegador deja elegirla, o en el iPhone el menú del sistema.
-                     En SwiftUI: AVAudioSession.setPreferredInput y AVRoutePickerView. -->
-                <h2 class="encabezado-grupo">Grabar</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda celda-audio"><label for="microfono">Micrófono</label><select id="microfono"></select></li>
-                    <li class="celda celda-audio" id="salida-ajustes" hidden><label for="salida">Salida</label><select id="salida"></select><button type="button" class="elegir-salida" id="elegir-salida" hidden>Elegir</button></li>
-                </ul>
-                <!-- Importar: las notas de Google Keep pasan a Letras, desde el export de Google Takeout
-                     (Keep no tiene API; pedido de Swa). En SwiftUI: .fileImporter y una vista igual. -->
-                <h2 class="encabezado-grupo">Importar y exportar</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda">
-                        <span class="icono-celda" style="background:#f9ab00"><svg viewBox="0 0 24 24" class="icono"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
-                        <button class="celda-boton" id="abrir-keep">
-                            <span>Google Keep</span>
-                            <span class="subtitulo">Pasá tus notas a Letras</span>
-                        </button>
-                        <span class="chevron">›</span>
-                    </li>
-                    <!-- Exportar todo: un .zip con cada letra en un .txt y el baúl, armado en el teléfono. -->
-                    <li class="celda">
-                        <span class="icono-celda" style="background:#0a84ff"><svg viewBox="0 0 24 24" class="icono"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span>
-                        <button class="celda-boton" id="exportar-todo"><span>Exportar todo</span></button>
-                    </li>
-                </ul>
-                <h2 class="encabezado-grupo">Acerca de</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda">
-                        <span class="icono-celda" style="background:#8e8e93"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/></svg></span>
-                        <span class="celda-texto">Versión</span><span class="valor" id="version">—</span>
-                        <button class="boton-actualizar" id="forzar-actualizacion" aria-label="Forzar actualización"><svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/></svg></button>
-                    </li>
-                    <li class="celda">
-                        <span class="icono-celda" style="background:#34c759"><svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg></span>
-                        <a href="diccionario/README.md">Licencias del diccionario</a><span class="chevron">›</span>
-                    </li>
-                    <li class="celda">
-                        <span class="icono-celda" style="background:#ff9500"><svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg></span>
-                        <a href="generador.html">Versión anterior</a><span class="chevron">›</span>
-                    </li>
-                </ul>
-                <h2 class="encabezado-grupo">Prueba</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda"><button class="celda-boton texto-rojo celda-centrada" id="borrar-compra">Volver a la versión gratis</button></li>
-                </ul>
-                <!-- Papelera, a lo último: las letras y frases del baúl borradas, 7 días (pedido de Swa). -->
-                <h2 class="encabezado-grupo">Papelera</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda">
-                        <span class="icono-celda" style="background:#8e8e93"><svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg></span>
-                        <button class="celda-boton" id="abrir-papelera">
-                            <span>Papelera</span>
-                        </button>
-                        <span class="chevron">›</span>
-                    </li>
+                    <a class="boton" href="app.html">Pruébala en la web</a>
+                </div>
+                <p class="nota-chica">Gratis, en español y sin cuentas. Tus letras quedan en tu iPhone y en tu iCloud.</p>
+            </div>
+            <div class="telefono"><img src="sitio/libreta.webp" alt="Una letra en Métrica, con las sílabas de cada verso y las rimas pintadas de colores" width="390" height="844" fetchpriority="high"></div>
+        </div>
+    </section>
+
+    <section class="funcion" id="funciones">
+        <div class="envoltura">
+            <div class="texto">
+                <div class="sobre">La libreta</div>
+                <h2>Ve la métrica y la rima <span class="brillo">mientras escribes</span>.</h2>
+                <p>Cada verso muestra cuántas sílabas tiene, contadas como se cantan, con sinalefa. Las palabras que riman se pintan del mismo color desde la sílaba que más suena: consonante con fondo lleno y asonante más suave.</p>
+                <ul class="lista">
+                    <li>Rimas internas y multisilábicas, no solo la última palabra.</li>
+                    <li>Toca una palabra y aparecen rimas, sinónimos y palabras relacionadas para cambiarla.</li>
+                    <li>Marca las partes con un toque: [Intro], [Estribillo], [Verso].</li>
+                    <li>Entiende cómo suenan las palabras en inglés que se usan en las letras.</li>
                 </ul>
             </div>
-            </div>
-
-            <!-- Widgets: se eligen y se configuran viendo cómo quedan en el inicio. En la web es una
-                 muestra; en la app nativa van con WidgetKit (en SwiftUI, la vista previa es el mismo View). -->
-            <div class="vista" id="vista-widgets">
-                <header class="barra-nav">
-                    <button class="boton-atras" id="widgets-atras">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
-                    </button>
-                </header>
-                <h1 class="titulo-grande">Widgets</h1>
-                <div class="contenido">
-                    <!-- Inicio, Pantalla bloqueada y Centro de control, cada uno en su pantalla (Picker .segmented). -->
-                    <div class="segmentado lugares-widgets" id="widgets-lugares" role="tablist" aria-label="Dónde va">
-                        <button type="button" role="tab" data-lugar="inicio" aria-selected="true">Inicio</button>
-                        <button type="button" role="tab" data-lugar="bloqueo" aria-selected="false">Pantalla bloqueada</button>
-                        <button type="button" role="tab" data-lugar="control" aria-selected="false">Centro de control</button>
-                    </div>
-
-                    <div class="panel-widgets" id="widgets-panel-inicio">
-                        <div class="chips-tema chips-widgets" id="widgets-tipos" role="radiogroup" aria-label="Widget"></div>
-                        <!-- Los diseños del widget: se desliza para pasar de uno a otro (TabView .page) y se
-                             estira desde la esquina para cambiar el tamaño, como al editar el inicio. -->
-                        <div class="carrusel-widgets" id="widgets-carrusel" aria-label="Diseños"></div>
-                        <div class="diseno-widgets">
-                            <div class="cabeza-diseno-widgets">
-                                <b id="widgets-diseno"></b>
-                                <label class="fila-contenido-widgets" id="widgets-fila-contenido" hidden>
-                                    <span>Contenido</span>
-                                    <input type="checkbox" class="interruptor" id="widgets-contenido-letra" checked aria-label="Mostrar contenido">
-                                </label>
-                            </div>
-                            <span class="puntos-widgets" id="widgets-puntos"></span>
-                        </div>
-                        <h3 class="encabezado-libreta">Estilo</h3>
-                        <div class="grupo-libreta">
-                            <div class="temas-libreta" id="widgets-estilos"></div>
-                            <!-- Una foto propia de fondo (PhotosPicker), con su hoja para ajustarla. -->
-                            <div class="foto-widgets" id="widgets-foto"></div>
-                        </div>
-                        <!-- Lo que se ajusta de cada uno (frases, tipo de rima, letra). -->
-                        <div id="widgets-contenido">
-                            <h3 class="encabezado-libreta">Contenido</h3>
-                            <div class="grupo-libreta grupo-widgets" id="widgets-opciones"></div>
-                        </div>
-                        <h3 class="encabezado-libreta">Cómo agregarlo</h3>
-                        <ol class="pasos-widgets">
-                            <li>Mantené apretado un espacio vacío del inicio.</li>
-                            <li>Tocá <b>Editar</b> y después <b>Agregar widget</b>.</li>
-                            <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
-                        </ol>
-                    </div>
-
-                    <!-- Pantalla bloqueada: la línea de arriba de la hora, el redondo y el rectangular. -->
-                    <div class="panel-widgets" id="widgets-panel-bloqueo" hidden>
-                        <div class="bloqueo-widgets" id="widgets-bloqueo"></div>
-                        <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-bloqueo"></div>
-                        <h3 class="encabezado-libreta">Cómo agregarlo</h3>
-                        <ol class="pasos-widgets">
-                            <li>Con el iPhone bloqueado, mantené apretada la pantalla y tocá <b>Personalizar</b>.</li>
-                            <li>Elegí <b>Pantalla bloqueada</b> y tocá el espacio de widgets debajo de la hora.</li>
-                            <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
-                        </ol>
-                    </div>
-
-                    <!-- Centro de control y Botón de acción (iPhone 15 Pro en adelante): un toque, una acción. -->
-                    <div class="panel-widgets" id="widgets-panel-control" hidden>
-                        <div class="control-widgets" id="widgets-control"></div>
-                        <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-accion"></div>
-                        <h3 class="encabezado-libreta">Cómo agregarlo</h3>
-                        <ol class="pasos-widgets">
-                            <li>Abrí el Centro de control deslizando desde la esquina de arriba a la derecha.</li>
-                            <li>Mantené apretado un espacio vacío y tocá <b>Agregar un control</b>.</li>
-                            <li>Buscá <b>Métrica</b>. Para el Botón de acción: <b>Configuración</b> &gt; <b>Botón de acción</b> &gt; <b>Controles</b>.</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Papelera: las letras y las frases del baúl borradas, en cuadrados chicos con el formato de
-                 Letras. Un toque la muestra en grande; mantenerla apretada, Restaurar y Borrar definitivamente
-                 (en SwiftUI: LazyVGrid con .contextMenu). Se vacían solas a los 7 días (js/logica/papelera.js). -->
-            <div class="vista" id="vista-papelera">
-                <header class="barra-nav">
-                    <button class="boton-atras" id="papelera-atras">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
-                    </button>
-                    <button class="boton-atras boton-borrar-todo" id="papelera-vaciar">Borrar todo</button>
-                </header>
-                <h1 class="titulo-grande">Papelera</h1>
-                <div class="contenido">
-                    <h2 class="encabezado-grupo encabezado-primero" id="papelera-titulo-letras">Letras</h2>
-                    <ul class="grilla-papelera" id="papelera-letras"></ul>
-                    <h2 class="encabezado-grupo" id="papelera-titulo-frases">Frases del baúl</h2>
-                    <ul class="grilla-papelera" id="papelera-frases"></ul>
-                    <p class="vacio" id="papelera-vacia" hidden>La papelera está vacía.</p>
-                    <p class="pie-widgets pie-papelera">La papelera se vacía automáticamente: lo que borrás queda acá 7 días.</p>
-                </div>
-            </div>
-
-            <!-- Google Keep: se elige el .zip de Takeout (o los .json), se marcan las notas y pasan a
-                 Letras con sus fechas. Todo en el teléfono, sin internet (js/logica/keep.js). -->
-            <div class="vista" id="vista-keep">
-                <header class="barra-nav">
-                    <button class="boton-atras" id="keep-atras">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
-                    </button>
-                </header>
-                <h1 class="titulo-grande">Google Keep</h1>
-                <div class="contenido">
-                    <p class="bajada-widgets">Traé las letras que tenías anotadas en Keep. Elegís cuáles y quedan en Letras, con su fecha.</p>
-                    <ol class="pasos-widgets">
-                        <li>Entrá a <a href="https://takeout.google.com/settings/takeout/custom/keep" target="_blank" rel="noopener"><b>Google Takeout</b></a> con tu cuenta, dejá marcado solo <b>Keep</b> y tocá <b>Siguiente paso</b> y <b>Crear exportación</b>.</li>
-                        <li>Cuando te llegue el mail de Google, bajá el <b>.zip</b> (guardalo en Archivos).</li>
-                        <li>Tocá <b>Elegir el .zip</b> y marcá las notas que querés pasar.</li>
-                    </ol>
-                    <input type="file" id="keep-archivo" accept=".zip,.json,application/zip,application/json" multiple hidden>
-                    <div class="botones"><button type="button" class="boton-relleno" id="keep-elegir">Elegir el .zip</button></div>
-                    <p class="estado-keep" id="keep-estado" role="status"></p>
-                    <div id="keep-notas" hidden>
-                        <div class="chips-tema chips-keep" id="keep-etiquetas" role="radiogroup" aria-label="Etiqueta"></div>
-                        <div class="cabeza-keep">
-                            <span id="keep-cuenta"></span>
-                            <button type="button" class="todas-keep" id="keep-todas">Elegir todas</button>
-                        </div>
-                        <ul class="lista-agrupada lista-keep" id="keep-lista"></ul>
-                        <div class="botones pie-keep"><button type="button" class="boton-relleno" id="keep-importar"></button></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Ajustes de la libreta (en SwiftUI: .sheet con un Form de secciones agrupadas). Sin título,
-         con el diseño de la referencia de Swa: listas agrupadas, pasos de − y + y menú. -->
-    <div class="hoja-fondo" id="ajustes-libreta" hidden>
-        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-label="Ajustes de la libreta">
-            <button class="boton-barra cerrar-hoja" id="cerrar-ajustes-libreta" aria-label="Cerrar">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-            <h3 class="encabezado-libreta">Tema de esta letra</h3>
-            <div class="grupo-libreta">
-                <div class="temas-libreta dos-renglones" id="temas-libreta"></div>
-                <!-- Opacidad de la ilustración, de 1 a 10: una barra fina en el borde de abajo del cajón. -->
-                <input type="range" class="opacidad-tema" id="opacidad-libreta" min="1" max="10" step="1" value="10" aria-label="Opacidad del tema">
-            </div>
-            <h3 class="encabezado-libreta">Texto</h3>
-            <!-- Tamaño, separaciones, Renglones, Sílabas por verso, Rimas internas y fuente: js/app.js los ordena.
-                 Renglones solo en pantallas chicas, donde su botón no entra arriba (pedido de Swa). -->
-            <div class="grupo-libreta" id="opciones-libreta">
-                <div class="fila-grupo fila-renglones">
-                    <label for="mostrar-renglones">Renglones</label>
-                    <input type="checkbox" class="interruptor" id="mostrar-renglones">
-                </div>
-                <div class="fila-grupo">
-                    <label for="mostrar-silabas">Sílabas por verso</label>
-                    <input type="checkbox" class="interruptor" id="mostrar-silabas">
-                </div>
-            </div>
-            <h3 class="encabezado-libreta">Funciones</h3>
-            <div class="grupo-libreta funciones-libreta">
-                <!-- Compartir abre la hoja del sistema (se puede elegir Google Keep); Copiar se lleva
-                     solo el cuerpo, sin el título (pedido de Swa; en SwiftUI, ShareLink y UIPasteboard). -->
-                <button type="button" class="fila-grupo fila-accion" id="compartir-letra">
-                    <span>Compartir</span>
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M12 15V3M8 7l4-4 4 4M7 11H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg>
-                </button>
-                <button type="button" class="fila-grupo fila-accion" id="copiar-letra">
-                    <span>Copiar</span>
-                    <span class="valor-accion" id="copiar-letra-valor">Sin el título</span>
-                </button>
-            </div>
-            <!-- Abajo de todo, borrar la letra (pide confirmación). -->
-            <button type="button" class="boton-borrar-letra" id="borrar-letra">Borrar letra</button>
+            <div class="telefono chico"><img src="sitio/letras.webp" alt="La pantalla de Letras, con las tarjetas de cada canción" width="390" height="844" loading="lazy"></div>
         </div>
-    </div>
+    </section>
 
-    <!-- El pincel del baúl, con el mismo diseño que la ruedita de la libreta. -->
-    <div class="hoja-fondo" id="ajustes-baul" hidden>
-        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-label="Apariencia del baúl">
-            <button class="boton-barra cerrar-hoja" id="cerrar-ajustes-baul" aria-label="Cerrar">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-            <h3 class="encabezado-libreta">Tema del baúl</h3>
-            <div class="grupo-libreta">
-                <div class="temas-libreta dos-renglones" id="temas-baul"></div>
-                <!-- Opacidad de la ilustración, de 1 a 10: una barra fina en el borde de abajo del cajón. -->
-                <input type="range" class="opacidad-tema" id="opacidad-baul" min="1" max="10" step="1" value="10" aria-label="Opacidad del tema">
+    <section class="funcion">
+        <div class="envoltura">
+            <div class="texto">
+                <div class="sobre">Rimas y diccionario</div>
+                <h2>Encuentra la palabra que <span class="brillo">falta</span>.</h2>
+                <p>Escribe una palabra y te muestra sus rimas consonantes y asonantes, con las más usadas primero. Un toque en el libro y tienes su definición, aunque la hayas escrito mal.</p>
+                <ul class="lista">
+                    <li>Filtra por palabras simples, sinónimos que riman y palabras relacionadas.</li>
+                    <li>Guarda las que te gusten para tenerlas a mano.</li>
+                    <li>Funciona sin internet.</li>
+                </ul>
             </div>
-            <h3 class="encabezado-libreta">Tarjetas</h3>
-            <div class="grupo-libreta funciones-libreta">
-                <div class="fila-grupo"><span>Tamaño</span></div>
-                <div class="pastillas-libreta" id="tamanos-baul" role="tablist"></div>
-                <div class="fila-grupo">
-                    <label for="separar-baul">Separar por usadas/no usadas</label>
-                    <input type="checkbox" class="interruptor" id="separar-baul">
+            <div class="telefono chico"><img src="sitio/rimas.webp" alt="La pantalla de Rimas con las rimas de «canción»" width="390" height="844" loading="lazy"></div>
+        </div>
+    </section>
+
+    <section class="funcion">
+        <div class="envoltura">
+            <div class="texto">
+                <div class="sobre">Freestyle</div>
+                <h2>Entrena con palabras <span class="brillo">al ritmo</span>.</h2>
+                <p>Elige un beat y Métrica te va tirando palabras a tiempo, con la sílaba fuerte marcada y las dos que vienen después. Usa los beats de la app, un archivo tuyo o un enlace de YouTube o SoundCloud.</p>
+                <ul class="lista">
+                    <li>Boombap, Trap o a capela, con rondas de 1, 1:30 o 2 minutos.</li>
+                    <li>Toca REC y grábate sobre el beat; la voz queda sincronizada sola.</li>
+                    <li>Tu música te acompaña también mientras escribes en la libreta.</li>
+                </ul>
+            </div>
+            <div class="telefono chico"><img src="sitio/freestyle.webp" alt="Freestyle en marcha, con la palabra en el centro del aro" width="390" height="844" loading="lazy"></div>
+        </div>
+    </section>
+
+    <section class="funcion" id="ia">
+        <div class="envoltura">
+            <div class="texto">
+                <div class="sobre">Métrica IA</div>
+                <h2>Una compañera de escritura, <span class="brillo">no un autor</span>.</h2>
+                <p>Selecciona una frase y Métrica IA te muestra otras maneras de decirla, con la misma rima y una métrica parecida. También puede leer tu letra entera y proponerte qué cambiaría, o darte ideas de qué hablar cuando la hoja está en blanco.</p>
+                <ul class="lista">
+                    <li>«¿Cómo lo diría Métrica IA?»: hasta 10 alternativas para una frase.</li>
+                    <li>«¿Qué cambiaría Métrica IA?»: repeticiones y palabras flojas, sin tocar tu estilo.</li>
+                    <li>«¿Por dónde empiezo?»: miles de ideas para arrancar, que no gastan tu cuota.</li>
+                </ul>
+            </div>
+            <div class="hoja-ia" aria-label="Ejemplo de una alternativa de Métrica IA">
+                <div class="encabezado">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4z"/></svg>
+                    ¿Cómo lo diría Métrica IA?
+                </div>
+                <p class="cita">«no puedo escribir sin que esté tu nombre»</p>
+                <p class="alternativa">en cada renglón que escribo aparece tu <span class="brillo">nombre</span></p>
+                <div class="puntitos" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+                <div class="cupo">
+                    <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#9d8bff" stroke-width="4" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="9" transform="rotate(-90 18 18)"/></svg>
+                    <span><b>90%</b> de tu cuota IA del mes</span>
+                    <span class="gasto">−0,33%</span>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Música: pegar el link. Solo el cajón de vidrio, sin fondo, título ni cruz: se cierra
-         tocando afuera (pedido de Swa; en SwiftUI, .sheet con fondo transparente). -->
-    <div class="hoja-fondo" id="hoja-musica" hidden>
-        <div class="hoja" role="dialog" aria-modal="true" aria-label="Música">
-            <!-- Acá se muda el cajón del link de Freestyle (#fs-cajon) mientras la hoja está abierta. -->
-            <div id="hoja-musica-cajon"></div>
-        </div>
-    </div>
-
-    <!-- Reproductor: tarjeta de vidrio solo en el editor, pegada abajo.
-         El vidrio es una capa de atrás: el iframe de YouTube no puede ir adentro
-         de un elemento con backdrop-filter (en Safari queda en blanco) ni tapado.
-         SoundCloud va en un iframe fuera de la tarjeta, para que siga si se esconde. -->
-    <div class="reproductor" id="reproductor" hidden>
-        <div class="reproductor-vidrio" aria-hidden="true"></div>
-        <div class="reproductor-cuerpo">
-            <div class="reproductor-principal">
-                <div class="reproductor-marco" id="reproductor-marco"></div>
-                <div class="reproductor-lado">
-                    <div class="reproductor-datos">
-                        <span class="reproductor-titulo" id="reproductor-titulo">Cargando…</span>
-                        <span class="reproductor-fuente" id="reproductor-fuente"></span>
-                    </div>
-                    <div class="reproductor-acciones">
-                        <!-- Marca imantada en la barra, y volver a ella cuando termina el tema (pedido de Swa). -->
-                        <button class="boton-musica" id="musica-marca" aria-label="Marcar este momento" aria-pressed="false">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>
-                        </button>
-                        <button class="boton-musica" id="musica-bucle" aria-label="Volver a la marca" aria-disabled="true">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><path class="icono-relleno" d="M12 17.5s-3.8-3.5-3.8-6.5a3.8 3.8 0 0 1 7.6 0c0 3-3.8 6.5-3.8 6.5zm0-5.2a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6z" fill-rule="evenodd"/></svg>
-                        </button>
-                        <button type="button" class="rec-reproductor" data-rec aria-label="Grabar desde acá"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
-                        <button class="boton-musica" id="musica-anterior" aria-label="Canción anterior">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
-                        </button>
-                        <button class="boton-play" id="musica-play" aria-label="Pausar">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
-                        </button>
-                        <button class="boton-musica" id="musica-siguiente" aria-label="Canción siguiente">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M18 6v12M6 6l9 6-9 6z"/></svg>
-                        </button>
-                        <button class="boton-musica" id="musica-plegar" hidden aria-label="Achicar el reproductor">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 9l6 6 6-6"/></svg>
-                        </button>
-                        <!-- Grande: la doble flecha lo deja en mini de una (pedido de Swa). -->
-                        <button class="boton-musica" id="musica-mini" hidden aria-label="Minimizar el reproductor">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l6 6 6-6M6 13l6 6 6-6"/></svg>
-                        </button>
-                        <button class="boton-musica" id="musica-agrandar" hidden aria-label="Ver la portada">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 15l6-6 6 6"/></svg>
-                        </button>
-                        <button class="boton-musica boton-cerrar" id="musica-cerrar" aria-label="Cerrar el reproductor">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                        </button>
-                    </div>
-                </div>
+    <section class="funcion">
+        <div class="envoltura">
+            <div class="texto">
+                <div class="sobre">Temas</div>
+                <h2>Una libreta que se siente <span class="brillo">tuya</span>.</h2>
+                <p>Cada letra tiene su propio tema: oscuros, claros y del espacio, con una ilustración sutil que queda quieta mientras escribes. Elige también la fuente, el tamaño y la separación de los renglones.</p>
             </div>
-            <div class="reproductor-barra">
-                <span class="reproductor-tiempo" id="musica-tiempo">0:00</span>
-                <div class="reproductor-pista" id="musica-pista" role="slider" aria-label="Posición en el tema" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
-                    <div class="reproductor-riel"><div class="reproductor-llenado" id="musica-llenado"></div></div>
-                    <div class="reproductor-marca" id="musica-marca-punto" hidden></div>
-                    <div class="reproductor-punto" id="musica-punto"></div>
-                </div>
-                <span class="reproductor-tiempo" id="musica-duracion">0:00</span>
-            </div>
-            <button class="reproductor-mostrar" id="musica-mostrar" hidden type="button">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 15l6-6 6 6"/></svg>
-                Mostrar video para reproducir
-            </button>
-            <p class="reproductor-nota" id="musica-nota-youtube" hidden>Los videos no se pueden minimizar por política de YouTube. Usá SoundCloud para evitar esto.</p>
-        </div>
-    </div>
-    <div class="reproductor-oculto" id="reproductor-oculto" aria-hidden="true"></div>
-    <!-- Mientras suena un beat de Freestyle: el reproductor chico, como con SoundCloud, arriba de la barra
-         en todas las secciones (en Ajustes no se ve, pero sigue sonando).
-         Pausa (y vuelven los botones y el cajón), flechas para pasar de beat y cerrar. -->
-    <div class="sonando-fs vidrio" id="fs-sonando">
-        <div class="reproductor-cuerpo">
-            <div class="reproductor-principal">
-                <div class="reproductor-datos">
-                    <span class="reproductor-titulo" id="fs-sonando-titulo"></span>
-                    <span class="reproductor-fuente" id="fs-sonando-fuente"></span>
-                </div>
-                <!-- REC del reproductor: graba desde donde va; grabando muestra los segundos y tocarlo para (lo que suena sigue). -->
-                <button type="button" class="rec-reproductor" data-rec aria-label="Grabar desde acá"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
-                <button type="button" class="boton-musica" id="fs-beat-anterior" aria-label="Beat anterior">
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
-                </button>
-                <button type="button" class="boton-play" id="fs-beat-pausar" aria-label="Pausar">
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M8 5v14M16 5v14"/></svg>
-                </button>
-                <button type="button" class="boton-musica" id="fs-beat-siguiente" aria-label="Beat siguiente">
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M18 6v12M6 6l9 6-9 6z"/></svg>
-                </button>
-                <button type="button" class="boton-musica boton-cerrar" id="fs-beat-cerrar" aria-label="Terminar la ronda">
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                </button>
-            </div>
-            <div class="reproductor-barra">
-                <span class="reproductor-tiempo" id="fs-sonando-tiempo">0:00</span>
-                <div class="reproductor-pista"><div class="reproductor-riel"><div class="reproductor-llenado" id="fs-sonando-llenado"></div></div></div>
-                <span class="reproductor-tiempo" id="fs-sonando-total"></span>
+            <div class="abanico">
+                <div class="telefono"><img src="sitio/tema-papel.webp" alt="Una letra con el tema Papel" width="390" height="844" loading="lazy"></div>
+                <div class="telefono"><img src="sitio/tema-galaxia.webp" alt="Una letra con el tema Galaxia" width="390" height="844" loading="lazy"></div>
+                <div class="telefono"><img src="sitio/tema-sierra.webp" alt="Una letra con el tema Sierra" width="390" height="844" loading="lazy"></div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- En Acapella no hay reproductor: el REC (y grabando, los segundos) va solo abajo. -->
-    <button type="button" class="rec-reproductor rec-acapella vidrio" data-rec aria-label="Grabar desde acá"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
-
-    <!-- Confirmar antes de borrar una letra (en SwiftUI: .alert con un botón .destructive). -->
-    <!-- Menú de una frase del baúl, al mantenerla apretada (en SwiftUI: .contextMenu). -->
-    <div class="menu-frase-fondo" id="baul-menu" hidden>
-        <div class="frase-elevada" id="baul-menu-frase"></div>
-        <div class="menu-frase" id="baul-menu-opciones" role="menu">
-            <button role="menuitem" id="baul-copiar">Copiar<svg viewBox="0 0 24 24" class="icono"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg></button>
-            <button role="menuitem" id="baul-usada"><span id="baul-usada-texto">Marcar como usada</span><svg viewBox="0 0 24 24" class="icono"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
-            <button role="menuitem" class="texto-rojo" id="baul-borrar">Borrar<svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg></button>
-        </div>
-    </div>
-
-    <!-- Algo de la papelera: un toque lo muestra en grande; mantenerlo apretado, el menú. -->
-    <div class="menu-frase-fondo" id="papelera-menu" hidden>
-        <div class="tarjeta-letra tarjeta-papelera frase-elevada" id="papelera-menu-tarjeta"></div>
-        <div class="menu-frase" id="papelera-menu-opciones" role="menu">
-            <button role="menuitem" id="papelera-restaurar">Restaurar<svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg></button>
-            <button role="menuitem" class="texto-rojo" id="papelera-borrar">Borrar definitivamente<svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg></button>
-        </div>
-    </div>
-
-    <div class="alerta-fondo" id="confirmar-borrado" hidden>
-        <div class="alerta" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-borrado-titulo">
-            <h2 id="confirmar-borrado-titulo">¿Borrar la letra?</h2>
-            <p id="confirmar-borrado-texto"></p>
-            <div class="alerta-botones">
-                <button id="cancelar-borrado">Cancelar</button>
-                <button class="texto-rojo" id="aceptar-borrado">Borrar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Grabaciones de Freestyle (en SwiftUI: .sheet con una List). -->
-    <div class="hoja-fondo" id="grabaciones" hidden>
-        <div class="hoja hoja-ajustes" role="dialog" aria-modal="true" aria-labelledby="grabaciones-titulo">
-            <button class="boton-barra cerrar-hoja" id="cerrar-grabaciones" aria-label="Cerrar">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-            <h2 class="hoja-titulo" id="grabaciones-titulo">Grabaciones</h2>
-            <!-- Volumen de la voz y del beat, para todas (y para descargar). -->
-            <div class="volumenes-grabaciones" id="volumenes-grabaciones"></div>
-            <ul class="lista-grabaciones" id="lista-grabaciones"></ul>
-            <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Prendé el botón rojo al lado del play y dale play.</p>
-            <p class="nota aviso-grabaciones" id="grabaciones-aviso" hidden>Las grabaciones usan micrófono y parlante del celular al mismo tiempo, lo cual baja la calidad. Usá esta grabación como referencia.</p>
-        </div>
-    </div>
-
-    <!-- Ajustar la foto de un widget: se arrastra para elegir qué parte se ve, con zoom y oscurecer
-         (en SwiftUI: .sheet con PhotosPicker, DragGesture y dos Slider). -->
-    <div class="hoja-fondo" id="hoja-foto-widget" hidden>
-        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-labelledby="foto-widget-titulo">
-            <button class="boton-barra cerrar-hoja" id="cerrar-foto-widget" aria-label="Cancelar">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-            <h2 class="hoja-titulo" id="foto-widget-titulo">Ajustar foto</h2>
-            <div class="escenario-widgets escenario-foto" id="foto-widget-muestra"></div>
-            <p class="nota-widgets nota-foto">Arrastrá la foto para elegir qué parte se ve</p>
-            <div class="grupo-libreta funciones-libreta">
-                <div class="fila-grupo fila-foto-deslizador">
-                    <label for="foto-widget-zoom">Zoom</label>
-                    <input type="range" id="foto-widget-zoom" min="1" max="3" step="0.01" value="1">
+    <section class="mas">
+        <div class="envoltura centrado">
+            <h2 class="titulo-seccion">Y todo lo que necesitas para no perder una idea.</h2>
+            <div class="grilla" style="text-align:left">
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18M10 12v3h4v-3M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></svg></div>
+                    <h3>Baúl de frases</h3>
+                    <p>Anota esa línea que se te ocurrió en la calle y úsala cuando la necesites.</p>
                 </div>
-                <div class="fila-grupo fila-foto-deslizador">
-                    <label for="foto-widget-oscuro">Oscurecer</label>
-                    <input type="range" id="foto-widget-oscuro" min="0" max="0.6" step="0.01" value="0.25">
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></div>
+                    <h3>Widgets</h3>
+                    <p>Anota desde la pantalla de inicio, mira tu racha o la palabra del día sin abrir la app.</p>
                 </div>
-            </div>
-            <div class="grupo-libreta funciones-libreta grupo-debajo">
-                <button type="button" class="fila-grupo fila-boton" id="foto-widget-otra">Elegir otra foto</button>
-                <button type="button" class="fila-grupo fila-boton" id="foto-widget-centrar">Volver a centrar</button>
-            </div>
-            <button type="button" class="boton-relleno boton-usar-foto" id="foto-widget-listo">Usar foto</button>
-            <p class="nota-widgets">La foto queda guardada solo en tu iPhone.</p>
-            <input type="file" id="foto-widget-archivo" accept="image/*" hidden>
-        </div>
-    </div>
-
-    <!-- Paywall (en SwiftUI: .sheet). Pago único, sin suscripción. -->
-    <div class="hoja-fondo" id="paywall" hidden>
-        <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="paywall-titulo">
-            <button class="boton-barra cerrar-hoja" id="cerrar-paywall" aria-label="Cerrar">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
-            </button>
-            <div class="paywall-icono">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg>
-            </div>
-            <h2 class="paywall-titulo" id="paywall-titulo">Métrica Extras</h2>
-            <p class="paywall-bajada">Un solo pago, sin suscripción. Las rimas y todo lo básico siguen gratis siempre.</p>
-            <ul class="lista-agrupada beneficios">
-                <li class="celda">
-                    <svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
-                    <span><strong>Sin publicidad</strong><span class="subtitulo">Nada entre vos y la letra.</span></span>
-                </li>
-                <li class="celda">
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg>
-                    <span><strong>Temas para la libreta</strong><span class="subtitulo">Veinte temas, oscuros y claros, con su ilustración.</span></span>
-                </li>
-                <li class="celda">
-                    <svg viewBox="0 0 24 24" class="icono"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></svg>
-                    <span><strong>Widgets</strong><span class="subtitulo">Para la pantalla de inicio del iPhone.</span></span>
-                </li>
-            </ul>
-            <!-- Vista previa: los widgets existen recién en la app nativa (WidgetKit). -->
-            <h3 class="encabezado-grupo">Vista previa de los widgets</h3>
-            <div class="widgets">
-                <div class="widget">
-                    <span class="widget-etiqueta">Palabra del día</span>
-                    <span class="widget-palabra" id="widget-palabra">corazón</span>
-                    <span class="widget-pie" id="widget-rimas">rima con canción</span>
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1-1 9.5z"/></svg></div>
+                    <h3>iCloud, gratis</h3>
+                    <p>Tus letras, el baúl y las palabras guardadas, al día en todos tus dispositivos.</p>
                 </div>
-                <div class="widget">
-                    <span class="widget-etiqueta">Seguí escribiendo</span>
-                    <span class="widget-titulo" id="widget-letra">Tu última letra</span>
-                    <span class="widget-pie">Tocá para abrir</span>
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></div>
+                    <h3>Trae tus notas de Keep</h3>
+                    <p>Importa tus letras de Google Keep o comparte una nota hacia Métrica.</p>
                 </div>
-            </div>
-            <button class="boton-relleno boton-comprar" id="comprar-extras"></button>
-            <button class="boton-texto" id="restaurar-compra">Restaurar compra</button>
-            <p class="nota centrada" id="paywall-nota">Prueba: la compra es simulada, no se cobra nada.</p>
-        </div>
-    </div>
-
-    <!-- ¿Por dónde empiezo? (antes «Dame un tema»): hoja que sube desde abajo, con el lenguaje de Rimas (caja de vidrio con
-         bordes de 30, título chico en mayúsculas, pastillas y el refrescar redondo). -->
-    <div class="hoja-fondo" id="hoja-tema" hidden>
-        <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="tema-frase">
-            <div class="agarre-tema"></div>
-            <!-- Desde la estrellita de arriba (con algo escrito): «Ideas» (las consignas de siempre, primero) y
-                 «Sugerencias» (la IA lee la letra y propone cambios, recién al tocar «Generar sugerencias con IA»,
-                 así no gasta solo por entrar). Desde una letra vacía o el baúl, solo Ideas (pedidos de Swa). -->
-            <div class="segmentado modos-tema" id="modos-tema" role="tablist" aria-label="Qué mostrar" hidden>
-                <button type="button" role="tab" id="modo-ideas" aria-selected="true">Ideas</button>
-                <button type="button" role="tab" id="modo-sugerencias" aria-selected="false">Sugerencias</button>
-            </div>
-            <div id="tema-sugerencias" hidden>
-                <div class="caja-tema vidrio" id="caja-revision">
-                    <div class="cabeza-ia">
-                        <span class="titulo-azar" id="revision-titulo">Lo que cambiaría</span>
-                    </div>
-                    <!-- Cada cambio: el verso con la palabra a corregir subrayada y la nueva al lado. -->
-                    <div class="lista-revision" id="revision-lista" aria-live="polite"></div>
-                    <!-- Un cambio por «página», con puntitos como en las alternativas de frase (pedido de Swa). -->
-                    <div class="puntos-ia" id="revision-puntos" aria-hidden="true"></div>
-                    <!-- Solo el botón, sin «N sugerencias»: genera y vuelve a generar (pedidos de Swa). -->
-                    <div class="controles-azar">
-                        <button type="button" class="chip-simples generar-rev" id="revision-generar"><span class="estrella-ia" aria-hidden="true"></span>Generar sugerencias con IA</button>
-                    </div>
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+                    <h3>Acordes</h3>
+                    <p>Escribe los acordes arriba de cada verso, transpórtalos y usa la cejilla.</p>
                 </div>
-                <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
-                <!-- Recién después de tocar «Generar», y sin estrellita (ya la lleva el botón; pedido de Swa). -->
-                <div class="cupo-ia cupo-revision" id="revision-cupo-caja" hidden><span id="revision-cupo"></span><span class="barra-cupo" aria-hidden="true"><span id="revision-cupo-barra"></span></span></div>
-                <p class="nota-tema" id="revision-nota"></p>
-            </div>
-            <div id="tema-ficha">
-                <div class="chips-tema" id="chips-tema" role="radiogroup" aria-label="Categoría"></div>
-                <div class="caja-tema vidrio" id="caja-tema">
-                    <!-- El nombre de la categoría abre la lista. -->
-                    <button type="button" class="titulo-azar cat-tema" id="tema-categoria" aria-haspopup="listbox"></button>
-                    <!-- Al final de la frase, el ícono que la manda a la nota (con el efecto de la palabra tocada). -->
-                    <h2 class="texto-tema" id="tema-frase"><span id="tema-texto"></span><span class="final-tema"><span id="tema-ultima"></span><button type="button" class="enviar-tema" id="tema-nota" aria-label="Mandar a la nota"><span></span></button></span></h2>
-                    <p class="empujon-tema" id="tema-empujon" hidden></p>
-                    <div class="controles-azar">
-                        <!-- Vuelve a la anterior (deslizar la caja a la derecha, también). -->
-                        <button type="button" class="boton-azar" id="tema-anterior" aria-label="Anterior" disabled>
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>
-                        </button>
-                        <!-- Solo en Amor: prendido, muestra las de desamor (que no salen en Amor). -->
-                        <button type="button" class="chip-simples" id="tema-desamor" aria-pressed="false" hidden>Desamor</button>
-                        <button type="button" class="chip-simples baul-tema" id="tema-baul" aria-pressed="false">
-                            <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path d="M10.5 8.5h3v4.5h-3z"/></svg>
-                            <span id="tema-baul-texto">Al baúl</span>
-                        </button>
-                        <button type="button" class="boton-azar" id="tema-otra" aria-label="Otra">
-                            <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>
-                        </button>
-                    </div>
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h3l3-8 4 16 3-8h7"/></svg></div>
+                    <h3>Sin internet</h3>
+                    <p>Rimas, sílabas, diccionario y libreta funcionan en modo avión. Tu música, cuando hay señal.</p>
                 </div>
-            </div>
-            <div id="tema-lista" hidden>
-                <div class="cabeza-tema">
-                    <button type="button" class="volver-tema" id="tema-volver" aria-label="Volver">‹</button>
-                    <b>Categoría</b>
-                    <span></span>
-                </div>
-                <div class="caja-tema vidrio lista-tema" id="tema-filas" role="listbox" aria-label="Categoría"></div>
-                <p class="nota-tema">Las que ya usaste salen al final. Todo funciona sin internet.</p>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- IA (pedido de Swa): al seleccionar una frase de la letra, la estrellita de la barra de arriba del teclado
-         cierra el teclado y abre esta hoja, la misma de «¿Por dónde empiezo?» con todos sus botones, pero con
-         lo que propone la IA: 3 o 4 alternativas de la frase, con sus mismas rimas (sin pastillas, pedido de Swa). Simulada hasta que esté el servidor (worker/README.md). En SwiftUI, .sheet. -->
-    <div class="hoja-fondo" id="hoja-ia" hidden>
-        <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="ia-frase">
-            <div class="agarre-tema"></div>
-            <div class="caja-tema vidrio" id="caja-ia">
-                <div class="cabeza-ia">
-                    <span class="titulo-azar" id="ia-titulo"></span>
+    <section class="precios" id="precios">
+        <div class="envoltura centrado">
+            <h2 class="titulo-seccion">Gratis para escribir. Siempre.</h2>
+            <p class="bajada">Las rimas, las sílabas y la libreta nunca se bloquean. Si quieres más, elige lo que te sirva.</p>
+            <div class="planes" style="text-align:left">
+                <div class="plan">
+                    <h3>Métrica</h3>
+                    <div class="precio">Gratis</div>
+                    <div class="que">Para siempre</div>
+                    <ul>
+                        <li>Libreta con sílabas y rimas pintadas</li>
+                        <li>Rimas, sinónimos y diccionario</li>
+                        <li>Freestyle de hasta 2 minutos por ronda</li>
+                        <li>Grabar tu voz sobre el beat</li>
+                        <li>Baúl de frases e iCloud</li>
+                        <li>20 consultas de Métrica IA por mes</li>
+                    </ul>
                 </div>
-                <!-- Primero la frase elegida, citada en itálica, y después la alternativa (pedido de Swa).
-                     Al final de la alternativa, pegado a la última palabra, el ícono que la pone en la letra. -->
-                <p class="empujon-tema original-ia" id="ia-original"></p>
-                <h2 class="texto-tema" id="ia-frase"><span id="ia-texto"></span><span class="final-tema"><mark id="ia-ultima"></mark><button type="button" class="enviar-tema" id="ia-usar" aria-label="Usar en la letra"><span></span></button></span></h2>
-                <div class="cargando-ia" id="ia-cargando" hidden><span></span><span></span></div>
-                <p class="empujon-tema" id="ia-meta"></p>
-                <!-- Una alternativa por «página»: los puntitos dicen cuál es, en vez de «N de 4» arriba (pedido de Swa). -->
-                <div class="puntos-ia" id="ia-puntos" aria-hidden="true"></div>
-                <div class="controles-azar">
-                    <button type="button" class="boton-azar" id="ia-anterior" aria-label="Anterior" disabled>
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>
-                    </button>
-                    <button type="button" class="chip-simples baul-tema" id="ia-baul" aria-pressed="false">
-                        <svg viewBox="0 0 24 24" class="icono" aria-hidden="true"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path d="M10.5 8.5h3v4.5h-3z"/></svg>
-                        <span id="ia-baul-texto">Al baúl</span>
-                    </button>
-                    <button type="button" class="boton-azar" id="ia-otra" aria-label="Otra">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>
-                    </button>
+                <div class="plan">
+                    <h3>Métrica<span class="brillo">+</span></h3>
+                    <div class="precio">USD 9,99</div>
+                    <div class="que">Pago único, sin suscripción</div>
+                    <ul>
+                        <li>Todo lo de la versión gratis</li>
+                        <li>Todos los temas de la libreta y el baúl</li>
+                        <li>Freestyle ilimitado</li>
+                        <li>Descargar tus grabaciones en MP3</li>
+                        <li>Todos los widgets, con tu foto de fondo</li>
+                        <li class="mas-ia">100 consultas de IA de regalo</li>
+                    </ul>
+                </div>
+                <div class="plan destacado">
+                    <h3>Métrica<span class="brillo">+ IA</span></h3>
+                    <div class="precio">USD 2,99 <small>/ mes</small></div>
+                    <div class="que">Suscripción mensual, cancelas cuando quieras</div>
+                    <ul>
+                        <li>Todo lo de Métrica+</li>
+                        <li class="mas-ia">300 consultas de Métrica IA por mes</li>
+                        <li>Paquetes de consultas extra que no vencen</li>
+                    </ul>
                 </div>
             </div>
-            <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
-            <div class="cupo-ia"><span class="estrella-ia" aria-hidden="true"></span><span id="ia-cupo"></span><span class="barra-cupo" aria-hidden="true"><span id="ia-cupo-barra"></span></span></div>
-            <p class="nota-tema" id="ia-nota"></p>
-            <!-- «Métrica IA»: sin decidir, simulado (aparte de Extras, porque cada uso cuesta). -->
-            <div class="caja-tema vidrio plan-ia" id="ia-plan" hidden>
-                <h3 class="titulo-plan-ia">Métrica IA</h3>
-                <p class="bajada-plan-ia" id="ia-plan-bajada"></p>
-                <button type="button" class="boton-relleno boton-comprar" id="ia-comprar"></button>
-                <p class="nota centrada">Prueba: el plan es simulado, no se cobra nada.</p>
+            <p class="aclaracion">Precios en dólares estadounidenses; en tu país, la App Store los muestra en tu moneda.</p>
+        </div>
+    </section>
+
+    <section class="preguntas">
+        <div class="envoltura">
+            <h2 class="titulo-seccion">Preguntas frecuentes</h2>
+            <details>
+                <summary>¿Necesito crear una cuenta?</summary>
+                <p>No. Métrica no tiene cuentas: tus letras quedan en tu iPhone y, si tienes iCloud activado, se sincronizan en tu propia cuenta de iCloud.</p>
+            </details>
+            <details>
+                <summary>¿Métrica IA escribe las canciones por mí?</summary>
+                <p>No es la idea. Te propone otras maneras de decir una frase, te marca qué cambiaría y te da ideas para arrancar, pero la letra la escribes tú. Es opcional y puedes desactivarla en Ajustes.</p>
+            </details>
+            <details>
+                <summary>¿Qué pasa con lo que escribo cuando uso la IA?</summary>
+                <p>Solo se envía el texto necesario para responder tu consulta, sin tu nombre ni tu cuenta, y no lo guardamos. Los detalles están en la <a href="privacidad.html">política de privacidad</a>.</p>
+            </details>
+            <details>
+                <summary>¿Funciona en Android?</summary>
+                <p>Por ahora solo en iPhone. Mientras tanto, puedes <a href="app.html">probar la versión web</a> desde cualquier navegador.</p>
+            </details>
+            <details>
+                <summary>¿Cómo cancelo Métrica+ IA?</summary>
+                <p>En el iPhone, abre Ajustes › tu nombre › Suscripciones › Métrica+ IA › Cancelar suscripción.</p>
+            </details>
+        </div>
+    </section>
+
+    <section class="cierre">
+        <div class="envoltura">
+            <img class="logo" src="assets/logo/icono-180.png" alt="Ícono de Métrica" width="88" height="88" loading="lazy">
+            <h2 class="titulo-seccion">Tu próxima canción empieza aquí.</h2>
+            <p class="bajada">Métrica llega muy pronto a la App Store.</p>
+            <div class="acciones">
+                <a class="boton" href="app.html">Pruébala en la web</a>
+                <a class="boton" href="mailto:soporte@metricarimas.com">Escríbenos</a>
             </div>
         </div>
+    </section>
+</main>
+
+<footer>
+    <div class="envoltura">
+        <span>© 2026 Métrica: rimas y letras</span>
+        <nav>
+            <a href="privacidad.html">Privacidad</a>
+            <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/">Términos de uso</a>
+            <a href="soporte.html">Soporte</a>
+            <a href="mailto:soporte@metricarimas.com">soporte@metricarimas.com</a>
+        </nav>
     </div>
+</footer>
 
-    <!-- IA para una palabra sola: la estrellita abre esta viñeta arriba de la palabra tocada, con
-         flechas para pasar por lo que propone la IA; tocar la palabra la cambia en la letra. -->
-    <div class="vineta-ia vidrio" id="vineta-ia" role="dialog" aria-label="Cambiar con IA" hidden>
-        <!-- Al tocar una palabra, primero va solo la estrellita arriba de ella; tocarla abre la viñeta. -->
-        <button type="button" class="estrella-vineta" id="vineta-estrella" aria-label="Cambiar con IA"><i class="estrella-ia"></i></button>
-        <button type="button" class="flecha-vineta" id="vineta-anterior" aria-label="Anterior">
-            <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg>
-        </button>
-        <!-- Las flechas pasan por las sugerencias; tocar la palabra la pone en la letra. -->
-        <button type="button" class="palabra-vineta" id="vineta-palabra"></button>
-        <button type="button" class="flecha-vineta" id="vineta-siguiente" aria-label="Siguiente">
-            <svg viewBox="0 0 24 24" class="icono"><path d="M9 5l7 7-7 7"/></svg>
-        </button>
-    </div>
-
-    <!-- Tab bar (TabView) -->
-    <nav class="barra-pestanas" id="barra-pestanas">
-        <button data-pestana="letras" aria-selected="true">
-            <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg>Letras
-        </button>
-        <button data-pestana="rimas" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>Rimas
-        </button>
-        <button data-pestana="freestyle" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>Freestyle
-        </button>
-        <button data-pestana="ajustes" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><path d="M19.04 9.71 L21.77 9.86 L21.77 14.14 L19.04 14.29 L18.59 15.36 L20.42 17.39 L17.39 20.42 L15.36 18.59 L14.29 19.04 L14.14 21.77 L9.86 21.77 L9.71 19.04 L8.64 18.59 L6.61 20.42 L3.58 17.39 L5.41 15.36 L4.96 14.29 L2.23 14.14 L2.23 9.86 L4.96 9.71 L5.41 8.64 L3.58 6.61 L6.61 3.58 L8.64 5.41 L9.71 4.96 L9.86 2.23 L14.14 2.23 L14.29 4.96 L15.36 5.41 L17.39 3.58 L20.42 6.61 L18.59 8.64Z"/><circle cx="12" cy="12" r="3"/></svg>Ajustes
-        </button>
-    </nav>
-
-    <script src="palabras.js"></script>
-    <script src="palabras-simples.js"></script>
-    <script src="frecuencias.js"></script>
-    <script src="sinonimos.js"></script>
-    <script src="relacionados.js"></script>
-    <script type="module" src="js/app.js"></script>
 </body>
 </html>

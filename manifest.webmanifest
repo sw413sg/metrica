@@ -2,7 +2,7 @@
   "name": "Métrica: rimas y letras",
   "short_name": "Métrica",
   "lang": "es",
-  "start_url": "./",
+  "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#000000",

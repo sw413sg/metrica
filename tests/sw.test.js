@@ -12,8 +12,8 @@ test('todos los archivos de js/ están en la caché', () => {
     for (const archivo of archivos) assert.ok(enCache.has(archivo), `falta ${archivo} en sw.js`);
 });
 
-test('todo lo que carga index.html y el manifest está en la caché', () => {
-    const html = fs.readFileSync('index.html', 'utf8');
+test('todo lo que carga app.html y el manifest está en la caché', () => {
+    const html = fs.readFileSync('app.html', 'utf8');
     const usados = [...html.matchAll(/<(?:script|link)[^>]+(?:src|href)="([^"]+)"/g)].map(m => m[1]);
     const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
     for (const archivo of [...usados, ...manifest.icons.map(i => i.src)]) {
