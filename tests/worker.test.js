@@ -226,26 +226,30 @@ test('sin cuota responde 402 y X-Metrica-Restantes en 0', async () => {
     assert.equal(llamadas.length, 0);
 });
 
-test('Sandbox con mas50 da solo el tope, no las 8500', async () => {
+test('un paquete de Sandbox suma sus consultas, y la suscripción de Sandbox da 300 (pedido de Swa)', async () => {
     conRaiz();
     env.CUPO_GRATIS = '20';
     env.SANDBOX_CONSULTAS_MES = '30';
-    const jws = cadena.jws({
-        productId: 'metrica.ia.mas50', type: 'Consumable', transactionId: 'sb50', originalTransactionId: 'sb50',
+    const sub = cadena.jws({
+        productId: 'metrica.ia', type: 'Auto-Renewable Subscription', transactionId: 'sbsub', originalTransactionId: 'sbsub',
         environment: 'Sandbox',
     });
-    const respuesta = await pedir(undefined, { 'X-Metrica-JWS': jws });
-    assert.equal(respuesta.status, 200);
-    assert.equal((await respuesta.json()).quedan, 29);
-    const real = cadena.jws({
-        productId: 'metrica.ia.mas50', type: 'Consumable', transactionId: 'pr50', originalTransactionId: 'pr50',
-        environment: 'Production',
+    const paquete = cadena.jws({
+        productId: 'metrica.ia.mas', type: 'Consumable', transactionId: 'sbmas', originalTransactionId: 'sbmas',
+        environment: 'Sandbox',
     });
-    // La de Production sí suma las 8.500, además de las 20 gratis.
-    assert.equal((await (await pedir(undefined, { 'X-Metrica-JWS': real })).json()).quedan, 20 + 8500 - 1);
+    const primera = await pedir(undefined, { 'X-Metrica-JWS': `${sub},${paquete}` });
+    assert.equal(primera.status, 200);
+    assert.equal(primera.headers.get('X-Metrica-Restantes'), String(300 + 300 - 1));
+    // La app cierra la transacción del paquete y no lo vuelve a mandar: sigue estando, por el id.
+    const segunda = await pedir(undefined, { 'X-Metrica-JWS': sub });
+    assert.equal(segunda.headers.get('X-Metrica-Restantes'), String(300 + 300 - 2));
+    // El mismo paquete con otro id no vuelve a sumar.
+    const otro = await pedir(undefined, { 'X-Metrica-JWS': paquete, 'X-Metrica-Id': OTRO });
+    assert.equal(otro.headers.get('X-Metrica-Restantes'), String(30 + 300 - 1));
 });
 
-test('el mismo JWS de Sandbox no suma 30 más al rotar el id', async () => {
+test('un paquete de Sandbox no se suma dos veces al rotar el id', async () => {
     conRaiz();
     env.CUPO_GRATIS = '0';
     env.SANDBOX_CONSULTAS_MES = '30';
@@ -253,13 +257,14 @@ test('el mismo JWS de Sandbox no suma 30 más al rotar el id', async () => {
         productId: 'metrica.ia.mas50', type: 'Consumable', transactionId: 'sbmismo', originalTransactionId: 'sbmismo',
         environment: 'Sandbox',
     });
-    assert.equal((await (await pedir(undefined, { 'X-Metrica-JWS': jws })).json()).quedan, 29);
+    assert.equal((await (await pedir(undefined, { 'X-Metrica-JWS': jws })).json()).quedan, 30 + 8500 - 1);
     const otro = await pedir(undefined, { 'X-Metrica-JWS': jws, 'X-Metrica-Id': OTRO });
     assert.equal(otro.status, 200);
-    assert.equal((await otro.json()).quedan, 28);
+    // Los 30 de Sandbox van por recibo, y el paquete por transacción: ninguno se vuelve a sumar.
+    assert.equal((await otro.json()).quedan, 30 + 8500 - 2);
 });
 
-test('el tope por IP también corta Sandbox', async () => {
+test('el tope por IP corta los 30 de Sandbox, no el paquete', async () => {
     conRaiz();
     env.CUPO_GRATIS = '0';
     env.TOPE_IP = '1';
@@ -271,15 +276,8 @@ test('el tope por IP también corta Sandbox', async () => {
     });
     const primero = await pedir(undefined, { ...ip, 'X-Metrica-JWS': uno });
     assert.equal(primero.status, 200);
-    assert.equal(primero.headers.get('X-Metrica-Restantes'), '0');
-    const dos = cadena.jws({
-        productId: 'metrica.ia.mas5', type: 'Consumable', transactionId: 'sbip2', originalTransactionId: 'sbip2',
-        environment: 'Sandbox',
-    });
-    const misma = await pedir(undefined, { ...ip, 'X-Metrica-Id': OTRO, 'X-Metrica-JWS': dos });
-    assert.equal(misma.status, 402);
-    const otra = await pedir(undefined, { 'CF-Connecting-IP': '203.0.113.21', 'X-Metrica-Id': OTRO, 'X-Metrica-JWS': dos });
-    assert.equal(otra.status, 200);
+    // La IP ya no da más de los 30: queda solo el paquete.
+    assert.equal(primero.headers.get('X-Metrica-Restantes'), '800');
 });
 
 test('el tope global de Sandbox por día corta, y Production sigue', async () => {
@@ -293,8 +291,8 @@ test('el tope global de Sandbox por día corta, y Production sigue', async () =>
     });
     const primero = await pedir(undefined, { 'CF-Connecting-IP': '198.51.100.1', 'X-Metrica-JWS': uno });
     assert.equal(primero.status, 200);
-    // Lo que se muestra es la cuota de la persona (30 de Sandbox), no el freno global del día.
-    assert.equal(primero.headers.get('X-Metrica-Restantes'), '29');
+    // Lo que se muestra es la cuota de la persona (30 de Sandbox y el paquete), no el freno global del día.
+    assert.equal(primero.headers.get('X-Metrica-Restantes'), String(30 + 8500 - 1));
     const dos = cadena.jws({
         productId: 'metrica.ia.mas50', type: 'Consumable', transactionId: 'sbdia2', originalTransactionId: 'sbdia2',
         environment: 'Sandbox',
