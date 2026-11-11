@@ -124,6 +124,15 @@ export function corregirParaDiccionario(escrita, indice) {
     return elegida;
 }
 
+// El Wikcionario numera las palabras con más de una entrada y el número queda pegado
+// ("Cada una de las divisiones que se hacen al mar1", "Fruto del arán1,2"): se saca.
+// Solo después de una palabra en minúscula (o con mayúscula inicial) con alguna vocal,
+// así quedan fórmulas y unidades: CO2, CaSO4, Ca2(Mg,Fe)5, km2 o mp3.
+const INDICE_PEGADO = /(?<![\p{L}\d])(\p{Lu}?\p{Ll}*[aeiouáéíóúü]\p{Ll}*)\d{1,2}(?:,\d{1,2})*(?![\p{L}\d(])/gu;
+export function sinIndicePegado(texto) {
+    return texto.replace(INDICE_PEGADO, '$1');
+}
+
 // Lo que hay de una palabra: sus categorías con acepciones y de qué palabras es forma.
 export function leerEntrada(palabra, { entradas }) {
     const linea = entradas.get(palabra);
@@ -135,7 +144,7 @@ export function leerEntrada(palabra, { entradas }) {
         else if (campo[0] === '>') formaDe.push(campo.slice(1));
         else if (actual) {
             const corte = campo.indexOf('¦');
-            actual.acepciones.push(corte > 0 ? { materia: campo.slice(0, corte), texto: campo.slice(corte + 1) } : { materia: '', texto: campo });
+            actual.acepciones.push(corte > 0 ? { materia: campo.slice(0, corte), texto: sinIndicePegado(campo.slice(corte + 1)) } : { materia: '', texto: sinIndicePegado(campo) });
         }
     }
     return { palabra, categorias, formaDe };
