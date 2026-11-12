@@ -115,6 +115,9 @@ export function vincular(avisos) {
 
 let corriendo = false;
 const nombresPorC = new Map();
+// Para el estado de la barra lateral: cuándo salió bien la última vuelta y si la última falló.
+let ultimaVuelta = 0, ultimaFallo = false;
+export const estadoDeSincronizacion = () => ({ ultima: ultimaVuelta, fallo: ultimaFallo });
 
 async function cDe(claves, nombre) {
     for (const [c, n] of nombresPorC) if (n === nombre) return c;
@@ -185,7 +188,10 @@ export async function sincronizar({ alCambiar, alCerrar }) {
             }
             localStorage.setItem(CLAVE_SINC, JSON.stringify(sincronizados));
         }
+        ultimaVuelta = Date.now();
+        ultimaFallo = false;
     } catch (error) {
+        ultimaFallo = true;
         // 401: el iPhone cerró la sesión, o venció. Sin internet, se prueba en la próxima vuelta.
         if (error.estado === 401) {
             await cerrarLocal();

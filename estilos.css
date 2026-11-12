@@ -2194,3 +2194,159 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .vincular-aviso .boton-comprar { flex: 0 0 auto; width: auto; margin-top: 12px; padding: 12px 20px; }
 .vincular-qr[data-estado="cargando"] .boton-comprar, .vincular-qr[data-estado="escaneado"] .boton-comprar { display: none; }
 @media (max-width: 520px) { .vincular-caja { padding: 28px 20px; gap: 28px; } .vincular-texto h1 { font-size: 24px; } }
+
+/* ===================== Métrica web en la computadora (pedido de Swa) =====================
+   En el celular queda todo como siempre. Desde 700 px, la barra de pestañas pasa a ser una barra
+   lateral fija (con la marca, el estado de la vinculación y el baúl) y el resto ocupa lo que queda,
+   centrado. Desde 1000 px, mientras se escribe una letra, a la derecha va el panel de ayudas
+   (rimas, sinónimos, baúl e IA); en las medianas, el panel entra como una hoja desde el costado.
+   --izq y --der son lo que ocupan la barra lateral y el panel: lo fijo se acomoda entre los dos. */
+:root { --izq: 0px; --der: 0px; --ancho-panel: 340px; }
+.solo-compu, .barra-pestanas .solo-compu, .panel-ayudas { display: none; }
+/* Lo que es solo del iPhone (widgets, grabar, Google Keep, la versión anterior y la compra de prueba). */
+.fuera-de-la-web, [data-grabaciones], [data-rec], #fs-rec, #abrir-widgets { display: none !important; }
+
+@media (min-width: 700px) {
+    :root { --izq: 248px; }
+    .app { max-width: none; margin: 0 var(--der) 0 var(--izq); }
+
+    /* Barra lateral */
+    .barra-pestanas, body.editando .barra-pestanas {
+        display: flex; flex-direction: column; justify-content: flex-start; gap: 2px;
+        top: 0; bottom: 0; left: 0; right: auto; width: var(--izq); max-width: none; margin: 0;
+        padding: calc(env(safe-area-inset-top) + 18px) 12px 16px; border-radius: 0;
+        border: 0; border-right: 1px solid var(--separador); box-shadow: none;
+        background: color-mix(in srgb, var(--texto) 3%, var(--fondo));
+        -webkit-backdrop-filter: none; backdrop-filter: none;
+    }
+    .barra-pestanas .solo-compu { display: flex; }
+    .barra-pestanas button, .barra-pestanas .solo-compu {
+        flex: none; height: 38px; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 12px;
+        border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--texto);
+    }
+    .barra-pestanas button .icono { width: 20px; height: 20px; color: var(--texto-2); }
+    .barra-pestanas button:hover { background: var(--acento-suave); }
+    .barra-pestanas button[aria-selected="true"] .icono { color: var(--destacado); }
+    .barra-pestanas [data-pestana="ajustes"] { margin-top: auto; }
+    .marca-lateral { display: flex; align-items: center; gap: 10px; padding: 0 10px 14px; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+    .marca-lateral img { border-radius: 7px; }
+    /* El estado de la vinculación, siempre a la vista: verde si está al día, gris si se cortó. */
+    .barra-pestanas .estado-web {
+        height: auto; min-height: 50px; align-items: center; gap: 10px; margin: 0 0 12px; padding: 8px 12px;
+        border-radius: 14px; background: var(--tarjeta); text-align: left;
+    }
+    .punto-web { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--texto-3); }
+    .estado-web[data-estado="al-dia"] .punto-web { background: var(--verde); box-shadow: 0 0 0 3px color-mix(in srgb, var(--verde) 22%, transparent); }
+    .estado-web-texto { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+    #estado-web-titulo { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .estado-web-detalle { font-size: 12px; font-weight: 400; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .estado-web[data-estado="sin-vincular"] .estado-web-detalle { color: var(--destacado); }
+
+    /* Lo de cada sección, centrado en lo que queda (más ancho en la grilla de Letras). */
+    #pantalla-rimas, #pantalla-freestyle, .vista { padding-inline: max(0px, calc((100% - 760px) / 2)); }
+    #vista-lista-letras { padding-inline: max(0px, calc((100% - 1180px) / 2)); }
+    .contenido { padding-bottom: calc(32px + var(--alto-sobre-barra, 0px)); }
+    .grilla-letras { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+    .tarjeta-letra button:hover { background: color-mix(in srgb, var(--texto) 4%, transparent); }
+    .efecto-fs { left: calc(var(--izq) + (100vw - var(--izq) - var(--der)) / 2); width: calc(100vw - var(--izq) - var(--der)); }
+
+    /* La libreta: la letra al medio con un ancho cómodo para leer, los renglones de borde a borde
+       y las sílabas a la derecha de cada verso. */
+    body.editando .vista#vista-editor { left: var(--izq); right: var(--der); max-width: none; }
+    .vista#vista-editor { --margen-editor: max(20px, calc((100vw - var(--izq) - var(--der) - 700px) / 2)); padding-inline: 0; }
+    #vista-editor .barra-nav { padding-inline: 20px; }
+    .editor { padding-inline: var(--margen-editor); }
+    .editor-titulo { font-size: 28px; font-weight: 600; padding-top: 24px; }
+    .editor-cuerpo { margin-inline: calc(-1 * var(--margen-editor)); padding-inline: var(--margen-editor); }
+    .editor-cuerpo .silabas { order: 2; width: 28px; margin-right: -36px; text-align: left; }
+    .barra-nav .solo-compu { display: grid; }
+
+    /* Lo que flota (la tarjeta de lo que suena, los beats, el cajón de la música) va entre la barra
+       lateral y el panel, y abajo de todo: ya no hay barra de pestañas abajo. */
+    .reproductor, .sonando-fs { left: calc(var(--izq) + 16px); right: calc(var(--der) + 16px); }
+    body:not(.editando) .reproductor, .sonando-fs { bottom: 16px; }
+    #hoja-musica { left: var(--izq); right: var(--der); }
+    body:not(.editando) #hoja-musica .hoja { padding-bottom: 16px; }
+    #hoja-musica .hoja { margin-inline: auto; }
+
+    /* Las hojas, como ventanas al medio de la pantalla. */
+    .hoja-fondo:not(#hoja-musica) { align-items: center; padding: 24px; }
+    .hoja-fondo:not(#hoja-musica) .hoja { border-radius: 34px; max-height: calc(100vh - 48px); }
+
+    /* Panel de ayudas: en las medianas, una hoja que entra desde la derecha, arriba de la libreta. */
+    body.editando.con-panel .panel-ayudas {
+        display: flex; flex-direction: column; position: fixed; z-index: 18; top: 0; right: 0; bottom: 0; width: var(--ancho-panel);
+        padding: calc(env(safe-area-inset-top) + 14px) 14px 16px; gap: 12px;
+        background: color-mix(in srgb, var(--texto) 3%, var(--fondo)); border-left: 1px solid var(--separador);
+        box-shadow: -18px 0 40px rgba(0, 0, 0, 0.18);
+    }
+}
+@media (min-width: 1000px) {
+    /* En las grandes, el panel es una columna más: la libreta se corre y no queda tapada. */
+    body.editando.con-panel { --der: var(--ancho-panel); }
+    body.editando.con-panel .panel-ayudas { box-shadow: none; }
+}
+#alternar-panel[aria-pressed="false"] { color: var(--texto-3); }
+
+.panel-cabecera { display: flex; align-items: center; gap: 8px; }
+.pastillas-panel { flex: 1; display: flex; gap: 4px; padding: 3px; border-radius: 14px; background: var(--relleno); }
+.pastillas-panel button { flex: 1; height: 30px; border-radius: 11px; font-size: 13px; font-weight: 600; color: var(--texto-2); }
+.pastillas-panel button[aria-selected="true"] { background: var(--tarjeta); color: var(--texto); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.cerrar-panel { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--texto-2); }
+.cerrar-panel:hover { background: var(--acento-suave); }
+.cerrar-panel .icono { width: 18px; height: 18px; }
+.panel-busqueda { flex: none; margin: 0; }
+.panel-busqueda[hidden] { display: none; }
+.panel-cuerpo { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -14px; padding: 0 14px 8px; }
+.titulo-panel { margin: 4px 2px 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: var(--texto-2); }
+.titulo-panel .palabra-panel { text-transform: none; font-size: 15px; letter-spacing: 0; }
+.titulo-panel + .titulo-panel, .palabras-panel + .titulo-panel { margin-top: 18px; }
+.palabras-panel { display: flex; flex-wrap: wrap; gap: 6px; }
+.palabras-panel button {
+    padding: 6px 11px; border-radius: 10px; background: var(--tarjeta); font-size: 15px; color: var(--texto);
+}
+.palabras-panel button:hover { background: var(--destacado-suave); }
+.palabras-panel .rima-panel { font-weight: 600; color: var(--destacado); }
+.nota-panel { margin: 10px 2px; font-size: 14px; line-height: 1.45; color: var(--texto-2); }
+.nota-panel kbd, .ayuda-ia kbd {
+    padding: 1px 6px; border-radius: 6px; border: 1px solid var(--separador); background: var(--tarjeta); font: inherit; font-size: 12px;
+}
+.segmentado-panel { display: flex; gap: 6px; margin-bottom: 12px; }
+.segmentado-panel button { padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--texto-2); background: var(--relleno); }
+.segmentado-panel button[aria-pressed="true"] { background: var(--destacado-suave); color: var(--destacado); }
+/* Baúl: anotar arriba y las frases abajo; se arrastran a la letra o se tocan para ponerlas donde está el cursor. */
+.anotar-panel { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 12px; }
+.anotar-panel textarea {
+    flex: 1; min-height: 40px; max-height: 120px; padding: 9px 12px; border: 1px solid var(--separador); border-radius: 12px;
+    background: var(--tarjeta); resize: none; outline: none; font-size: 15px; line-height: 1.35;
+}
+.anotar-panel textarea:focus { border-color: var(--destacado); }
+.anotar-panel button { height: 40px; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 600; color: #fff; background: var(--destacado); }
+.anotar-panel button:disabled { opacity: 0.4; cursor: default; }
+.frases-panel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.frases-panel li {
+    padding: 10px 12px; border-radius: 14px; background: var(--tarjeta); font-size: 15px; line-height: 1.35;
+    cursor: grab; white-space: pre-wrap; overflow-wrap: break-word;
+}
+.frases-panel li:hover { box-shadow: inset 0 0 0 1.5px var(--destacado-suave); }
+.frases-panel li.usada { opacity: 0.55; }
+.frases-panel li:active { cursor: grabbing; }
+/* IA: dos botones con su explicación. */
+.ayuda-ia { display: flex; flex-direction: column; gap: 10px; }
+.boton-ia-panel {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px; border-radius: 18px;
+    background: var(--tarjeta); text-align: left; box-shadow: inset 0 0 0 1px var(--destacado-suave);
+}
+.boton-ia-panel:not(:disabled):hover { box-shadow: inset 0 0 0 1.5px var(--destacado); }
+.boton-ia-panel strong { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.boton-ia-panel span { font-size: 13px; color: var(--texto-2); line-height: 1.35; }
+.boton-ia-panel:disabled { opacity: 0.55; cursor: default; }
+/* Con el panel de ayudas abierto, las rimas de la palabra tocada van en el panel. */
+body.con-panel #sugerencias[data-modo="cambio"] { display: none; }
+/* Aviso corto («Verso guardado en el baúl»), arriba al medio de la libreta. */
+.aviso-panel {
+    position: fixed; z-index: 50; top: 18px; left: calc(var(--izq) + (100vw - var(--izq) - var(--der)) / 2); translate: -50% -12px;
+    padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--texto);
+    opacity: 0; pointer-events: none; transition: opacity .2s, translate .2s;
+}
+.aviso-panel.visible { opacity: 1; translate: -50% 0; }
