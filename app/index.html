@@ -46,6 +46,11 @@
                         </button>
                     </label>
                     <div class="acciones-barra">
+                        <!-- En la computadora, las carpetas y la papelera van en la barra lateral: este botón abre
+                             solo el tamaño, el orden y la selección (las tres líneas no van, serían otra barra). -->
+                        <button class="boton-barra opciones-letras" id="opciones-letras" aria-label="Ver y ordenar" title="Ver y ordenar">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+                        </button>
                         <!-- La nota musical, también desde Letras: el mismo cajón que en la libreta (pedido de Swa). -->
                         <button class="boton-barra" id="abrir-musica-letras" aria-label="Escuchar música">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
@@ -422,10 +427,8 @@
                         <span class="icono-celda" style="background:var(--destacado)"><svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg></span>
                         <span class="celda-texto">Plan</span><span class="valor" id="ajustes-plan">Gratis</span>
                     </li>
-                    <li class="celda fila-creditos-ajustes">
-                        <span class="icono-celda icono-creditos"><span class="estrella-ia" aria-hidden="true"></span></span>
-                        <span class="celda-texto">Créditos IA</span><span class="valor" id="ajustes-creditos">100%</span>
-                    </li>
+                    <!-- Como FilaCuotaIA de Swift: el aro violeta que se vacía, el porcentaje grande y de qué. -->
+                    <li class="celda fila-creditos" id="ajustes-creditos"></li>
                     <li class="celda" id="ajustes-mejorar-celda">
                         <button class="celda-boton celda-centrada" id="ajustes-mejorar"><span>Mejóralo desde tu iPhone</span></button>
                     </li>
@@ -480,8 +483,6 @@
                 <ul class="lista-agrupada fuera-de-la-web">
                     <li class="celda"><button class="celda-boton texto-rojo celda-centrada" id="borrar-compra">Volver a la versión gratis</button></li>
                 </ul>
-                <!-- Papelera, a lo último: las letras y frases del baúl borradas, 7 días (pedido de Swa). -->
-                <h2 class="encabezado-grupo">Papelera</h2>
             </div>
             </div>
 
@@ -825,9 +826,11 @@
     <div class="menu-letras-fondo" id="menu-letras" hidden>
         <aside class="menu-letras" role="dialog" aria-modal="true" aria-label="Menú de letras">
             <div class="menu-letras-cuerpo">
+                <div class="menu-solo-celular">
                 <h2 class="nombre-metrica" id="menu-nombre">Métrica</h2>
                 <h3 class="encabezado-grupo">Carpetas</h3>
                 <ul class="lista-agrupada lista-menu" id="menu-carpetas"></ul>
+                </div>
                 <h3 class="encabezado-grupo">Tamaño de las tarjetas</h3>
                 <div class="pastillas-libreta pastillas-menu" id="menu-tamano" role="tablist" aria-label="Tamaño de las tarjetas">
                     <button type="button" role="tab" data-tamano="aleatorio">Aleatorio</button>
@@ -843,12 +846,14 @@
                 <ul class="lista-agrupada lista-menu">
                     <li><button type="button" id="empezar-seleccion"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg><span>Seleccionar letras</span></button></li>
                 </ul>
+                <div class="menu-solo-celular">
                 <h3 class="encabezado-grupo">Métrica+</h3>
                 <ul class="lista-agrupada lista-menu">
-                    <li class="fila-creditos"><span class="estrella-ia" aria-hidden="true"></span><span id="menu-creditos">Créditos IA</span></li>
+                    <li class="fila-creditos" id="menu-creditos"></li>
                 </ul>
+                </div>
             </div>
-            <ul class="lista-agrupada lista-menu menu-pie">
+            <ul class="lista-agrupada lista-menu menu-pie menu-solo-celular">
                 <li><button type="button" id="abrir-papelera"><svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg><span>Papelera</span><span class="chevron">›</span></button></li>
             </ul>
         </aside>
@@ -1107,6 +1112,13 @@
 
     <!-- En el celular, la barra de pestañas flotante de abajo (TabView). En la computadora (700 px o más)
          es la barra lateral fija, con la marca, el estado de la vinculación y el baúl (solo ahí). -->
+    <!-- Con la ventana a la mitad de la pantalla o menos, la barra lateral se esconde y la abren las tres
+         líneas (al lado del buscador en Letras; arriba a la izquierda en Rimas, Freestyle y Ajustes). Es la
+         misma barra, con las mismas opciones (pedido de Swa). -->
+    <button type="button" class="boton-barra vidrio abrir-barra" id="abrir-barra" aria-label="Abrir la barra lateral" title="Abrir la barra lateral">
+        <svg viewBox="0 0 24 24" class="icono"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="fondo-barra" id="fondo-barra"></div>
     <nav class="barra-pestanas" id="barra-pestanas">
         <div class="marca-lateral solo-compu">
             <!-- Plegar la barra a la izquierda, como en Google Keep: quedan solo los íconos y la letra a lo ancho. -->
@@ -1133,6 +1145,9 @@
         </button>
         <button data-pestana="letras" data-vista="baul" class="solo-compu" aria-selected="false">
             <svg viewBox="0 0 24 24" class="icono"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path d="M10.5 8.5h3v4.5h-3z"/></svg><span class="texto-pestana">Baúl de frases</span>
+        </button>
+        <button data-pestana="letras" data-vista="papelera" class="solo-compu" aria-selected="false">
+            <svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg><span class="texto-pestana">Papelera</span>
         </button>
         <button data-pestana="ajustes" aria-selected="false">
             <svg viewBox="0 0 24 24" class="icono"><path d="M19.04 9.71 L21.77 9.86 L21.77 14.14 L19.04 14.29 L18.59 15.36 L20.42 17.39 L17.39 20.42 L15.36 18.59 L14.29 19.04 L14.14 21.77 L9.86 21.77 L9.71 19.04 L8.64 18.59 L6.61 20.42 L3.58 17.39 L5.41 15.36 L4.96 14.29 L2.23 14.14 L2.23 9.86 L4.96 9.71 L5.41 8.64 L3.58 6.61 L6.61 3.58 L8.64 5.41 L9.71 4.96 L9.86 2.23 L14.14 2.23 L14.29 4.96 L15.36 5.41 L17.39 3.58 L20.42 6.61 L18.59 8.64Z"/><circle cx="12" cy="12" r="3"/></svg><span class="texto-pestana">Ajustes</span>

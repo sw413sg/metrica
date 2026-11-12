@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, cabecerasIA, guardarRestantesWeb, tienePlanIA, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
 import { pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision } from '../js/logica/ia-prompt.js';
 
 const almacenNuevo = () => {
@@ -97,6 +97,38 @@ test('cupo: 20 gratis por mes, se renueva y el plan simulado sube a 500', () => 
     assert.equal(textoCupo(usoDelMes(almacen, noviembre)), '95% de 500 créditos IA del mes');
     borrarPlanIA(almacen);
     assert.equal(textoCupo({ quedan: 1, tope: 20, plan: false }), '5% de 20 créditos IA gratis del mes');
+});
+
+test('vinculada, los créditos y el plan son los del iPhone, y se piden con sus headers', async () => {
+    const almacen = almacenNuevo();
+    const noviembre = Date.UTC(2026, 10, 15), diciembre = Date.UTC(2026, 11, 15);
+    assert.deepEqual(cabecerasIA(almacen), {});
+    almacen.setItem('metrica.web-plan', JSON.stringify({
+        extras: true, plan: 'mas', ia: true,
+        cupo: { quedan: 270, total: 300, mesTope: 300, extra: 0, plan: true },
+        cuenta: { id: 'tel', jws: ['a.b.c', 'd.e.f'], pais: 'AR' },
+    }));
+    assert.equal(tienePlanIA(almacen), true);
+    assert.deepEqual(cabecerasIA(almacen), { 'X-Metrica-Id': 'tel', 'X-Metrica-JWS': 'a.b.c,d.e.f', 'X-Metrica-Pais': 'AR' });
+    assert.equal(textoCupo(usoDelMes(almacen, noviembre)), '90% de 300 créditos IA del mes');
+    // Gastar desde la web no cuenta aparte: lo que queda lo dice el Worker.
+    anotarSugerencia(almacen, noviembre);
+    assert.equal(usoDelMes(almacen, noviembre).quedan, 270);
+    guardarRestantesWeb(almacen, 150, noviembre);
+    assert.equal(usoDelMes(almacen, noviembre).quedan, 150);
+    assert.equal(usoDelMes(almacen, diciembre).quedan, 270, 'lo de otro mes no vale');
+    // Con extra no se dice «mes».
+    almacen.setItem('metrica.web-plan', JSON.stringify({ extras: true, plan: 'mas', ia: true, cupo: { quedan: 1683, total: 1950, mesTope: 300, extra: 1650, plan: true }, cuenta: { id: 'tel' } }));
+    assert.equal(textoCupo(usoDelMes(almacen, diciembre)), '86% de 1.950 créditos IA');
+    // El Worker contesta cuánto queda en X-Metrica-Restantes.
+    const { pedido } = elegir('y me quedo solo con mi canción');
+    let restantes, enviado;
+    await pedirSugerencias(pedido, {
+        endpoint: 'https://ia.ejemplo', id: 'web', cabeceras: cabecerasIA(almacen), alRestantes: n => { restantes = n; },
+        fetch: async (url, opciones) => { enviado = opciones; return { ok: true, status: 200, headers: new Map([['X-Metrica-Restantes', '42']]), json: async () => ({ sugerencias: [] }) }; },
+    });
+    assert.equal(enviado.headers['X-Metrica-Id'], 'tel');
+    assert.equal(restantes, 42);
 });
 
 test('idDeUsuario se crea una vez y queda', () => {

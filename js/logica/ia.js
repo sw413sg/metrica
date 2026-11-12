@@ -307,7 +307,40 @@ export const mesDe = ms => {
     const fecha = new Date(ms);
     return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
 };
-export const tienePlanIA = almacen => almacen.getItem(CLAVE_PLAN) === 'comprado';
+// Vinculada con el iPhone, el plan y los créditos IA son los del iPhone (`plan-iphone`, ver js/web.js).
+const CLAVE_PLAN_WEB = 'metrica.web-plan';
+const CLAVE_RESTANTES_WEB = 'metrica.web-restantes';
+const planWeb = almacen => { try { return JSON.parse(almacen.getItem(CLAVE_PLAN_WEB)) ?? {}; } catch { return {}; } };
+export const tienePlanIA = almacen => almacen.getItem(CLAVE_PLAN) === 'comprado' || planWeb(almacen).ia === true;
+
+// Los mismos headers que manda el iPhone al Worker: así la web gasta sus créditos, no unos propios.
+export function cabecerasIA(almacen) {
+    const cuenta = planWeb(almacen).cuenta;
+    if (!cuenta?.id) return {};
+    const cabeceras = { 'X-Metrica-Id': cuenta.id };
+    if (cuenta.jws?.length) cabeceras['X-Metrica-JWS'] = cuenta.jws.join(',');
+    if (cuenta.simulada) cabeceras['X-Metrica-Simulada'] = cuenta.simulada;
+    if (cuenta.paquetesPrueba?.length) cabeceras['X-Metrica-Paquetes-Prueba'] = cuenta.paquetesPrueba.join(',');
+    if (cuenta.prueba) cabeceras['X-Metrica-Prueba'] = cuenta.prueba;
+    if (cuenta.pais) cabeceras['X-Metrica-Pais'] = cuenta.pais;
+    return cabeceras;
+}
+// Lo que contestó el Worker (`X-Metrica-Restantes`) a un pedido de la web, hasta que el iPhone mande el suyo.
+export const guardarRestantesWeb = (almacen, quedan, ahora = Date.now()) =>
+    almacen.setItem(CLAVE_RESTANTES_WEB, JSON.stringify({ mes: mesDe(ahora), quedan }));
+function cupoDelIphone(almacen, ahora) {
+    const { cupo, cuenta } = planWeb(almacen);
+    if (!cupo || !cuenta) return null;
+    let quedan = cupo.quedan;
+    try {
+        const web = JSON.parse(almacen.getItem(CLAVE_RESTANTES_WEB));
+        if (web?.mes === mesDe(ahora) && Number.isFinite(web.quedan)) quedan = Math.min(quedan, web.quedan);
+    } catch { /* sin pedidos desde la web */ }
+    const tope = Math.max(1, cupo.total, quedan);
+    // Como en Swift: «del mes» solo con la cuota del mes sola; las extra no vencen.
+    const delMes = !cupo.extra && cupo.total === cupo.mesTope;
+    return { usadas: tope - quedan, tope, quedan, plan: Boolean(cupo.plan), delIphone: true, delMes };
+}
 export const comprarPlanIA = almacen => { almacen.setItem(CLAVE_PLAN, 'comprado'); return true; };
 export const borrarPlanIA = almacen => almacen.setItem(CLAVE_PLAN, '');
 
@@ -317,6 +350,8 @@ function leerUso(almacen) {
 
 // { usadas, tope, quedan, plan } del mes de `ahora`. Cada pedido (una tanda de 3 o 4) cuenta uno.
 export function usoDelMes(almacen, ahora = Date.now()) {
+    const delIphone = cupoDelIphone(almacen, ahora);
+    if (delIphone) return delIphone;
     const uso = leerUso(almacen);
     const usadas = uso.mes === mesDe(ahora) ? uso.usadas ?? 0 : 0;
     const plan = tienePlanIA(almacen);
@@ -345,8 +380,9 @@ export function cupoIA(almacen, letra = null, ahora = Date.now()) {
 }
 
 export function anotarSugerencia(almacen, ahora = Date.now(), letra = null) {
-    const usadas = usoDelMes(almacen, ahora).usadas + 1;
-    almacen.setItem(CLAVE_USO, JSON.stringify({ mes: mesDe(ahora), usadas }));
+    const mes = usoDelMes(almacen, ahora);
+    // Con el iPhone, lo que queda lo dice el Worker (`guardarRestantesWeb`).
+    if (!mes.delIphone) almacen.setItem(CLAVE_USO, JSON.stringify({ mes: mesDe(ahora), usadas: mes.usadas + 1 }));
     if (letra != null) {
         const letras = leerLetras(almacen, ahora);
         letras[letra] = (letras[letra] ?? 0) + 1;
@@ -356,9 +392,12 @@ export function anotarSugerencia(almacen, ahora = Date.now(), letra = null) {
 }
 
 // Como en Swift: el porcentaje que queda, en créditos IA (pedido de Swa: ni usos ni consultas).
-export const textoCupo = ({ quedan, tope, plan, porLetra }) => porLetra
+export const textoCupo = ({ quedan, tope, plan, porLetra, delMes = true }) => porLetra
     ? `${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} de ${tope} hoy en esta letra`
-    : `${Math.round(100 * quedan / tope)}% de ${tope} créditos IA${plan ? '' : ' gratis'} del mes`;
+    : `${Math.round(100 * quedan / tope)}% de ${etiquetaCreditos({ tope, plan, delMes })}`;
+// «20 créditos IA gratis del mes», o con extra (que no vencen) «1.683 créditos IA», sin «mes».
+export const etiquetaCreditos = ({ tope, plan, delMes = true }) =>
+    `${String(tope).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} créditos IA${delMes ? `${plan ? '' : ' gratis'} del mes` : ''}`;
 
 // Lo que se dice cuando no queda.
 export const textoSinCupo = ({ porLetra }) => porLetra
@@ -392,18 +431,21 @@ export const pedirSugerencias = (pedido, opciones) => llamarIA({ pedido }, opcio
 // La letra entera, para la pestaña «Sugerencias»: vuelven cambios { titulo, verso, viejo, nuevo }.
 export const pedirRevision = (revision, opciones) => llamarIA({ revision }, opciones);
 
-async function llamarIA(cuerpo, { endpoint = '', id = '', fetch = globalThis.fetch, simular = () => [] } = {}) {
+async function llamarIA(cuerpo, { endpoint = '', id = '', cabeceras = {}, alRestantes = () => {}, fetch = globalThis.fetch, simular = () => [] } = {}) {
     if (!endpoint) return { sugerencias: simular(), simulada: true };
     let respuesta;
     try {
         respuesta = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Metrica-Id': id },
+            headers: { 'Content-Type': 'application/json', 'X-Metrica-Id': id, ...cabeceras },
             body: JSON.stringify(cuerpo),
         });
     } catch {
         throw errorIA('red');
     }
+    const restantes = parseInt(respuesta.headers?.get?.('X-Metrica-Restantes') ?? '', 10);
+    if (Number.isFinite(restantes)) alRestantes(restantes);
+    else if (respuesta.status === 402) alRestantes(0);
     if (respuesta.status === 402 || respuesta.status === 429) throw errorIA('cupo');
     if (!respuesta.ok) throw errorIA('servidor');
     const datos = await respuesta.json().catch(() => ({}));
