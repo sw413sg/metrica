@@ -2435,6 +2435,9 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     body.barra-escondida #titulo-rimas, body.barra-escondida #pantalla-freestyle .titulo-grande,
     body.barra-escondida #vista-ajustes > .titulo-grande { padding-left: max(0px, calc(50px - max(0px, (100vw - 760px) / 2))); }
     /* Lo de cada sección, centrado en lo que queda (más ancho en la grilla de Letras). */
+    /* En la compu el reproductor no queda pegado abajo del resplandor de Freestyle (es más angosto y va
+       fijo abajo): el resplandor se desvanece para los dos lados, sin el borde recto (pedido de Swa). */
+    .pausar-fs { height: 60px; margin-top: -48px; background: radial-gradient(ellipse 50% 50% at 50% 50%, color-mix(in srgb, var(--destacado) 22%, transparent), transparent 100%); }
     #pantalla-rimas, #pantalla-freestyle, .vista { padding-inline: max(0px, calc((100% - 760px) / 2)); }
     #vista-lista-letras { padding-inline: max(0px, calc((100% - 1180px) / 2)); }
     .contenido { padding-bottom: calc(32px + var(--alto-sobre-barra, 0px)); }
