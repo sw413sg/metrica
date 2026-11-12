@@ -153,6 +153,7 @@ a { color: var(--acento); text-decoration: none; }
 .lista-agrupada:empty { display: none; }
 .encabezado-grupo + .lista-agrupada { margin-top: 0; }
 .celda { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 50px; padding: 12px 18px; position: relative; }
+.celda.fuera-de-la-web + .celda::before { display: none; }
 .celda + .celda::before { content: ""; position: absolute; top: 0; left: 18px; right: 0; border-top: 0.5px solid var(--separador); }
 /* Ícono en un cuadradito de color a la izquierda, como en Ajustes de iOS (Label en SwiftUI). */
 .icono-celda { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
@@ -2273,11 +2274,22 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 19V5M6 11l6-6 6 6' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 [aria-pressed="true"] > .flecha-orden.arriba { rotate: 0deg; }
-.fila-creditos { gap: 12px; min-height: 56px; padding: 10px 16px; }
-.fila-creditos .estrella-ia { width: 22px; height: 22px; margin: 0 4px; }
-.fila-creditos #menu-creditos { display: flex; flex-direction: column; line-height: 1.25; white-space: normal; }
-.fila-creditos strong { font-size: 17px; font-variant-numeric: tabular-nums; }
-.fila-creditos #menu-creditos span { font-size: 13px; color: var(--texto-2); white-space: normal; }
+.fila-creditos { display: flex; align-items: center; justify-content: flex-start; gap: 12px; min-height: 60px; padding: 10px 16px; }
+.lista-menu .fila-creditos { width: 100%; }
+/* El aro: un anillo gris con el violeta de lo que queda, desde arriba y en el sentido del reloj. */
+.aro-creditos {
+    position: relative; flex: none; width: 30px; height: 30px; margin: 0 0 0 0; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(var(--destacado) calc(var(--queda) * 360deg), var(--separador) 0);
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--destacado) 50%, transparent));
+    -webkit-mask: radial-gradient(circle, transparent 11px, #000 11.5px); mask: radial-gradient(circle, transparent 11px, #000 11.5px);
+}
+.aro-creditos .estrella-ia { position: absolute; width: 12px; height: 12px; }
+.fila-creditos { --anillo: 0; }
+.fila-creditos > .aro-creditos + .texto-creditos { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.texto-creditos strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); }
+.texto-creditos span { font-size: 13px; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sin-creditos .texto-creditos strong { color: var(--texto-2); }
+.sin-creditos .estrella-ia { opacity: .4; }
 .menu-pie { flex: none; margin-top: 8px; }
 
 /* Un menú chico al lado de un botón (opciones de una carpeta, mover a carpeta). */
@@ -2294,6 +2306,8 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .campo-alerta:focus { border-color: var(--destacado); }
 .alerta-botones button:disabled { opacity: .4; cursor: default; }
 .carpetas-lateral { display: none; }
+.opciones-letras, .abrir-barra, .fondo-barra { display: none; }
+.abrir-barra { position: fixed; z-index: 20; top: calc(env(safe-area-inset-top) + 14px); left: 16px; }
 
 /* ===================== Métrica web en la computadora (pedido de Swa) =====================
    En el celular queda todo como siempre. Desde 700 px, la barra de pestañas pasa a ser una barra
@@ -2348,10 +2362,14 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .grilla-letras.cuadrados { grid-auto-rows: 264px; }
     .grilla-letras.cuadrados .tarjeta-letra, .grilla-letras.cuadrados .tarjeta-nueva { aspect-ratio: auto; }
     .titulo-carpeta, .aviso-privadas { margin-inline: 20px; }
-    /* El menú de Letras, abajo de las tres líneas, como una ventanita (sin oscurecer todo). */
+    /* Sin las tres líneas: la barra lateral ya es el menú (carpetas, papelera). A la derecha, «Ver y ordenar»
+       abre una ventanita con el tamaño, el orden y la selección (sin oscurecer todo). */
+    #abrir-menu-letras, .menu-solo-celular { display: none; }
+    .opciones-letras { display: grid; }
+    .menu-letras-cuerpo > h3:first-of-type { margin-top: 8px; }
     .menu-letras-fondo, .menu-letras-fondo.abierto { background: transparent; }
     .menu-letras {
-        top: 64px; bottom: auto; left: calc(var(--izq) + 16px); width: 340px; max-height: calc(100vh - 80px);
+        top: 64px; bottom: auto; left: auto; right: max(16px, calc((100vw - var(--izq) - 1180px) / 2 + 16px)); width: 320px; max-height: calc(100vh - 80px);
         padding: 8px 12px 12px; border-radius: 24px; border: 1px solid var(--separador);
         box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28); translate: 0 -8px; opacity: 0; transition: translate .18s, opacity .18s;
     }
@@ -2378,6 +2396,22 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     body.barra-plegada .barra-pestanas button { width: 46px; padding: 0; justify-content: center; }
     body.barra-plegada .barra-pestanas .estado-web { width: 46px; min-height: 36px; padding: 0; justify-content: center; background: none; }
     .barra-pestanas, .app, .vista#vista-editor, .reproductor, .sonando-fs, #hoja-musica { transition: width .2s, margin .2s, left .2s; }
+
+    /* La ventana a la mitad de la pantalla o menos (pedido de Swa): sin barra lateral, y las tres líneas
+       la abren encima, entera. */
+    body.barra-escondida { --izq: 0px; }
+    body.barra-escondida .barra-pestanas {
+        width: 280px; z-index: 40; translate: -100% 0; visibility: hidden;
+        transition: translate .22s cubic-bezier(.2, .9, .3, 1), visibility .22s;
+    }
+    body.barra-escondida.barra-abierta .barra-pestanas { translate: 0 0; visibility: visible; box-shadow: 6px 0 24px rgba(0, 0, 0, 0.25); }
+    body.barra-escondida.barra-abierta .fondo-barra { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(0, 0, 0, 0.3); }
+    body.barra-escondida #abrir-menu-letras { display: grid; }
+    body.barra-escondida:has(#pantalla-rimas.activa) .abrir-barra,
+    body.barra-escondida:has(#pantalla-freestyle.activa) .abrir-barra,
+    body.barra-escondida:has(#pantalla-ajustes.activa #vista-ajustes.activa) .abrir-barra { display: grid; }
+    body.barra-escondida #titulo-rimas, body.barra-escondida #pantalla-freestyle .titulo-grande,
+    body.barra-escondida #vista-ajustes > .titulo-grande { padding-left: max(0px, calc(50px - max(0px, (100vw - 760px) / 2))); }
     /* Lo de cada sección, centrado en lo que queda (más ancho en la grilla de Letras). */
     #pantalla-rimas, #pantalla-freestyle, .vista { padding-inline: max(0px, calc((100% - 760px) / 2)); }
     #vista-lista-letras { padding-inline: max(0px, calc((100% - 1180px) / 2)); }

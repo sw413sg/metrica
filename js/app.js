@@ -26,7 +26,7 @@ import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/aparienc
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, guardarFotoWidgets, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, borrarPlanIA, CUPO_GRATIS } from './logica/ia.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, cabecerasIA, guardarRestantesWeb, tienePlanIA, usoDelMes, cupoIA, anotarSugerencia, textoCupo, etiquetaCreditos, textoSinCupo, borrarPlanIA, CUPO_GRATIS } from './logica/ia.js';
 import { TEMAS, tieneExtras, borrarCompra, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
 import { estaVinculada, planDelIphone, vincular, sincronizar, cerrarSesion, estadoDeSincronizacion } from './web.js';
@@ -74,9 +74,11 @@ function mostrarPestana(nombre) {
 // La pestaña elegida (en la barra lateral de la computadora, el baúl tiene su propio renglón).
 function marcarBarra() {
     const pestana = document.querySelector('.pantalla.activa')?.dataset.pestana;
-    const enBaul = pestana === 'letras' && $('vista-baul').classList.contains('activa') && innerWidth >= 700;
+    // El baúl y la papelera tienen su propio renglón en la barra lateral.
+    const vista = pestana === 'letras' && innerWidth >= 700
+        ? ['baul', 'papelera'].find(v => $(`vista-${v}`).classList.contains('activa')) : undefined;
     document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b =>
-        b.setAttribute('aria-selected', b.dataset.pestana === pestana && (b.dataset.vista === 'baul') === enBaul));
+        b.setAttribute('aria-selected', b.dataset.pestana === pestana && b.dataset.vista === vista));
     if (pestana === 'letras' && columnasLetras() !== columnasUbicadas) ubicarTarjetas();
     // Con una carpeta abierta, en la barra lateral va marcada la carpeta y no «Letras».
     const enCarpeta = pestana === 'letras' && opcionesLetras.carpeta && $('vista-lista-letras').classList.contains('activa');
@@ -90,6 +92,13 @@ document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => b.addEv
         if (!enLetras) mostrarPestana('letras');
         if ($('vista-editor').classList.contains('activa')) $('abrir-baul-libreta').click();
         else if (!$('vista-baul').classList.contains('activa')) abrirBaul(false);
+        return marcarBarra();
+    }
+    if (b.dataset.vista === 'papelera') {
+        if (!enLetras) mostrarPestana('letras');
+        if ($('vista-editor').classList.contains('activa')) $('editor-atras').click();
+        mostrarVista('vista-papelera');
+        renderizarPapelera();
         return marcarBarra();
     }
     // En la barra lateral, «Letras» son todas las letras (las carpetas van abajo).
@@ -426,8 +435,9 @@ const ICONO_TODAS = '<svg viewBox="0 0 24 24" class="icono"><path d="M4 13l2.5-7
 const ICONO_NUEVA_CARPETA = '<svg viewBox="0 0 24 24" class="icono"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></svg>';
 const ICONO_MAS_OPCIONES = '<svg viewBox="0 0 24 24" class="icono"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>';
 const escaparTexto = texto => String(texto).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-// «Métrica», o con lo que compró el iPhone «Métrica+» con el «+» violeta.
-const nombreMetrica = () => (tieneExtras(localStorage) ? 'Métrica<span class="mas-violeta">+</span>' : 'Métrica');
+// «Métrica», o con lo que compró el iPhone «Métrica+» (o «Métrica+ IA») con el «+» y «IA» en violeta.
+const nombreMetrica = () => (tienePlanIA(localStorage) ? 'Métrica<span class="mas-violeta">+ IA</span>'
+    : tieneExtras(localStorage) ? 'Métrica<span class="mas-violeta">+</span>' : 'Métrica');
 
 function abrirMenuLetras() {
     renderizarMenuLetras();
@@ -440,7 +450,9 @@ function cerrarMenuLetras() {
     menu.classList.remove('abierto');
     setTimeout(() => { if (!menu.classList.contains('abierto')) menu.hidden = true; }, 220);
 }
-$('abrir-menu-letras').addEventListener('click', abrirMenuLetras);
+// Con la ventana angosta, las tres líneas abren la barra lateral entera (ahí están las carpetas y la papelera).
+$('abrir-menu-letras').addEventListener('click', () => (document.body.classList.contains('barra-escondida') ? abrirBarraLateral() : abrirMenuLetras()));
+$('opciones-letras').addEventListener('click', abrirMenuLetras);
 $('menu-letras').addEventListener('click', e => { if (e.target === $('menu-letras')) cerrarMenuLetras(); });
 
 function filaCarpeta(id, nombre, cantidad, icono) {
@@ -504,10 +516,7 @@ function renderizarMenuLetras() {
         b.setAttribute('aria-pressed', esta);
         b.querySelector('.flecha-orden').classList.toggle('arriba', esta && opcionesLetras.ascendente);
     });
-    const uso = usoDelMes(localStorage);
-    $('menu-creditos').innerHTML = uso.quedan
-        ? `<strong>${Math.round(100 * uso.quedan / uso.tope)}%</strong> <span>de ${uso.tope} créditos IA${uso.plan ? '' : ' gratis'} del mes</span>`
-        : '<strong>Créditos IA insuficientes</strong>';
+    pintarFilaCreditos($('menu-creditos'));
 }
 
 document.querySelectorAll('#menu-tamano button').forEach(b => b.addEventListener('click', () => {
@@ -636,14 +645,38 @@ function aplicarBarraPlegada(plegada) {
     $('plegar-barra').title = plegada ? 'Desplegar la barra lateral' : 'Plegar la barra lateral';
     // Los nombres van como globo al pasar el mouse, para saber qué es cada ícono.
     document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => { b.title = plegada ? b.textContent.trim() : ''; });
-    if ($('pantalla-letras').classList.contains('activa')) requestAnimationFrame(() => { if (columnasLetras() !== columnasUbicadas) ubicarTarjetas(); });
+    // Después de la transición del ancho (.2 s), con el lugar que quedó.
+    setTimeout(() => { if ($('pantalla-letras').classList.contains('activa') && columnasLetras() !== columnasUbicadas) ubicarTarjetas(); }, 260);
 }
-aplicarBarraPlegada((() => { try { return localStorage.getItem('metrica.barra-plegada') === 'si'; } catch { return false; } })());
+const barraGuardadaPlegada = () => { try { return localStorage.getItem('metrica.barra-plegada') === 'si'; } catch { return false; } };
 $('plegar-barra').addEventListener('click', () => {
+    if (document.body.classList.contains('barra-escondida')) return cerrarBarraLateral();
     const plegada = !document.body.classList.contains('barra-plegada');
     guardarOpcion('metrica.barra-plegada', plegada ? 'si' : '');
     aplicarBarraPlegada(plegada);
 });
+
+// ---------- Ventana angosta (pedido de Swa) ----------
+// Con la ventana a la mitad de la pantalla o menos, la barra lateral se esconde y la letra usa todo el
+// ancho; las tres líneas la abren encima, entera (estado del iPhone, secciones, carpetas y papelera).
+// Más ancha, queda la barra de siempre y las tres líneas no van.
+const abrirBarraLateral = () => document.body.classList.add('barra-abierta');
+const cerrarBarraLateral = () => document.body.classList.remove('barra-abierta');
+function aplicarVentana() {
+    const angosta = innerWidth >= 700 && innerWidth <= (screen.availWidth || screen.width) * 0.55;
+    if (angosta === document.body.classList.contains('barra-escondida')) return;
+    document.body.classList.toggle('barra-escondida', angosta);
+    cerrarBarraLateral();
+    aplicarBarraPlegada(!angosta && barraGuardadaPlegada());
+}
+aplicarBarraPlegada(barraGuardadaPlegada());
+aplicarVentana();
+addEventListener('resize', aplicarVentana);
+$('abrir-barra').addEventListener('click', abrirBarraLateral);
+$('fondo-barra').addEventListener('click', cerrarBarraLateral);
+// Elegir algo de la barra la cierra (menos plegar, que ya la cierra solo).
+$('barra-pestanas').addEventListener('click', e => { if (e.target.closest('button') && !e.target.closest('#plegar-barra')) cerrarBarraLateral(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') cerrarBarraLateral(); });
 
 // ---------- Un menú chico al lado de un botón, y pedir un nombre ----------
 function menuFlotante(ancla, opciones) {
@@ -1553,8 +1586,13 @@ const rimasParaIA = palabra => {
 const conMayuscula = (nueva, original) => /^\p{Lu}/u.test(original) ? nueva[0].toUpperCase() + nueva.slice(1) : nueva;
 
 // Al servidor, o simuladas (con una pausa, como si pensara).
+// Vinculada, con los headers del iPhone: gasta sus créditos IA, y lo que queda vuelve en la respuesta.
+const servidorIA = () => ({
+    endpoint: endpointIA(localStorage), id: idDeUsuario(localStorage), cabeceras: cabecerasIA(localStorage),
+    alRestantes: quedan => { guardarRestantesWeb(localStorage, quedan); renderizarCreditos(); },
+});
 async function consultarIA(pedido, simular) {
-    const respuesta = await pedirSugerencias(pedido, { endpoint: endpointIA(localStorage), id: idDeUsuario(localStorage), simular });
+    const respuesta = await pedirSugerencias(pedido, { ...servidorIA(), simular });
     if (respuesta.simulada) await new Promise(listo => setTimeout(listo, 650));
     return respuesta;
 }
@@ -2140,7 +2178,7 @@ async function revisarLetra() {
     estadoRevision();
     try {
         const respuesta = await pedirRevision(revision, {
-            endpoint: endpointIA(localStorage), id: idDeUsuario(localStorage),
+            ...servidorIA(),
             simular: () => revisionSimulada(revision, {
                 corregir: bienEscrita,
                 sinonimosDe: palabra => buscarSinonimos(palabra, indiceSinonimos()),
@@ -4374,8 +4412,8 @@ function renderizarExtras() {
     const extras = tieneExtras(localStorage);
     renderizarDuraciones();
     // Métrica+ y los créditos IA, solo para ver: se compran en el iPhone.
-    $('ajustes-plan').innerHTML = extras ? nombreMetrica() : 'Gratis';
-    $('ajustes-mejorar-celda').hidden = extras;
+    $('ajustes-plan').innerHTML = extras || tienePlanIA(localStorage) ? nombreMetrica() : 'Gratis';
+    $('ajustes-mejorar-celda').hidden = extras || tienePlanIA(localStorage);
     renderizarCreditos();
     renderizarTemas();
     if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
@@ -4383,8 +4421,18 @@ function renderizarExtras() {
 
 // Lo que queda de los créditos IA de esta computadora, en porcentaje (como en Swift).
 function renderizarCreditos() {
+    pintarFilaCreditos($('ajustes-creditos'));
+}
+// Como FilaCuotaIA de Swift: a la izquierda el aro violeta que se vacía con la estrellita, y al lado
+// el porcentaje que queda (con un decimal, «99,8%») y «de 20 créditos IA gratis del mes».
+function pintarFilaCreditos(fila) {
     const uso = usoDelMes(localStorage);
-    $('ajustes-creditos').textContent = uso.quedan ? `${Math.round(100 * uso.quedan / uso.tope)}% de ${uso.tope}` : 'Insuficientes';
+    const queda = uso.tope ? uso.quedan / uso.tope : 0;
+    const porcentaje = `${(100 * queda).toFixed(1).replace('.', ',')}%`;
+    fila.classList.toggle('sin-creditos', !uso.quedan);
+    fila.innerHTML = `<span class="aro-creditos" style="--queda:${queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
+        + `<span class="texto-creditos"><strong>${porcentaje}</strong><span>${uso.quedan ? `de ${etiquetaCreditos(uso)}` : 'Créditos IA insuficientes'}</span></span>`;
+    fila.setAttribute('aria-label', `Créditos IA: ${porcentaje} de ${etiquetaCreditos(uso)}`);
 }
 
 // Temas de la libreta: cada letra tiene el suyo (arranca en Gris liso) y se guarda con ella.
@@ -5886,7 +5934,7 @@ function renderizarWeb() {
     $('web-sin-vincular').hidden = vinculada;
     $('web-vinculada').hidden = !vinculada;
     $('web-cerrar-celda').hidden = !vinculada;
-    $('web-plan').textContent = planDelIphone().extras ? 'Métrica+' : 'Gratis';
+    $('web-plan').textContent = planDelIphone().ia ? 'Métrica+ IA' : planDelIphone().extras ? 'Métrica+' : 'Gratis';
 }
 
 function avisoVincular(estado, texto = '') {

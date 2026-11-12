@@ -183,7 +183,10 @@ const sembrar = () => {
         // Elegir dos letras desde «Todas» y pasarlas a la carpeta.
         await page.click('#barra-pestanas [data-pestana="letras"]:not([data-vista])');
         assert.equal(await page.locator('#titulo-carpeta').isVisible(), false);
-        await page.click('#abrir-menu-letras');
+        // Sin las tres líneas (serían otra barra): «Ver y ordenar» trae el tamaño, el orden y la selección.
+        assert.equal(await page.locator('#abrir-menu-letras').isVisible(), false);
+        await page.click('#opciones-letras');
+        assert.equal(await page.locator('#menu-carpetas').isVisible(), false);
         await page.click('#empezar-seleccion');
         await tarjetas.nth(0).locator('button').click();
         await tarjetas.nth(1).locator('button').click();
@@ -203,7 +206,7 @@ const sembrar = () => {
         await page.keyboard.press('Escape');
         assert.equal(await tarjetas.count(), total);
         // Ordenar por título.
-        await page.click('#abrir-menu-letras');
+        await page.click('#opciones-letras');
         await page.click('#menu-orden [data-orden="titulo"]');
         await page.keyboard.press('Escape');
         const titulos = await page.locator('#lista-letras .titulo-letra').allTextContents();
@@ -217,11 +220,13 @@ const sembrar = () => {
         await page.waitForTimeout(800);
         assert.ok((await page.locator('#barra-pestanas').boundingBox()).width < 80, 'sigue plegada');
         await page.click('#plegar-barra');
-        // La papelera está en el menú de Letras.
-        await page.click('#abrir-menu-letras');
+        // La papelera está en la barra lateral.
+        await page.click('#opciones-letras');
         await page.screenshot({path: 'capturas/compu/menu-letras.png'});
-        await page.click('#abrir-papelera');
+        await page.keyboard.press('Escape');
+        await page.click('#barra-pestanas [data-vista="papelera"]');
         assert.equal(await page.locator('#vista-papelera').isVisible(), true);
+        assert.equal(await page.getAttribute('#barra-pestanas [data-vista="papelera"]', 'aria-selected'), 'true');
         await page.click('#papelera-atras');
         // La web no vende: pasado el límite de carpetas, «Mejóralo desde tu iPhone».
         await page.click('.nueva-carpeta-lateral');
@@ -230,6 +235,39 @@ const sembrar = () => {
         await page.click('.nueva-carpeta-lateral');
         assert.equal(await page.locator('#paywall').isVisible(), true);
         assert.match(await page.textContent('#paywall-titulo'), /Mejóralo desde tu iPhone/);
+        assert.deepEqual(errores, []);
+        await page.close();
+    }
+
+    // La ventana a la mitad de la pantalla: sin barra lateral; las tres líneas la abren entera.
+    {
+        const page = await browser.newPage({viewport: {width: 900, height: 800}, screen: {width: 1920, height: 1080}});
+        await page.addInitScript(sembrar);
+        const errores = [];
+        page.on('pageerror', e => errores.push(e.message));
+        await page.goto(url);
+        await page.waitForTimeout(800);
+        assert.equal(await page.locator('#estado-web').isVisible(), false, 'barra escondida');
+        assert.ok((await page.locator('#abrir-menu-letras').boundingBox()).x < 30, 'las tres líneas, a la izquierda del buscador');
+        await page.click('#abrir-menu-letras');
+        await page.waitForTimeout(300);
+        for (const que of ['#estado-web', '.nueva-carpeta-lateral', '[data-vista="papelera"]', '[data-vista="baul"]', '[data-pestana="ajustes"]'])
+            assert.equal(await page.locator(`#barra-pestanas ${que}`).first().isVisible(), true, `${que} en la barra abierta`);
+        await page.screenshot({path: 'capturas/compu/ventana-angosta.png'});
+        await page.click('#barra-pestanas [data-pestana="rimas"]');
+        await page.waitForTimeout(300);
+        assert.equal(await page.locator('#pantalla-rimas').isVisible(), true);
+        assert.equal(await page.locator('#estado-web').isVisible(), false, 'se cierra al elegir');
+        await page.click('#abrir-barra');
+        await page.waitForTimeout(300);
+        assert.equal(await page.locator('#estado-web').isVisible(), true);
+        await page.keyboard.press('Escape');
+        // Más ancha vuelve la barra fija, sin las tres líneas.
+        await page.setViewportSize({width: 1440, height: 900});
+        await page.evaluate(() => dispatchEvent(new Event('resize')));
+        await page.waitForTimeout(300);
+        assert.equal(await page.locator('#estado-web').isVisible(), true, 'barra fija');
+        assert.equal(await page.locator('#abrir-barra').isVisible(), false);
         assert.deepEqual(errores, []);
         await page.close();
     }
