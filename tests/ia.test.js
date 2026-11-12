@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, cabecerasIA, guardarRestantesWeb, tienePlanIA, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, cupoIA, pastillaCupo, textoSinCupo, cabecerasIA, guardarRestantesWeb, tienePlanIA, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
 import { pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision } from '../js/logica/ia-prompt.js';
 
 const almacenNuevo = () => {
@@ -129,6 +129,19 @@ test('vinculada, los créditos y el plan son los del iPhone, y se piden con sus 
     });
     assert.equal(enviado.headers['X-Metrica-Id'], 'tel');
     assert.equal(restantes, 42);
+});
+
+test('en la web, sin un iPhone vinculado no hay IA, y vinculada va con la sesión al Worker', () => {
+    const almacen = almacenNuevo();
+    const sin = cupoIA(almacen);
+    assert.equal(sin.quedan, 0);
+    assert.equal(sin.sinVincular, true);
+    assert.equal(pastillaCupo(sin).etiqueta, 'Vincula tu iPhone para usar Métrica IA');
+    assert.match(textoSinCupo(sin), /vincula tu iPhone/);
+    almacen.setItem('metrica.web-sesion', JSON.stringify({ espacio: 'e1', token: 't1', rev: 0 }));
+    assert.equal(cupoIA(almacen).sinVincular, undefined);
+    assert.equal(cupoIA(almacen).quedan, CUPO_GRATIS);
+    assert.deepEqual(cabecerasIA(almacen), { Authorization: 'Bearer e1.t1' });
 });
 
 test('idDeUsuario se crea una vez y queda', () => {

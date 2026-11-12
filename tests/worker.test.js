@@ -63,7 +63,7 @@ afterEach(() => { globalThis.fetch = fetchOriginal; });
 
 const pedir = (cuerpo = { pedido }, cabeceras = {}, ruta = '/ia') => worker.fetch(new Request(`https://metrica.ejemplo${ruta}`, {
     method: 'POST', body: JSON.stringify(cuerpo),
-    headers: { Origin: 'https://sw413sg.github.io', 'X-Metrica-Id': ID, 'Content-Type': 'application/json', ...cabeceras },
+    headers: { 'X-Metrica-Id': ID, 'Content-Type': 'application/json', ...cabeceras },
 }), env);
 
 test('el Worker arma el mensaje, llama al modelo con la clave y descuenta el cupo', async () => {
@@ -75,7 +75,6 @@ test('el Worker arma el mensaje, llama al modelo con la clave y descuenta el cup
     assert.equal(llamadas[0].cuerpo.model, 'gpt-6.1-terra');
     assert.equal(llamadas[0].cuerpo.reasoning_effort, 'low');
     assert.match(llamadas[0].cuerpo.messages[1].content, /rimar con «canción»/);
-    assert.equal(respuesta.headers.get('Access-Control-Allow-Origin'), 'https://sw413sg.github.io');
     assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '1');
 });
 
@@ -87,6 +86,16 @@ test('el Worker corta al llegar al cupo del mes', async () => {
     assert.equal(respuesta.headers.get('X-Metrica-Restantes'), '0');
     assert.equal((await respuesta.json()).error, 'cupo');
     assert.equal(llamadas.length, 2);
+});
+
+test('desde la web, la IA es solo con un iPhone vinculado (pedido de Swa)', async () => {
+    const web = { Origin: 'https://sw413sg.github.io' };
+    const sinVincular = await pedir(undefined, web);
+    assert.equal(sinVincular.status, 401);
+    assert.equal((await sinVincular.json()).error, 'vincular');
+    assert.equal(sinVincular.headers.get('Access-Control-Allow-Origin'), 'https://sw413sg.github.io');
+    assert.equal((await pedir(undefined, { ...web, Authorization: `Bearer ${'a'.repeat(32)}.${'b'.repeat(64)}` })).status, 401);
+    assert.equal(llamadas.length, 0);
 });
 
 test('el Worker no atiende otros orígenes, ids raros ni pedidos que no son de Métrica', async () => {

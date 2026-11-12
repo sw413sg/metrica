@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../worker/src/index.js';
-import { Enlaces, Espacio, PLANES_WEB, SESION_INACTIVA, VENCE_QR, operarEspacio, revisarEspacio } from '../worker/src/enlace.js';
+import { Enlaces, Espacio, PLANES_WEB, sesionParaIA, SESION_INACTIVA, VENCE_QR, operarEspacio, revisarEspacio } from '../worker/src/enlace.js';
 import { generarQR } from '../js/logica/qr.js';
 import {
     textoQR, leerQR, nuevoParECDH, claveCompartida, cifrarClaveDeDatos, abrirClaveDeDatos, clavesDeDatos,
@@ -177,7 +177,7 @@ test('el Worker vincula la web con el QR y pasa registros cifrados de un lado al
     const claveDeDatos = crypto.getRandomValues(new Uint8Array(32));
     const espacio = hexAzar(16), tokenTelefono = hexAzar(32);
     const escaneo = await telefonoEscanea(textoQR(codigo, web.publica), claveDeDatos);
-    const vincular = await pedir(env, '/web/vincular', { ...escaneo, espacio, token: tokenTelefono });
+    const vincular = await pedir(env, '/web/vincular', { ...escaneo, espacio, token: tokenTelefono, ia: 'telefonoiadeprueba1' });
     assert.equal(vincular.status, 200);
     assert.equal(vincular.datos.navegador, 'Chrome en Windows');
     assert.equal(vincular.datos.nuevo, true, 'la primera vez el iPhone manda todo');
@@ -207,6 +207,14 @@ test('el Worker vincula la web con el QR y pasa registros cifrados de un lado al
     // La web borra la letra; el iPhone ve el borrado.
     await pedir(env, '/web/guardar', { borrar: [letra.c] }, comoWeb);
     assert.deepEqual((await pedir(env, '/web/traer', { desde: 1 }, comoTelefono)).datos.registros, [{ c: letra.c, d: null }]);
+
+    // El iPhone puede actualizar el id de su IA al sincronizar; la web no.
+    await pedir(env, '/web/guardar', { guardar: [], ia: 'webquierecambiarlo1' }, comoWeb);
+    await pedir(env, '/web/guardar', { guardar: [], ia: 'telefonoiadeprueba1' }, comoTelefono);
+    // La IA desde la web: con la sesión vinculada pasa el control (y gasta con el id del iPhone).
+    assert.deepEqual(await sesionParaIA(new Request('https://metrica.ejemplo/ia', { headers: comoWeb }), env), { ia: 'telefonoiadeprueba1' });
+    assert.deepEqual(await sesionParaIA(new Request('https://metrica.ejemplo/ia', { headers: comoTelefono }), env), { error: 'vincular' });
+    assert.deepEqual(await sesionParaIA(new Request('https://metrica.ejemplo/ia', { headers: { Origin: ORIGEN } }), env), { error: 'vincular' });
 
     // El iPhone ve la sesión y la cierra: la web queda afuera.
     const { sesiones } = (await pedir(env, '/web/sesiones', {}, comoTelefono)).datos;

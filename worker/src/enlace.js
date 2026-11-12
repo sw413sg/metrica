@@ -38,6 +38,7 @@ export const formatos = {
     registro: /^[0-9a-f]{64}$/,
     publica: /^[A-Za-z0-9_-]{80,100}$/,
     clave: /^[A-Za-z0-9+/=_-]{40,200}$/,
+    ia: /^[a-z0-9]{16,64}$/,
 };
 
 function aleatorio(bytes) {
@@ -142,6 +143,8 @@ export async function operarEspacio(almacen, pedido) {
         const clave = await hash(pedido.token);
         if (telefono && telefono.hash !== clave) return { error: 'token' };
         if (!telefono) await almacen.put('tel', { hash: clave, creado: ahora });
+        // El id de la IA del iPhone (X-Metrica-Id): la web vinculada gasta esos créditos y no otros.
+        if (formatos.ia.test(pedido.ia ?? '')) await almacen.put('tel', { ...((await almacen.get('tel')) ?? {}), ia: pedido.ia });
         // Si ya está el máximo del plan, se cierra la usada hace más tiempo (como WhatsApp: la nueva entra).
         const plan = PLANES_WEB[pedido.plan] ?? PLANES_WEB.gratis;
         const todas = (await sesiones(almacen)).sort((a, b) => a.usada - b.usada);
@@ -173,6 +176,11 @@ export async function operarEspacio(almacen, pedido) {
         return { registros, rev: mas ? ultimo : Math.max(ultimo, meta.rev), mas };
     }
     case 'guardar': {
+        // El iPhone deja (o actualiza) el id de su IA, para los que se vincularon antes de mandarlo al vincular.
+        if (yo.telefono && formatos.ia.test(pedido.ia ?? '')) {
+            const telefono = await almacen.get('tel');
+            if (telefono && telefono.ia !== pedido.ia) await almacen.put('tel', { ...telefono, ia: pedido.ia });
+        }
         const cambios = [...(pedido.guardar ?? []).map(r => [r.c, r.d]), ...(pedido.borrar ?? []).map(c => [c, null])];
         for (const [c, d] of cambios) {
             const anterior = await almacen.get(`reg:${c}`);
@@ -201,7 +209,12 @@ export async function operarEspacio(almacen, pedido) {
         if (sesion) await almacen.delete(sesion.clave);
         return { ok: Boolean(sesion) };
     }
-    case 'borrarTodo':
+    case 'validarIA': {
+        // La IA desde la web: solo con una sesión vinculada que vale, y con el id del iPhone si lo dejó.
+        if (yo.telefono) return { error: 'sesion' };
+        return { ok: true, ia: (await almacen.get('tel'))?.ia ?? null };
+    }
+        case 'borrarTodo':
         if (!yo.telefono) return { error: 'sesion' };
         return { borrarTodo: true };
     }
@@ -267,6 +280,16 @@ async function llamar(espacio, pedido) {
 const enlaces = env => env.ENLACES.get(env.ENLACES.idFromName(NOMBRE_ENLACES));
 const espacioDe = (env, id) => env.ESPACIO.get(env.ESPACIO.idFromName(`espacio:${id}`));
 
+// La IA pedida desde la web (con Origin): solo con una sesión vinculada a un iPhone que vale. Devuelve
+// el id de la IA del iPhone (o null si el iPhone todavía no lo mandó), o un error.
+export async function sesionParaIA(request, env) {
+    if (!env.ENLACES || !env.ESPACIO) return { error: 'vincular' };
+    const quien = credencial(request);
+    if (!quien) return { error: 'vincular' };
+    const respuesta = await llamar(espacioDe(env, quien.espacio), { accion: 'validarIA', token: quien.token, ahora: Date.now() });
+    return respuesta.ok ? { ia: respuesta.ia } : { error: 'vincular' };
+}
+
 // «Authorization: Bearer <espacio>.<token>», el mismo para el iPhone y para la web.
 function credencial(request) {
     const [espacio, token] = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '').split('.');
@@ -297,12 +320,12 @@ export async function web(request, env, responder, ruta, ip) {
     }
     // El iPhone escaneó el QR.
     if (ruta === '/web/vincular' && request.method === 'POST') {
-        const { codigo, espacio, token, publica, clave, plan } = cuerpo;
+        const { codigo, espacio, token, publica, clave, plan, ia } = cuerpo;
         if (!formatos.codigo.test(codigo ?? '') || !formatos.espacio.test(espacio ?? '') || !formatos.token.test(token ?? '')
             || !formatos.publica.test(publica ?? '') || !formatos.clave.test(clave ?? '')) return responder({ error: 'pedido' }, 400);
         const reclamo = await llamar(enlaces(env), { accion: 'reclamar', codigo, ahora });
         if (!reclamo.ok) return responder({ error: 'vencido' }, 410);
-        const sesion = await llamar(espacioDe(env, espacio), { accion: 'nuevaSesion', token, navegador: reclamo.navegador, plan, ahora });
+        const sesion = await llamar(espacioDe(env, espacio), { accion: 'nuevaSesion', token, navegador: reclamo.navegador, plan, ia, ahora });
         if (sesion.error) return contestar(sesion);
         await llamar(enlaces(env), { accion: 'entregar', codigo, ahora, datos: { espacio, token: sesion.token, publica, clave } });
         return responder({ ok: true, id: sesion.id, navegador: reclamo.navegador, nuevo: sesion.nuevo });
@@ -320,7 +343,7 @@ export async function web(request, env, responder, ruta, ip) {
         if (guardar.length + borrar.length > 200
             || !guardar.every(r => formatos.registro.test(r?.c ?? '') && typeof r.d === 'string' && r.d.length < 400_000)
             || !borrar.every(c => formatos.registro.test(c ?? ''))) return responder({ error: 'pedido' }, 400);
-        return contestar(await llamar(espacio, { accion: 'guardar', token: quien.token, guardar, borrar, ahora }));
+        return contestar(await llamar(espacio, { accion: 'guardar', token: quien.token, guardar, borrar, ia: cuerpo.ia, ahora }));
     }
     if (ruta === '/web/sesiones' && request.method === 'POST') {
         return contestar(await llamar(espacio, { accion: 'sesiones', token: quien.token, ahora }));
