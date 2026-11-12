@@ -27,7 +27,7 @@ export const AJUSTES_LIBRETA = {
     internas: {
         nombre: 'Rimas internas',
         etiqueta: 'Distancia',
-        porDefecto: 'dos',
+        porDefecto: 'no',
         opciones: { no: { nombre: 'No', valor: 0 }, dos: { nombre: '2 versos', valor: 2 }, cuatro: { nombre: '4 versos', valor: 4 }, ocho: { nombre: '8 versos', valor: 8 } },
     },
     // Fuentes que ya vienen en el iPhone (andan sin internet), con otras parecidas de respaldo.

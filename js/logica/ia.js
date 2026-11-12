@@ -355,14 +355,15 @@ export function anotarSugerencia(almacen, ahora = Date.now(), letra = null) {
     return cupoIA(almacen, letra, ahora);
 }
 
+// Como en Swift: el porcentaje que queda, en créditos IA (pedido de Swa: ni usos ni consultas).
 export const textoCupo = ({ quedan, tope, plan, porLetra }) => porLetra
     ? `${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} de ${tope} hoy en esta letra`
-    : `${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} de ${tope}${plan ? '' : ' gratis'} este mes`;
+    : `${Math.round(100 * quedan / tope)}% de ${tope} créditos IA${plan ? '' : ' gratis'} del mes`;
 
 // Lo que se dice cuando no queda.
 export const textoSinCupo = ({ porLetra }) => porLetra
     ? `Ya usaste las ${TOPE_POR_LETRA} de hoy en esta letra. Mañana hay más.`
-    : 'Ya usaste todas las de este mes.';
+    : 'Créditos IA insuficientes. Se renuevan el mes que viene.';
 
 // ---------- Cliente del Worker ----------
 export const endpointIA = almacen => almacen.getItem(CLAVE_ENDPOINT) || ENDPOINT_IA;

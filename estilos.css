@@ -353,6 +353,11 @@ a { color: var(--acento); text-decoration: none; }
     filter: drop-shadow(0 0 6px color-mix(in srgb, var(--destacado) 55%, transparent));
     animation: brillo-tocada 2.2s linear infinite;
 }
+/* En los cajones (todas, relacionadas, sinónimos y guardadas), violeta liso: el brillo que se mueve va
+   solo en la caja de arriba y la viñeta (como en Swift; con cientos moviéndose se trababa el deslizar). */
+#pantalla-rimas .cajon-todas mark.brillo-violeta {
+    background: none; color: var(--destacado); -webkit-text-fill-color: var(--destacado); filter: none; animation: none;
+}
 /* El «?» en un circulito, pegado al texto. Es un dibujo, así queda justo al centro. */
 .segmentado .ayuda-tipo { position: relative; z-index: 1; flex: none; padding: 0; width: 24px; height: 24px; margin: 0 -3px; display: grid; place-items: center; color: var(--texto-3); }
 .segmentado .ayuda-tipo .icono { width: 18px; height: 18px; stroke-width: 1.6; }
@@ -2195,6 +2200,101 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .vincular-qr[data-estado="cargando"] .boton-comprar, .vincular-qr[data-estado="escaneado"] .boton-comprar { display: none; }
 @media (max-width: 520px) { .vincular-caja { padding: 28px 20px; gap: 28px; } .vincular-texto h1 { font-size: 24px; } }
 
+
+/* ===================== Letras como en Swift: menú, buscador, carpetas y selección ===================== */
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* La barra de Keep: las tres líneas, la pastilla para buscar y, a la derecha, música y cofre. Mientras
+   se busca, los botones de la derecha se van y la pastilla se estira. */
+.fila-letras { gap: 8px; padding: 14px 16px 10px; justify-content: flex-start; }
+.fila-letras[hidden], .barra-seleccion[hidden] { display: none; }
+.buscar-letras { flex: 1; min-width: 0; height: 42px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 16px; border-radius: 21px; cursor: text; }
+.buscar-letras input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; font-size: 17px; color: var(--texto); }
+.buscar-letras input::placeholder { color: var(--texto-2); }
+.buscar-letras input::-webkit-search-cancel-button { display: none; }
+.cerrar-busqueda-letras { flex: none; width: 34px; height: 34px; display: grid; place-items: center; color: var(--texto-3); }
+.cerrar-busqueda-letras[hidden] { display: none; }
+.cerrar-busqueda-letras .icono { width: 20px; height: 20px; }
+.fila-letras .acciones-barra { transition: opacity .2s, filter .2s, scale .2s; }
+.fila-letras.buscando .acciones-barra { opacity: 0; filter: blur(6px); scale: .6; width: 0; overflow: hidden; pointer-events: none; }
+/* Eligiendo letras: la cruz, cuántas hay, mover a carpeta y borrar. */
+.barra-seleccion { gap: 8px; padding: 14px 16px 10px; justify-content: flex-start; }
+.pastilla-seleccion { flex: 1; min-width: 0; height: 46px; display: flex; align-items: center; gap: 4px; padding: 0 12px 0 4px; border-radius: 23px; font-size: 20px; font-weight: 700; }
+.pastilla-seleccion button { width: 44px; height: 46px; display: grid; place-items: center; color: var(--acento); }
+.pastilla-seleccion .icono { width: 18px; height: 18px; }
+.barra-seleccion .boton-barra:disabled { opacity: .4; cursor: default; }
+.titulo-carpeta { margin: 0 16px 12px; font-size: 28px; font-weight: 700; letter-spacing: -0.4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.titulo-carpeta[hidden] { display: none; }
+.aviso-privadas { display: flex; align-items: center; gap: 6px; }
+.aviso-privadas[hidden] { display: none; }
+/* Tarjetas elegidas: el tilde abajo a la derecha. */
+.tilde-letra { position: absolute; right: 12px; bottom: 12px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--texto-3); }
+.tarjeta-letra.elegida { box-shadow: inset 0 0 0 2.5px var(--destacado); }
+.tarjeta-letra.elegida .tilde-letra { border-color: var(--destacado); background: var(--destacado) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 16px no-repeat; }
+.grilla-letras.eligiendo .tarjeta-nueva { opacity: .4; pointer-events: none; }
+/* Fijo: todas del mismo tamaño, un poco más altas que anchas (como en Swift). */
+.grilla-letras.cuadrados { grid-auto-rows: auto; }
+.grilla-letras.cuadrados .tarjeta-letra, .grilla-letras.cuadrados .tarjeta-nueva { aspect-ratio: 5 / 6; min-height: 0; }
+.grilla-letras.cuadrados .texto-letra { -webkit-line-clamp: 6; }
+
+/* El menú de Letras: en el celular sale desde la izquierda y ocupa 3/4 de la pantalla. */
+.menu-letras-fondo { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0); transition: background .22s; }
+.menu-letras-fondo[hidden] { display: none; }
+.menu-letras-fondo.abierto { background: rgba(0, 0, 0, 0.35); }
+.menu-letras {
+    position: absolute; top: 0; bottom: 0; left: 0; width: 75%; max-width: 360px; display: flex; flex-direction: column;
+    padding: calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 12px);
+    background: var(--fondo); border-radius: 0 30px 30px 0; box-shadow: 6px 0 24px rgba(0, 0, 0, 0.3);
+    translate: -105% 0; transition: translate .25s cubic-bezier(.2, .9, .3, 1);
+}
+.menu-letras-fondo.abierto .menu-letras { translate: 0 0; }
+.menu-letras-cuerpo { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 16px; scrollbar-width: none; }
+.nombre-metrica { margin: 6px 8px 0; font-size: 34px; font-weight: 700; letter-spacing: -0.5px; }
+.mas-violeta { background: var(--degrade-tocada); -webkit-background-clip: text; background-clip: text; color: transparent; animation: brillo-tocada 2.2s linear infinite; font-weight: 700; }
+.mas-violeta.grande { font-size: 20px; margin-left: auto; }
+.menu-letras .encabezado-grupo { margin: 22px 8px 6px; }
+.lista-menu { margin: 0; }
+.lista-menu li { position: relative; display: flex; align-items: center; }
+.lista-menu li + li::before { content: ""; position: absolute; top: 0; left: 56px; right: 0; border-top: 0.5px solid var(--separador); }
+.lista-menu li > button:first-child { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 10px 16px; text-align: left; color: var(--texto); font-size: 17px; }
+.lista-menu li > button:first-child:hover { background: var(--acento-suave); }
+.lista-menu .icono { flex: none; width: 22px; height: 22px; margin: 0 4px; color: var(--acento); }
+.lista-menu span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lista-menu .cantidad, .lista-menu .chevron { margin-left: auto; color: var(--texto-2); font-size: 15px; font-variant-numeric: tabular-nums; }
+.fila-carpeta[aria-pressed="true"] { font-weight: 600; }
+.fila-carpeta[aria-pressed="true"] .icono { color: var(--destacado); fill: var(--destacado-suave); }
+.mas-carpeta { flex: none; width: 36px; height: 36px; margin-right: 6px; border-radius: 50%; display: grid; place-items: center; color: var(--texto-2); }
+.mas-carpeta:hover { background: var(--acento-suave); }
+.mas-carpeta .icono { margin: 0; width: 20px; height: 20px; fill: currentColor; color: inherit; }
+.pastillas-menu { margin: 0; }
+.flecha-orden { margin-left: auto; width: 18px; height: 18px; flex: none; }
+[aria-pressed="true"] > .flecha-orden {
+    background: var(--destacado); rotate: 180deg; transition: rotate .2s;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 19V5M6 11l6-6 6 6' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 19V5M6 11l6-6 6 6' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+[aria-pressed="true"] > .flecha-orden.arriba { rotate: 0deg; }
+.fila-creditos { gap: 12px; min-height: 56px; padding: 10px 16px; }
+.fila-creditos .estrella-ia { width: 22px; height: 22px; margin: 0 4px; }
+.fila-creditos #menu-creditos { display: flex; flex-direction: column; line-height: 1.25; white-space: normal; }
+.fila-creditos strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+.fila-creditos #menu-creditos span { font-size: 13px; color: var(--texto-2); white-space: normal; }
+.menu-pie { flex: none; margin-top: 8px; }
+
+/* Un menú chico al lado de un botón (opciones de una carpeta, mover a carpeta). */
+.menu-flotante-fondo { position: fixed; inset: 0; z-index: 45; }
+.menu-flotante-fondo[hidden] { display: none; }
+.menu-flotante {
+    position: absolute; min-width: 200px; max-width: 280px; max-height: 60vh; overflow-y: auto; padding: 6px; border-radius: 16px;
+    display: flex; flex-direction: column; animation: aparecer-alerta .15s ease-out;
+}
+.menu-flotante button { padding: 10px 12px; border-radius: 10px; text-align: left; font-size: 16px; color: var(--texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-flotante button:hover, .menu-flotante button:focus-visible { background: var(--acento-suave); outline: none; }
+.menu-flotante .texto-rojo { color: #ff3b30; }
+.campo-alerta { display: block; width: calc(100% - 32px); margin: -8px 16px 16px; padding: 8px 10px; border: 1px solid var(--separador); border-radius: 8px; background: var(--fondo); color: var(--texto); font: inherit; font-size: 15px; outline: none; }
+.campo-alerta:focus { border-color: var(--destacado); }
+.alerta-botones button:disabled { opacity: .4; cursor: default; }
+.carpetas-lateral { display: none; }
+
 /* ===================== Métrica web en la computadora (pedido de Swa) =====================
    En el celular queda todo como siempre. Desde 700 px, la barra de pestañas pasa a ser una barra
    lateral fija (con la marca, el estado de la vinculación y el baúl) y el resto ocupa lo que queda,
@@ -2242,11 +2342,46 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .estado-web-detalle { font-size: 12px; font-weight: 400; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .estado-web[data-estado="sin-vincular"] .estado-web-detalle { color: var(--destacado); }
 
+    /* Las tarjetas no se estiran al achicar la ventana: tienen su ancho y entran más o menos
+       columnas, como en Keep (pedido de Swa). */
+    .grilla-letras { grid-template-columns: repeat(auto-fill, 220px); grid-auto-rows: 210px; justify-content: center; }
+    .grilla-letras.cuadrados { grid-auto-rows: 264px; }
+    .grilla-letras.cuadrados .tarjeta-letra, .grilla-letras.cuadrados .tarjeta-nueva { aspect-ratio: auto; }
+    .titulo-carpeta, .aviso-privadas { margin-inline: 20px; }
+    /* El menú de Letras, abajo de las tres líneas, como una ventanita (sin oscurecer todo). */
+    .menu-letras-fondo, .menu-letras-fondo.abierto { background: transparent; }
+    .menu-letras {
+        top: 64px; bottom: auto; left: calc(var(--izq) + 16px); width: 340px; max-height: calc(100vh - 80px);
+        padding: 8px 12px 12px; border-radius: 24px; border: 1px solid var(--separador);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28); translate: 0 -8px; opacity: 0; transition: translate .18s, opacity .18s;
+    }
+    .menu-letras-fondo.abierto .menu-letras { translate: 0 0; opacity: 1; }
+    .nombre-metrica { font-size: 26px; }
+
+    /* Carpetas abajo de «Letras», como en Notas de Mac. */
+    .barra-pestanas .carpetas-lateral { display: flex; flex-direction: column; align-items: stretch; gap: 2px; height: auto; margin: 0 0 4px 0; padding: 0; }
+    .barra-pestanas .carpeta-lateral { height: 34px; padding-left: 26px; font-size: 14px; font-weight: 400; color: var(--texto); }
+    .barra-pestanas .carpeta-lateral .icono { width: 18px; height: 18px; }
+    .carpeta-lateral .texto-pestana { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+    .carpeta-lateral .cantidad { color: var(--texto-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+    .barra-pestanas .nueva-carpeta-lateral { color: var(--texto-2); }
+
+    /* Plegar la barra, como en Keep: quedan los íconos (y el punto de la vinculación). */
+    .marca-lateral { padding-left: 2px; }
+    .barra-pestanas .plegar-barra { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 50%; }
+    .barra-pestanas .plegar-barra .icono { width: 20px; height: 20px; color: var(--texto-2); }
+    body.barra-plegada { --izq: 68px; }
+    body.barra-plegada .barra-pestanas { padding-inline: 10px; align-items: center; }
+    body.barra-plegada .marca-lateral img, body.barra-plegada .marca-lateral span,
+    body.barra-plegada .texto-pestana, body.barra-plegada .estado-web-texto, body.barra-plegada .carpetas-lateral { display: none; }
+    body.barra-plegada .marca-lateral { padding: 0 0 14px; }
+    body.barra-plegada .barra-pestanas button { width: 46px; padding: 0; justify-content: center; }
+    body.barra-plegada .barra-pestanas .estado-web { width: 46px; min-height: 36px; padding: 0; justify-content: center; background: none; }
+    .barra-pestanas, .app, .vista#vista-editor, .reproductor, .sonando-fs, #hoja-musica { transition: width .2s, margin .2s, left .2s; }
     /* Lo de cada sección, centrado en lo que queda (más ancho en la grilla de Letras). */
     #pantalla-rimas, #pantalla-freestyle, .vista { padding-inline: max(0px, calc((100% - 760px) / 2)); }
     #vista-lista-letras { padding-inline: max(0px, calc((100% - 1180px) / 2)); }
     .contenido { padding-bottom: calc(32px + var(--alto-sobre-barra, 0px)); }
-    .grilla-letras { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
     .tarjeta-letra button:hover { background: color-mix(in srgb, var(--texto) 4%, transparent); }
     .efecto-fs { left: calc(var(--izq) + (100vw - var(--izq) - var(--der)) / 2); width: calc(100vw - var(--izq) - var(--der)); }
 

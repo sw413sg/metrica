@@ -278,3 +278,22 @@ export function tituloBusqueda(cantidad, palabra, { tipo = 'consonante', simples
     partes.push(sinonimos ? 'de' : 'con', `«${palabra}»`);
     return partes.join(' ');
 }
+
+// Las palabras en el mismo orden, pero primero las que riman consonante con `palabra`, después las
+// asonantes y al final el resto (los sinónimos de Rimas, de la libreta y del panel; como en Swift).
+export function ordenarPorRima(palabras, palabra) {
+    const consonante = claveConsonante(palabra), asonante = claveAsonante(palabra);
+    const orden = p => (consonante && claveConsonante(p) === consonante ? 0 : asonante && claveAsonante(p) === asonante ? 1 : 2);
+    return palabras.map((p, i) => [orden(p), i, p]).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map(x => x[2]);
+}
+
+// Las palabras en el mismo orden, pero primero las de «Palabras simples», que suenan más a letra.
+export const simplesPrimero = (palabras, simples) => [...palabras.filter(p => simples.has(p)), ...palabras.filter(p => !simples.has(p))];
+
+// Lo que muestra la libreta al tocar una palabra para cambiarla: hasta 20 consonantes y después
+// asonantes hasta completar 30 (al menos 10), cada grupo con las simples primero.
+export function rimasParaCambiar(palabra, indice, simples) {
+    const consonantes = simplesPrimero(buscarRimas(palabra, indice), simples).slice(0, 20);
+    const asonantes = simplesPrimero(buscarRimas(palabra, indice, { tipo: 'asonante' }), simples).slice(0, Math.max(10, 30 - consonantes.length));
+    return { consonantes, asonantes };
+}

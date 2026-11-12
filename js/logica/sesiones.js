@@ -23,23 +23,27 @@ export function nuevaLetra(ahora = Date.now()) {
     return { id: String(ahora), titulo: '', texto: '', creada: ahora, editada: ahora };
 }
 
-// Las letras guardadas, de la última editada a la primera, salvo las que se acomodaron a mano
-// (`orden`). Editar una letra la vuelve a poner primera.
-const puesto = letra => letra.orden ?? letra.editada;
+// Las letras guardadas, de la última creada a la primera, salvo las que se acomodaron a mano
+// (`lugar`). Editar una letra no la cambia de lugar (pedido de Swa, como en Swift). Una sin fecha
+// de creación (vieja o importada) va por su última edición.
+const puesto = letra => letra.lugar ?? (letra.creada || letra.editada || 0);
 export function listarLetras(almacen) {
     return leer(almacen, CLAVE_LETRAS).sort((a, b) => puesto(b) - puesto(a));
 }
 
-// Acomoda una letra en otro lugar de la lista (0 es la primera). Se reparten los mismos
-// puestos que había, así una letra editada después igual queda primera.
-export function moverLetra(almacen, id, lugar) {
-    const letras = listarLetras(almacen);
+// Acomoda una letra en otro lugar de la lista (0 es la primera). Se reparten los mismos puestos
+// que había, así una letra creada después igual queda primera. Con `carpeta`, el lugar es dentro
+// de esa carpeta (el orden de un disco): solo se reparten los puestos de sus letras.
+export function moverLetra(almacen, id, lugar, carpeta = null) {
+    const todas = listarLetras(almacen);
+    const letras = carpeta ? todas.filter(l => l.carpeta === carpeta) : [...todas];
     const puestos = letras.map(puesto);
     const desde = letras.findIndex(l => l.id === id);
     if (desde < 0) return;
     const [letra] = letras.splice(desde, 1);
     letras.splice(lugar, 0, letra);
-    escribir(almacen, CLAVE_LETRAS, letras.map((l, i) => ({ ...l, orden: puestos[i] })));
+    const nuevos = new Map(letras.map((l, i) => [l.id, puestos[i]]));
+    escribir(almacen, CLAVE_LETRAS, todas.map(l => (nuevos.has(l.id) ? { ...l, lugar: nuevos.get(l.id) } : l)));
 }
 
 // Si la tarjeta de una letra es larga (dos filas) o chica. Sale de su id, así es al azar pero
@@ -64,17 +68,51 @@ export function lugaresEnGrilla(ids, columnas = 2) {
     });
 }
 
-// Guarda (o actualiza) la letra y la devuelve con la fecha de edición nueva.
+// Guarda (o actualiza) la letra y la devuelve con la fecha de edición nueva, en el mismo lugar.
+// Una letra nueva (sin fecha de creación) toma la de ahora, así va primera.
 // Una letra sin título ni texto no se guarda: se borra si estaba.
 export function guardarLetra(almacen, letra, ahora = Date.now()) {
-    const otras = leer(almacen, CLAVE_LETRAS).filter(l => l.id !== letra.id);
+    const todas = leer(almacen, CLAVE_LETRAS), otras = todas.filter(l => l.id !== letra.id);
     if (!letra.titulo.trim() && !letra.texto.trim()) {
         escribir(almacen, CLAVE_LETRAS, otras);
         return letra;
     }
-    const guardada = { ...letra, editada: ahora, orden: ahora };
+    const guardada = { ...letra, editada: ahora };
+    // El lugar y la carpeta son los guardados: se cambian desde la lista (o desde el iPhone),
+    // no desde la letra abierta.
+    const vieja = todas.find(l => l.id === letra.id);
+    if (vieja) {
+        if (vieja.lugar != null) guardada.lugar = vieja.lugar; else delete guardada.lugar;
+        if (vieja.carpeta != null) guardada.carpeta = vieja.carpeta; else delete guardada.carpeta;
+    }
+    if (!guardada.creada) guardada.creada = ahora;
     escribir(almacen, CLAVE_LETRAS, [...otras, guardada]);
     return guardada;
+}
+
+// Las letras en el orden elegido en el menú de Letras (como en Swift): «fecha» es el de siempre
+// (de la última creada a la primera, con las acomodadas a mano), «modificacion» por la última
+// edición y «titulo» de la A a la Z (sin título, siempre al final). `ascendente` lo da vuelta.
+export const ORDENES_LETRAS = ['fecha', 'titulo', 'modificacion'];
+export const ascendentePorDefecto = orden => orden === 'titulo';
+export function ordenarLetras(letras, orden = 'fecha', ascendente = false) {
+    if (orden === 'modificacion') return [...letras].sort((a, b) => (ascendente ? a.editada - b.editada : b.editada - a.editada));
+    if (orden === 'titulo') {
+        return [...letras].sort((a, b) => {
+            const ta = (a.titulo || '').trim(), tb = (b.titulo || '').trim();
+            if (!ta !== !tb) return ta ? -1 : 1;
+            const c = ta.localeCompare(tb, 'es', { numeric: true, sensitivity: 'base' });
+            return ascendente ? c : -c;
+        });
+    }
+    return ascendente ? [...letras].reverse() : letras;
+}
+
+// Si la letra sale en el buscador de Letras: por el título o el texto, sin tildes ni mayúsculas.
+const sinMarcas = texto => String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+export function coincideBusqueda(letra, buscado) {
+    const b = sinMarcas(buscado).trim();
+    return !b || sinMarcas(letra.titulo).includes(b) || sinMarcas(letra.texto).includes(b);
 }
 
 // Suma letras que vienen de otro lado (Google Keep) tal como están, con sus fechas.

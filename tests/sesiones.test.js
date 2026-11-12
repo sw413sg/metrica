@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugaresEnGrilla, esLarga, listarGuardadas, alternarGuardada } from '../js/logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, moverLetra, lugaresEnGrilla, esLarga, listarGuardadas, alternarGuardada, ordenarLetras, coincideBusqueda } from '../js/logica/sesiones.js';
 
 // Imita localStorage: guarda texto por clave.
 function almacenDePrueba(inicial = {}) {
@@ -8,7 +8,7 @@ function almacenDePrueba(inicial = {}) {
     return { getItem: clave => datos.get(clave) ?? null, setItem: (clave, valor) => datos.set(clave, String(valor)) };
 }
 
-test('guardarLetra guarda, actualiza y lista de la última editada a la primera', () => {
+test('guardarLetra guarda, actualiza y lista de la última creada a la primera', () => {
     const almacen = almacenDePrueba();
     assert.deepEqual(listarLetras(almacen), []);
     const a = guardarLetra(almacen, { ...nuevaLetra(1), titulo: 'Primera' }, 10);
@@ -16,10 +16,11 @@ test('guardarLetra guarda, actualiza y lista de la última editada a la primera'
     assert.deepEqual(listarLetras(almacen).map(l => l.id), ['2', '1']);
     guardarLetra(almacen, { ...a, texto: 'cambiada' }, 30);
     const letras = listarLetras(almacen);
-    assert.deepEqual(letras.map(l => l.id), ['1', '2']);
-    assert.equal(letras[0].texto, 'cambiada');
-    assert.equal(letras[0].editada, 30);
-    assert.equal(letras[0].creada, 1);
+    // Editarla no la cambia de lugar: la última creada sigue primera.
+    assert.deepEqual(letras.map(l => l.id), ['2', '1']);
+    assert.equal(letras[1].texto, 'cambiada');
+    assert.equal(letras[1].editada, 30);
+    assert.equal(letras[1].creada, 1);
 });
 
 test('una letra vacía no se guarda, y si se vacía se borra', () => {
@@ -45,9 +46,9 @@ test('datos rotos en el almacén no rompen la app', () => {
 });
 
 
-test('moverLetra acomoda a mano, y editar vuelve a poner la letra primera', () => {
+test('moverLetra acomoda a mano, editar no la mueve y una nueva va primera', () => {
     const almacen = almacenDePrueba();
-    for (const [id, t] of [['a', 10], ['b', 20], ['c', 30]]) guardarLetra(almacen, { ...nuevaLetra(id), id, titulo: id }, t);
+    for (const [id, t] of [['a', 10], ['b', 20], ['c', 30]]) guardarLetra(almacen, { id, titulo: id, texto: '', creada: t }, t);
     assert.deepEqual(listarLetras(almacen).map(l => l.id), ['c', 'b', 'a']);
     moverLetra(almacen, 'a', 0);
     assert.deepEqual(listarLetras(almacen).map(l => l.id), ['a', 'c', 'b']);
@@ -57,12 +58,40 @@ test('moverLetra acomoda a mano, y editar vuelve a poner la letra primera', () =
     assert.deepEqual(listarLetras(almacen).map(l => l.id), ['b', 'c', 'a']);
     const a = listarLetras(almacen)[2];
     guardarLetra(almacen, { ...a, texto: 'nuevo' }, 40);
-    assert.deepEqual(listarLetras(almacen).map(l => l.id), ['a', 'b', 'c']);
+    assert.deepEqual(listarLetras(almacen).map(l => l.id), ['b', 'c', 'a']);
+    guardarLetra(almacen, { ...nuevaLetra(50), titulo: 'd' }, 50);
+    assert.deepEqual(listarLetras(almacen).map(l => l.titulo), ['d', 'b', 'c', 'a']);
+    // Una sin fecha de creación toma la de cuando se guarda.
+    guardarLetra(almacen, { id: 'e', titulo: 'e', texto: '' }, 60);
+    assert.equal(listarLetras(almacen)[0].creada, 60);
 });
 
-test('letras guardadas antes, sin orden, se listan por la última edición', () => {
-    const almacen = almacenDePrueba({ 'metrica.letras': JSON.stringify([{ id: '1', titulo: 'x', texto: '', editada: 5 }, { id: '2', titulo: 'y', texto: '', editada: 9 }]) });
-    assert.deepEqual(listarLetras(almacen).map(l => l.id), ['2', '1']);
+test('letras guardadas antes se listan por creación, y sin fecha por la última edición', () => {
+    const almacen = almacenDePrueba({ 'metrica.letras': JSON.stringify([
+        { id: '1', titulo: 'x', texto: '', editada: 5 }, { id: '2', titulo: 'y', texto: '', editada: 9 },
+        { id: '3', titulo: 'z', texto: '', creada: 7, editada: 99, orden: 99 },
+    ]) });
+    assert.deepEqual(listarLetras(almacen).map(l => l.id), ['2', '3', '1']);
+});
+
+test('ordenarLetras: fecha, título (sin título al final) y modificación, para los dos lados', () => {
+    const letras = [
+        { id: '3', titulo: 'banda', editada: 5 }, { id: '2', titulo: '', editada: 9 }, { id: '1', titulo: 'Árbol', editada: 1 },
+    ];
+    assert.deepEqual(ordenarLetras(letras).map(l => l.id), ['3', '2', '1']);
+    assert.deepEqual(ordenarLetras(letras, 'fecha', true).map(l => l.id), ['1', '2', '3']);
+    assert.deepEqual(ordenarLetras(letras, 'titulo', true).map(l => l.id), ['1', '3', '2']);
+    assert.deepEqual(ordenarLetras(letras, 'titulo', false).map(l => l.id), ['3', '1', '2']);
+    assert.deepEqual(ordenarLetras(letras, 'modificacion').map(l => l.id), ['2', '3', '1']);
+    assert.deepEqual(ordenarLetras(letras, 'modificacion', true).map(l => l.id), ['1', '3', '2']);
+});
+
+test('coincideBusqueda: por título o texto, sin tildes ni mayúsculas', () => {
+    const letra = { titulo: 'Canción de cuna', texto: 'Duérmete ya' };
+    assert.ok(coincideBusqueda(letra, 'CANCION'));
+    assert.ok(coincideBusqueda(letra, 'duermete'));
+    assert.ok(!coincideBusqueda(letra, 'noche'));
+    assert.ok(coincideBusqueda(letra, '  '));
 });
 
 test('lugaresEnGrilla: con más columnas (la computadora), cada tarjeta a la más corta', () => {

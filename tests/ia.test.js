@@ -94,9 +94,9 @@ test('cupo: 20 gratis por mes, se renueva y el plan simulado sube a 500', () => 
     assert.equal(usoDelMes(almacen, diciembre).quedan, 20);
     comprarPlanIA(almacen);
     assert.deepEqual(usoDelMes(almacen, noviembre), { usadas: 25, tope: PLAN_IA.tope, quedan: 475, plan: true });
-    assert.equal(textoCupo(usoDelMes(almacen, noviembre)), 'Quedan 475 de 500 este mes');
+    assert.equal(textoCupo(usoDelMes(almacen, noviembre)), '95% de 500 créditos IA del mes');
     borrarPlanIA(almacen);
-    assert.equal(textoCupo({ quedan: 1, tope: 20, plan: false }), 'Queda 1 de 20 gratis este mes');
+    assert.equal(textoCupo({ quedan: 1, tope: 20, plan: false }), '5% de 20 créditos IA gratis del mes');
 });
 
 test('idDeUsuario se crea una vez y queda', () => {
