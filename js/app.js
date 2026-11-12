@@ -26,7 +26,7 @@ import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/aparienc
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, guardarFotoWidgets, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, cabecerasIA, guardarRestantesWeb, tienePlanIA, usoDelMes, cupoIA, anotarSugerencia, textoCupo, etiquetaCreditos, pastillaCupo, GASTO_IA, textoSinCupo, borrarPlanIA, CUPO_GRATIS } from './logica/ia.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, cabecerasIA, guardarRestantesWeb, consultarCupoIA, tienePlanIA, usoDelMes, cupoIA, anotarSugerencia, textoCupo, etiquetaCreditos, pastillaCupo, GASTO_IA, textoSinCupo, borrarPlanIA, CUPO_GRATIS } from './logica/ia.js';
 import { TEMAS, tieneExtras, borrarCompra, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
 import { estaVinculada, planDelIphone, vincular, sincronizar, cerrarSesion, estadoDeSincronizacion } from './web.js';
@@ -275,6 +275,8 @@ const columnasLetras = () => {
 let columnasUbicadas = 2;
 function ubicarTarjetas() {
     columnasUbicadas = columnasLetras();
+    // El buscador de arriba mide lo mismo que la grilla, así arrancan juntos (pedido de Swa).
+    document.body.style.setProperty('--ancho-grilla', `${columnasUbicadas * ANCHO_TARJETA + (columnasUbicadas - 1) * ESPACIO_TARJETAS}px`);
     const ids = tarjetasLetras.map(t => t.dataset.id);
     const lugares = opcionesLetras.tamano === 'cuadrados'
         ? ids.map((_, i) => ({ columna: (i + 1) % columnasUbicadas + 1, fila: Math.floor((i + 1) / columnasUbicadas) + 1, larga: false }))
@@ -413,6 +415,12 @@ function confirmarBorrado(letra, responder, pregunta = '¿Borrar la letra?', aPa
 }
 
 // La misma alerta para otras preguntas (por ejemplo, avisar antes de descargar).
+// Un aviso con un solo botón (la misma alerta, sin «Cancelar»).
+function avisar({ titulo, texto }) {
+    $('cancelar-borrado').hidden = true;
+    preguntar({ titulo, texto, boton: 'Entendido' }, () => { $('cancelar-borrado').hidden = false; });
+}
+
 function preguntar({ titulo, texto, boton, rojo = false }, responder) {
     const alerta = $('confirmar-borrado');
     $('confirmar-borrado-titulo').textContent = titulo;
@@ -1669,6 +1677,7 @@ editorTexto.addEventListener('select', revisarSeleccion);
 let fraseHoja = null, historialIA = [], posIA = -1, generacionIA = 0, pidiendoIA = false;
 
 function abrirHojaIA() {
+    refrescarCupoIA(true);
     if (!fraseIA) return;
     fraseHoja = fraseIA;
     editorTexto.blur();
@@ -1691,13 +1700,28 @@ function cerrarHojaIA() {
 
 // Los pedidos que quedan, abajo de la caja: el texto y una barrita violeta que se vacía.
 // La pastilla de los créditos IA, como en Swift: el aro, lo que queda y lo que gasta esta consulta.
+// «Comprar más IA», a la derecha del porcentaje: la web no vende, avisa que se compra en el iPhone
+// (pedido de Swa). Sin vincular no va: ahí lo que hace falta es vincular.
+const BOTON_COMPRAR_IA = '<button type="button" class="comprar-ia">Comprar más IA</button>';
+document.addEventListener('click', evento => {
+    if (!evento.target.closest('.comprar-ia')) return;
+    evento.stopPropagation();
+    avisar({
+        titulo: 'Se compra desde tu iPhone',
+        texto: 'Para comprar más créditos IA, abre Métrica en tu iPhone y ve a Ajustes › Métrica+. Apenas compres, se actualizan acá solos.',
+    });
+}, true);
+
 function pintarCupo(id, uso, gasto = GASTO_IA.frase) {
     const p = pastillaCupo(uso, gasto);
     const caja = $(id);
+    if (!caja) return;
+    caja.dataset.gasto = gasto;
     caja.classList.toggle('sin-creditos', !p.alcanza);
     caja.innerHTML = `<span class="aro-creditos" style="--queda:${p.queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
         + `<span class="texto-creditos"><strong>${p.porcentaje}</strong><span>${p.etiqueta}</span></span>`
-        + (p.gasta ? `<span class="gasto-creditos"><strong>${p.gasta}</strong><span>esta consulta</span></span>` : '');
+        + (p.gasta ? `<span class="gasto-creditos"><strong>${p.gasta}</strong><span>esta consulta</span></span>` : '')
+        + (uso.sinVincular ? '' : BOTON_COMPRAR_IA);
     caja.setAttribute('aria-label', `Créditos IA: ${p.porcentaje} ${p.etiqueta}${p.gasta ? `. Esta consulta gasta ${p.gasta.slice(1)}` : ''}`);
 }
 
@@ -4482,6 +4506,27 @@ function renderizarExtras() {
 // Lo que queda de los créditos IA de esta computadora, en porcentaje (como en Swift).
 function renderizarCreditos() {
     pintarFilaCreditos($('ajustes-creditos'));
+    pintarFilaCreditos($('menu-creditos'));
+    // Las pastillas ya pintadas, con lo que gasta cada una.
+    for (const caja of document.querySelectorAll('.pastilla-cupo')) {
+        if (caja.dataset.gasto != null) pintarCupo(caja.id, cupoIA(localStorage), Number(caja.dataset.gasto));
+    }
+}
+// Lo que queda según el servidor, cada 8 segundos con la web vinculada y a la vista, así la web y el
+// iPhone dicen lo mismo aunque se usen a la vez (pedido de Swa).
+let ultimoCupo = 0, vueltaCupo = 0;
+async function refrescarCupoIA(ya = false) {
+    if (!estaVinculada() || document.visibilityState !== 'visible') return;
+    // Sin la cuenta del iPhone (su compra), el servidor contaría la cuota gratis: se espera al plan.
+    if (!cabecerasIA(localStorage)['X-Metrica-Id']) return;
+    if (!ya && Date.now() - ultimoCupo < 8000) return;
+    ultimoCupo = Date.now();
+    const vuelta = ++vueltaCupo;
+    const quedan = await consultarCupoIA(servidorIA());
+    // Solo la última respuesta cuenta (una vieja no pisa a una nueva).
+    if (quedan == null || vuelta !== vueltaCupo || !estaVinculada()) return;
+    guardarRestantesWeb(localStorage, quedan);
+    renderizarCreditos();
 }
 // Como FilaCuotaIA de Swift: a la izquierda el aro violeta que se vacía con la estrellita, y al lado
 // el porcentaje que queda (con un decimal, «99,8%») y «de 20 créditos IA gratis del mes».
@@ -4490,7 +4535,8 @@ function pintarFilaCreditos(fila) {
     const p = pastillaCupo(uso, 0);
     fila.classList.toggle('sin-creditos', !uso.quedan);
     fila.innerHTML = `<span class="aro-creditos" style="--queda:${p.queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
-        + `<span class="texto-creditos"><strong>${p.porcentaje}</strong><span>${p.etiqueta}</span></span>`;
+        + `<span class="texto-creditos"><strong>${p.porcentaje}</strong><span>${p.etiqueta}</span></span>`
+        + (uso.sinVincular ? '' : BOTON_COMPRAR_IA);
     fila.setAttribute('aria-label', `Créditos IA: ${p.porcentaje} ${p.etiqueta}`);
 }
 
@@ -6029,6 +6075,7 @@ function cerrarVincular() {
 // Lo que llega del iPhone se ve enseguida: las letras, el baúl, las guardadas y la letra abierta
 // (si no se está escribiendo en ella: lo de acá, editado después, gana).
 function alCambiarDesdeIphone() {
+    refrescarCupoIA(true);
     renderizarLetras();
     renderizarBaul();
     renderizarGuardadas();
@@ -6047,6 +6094,7 @@ function alCambiarDesdeIphone() {
 
 function sincronizarWeb() {
     if (!estaVinculada() || document.visibilityState !== 'visible') return;
+    refrescarCupoIA();
     return sincronizar({
         alCambiar: alCambiarDesdeIphone,
         alCerrar: () => { letraActual = null; mostrarVista('vista-lista-letras'); alCambiarDesdeIphone(); },

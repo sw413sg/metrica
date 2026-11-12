@@ -239,6 +239,20 @@ const sembrar = () => {
         await page.close();
     }
 
+    // Una ventana bien ancha: más columnas de 220 y el buscador arranca con la grilla (pedido de Swa).
+    {
+        const page = await browser.newPage({viewport: {width: 1900, height: 900}, screen: {width: 1920, height: 1080}});
+        await page.addInitScript(sembrar);
+        await page.goto(url);
+        await page.waitForTimeout(800);
+        const columnas = await page.evaluate(() => getComputedStyle(document.querySelector('.grilla-letras')).gridTemplateColumns.split(' '));
+        assert.ok(columnas.length >= 7 && columnas.every(c => c === '220px'), 'más columnas, del mismo ancho: ' + columnas);
+        const grilla = await page.locator('#nueva-letra').boundingBox();
+        const buscador = await page.locator('#buscar-letras-caja').boundingBox();
+        assert.ok(Math.abs(grilla.x - buscador.x) < 2, `el buscador arranca con la grilla (${buscador.x} / ${grilla.x})`);
+        await page.close();
+    }
+
     // La ventana a la mitad de la pantalla: sin barra lateral; las tres líneas la abren entera.
     {
         const page = await browser.newPage({viewport: {width: 900, height: 800}, screen: {width: 1920, height: 1080}});
@@ -248,7 +262,7 @@ const sembrar = () => {
         await page.goto(url);
         await page.waitForTimeout(800);
         assert.equal(await page.locator('#estado-web').isVisible(), false, 'barra escondida');
-        assert.ok((await page.locator('#abrir-menu-letras').boundingBox()).x < 30, 'las tres líneas, a la izquierda del buscador');
+        assert.ok((await page.locator('#abrir-menu-letras').boundingBox()).x < (await page.locator('#buscar-letras').boundingBox()).x, 'las tres líneas, a la izquierda del buscador');
         await page.click('#abrir-menu-letras');
         await page.waitForTimeout(300);
         for (const que of ['#estado-web', '.nueva-carpeta-lateral', '[data-vista="papelera"]', '[data-vista="baul"]', '[data-pestana="ajustes"]'])

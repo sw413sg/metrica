@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, cupoIA, pastillaCupo, textoSinCupo, cabecerasIA, guardarRestantesWeb, tienePlanIA, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
+import { consultarCupoIA, letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarPalabras, palabrasSimuladas, validarSugerencias, sugerenciasSimuladas, usoDelMes, anotarSugerencia, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA, textoCupo, idDeUsuario, cupoIA, pastillaCupo, textoSinCupo, cabecerasIA, guardarRestantesWeb, tienePlanIA, pedirSugerencias, endpointIA, ENDPOINT_IA } from '../js/logica/ia.js';
 import { pedidoValido, promptDeSugerencias, leerRespuesta, revisionValida, promptDeRevision, leerRevision } from '../js/logica/ia-prompt.js';
 
 const almacenNuevo = () => {
@@ -117,6 +117,9 @@ test('vinculada, los créditos y el plan son los del iPhone, y se piden con sus 
     guardarRestantesWeb(almacen, 150, noviembre);
     assert.equal(usoDelMes(almacen, noviembre).quedan, 150);
     assert.equal(usoDelMes(almacen, diciembre).quedan, 270, 'lo de otro mes no vale');
+    // El servidor manda también si dice más (una compra en el iPhone).
+    guardarRestantesWeb(almacen, 290, noviembre);
+    assert.equal(usoDelMes(almacen, noviembre).quedan, 290);
     // Con extra no se dice «mes».
     almacen.setItem('metrica.web-plan', JSON.stringify({ extras: true, plan: 'mas', ia: true, cupo: { quedan: 1683, total: 1950, mesTope: 300, extra: 1650, plan: true }, cuenta: { id: 'tel' } }));
     assert.equal(textoCupo(usoDelMes(almacen, diciembre)), '86% de 1.950 créditos IA');
@@ -129,6 +132,13 @@ test('vinculada, los créditos y el plan son los del iPhone, y se piden con sus 
     });
     assert.equal(enviado.headers['X-Metrica-Id'], 'tel');
     assert.equal(restantes, 42);
+    // /ia/cupo: lo que queda sin gastar.
+    let url;
+    const quedan = await consultarCupoIA({ endpoint: 'https://ia.ejemplo/ia', cabeceras: cabecerasIA(almacen),
+        fetch: async u => { url = u; return { ok: true, headers: new Map([['X-Metrica-Restantes', '77']]) }; } });
+    assert.equal(url, 'https://ia.ejemplo/ia/cupo');
+    assert.equal(quedan, 77);
+    assert.equal(await consultarCupoIA({ endpoint: 'x', fetch: async () => { throw new Error('red'); } }), null);
 });
 
 test('en la web, sin un iPhone vinculado no hay IA, y vinculada va con la sesión al Worker', () => {

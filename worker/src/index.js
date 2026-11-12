@@ -61,11 +61,17 @@ export default {
             if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
             return ia(request, env, responder, origen != null);
         }
+        // Lo que queda de la cuota, sin gastar: la web y el iPhone lo piden seguido para mostrar lo mismo
+        // (el servidor manda; pedido de Swa). Mismos headers y la misma sesión que /ia.
+        if (ruta === '/ia/cupo') {
+            if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
+            return ia(request, env, responder, origen != null, true);
+        }
         return responder({ error: 'ruta' }, 404);
     },
 };
 
-async function ia(request, env, responder, desdeWeb) {
+async function ia(request, env, responder, desdeWeb, soloMirar = false) {
     let id = request.headers.get('X-Metrica-Id') ?? '';
     // Desde la web (un navegador manda Origin), la IA es solo con un iPhone vinculado: la sesión de
     // Métrica web tiene que valer, y gasta los créditos del iPhone (su id, si lo dejó al vincular).
@@ -76,14 +82,16 @@ async function ia(request, env, responder, desdeWeb) {
         if (sesion.ia) id = sesion.ia;
     }
     if (!/^[a-z0-9]{16,64}$/.test(id)) return responder({ error: 'id' }, 400);
-    let cuerpo;
-    try { cuerpo = await request.json(); } catch { return responder({ error: 'json' }, 400); }
+    let cuerpo = null;
+    if (!soloMirar) {
+        try { cuerpo = await request.json(); } catch { return responder({ error: 'json' }, 400); }
+    }
     // Tres clases de pedido: mejorar una frase o palabra (`pedido`), revisar la letra entera (`revision`)
     // o ideas de qué hablar en una canción (`temas`).
     const revision = cuerpo?.revision != null;
     const temas = !revision && cuerpo?.temas != null;
     const valido = revision ? revisionValida(cuerpo.revision) : temas ? temasValido(cuerpo.temas) : pedidoValido(cuerpo?.pedido);
-    if (!valido) return responder({ error: 'pedido' }, 400);
+    if (!valido && !soloMirar) return responder({ error: 'pedido' }, 400);
 
     // La cuota la decide el servidor. X-Metrica-Plan y X-Metrica-Extra se ignoran: cualquiera podía
     // mandarlos y gastar OpenAI. La compra llega en X-Metrica-JWS (uno o varios JWS de StoreKit, separados
@@ -104,6 +112,10 @@ async function ia(request, env, responder, desdeWeb) {
         topeDia: entero(env.TOPE_DIA, 5000),
         limiteVacias: REVISIONES_SIN_CAMBIOS, ttl: TTL,
     };
+    if (soloMirar) {
+        const cupo = await pedirCuota(env, { ...base, accion: 'cupo' });
+        return conRestantes(responder, { quedan: mostrado(cupo) }, 200, mostrado(cupo));
+    }
     const vista = await pedirCuota(env, { ...base, accion: 'mirar' });
     // Cada consulta gasta lo suyo de la cuota: la letra entera, más.
     const gasto = revision ? GASTO_IA.revision(cuerpo.revision.versos.length, Array.isArray(cuerpo.revision.ya) && cuerpo.revision.ya.length > 0) : temas ? GASTO_IA.temas : GASTO_IA.frase;

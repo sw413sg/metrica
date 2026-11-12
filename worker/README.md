@@ -6,6 +6,7 @@ Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se puede
 - `GET /probar`: un pedido mínimo a OpenAI; dice `{ ok: true }` o el error de OpenAI tal cual (sin la clave). Tope de 30 por día. Los errores también quedan en Observability.
 - `POST /web/...`: **Métrica web**, la web vinculada con el iPhone por un QR, como WhatsApp Web (`worker/src/enlace.js`, ver abajo).
 - `POST /ia`: la IA de la libreta: elegís una frase y propone 3 o 4 alternativas relacionadas, con sus mismas rimas internas y finales (además, cambia palabras sueltas y revisa la letra entera). Desplegado en `https://metrica.emas1397.workers.dev` (la web usa `/ia` desde la 1.6.6).
+- `POST /ia/cupo`: lo que queda de la cuota, sin gastar ni llamar al modelo (`{ quedan }` y `X-Metrica-Restantes`), con los mismos headers y la misma sesión que `/ia`. La web lo pide cada 8 s vinculada y el iPhone en cada vuelta de Métrica web, así los dos muestran lo mismo aunque se usen a la vez. Anota los paquetes nuevos (acción `cupo` de la cuota), porque la app cierra la transacción al ver los restantes.
 
 ## Cómo anda
 1. La app arma el pedido con su propio motor (`fraseElegida` en `js/logica/ia.js`): el verso elegido, el anterior, la estrofa, sílabas, rima consonante y asonante de la última palabra y las rimas internas.

@@ -88,6 +88,17 @@ test('el Worker corta al llegar al cupo del mes', async () => {
     assert.equal(llamadas.length, 2);
 });
 
+test('/ia/cupo dice lo que queda sin gastar ni llamar al modelo (pedido de Swa)', async () => {
+    const antes = await pedir({}, {}, '/ia/cupo');
+    assert.equal(antes.status, 200);
+    assert.equal(antes.headers.get('X-Metrica-Restantes'), '2');
+    await pedir();
+    const despues = await pedir({}, {}, '/ia/cupo');
+    assert.deepEqual(await despues.json(), { quedan: 1 });
+    assert.equal(llamadas.length, 1);
+    assert.equal((await pedir({}, { Origin: 'https://sw413sg.github.io' }, '/ia/cupo')).status, 401);
+});
+
 test('desde la web, la IA es solo con un iPhone vinculado (pedido de Swa)', async () => {
     const web = { Origin: 'https://sw413sg.github.io' };
     const sinVincular = await pedir(undefined, web);
@@ -221,6 +232,19 @@ test('el mismo transactionId de un paquete no suma dos veces', async () => {
     // Otro id, el mismo JWS: comparte la bolsa, no la vuelve a llenar.
     const otra = await pedir(undefined, { 'X-Metrica-JWS': jws, 'X-Metrica-Id': OTRO });
     assert.equal((await otra.json()).quedan, 297);
+});
+
+test('/ia/cupo anota un paquete nuevo (la app cierra la transacción al ver los restantes)', async () => {
+    conRaiz();
+    const jws = cadena.jws({
+        productId: 'metrica.ia.mas', type: 'Consumable', transactionId: 'paqcupo', originalTransactionId: 'paqcupo',
+    });
+    const cupo = await pedir({}, { 'X-Metrica-JWS': jws }, '/ia/cupo');
+    const antes = Number(cupo.headers.get('X-Metrica-Restantes'));
+    assert.ok(antes >= 300);
+    // Sin volver a mandar el JWS, el paquete sigue ahí.
+    const despues = await pedir();
+    assert.equal((await despues.json()).quedan, antes - 1);
 });
 
 test('sin cuota responde 402 y X-Metrica-Restantes en 0', async () => {

@@ -332,7 +332,9 @@ export function cabecerasIA(almacen) {
     if (cuenta.pais) cabeceras['X-Metrica-Pais'] = cuenta.pais;
     return cabeceras;
 }
-// Lo que contestó el Worker (`X-Metrica-Restantes`) a un pedido de la web, hasta que el iPhone mande el suyo.
+// Lo que contestó el Worker (`X-Metrica-Restantes`): a una consulta o a `/ia/cupo`, que la web pide
+// cada pocos segundos. Es lo que se muestra: el servidor manda, así la web y el iPhone dicen lo mismo
+// aunque se usen a la vez (pedido de Swa). Al vincular se borra, para no arrastrar uno viejo.
 export const guardarRestantesWeb = (almacen, quedan, ahora = Date.now()) =>
     almacen.setItem(CLAVE_RESTANTES_WEB, JSON.stringify({ mes: mesDe(ahora), quedan }));
 function cupoDelIphone(almacen, ahora) {
@@ -341,7 +343,7 @@ function cupoDelIphone(almacen, ahora) {
     let quedan = cupo.quedan;
     try {
         const web = JSON.parse(almacen.getItem(CLAVE_RESTANTES_WEB));
-        if (web?.mes === mesDe(ahora) && Number.isFinite(web.quedan)) quedan = Math.min(quedan, web.quedan);
+        if (web?.mes === mesDe(ahora) && Number.isFinite(web.quedan)) quedan = web.quedan;
     } catch { /* sin pedidos desde la web */ }
     const tope = Math.max(1, cupo.total, quedan);
     // Como en Swift: «del mes» solo con la cuota del mes sola; las extra no vencen.
@@ -447,6 +449,20 @@ const errorIA = motivo => Object.assign(new Error(MENSAJES_ERROR_IA[motivo]), { 
 export const pedirSugerencias = (pedido, opciones) => llamarIA({ pedido }, opciones);
 // La letra entera, para la pestaña «Sugerencias»: vuelven cambios { titulo, verso, viejo, nuevo }.
 export const pedirRevision = (revision, opciones) => llamarIA({ revision }, opciones);
+
+// Lo que queda de la cuota según el servidor, sin gastar (`/ia/cupo`). null si no se pudo saber.
+export async function consultarCupoIA({ endpoint = '', id = '', cabeceras = {}, fetch = globalThis.fetch } = {}) {
+    if (!endpoint) return null;
+    try {
+        const respuesta = await fetch(endpoint.replace(/\/+$/, '') + '/cupo', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Metrica-Id': id, ...cabeceras }, body: '{}',
+        });
+        const restantes = parseInt(respuesta.headers?.get?.('X-Metrica-Restantes') ?? '', 10);
+        return respuesta.ok && Number.isFinite(restantes) ? restantes : null;
+    } catch {
+        return null;
+    }
+}
 
 async function llamarIA(cuerpo, { endpoint = '', id = '', cabeceras = {}, alRestantes = () => {}, fetch = globalThis.fetch, simular = () => [] } = {}) {
     if (!endpoint) return { sugerencias: simular(), simulada: true };

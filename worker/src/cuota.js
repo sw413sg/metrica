@@ -257,14 +257,15 @@ export async function descontar(kv, cuenta, gasto, ttl) {
 }
 
 // Un paso de la cuota, para correrlo adentro de la transacción del Durable Object.
-// accion: mirar (no escribe), vacia (la revisión sin cambios) o gastar.
+// accion: mirar (no escribe), cupo (`/ia/cupo`: no gasta, pero anota los paquetes nuevos, porque la app
+// cierra la transacción al ver X-Metrica-Restantes), vacia (la revisión sin cambios) o gastar.
 export async function operarCuota(kv, pedido) {
     const cuenta = await prepararCuenta(kv, pedido);
     const dia = Number(await kv.get(pedido.claveDia)) || 0;
     const quedan = totalUsable(cuenta);
     const mostrar = totalUsable(cuenta, false);
     if (pedido.accion === 'mirar') return { quedan, mostrar, dia };
-    if (dia >= pedido.topeDia) return { error: 'ocupado', quedan };
+    if (pedido.accion !== 'cupo' && dia >= pedido.topeDia) return { error: 'ocupado', quedan };
     // Un paquete que llega por primera vez se anota ya, aunque este pedido lo pague el mes: la app
     // cierra la transacción cuando ve X-Metrica-Restantes y no vuelve a mandar ese JWS. Si no quedara
     // anotado acá, el paquete se perdía entero.
@@ -278,6 +279,7 @@ export async function operarCuota(kv, pedido) {
         await kv.put(cuenta.claveDelId, JSON.stringify(lista));
         for (const p of sinId) p.delId = true;
     }
+    if (pedido.accion === 'cupo') return { quedan, mostrar, dia };
     if (pedido.accion === 'vacia') {
         const hechas = await Promise.all(cuenta.clavesVacias.map(async k => Number(await kv.get(k)) || 0));
         if (Math.max(0, ...hechas) >= pedido.limiteVacias) return { ok: false, quedan };
