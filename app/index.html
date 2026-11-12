@@ -964,6 +964,7 @@
     <div class="hoja-fondo" id="hoja-tema" hidden>
         <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="tema-frase">
             <div class="agarre-tema"></div>
+            <button type="button" class="cerrar-ventana-ia" data-cerrar-hoja="hoja-tema" aria-label="Cerrar"><svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             <!-- Desde la estrellita de arriba (con algo escrito): «Métrica+ IA» (la IA lee la letra y propone cambios,
                  recién al tocar «¿Qué cambiaría Métrica IA?», así no gasta solo por entrar) e «Ideas» (las consignas,
                  sin límite). Desde una letra vacía o el baúl, solo Ideas (pedidos de Swa, como en Swift). -->
@@ -985,9 +986,8 @@
                         <button type="button" class="chip-simples generar-rev" id="revision-generar"><span class="estrella-ia" aria-hidden="true"></span>¿Qué cambiaría Métrica IA?</button>
                     </div>
                 </div>
-                <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
-                <!-- Recién después de tocar «Generar», y sin estrellita (ya la lleva el botón; pedido de Swa). -->
-                <div class="cupo-ia cupo-revision" id="revision-cupo-caja" hidden><span id="revision-cupo"></span><span class="barra-cupo" aria-hidden="true"><span id="revision-cupo-barra"></span></span></div>
+                <!-- Abajo, como en Swift: lo que queda de los créditos IA y lo que gasta esta consulta. -->
+                <div class="pastilla-cupo vidrio" id="revision-cupo"></div>
                 <p class="nota-tema" id="revision-nota"></p>
             </div>
             <div id="tema-ficha">
@@ -1033,6 +1033,7 @@
     <div class="hoja-fondo" id="hoja-ia" hidden>
         <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="ia-frase">
             <div class="agarre-tema"></div>
+            <button type="button" class="cerrar-ventana-ia" data-cerrar-hoja="hoja-ia" aria-label="Cerrar"><svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             <div class="caja-tema vidrio" id="caja-ia">
                 <div class="cabeza-ia">
                     <span class="titulo-azar" id="ia-titulo"></span>
@@ -1059,7 +1060,7 @@
                 </div>
             </div>
             <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
-            <div class="cupo-ia"><span class="estrella-ia" aria-hidden="true"></span><span id="ia-cupo"></span><span class="barra-cupo" aria-hidden="true"><span id="ia-cupo-barra"></span></span></div>
+            <div class="pastilla-cupo vidrio" id="ia-cupo"></div>
             <p class="nota-tema" id="ia-nota"></p>
             <!-- «Métrica IA»: sin decidir, simulado (aparte de Extras, porque cada uso cuesta). -->
             <div class="caja-tema vidrio plan-ia" id="ia-plan" hidden>

@@ -2064,12 +2064,16 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 #caja-ia.cambio .empujon-tema { animation-delay: 70ms; }
 .cabeza-ia { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 8px; padding: 0 6px; }
 .cabeza-ia .titulo-azar { white-space: nowrap; }
-.cupo-ia { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 12px 12px 0; font-size: 13px; color: var(--texto-2); white-space: nowrap; }
-.cupo-ia .estrella-ia { width: 14px; height: 14px; }
-.cupo-ia[hidden] { display: none; }
-.cupo-revision { margin-top: 18px; }
-.barra-cupo { width: 44px; height: 4px; border-radius: 2px; background: var(--separador); overflow: hidden; flex: none; }
-.barra-cupo span { display: block; height: 100%; width: 100%; border-radius: inherit; background: var(--destacado); transition: width .4s ease; }
+/* Abajo de cada consulta, como en Swift: el aro con lo que queda de los créditos IA y, a la derecha, lo
+   que gasta esta («−0,33%»). */
+.pastilla-cupo { display: flex; align-items: center; gap: 12px; margin: 12px 0 0; padding: 10px 16px 10px 12px; border-radius: 30px; }
+.pastilla-cupo:empty { display: none; }
+.pastilla-cupo .texto-creditos { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.gasto-creditos { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; flex: none; }
+.gasto-creditos strong { font-size: 15px; font-weight: 600; color: var(--destacado); font-variant-numeric: tabular-nums; }
+.gasto-creditos span { font-size: 12px; color: var(--texto-2); }
+.aro-creditos { transition: background .4s; }
+.cerrar-ventana-ia { display: none; }
 /* La palabra que rima, con el efecto de la palabra tocada. */
 #ia-ultima {
     background: var(--degrade-tocada); -webkit-background-clip: text; background-clip: text;
@@ -2362,6 +2366,24 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .grilla-letras.cuadrados { grid-auto-rows: 264px; }
     .grilla-letras.cuadrados .tarjeta-letra, .grilla-letras.cuadrados .tarjeta-nueva { aspect-ratio: auto; }
     .titulo-carpeta, .aviso-privadas { margin-inline: 20px; }
+    /* Las hojas de la IA (y de «¿Por dónde empiezo?») son ventanas centradas, como en una web: sin el
+       agarre de arrastrar, con su cruz arriba a la derecha y más anchas. */
+    #hoja-tema, #hoja-ia { align-items: center; justify-content: center; padding: 24px calc(var(--der) + 24px) 24px calc(var(--izq) + 24px); }
+    #hoja-tema .hoja-tema, #hoja-ia .hoja-tema {
+        position: relative; max-width: 560px; max-height: calc(100vh - 48px); padding: 20px 20px 18px; border-radius: 24px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3); animation: aparecer-alerta .18s ease-out;
+    }
+    .hoja-tema .agarre-tema { display: none; }
+    .cerrar-ventana-ia {
+        display: grid; place-items: center; position: absolute; top: 14px; right: 14px; z-index: 2; width: 34px; height: 34px;
+        border-radius: 50%; color: var(--texto-2); background: color-mix(in srgb, var(--texto) 6%, transparent);
+    }
+    .cerrar-ventana-ia:hover { background: color-mix(in srgb, var(--texto) 12%, transparent); color: var(--texto); }
+    .cerrar-ventana-ia .icono { width: 18px; height: 18px; }
+    #hoja-tema .modos-tema, #hoja-tema .chips-tema { margin-right: 46px; }
+    #hoja-ia .cabeza-ia { padding-right: 40px; }
+    #hoja-tema .hoja-tema:not(:has(#modos-tema:not([hidden]))):not(:has(#chips-tema:not(:empty))) { padding-top: 56px; }
+
     /* Sin las tres líneas: la barra lateral ya es el menú (carpetas, papelera). A la derecha, «Ver y ordenar»
        abre una ventanita con el tamaño, el orden y la selección (sin oscurecer todo). */
     #abrir-menu-letras, .menu-solo-celular { display: none; }
