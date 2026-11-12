@@ -50,13 +50,14 @@ export function esLarga(id) {
     return (h >>> 0) % 10 < 4;
 }
 
-// Dónde va cada tarjeta en la grilla de dos columnas, en orden. La tarjeta "+" ocupa arriba a
-// la izquierda; cada tarjeta va a la columna más corta (empate: la izquierda), con el alto de
-// esLarga. Así las alturas se mezclan sin un patrón fijo. En SwiftUI: un Grid con estos lugares.
-export function lugaresEnGrilla(ids) {
-    const alto = [1, 0];
+// Dónde va cada tarjeta en la grilla (de dos columnas en el iPhone; en la computadora, las que
+// entren), en orden. La tarjeta "+" ocupa arriba a la izquierda; cada tarjeta va a la columna más
+// corta (empate: la de más a la izquierda), con el alto de esLarga. Así las alturas se mezclan sin
+// un patrón fijo. En SwiftUI: un Grid con estos lugares.
+export function lugaresEnGrilla(ids, columnas = 2) {
+    const alto = Array.from({ length: Math.max(1, columnas) }, (_, i) => (i === 0 ? 1 : 0));
     return ids.map(id => {
-        const columna = alto[1] < alto[0] ? 2 : 1, larga = esLarga(id);
+        const columna = alto.indexOf(Math.min(...alto)) + 1, larga = esLarga(id);
         const fila = alto[columna - 1] + 1;
         alto[columna - 1] += larga ? 2 : 1;
         return { columna, fila, larga };

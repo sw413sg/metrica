@@ -65,6 +65,23 @@ test('letras guardadas antes, sin orden, se listan por la última edición', () 
     assert.deepEqual(listarLetras(almacen).map(l => l.id), ['2', '1']);
 });
 
+test('lugaresEnGrilla: con más columnas (la computadora), cada tarjeta a la más corta', () => {
+    const ids = Array.from({ length: 30 }, (_, i) => String(1761000000000 + i * 7919));
+    const lugares = lugaresEnGrilla(ids, 4);
+    const alto = [1, 0, 0, 0];
+    lugares.forEach((l, i) => {
+        assert.equal(l.larga, esLarga(ids[i]));
+        assert.equal(l.fila, alto[l.columna - 1] + 1);
+        assert.equal(alto[l.columna - 1], Math.min(...alto));
+        assert.equal(alto.indexOf(Math.min(...alto)), l.columna - 1);
+        alto[l.columna - 1] += l.larga ? 2 : 1;
+    });
+    // Las primeras tres van al lado de la «+», en la fila de arriba.
+    assert.deepEqual(lugares.slice(0, 3).map(l => [l.columna, l.fila]), [[2, 1], [3, 1], [4, 1]]);
+    // Con dos columnas, igual que siempre.
+    assert.deepEqual(lugaresEnGrilla(ids, 2), lugaresEnGrilla(ids));
+});
+
 test('lugaresEnGrilla: cada tarjeta a la columna más corta, con su alto de siempre', () => {
     const ids = Array.from({ length: 40 }, (_, i) => String(1761000000000 + i * 7919));
     const lugares = lugaresEnGrilla(ids);

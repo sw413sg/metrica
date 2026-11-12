@@ -28,7 +28,7 @@ import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, l
 import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
 import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
-import { estaVinculada, planDelIphone, vincular, sincronizar, cerrarSesion } from './web.js';
+import { estaVinculada, planDelIphone, vincular, sincronizar, cerrarSesion, estadoDeSincronizacion } from './web.js';
 const $ = id => document.getElementById(id);
 const COLORES_RIMA = 12;
 
@@ -51,7 +51,10 @@ const bienEscrita = palabra => palabra && (ANGLICISMOS.has(palabra.toLowerCase()
 function mostrarPestana(nombre) {
     cerrarBusquedaBaul();
     document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.dataset.pestana === nombre));
-    document.querySelectorAll('#barra-pestanas button').forEach(b => b.setAttribute('aria-selected', b.dataset.pestana === nombre));
+    // En la computadora la barra lateral sigue a la vista mientras se escribe: la libreta cuenta
+    // como abierta solo si se ve.
+    document.body.classList.toggle('editando', nombre === 'letras' && $('vista-editor').classList.contains('activa'));
+    marcarBarra();
     if (nombre === 'rimas') reanudarPalabras(); else pausarPalabras();
     vigilarMusica();
     // En Ajustes el reproductor no se ve, pero lo que suena sigue (salvo YouTube).
@@ -67,8 +70,29 @@ function mostrarPestana(nombre) {
 }
 // Tocar «Letras» estando en el baúl vuelve al inicio de Letras; desde otra sección, el baúl
 // sigue abierto donde estaba (pedido de Swa).
-document.querySelectorAll('#barra-pestanas button').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.pestana === 'letras' && $('pantalla-letras').classList.contains('activa') && $('vista-baul').classList.contains('activa')) {
+// La pestaña elegida (en la barra lateral de la computadora, el baúl tiene su propio renglón).
+function marcarBarra() {
+    const pestana = document.querySelector('.pantalla.activa')?.dataset.pestana;
+    const enBaul = pestana === 'letras' && $('vista-baul').classList.contains('activa') && innerWidth >= 700;
+    document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b =>
+        b.setAttribute('aria-selected', b.dataset.pestana === pestana && (b.dataset.vista === 'baul') === enBaul));
+    if (pestana === 'letras' && columnasLetras() !== columnasUbicadas) ubicarTarjetas();
+}
+document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => b.addEventListener('click', () => {
+    const enLetras = $('pantalla-letras').classList.contains('activa');
+    // El baúl, desde la barra lateral: si hay una letra abierta, volver lleva a ella.
+    if (b.dataset.vista === 'baul') {
+        if (!enLetras) mostrarPestana('letras');
+        if ($('vista-editor').classList.contains('activa')) $('abrir-baul-libreta').click();
+        else if (!$('vista-baul').classList.contains('activa')) abrirBaul(false);
+        return marcarBarra();
+    }
+    // En la computadora, «Letras» con una letra abierta vuelve a la lista (en el celular la barra no se ve ahí).
+    if (b.dataset.pestana === 'letras' && enLetras && $('vista-editor').classList.contains('activa')) {
+        $('editor-atras').click();
+        return marcarBarra();
+    }
+    if (b.dataset.pestana === 'letras' && enLetras && $('vista-baul').classList.contains('activa')) {
         mostrarVista('vista-lista-letras');
         renderizarLetras();
     }
@@ -116,7 +140,7 @@ const seDesplazaDeCostado = nodo => {
         }
         const desdeBorde = dx > 0 ? x <= BORDE : x >= innerWidth - BORDE;
         if (!desdeBorde || document.body.classList.contains('teclado-abierto') || objetivo.closest?.(CON_GESTO_PROPIO) || seDesplazaDeCostado(objetivo)) return;
-        const botones = [...document.querySelectorAll('#barra-pestanas button')];
+        const botones = [...document.querySelectorAll('#barra-pestanas [data-pestana]:not([data-vista])')];
         const actual = botones.findIndex(b => b.dataset.pestana === pantalla.dataset.pestana);
         botones[actual + (dx < 0 ? 1 : -1)]?.click();
     }, { passive: true });
@@ -127,6 +151,7 @@ const seDesplazaDeCostado = nodo => {
 function mostrarVista(id) {
     document.querySelectorAll('#pantalla-letras .vista').forEach(v => v.classList.toggle('activa', v.id === id));
     document.body.classList.toggle('editando', id === 'vista-editor');
+    marcarBarra();
     ocultarMusicaSiHaceFalta();
     if (musica) aplicarVideo();
     ubicarReproductor();
@@ -162,8 +187,15 @@ function renderizarLetras() {
 }
 
 // Cada tarjeta va en su lugar de la grilla, a la columna más corta, chica o larga según la letra.
+// En el iPhone son dos columnas; en la computadora, las que entren (las dice la grilla del CSS).
+const columnasLetras = () => {
+    const columnas = getComputedStyle($('lista-letras').parentElement).gridTemplateColumns.split(' ').filter(c => c.endsWith('px')).length;
+    return columnas || 2;
+};
+let columnasUbicadas = 2;
 function ubicarTarjetas() {
-    const lugares = lugaresEnGrilla(tarjetasLetras.map(t => t.dataset.id));
+    columnasUbicadas = columnasLetras();
+    const lugares = lugaresEnGrilla(tarjetasLetras.map(t => t.dataset.id), columnasUbicadas);
     tarjetasLetras.forEach((tarjeta, i) => {
         const { columna, fila, larga } = lugares[i];
         tarjeta.style.gridColumn = columna;
@@ -171,6 +203,8 @@ function ubicarTarjetas() {
         tarjeta.classList.toggle('destacada', larga);
     });
 }
+
+addEventListener('resize', () => { if (columnasLetras() !== columnasUbicadas) ubicarTarjetas(); });
 
 // Mueve la tarjeta a otro lugar mientras se arrastra; las demás se corren con una animación.
 function reacomodar(tarjeta, lugar) {
@@ -419,7 +453,7 @@ function renderizarBaul() {
     const vacio = $('baul-vacio');
     vacio.hidden = frases.length > 0;
     vacio.textContent = busqueda.trim() ? `Ninguna frase tiene «${busqueda.trim()}».`
-        : !todas.length ? 'Anotá arriba las frases que se te ocurran, para usarlas después en una letra.'
+        : !todas.length ? 'Anota arriba las frases que se te ocurran, para usarlas después en una letra.'
         : filtro === 'usadas' ? 'Todavía no marcaste ninguna como usada.' : 'Ya usaste todas.';
 }
 
@@ -796,11 +830,18 @@ function mostrarCambio() {
     const palabra = bienEscrita(tocada);
     const modo = MODOS_CAMBIO[modoCambio];
     mostrarSugerencias(palabra, `${modo.etiqueta} «${tocada}»:`, modo.buscar(palabra), true);
+    // Con el panel de ayudas abierto (computadora), las rimas van ahí y no en la barra de abajo.
+    $('sugerencias').dataset.modo = 'cambio';
 }
 
 // Tocar un renglón vacío ofrece marcar una parte de la letra; tocar una palabra muestra
 // otras que riman con ella, para cambiarla.
-editorTexto.addEventListener('click', () => {
+editorTexto.addEventListener('click', e => {
+    // Alt + clic en la computadora: abre el panel de ayudas en Rimas (la palabra la pone el resto de este toque).
+    if (e.altKey && enComputadora()) {
+        pestanaPanel = 'rimas';
+        alternarPanel(true);
+    }
     ocultarVineta();
     // Con una frase seleccionada va la estrellita de IA (ver revisarSeleccion).
     if (editorTexto.selectionStart !== editorTexto.selectionEnd) return revisarSeleccion();
@@ -827,6 +868,7 @@ editorTexto.addEventListener('click', () => {
     // Si está mal escrita no se avisa: solo se muestran las rimas (o sinónimos) de la palabra que se quiso escribir.
     tocada = antes + despues;
     reemplazo = { inicio: selectionStart - antes.length, fin: selectionStart + despues.length };
+    palabraEnPanel(tocada, { ...reemplazo });
     // Un toque la marca en violeta; otro toque sobre la misma, ya violeta, saca la estrellita de IA
     // arriba de ella, que abre la viñeta (pedido de Swa). La barra sigue en el modo que estaba.
     const otraVez = previa && previa.inicio === reemplazo.inicio && previa.fin === reemplazo.fin && previa.palabra === tocada;
@@ -895,6 +937,246 @@ $('sugerencias').addEventListener('click', e => {
     if (!$('vineta-ia').hidden) ubicarVineta();
 });
 
+// ---------- Panel de ayudas (solo en la computadora, pedido de Swa) ----------
+// A la derecha de la libreta (como hoja en las pantallas medianas): Rimas, Sinónimos, Baúl e IA.
+// Tocar una palabra de la letra (o Alt + clic, que además abre el panel) muestra sus rimas y
+// sinónimos sin taparla; tocar una de las que propone cambia la palabra (o la pone donde está el
+// cursor). Las frases del baúl se arrastran a la letra. En el celular no se ve: van las sugerencias.
+const CLAVE_PANEL = 'metrica.panel-ayudas';
+const pantallaGrande = () => matchMedia('(min-width: 1000px)').matches;
+const enComputadora = () => matchMedia('(min-width: 700px)').matches;
+let panelMediano = false, pestanaPanel = 'rimas', tipoPanel = 'consonante';
+let palabraPanel = null, rangoPanel = null;
+const panelGuardado = () => { try { return localStorage.getItem(CLAVE_PANEL) !== 'cerrado'; } catch { return true; } };
+
+function aplicarPanel() {
+    const abierto = enComputadora() && (pantallaGrande() ? panelGuardado() : panelMediano);
+    const antes = document.body.classList.contains('con-panel');
+    document.body.classList.toggle('con-panel', abierto);
+    $('alternar-panel').setAttribute('aria-pressed', abierto);
+    if (abierto) renderizarPanel();
+    if (antes !== abierto && document.body.classList.contains('editando')) actualizarEditor();
+}
+function alternarPanel(abrir = !document.body.classList.contains('con-panel')) {
+    if (pantallaGrande()) { try { localStorage.setItem(CLAVE_PANEL, abrir ? 'abierto' : 'cerrado'); } catch {} }
+    else panelMediano = abrir;
+    aplicarPanel();
+}
+addEventListener('resize', aplicarPanel);
+$('alternar-panel').addEventListener('click', () => alternarPanel());
+$('cerrar-panel').addEventListener('click', () => alternarPanel(false));
+
+// La palabra que se tocó o se seleccionó en la letra (con dónde está, para cambiarla).
+function palabraEnPanel(palabra, rango) {
+    if (!enComputadora()) return;
+    palabraPanel = palabra;
+    rangoPanel = rango;
+    if (document.activeElement !== $('panel-buscar')) $('panel-buscar').value = palabra ?? '';
+    if (document.body.classList.contains('con-panel')) renderizarPanel();
+}
+
+function elegirPestanaPanel(pestana) {
+    pestanaPanel = pestana;
+    renderizarPanel();
+}
+document.querySelectorAll('.pastillas-panel button').forEach(b => b.addEventListener('click', () => elegirPestanaPanel(b.dataset.panel)));
+// Las pestañas y la cruz no le sacan el cursor a la letra.
+$('panel-ayudas').querySelector('.panel-cabecera').addEventListener('mousedown', e => e.preventDefault());
+
+const elemento = (etiqueta, clase, texto) => Object.assign(document.createElement(etiqueta), clase ? { className: clase } : {}, texto != null ? { textContent: texto } : {});
+const notaPanel = html => Object.assign(elemento('p', 'nota-panel'), { innerHTML: html });
+function palabrasPanel(palabras, clase = '') {
+    const lista = elemento('div', 'palabras-panel');
+    lista.append(...palabras.map(p => {
+        const boton = elemento('button', clase, p);
+        boton.type = 'button';
+        boton.dataset.palabra = p;
+        return boton;
+    }));
+    return lista;
+}
+function tituloPanel(texto, palabra) {
+    const titulo = elemento('h3', 'titulo-panel', texto);
+    if (palabra) titulo.append(' ', elemento('span', 'palabra-panel brillo-violeta', palabra));
+    return titulo;
+}
+
+function renderizarPanel() {
+    if (!document.body.classList.contains('con-panel')) return;
+    document.querySelectorAll('.pastillas-panel button').forEach(b => b.setAttribute('aria-selected', b.dataset.panel === pestanaPanel));
+    $('panel-busqueda').hidden = !['rimas', 'sinonimos'].includes(pestanaPanel);
+    const cuerpo = $('panel-cuerpo');
+    const palabra = palabraPanel && bienEscrita(palabraPanel.toLowerCase());
+    if (pestanaPanel === 'rimas') {
+        if (!palabra) return cuerpo.replaceChildren(notaPanel('Toca una palabra de tu letra para ver sus rimas aquí, o búscala arriba. Con <kbd>Alt</kbd> + clic se abre este panel desde cualquier lado.'));
+        const tipos = elemento('div', 'segmentado-panel');
+        for (const tipo of ['consonante', 'asonante']) {
+            const boton = elemento('button', '', tipo === 'consonante' ? 'Consonante' : 'Asonante');
+            boton.type = 'button';
+            boton.setAttribute('aria-pressed', tipo === tipoPanel);
+            boton.addEventListener('click', () => { tipoPanel = tipo; renderizarPanel(); });
+            tipos.append(boton);
+        }
+        const todas = buscarRimas(palabra, indiceRimas(), { tipo: tipoPanel });
+        const rimas = todas.slice(0, 120);
+        cuerpo.replaceChildren(tipos, tituloPanel(`${todas.length.toLocaleString('es-AR')} ${tipoPanel}${todas.length === 1 ? '' : 's'} con`, palabraPanel),
+            rimas.length ? palabrasPanel(rimas) : notaPanel(`No encontré rimas ${tipoPanel}s para «${palabraPanel}».`));
+    } else if (pestanaPanel === 'sinonimos') {
+        if (!palabra) return cuerpo.replaceChildren(notaPanel('Toca una palabra de tu letra para ver sus sinónimos y las palabras relacionadas.'));
+        const sinon = buscarSinonimos(palabra, indiceSinonimos()).slice(0, 60);
+        const rel = buscarRelacionados(palabra, indiceRelacionados()).slice(0, 40);
+        // Los que riman con la palabra van primero y en violeta.
+        const consonantes = new Set(buscarRimas(palabra, indiceRimas()));
+        const ordenados = [...sinon.filter(p => consonantes.has(p)), ...sinon.filter(p => !consonantes.has(p))];
+        cuerpo.replaceChildren(
+            tituloPanel('Sinónimos de', palabraPanel),
+            sinon.length ? palabrasPanel(ordenados) : notaPanel(`No encontré sinónimos para «${palabraPanel}».`),
+            tituloPanel('Relacionadas'),
+            rel.length ? palabrasPanel(rel) : notaPanel('Sin palabras relacionadas.'));
+        cuerpo.querySelectorAll('.palabras-panel button').forEach(b => { if (consonantes.has(b.dataset.palabra)) b.classList.add('rima-panel'); });
+    } else if (pestanaPanel === 'baul') {
+        renderizarBaulPanel();
+    } else {
+        renderizarIAPanel();
+    }
+}
+
+// Tocar una palabra del panel: si la palabra tocada sigue en su lugar, la cambia; si no, la pone donde está el cursor.
+$('panel-cuerpo').addEventListener('mousedown', e => { if (e.target.closest('.palabras-panel button, .boton-ia-panel')) e.preventDefault(); });
+$('panel-cuerpo').addEventListener('click', e => {
+    const boton = e.target.closest('.palabras-panel button');
+    if (!boton) return;
+    const nueva = boton.dataset.palabra;
+    const { value } = editorTexto;
+    if (rangoPanel && value.slice(rangoPanel.inicio, rangoPanel.fin) === palabraPanel) {
+        const cambiada = conMayuscula(nueva, value[rangoPanel.inicio]);
+        editorTexto.setRangeText(cambiada, rangoPanel.inicio, rangoPanel.fin, 'end');
+        rangoPanel = { inicio: rangoPanel.inicio, fin: rangoPanel.inicio + cambiada.length };
+        palabraPanel = cambiada;
+        $('panel-buscar').value = cambiada;
+    } else {
+        const { selectionStart, selectionEnd } = editorTexto;
+        const espacio = selectionStart > 0 && !/\s/.test(value[selectionStart - 1]) ? ' ' : '';
+        editorTexto.setRangeText(espacio + nueva, selectionStart, selectionEnd, 'end');
+    }
+    editorTexto.focus();
+    actualizarEditor();
+    guardarActual();
+    renderizarPanel();
+});
+
+// Buscar una palabra en el panel (sin tocar la letra).
+$('panel-buscar').addEventListener('input', () => {
+    palabraPanel = $('panel-buscar').value.trim() || null;
+    rangoPanel = null;
+    renderizarPanel();
+});
+
+// Baúl: anotar una frase y arrastrar las guardadas a la letra (o tocarlas para ponerlas donde está el cursor).
+function renderizarBaulPanel() {
+    const anotar = elemento('form', 'anotar-panel');
+    const campo = elemento('textarea');
+    campo.rows = 1;
+    campo.placeholder = 'Anota una frase…';
+    const guardar = elemento('button', '', 'Guardar');
+    guardar.disabled = true;
+    campo.addEventListener('input', () => { guardar.disabled = !campo.value.trim(); });
+    campo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); anotar.requestSubmit(); } });
+    anotar.addEventListener('submit', e => {
+        e.preventDefault();
+        if (!campo.value.trim()) return;
+        anotarFrase(localStorage, campo.value.trim());
+        renderizarBaul();
+        renderizarPanel();
+        $('panel-cuerpo').querySelector('textarea')?.focus();
+    });
+    anotar.append(campo, guardar);
+    const frases = listarFrases(localStorage);
+    // Primero las que no se usaron.
+    const ordenadas = [...frases.filter(f => !f.usada), ...frases.filter(f => f.usada)];
+    const lista = elemento('ul', 'frases-panel');
+    lista.append(...ordenadas.map(frase => {
+        const fila = elemento('li', frase.usada ? 'usada' : '', frase.texto);
+        fila.draggable = true;
+        fila.title = 'Arrástrala a la letra o tócala para ponerla donde está el cursor';
+        fila.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', frase.texto);
+            e.dataTransfer.effectAllowed = 'copy';
+        });
+        fila.addEventListener('mousedown', e => e.preventDefault());
+        fila.addEventListener('click', () => ponerFrase(frase.texto));
+        return fila;
+    }));
+    $('panel-cuerpo').replaceChildren(anotar,
+        frases.length ? lista : notaPanel('Tu baúl está vacío. Anota aquí las frases que se te ocurren, y después arrástralas a la letra.'),
+        ...(frases.length ? [notaPanel('Arrastra una frase a la letra, o tócala para ponerla donde está el cursor. <kbd>Ctrl</kbd> + <kbd>Enter</kbd> guarda el verso donde estás.')] : []));
+}
+
+// Una frase va en su propio renglón, donde está el cursor.
+function ponerFrase(texto) {
+    const { value, selectionStart, selectionEnd } = editorTexto;
+    const antes = selectionStart > 0 && value[selectionStart - 1] !== '\n' ? '\n' : '';
+    const despues = selectionEnd < value.length && value[selectionEnd] !== '\n' ? '\n' : '';
+    editorTexto.focus();
+    editorTexto.setRangeText(antes + texto + despues, selectionStart, selectionEnd, 'end');
+    actualizarEditor();
+    guardarActual();
+}
+// Lo que se suelta en la letra (una frase del baúl) se guarda igual que lo escrito.
+editorTexto.addEventListener('drop', () => setTimeout(() => { actualizarEditor(); guardarActual(); }));
+
+// Ctrl/Cmd + Enter: el verso donde está el cursor va al baúl.
+function versoAlBaul() {
+    const { value, selectionStart } = editorTexto;
+    const inicio = value.lastIndexOf('\n', selectionStart - 1) + 1;
+    const fin = value.indexOf('\n', selectionStart) < 0 ? value.length : value.indexOf('\n', selectionStart);
+    const verso = value.slice(inicio, fin).trim();
+    if (!verso || esSeparador(verso)) return;
+    anotarFrase(localStorage, verso);
+    renderizarBaul();
+    avisoPanel('Verso guardado en el baúl');
+    if (pestanaPanel === 'baul') renderizarPanel();
+}
+let avisoPanelReloj = 0;
+function avisoPanel(texto) {
+    let aviso = $('aviso-panel');
+    if (!aviso) {
+        aviso = elemento('div', 'aviso-panel vidrio');
+        aviso.id = 'aviso-panel';
+        aviso.setAttribute('role', 'status');
+        document.body.append(aviso);
+    }
+    aviso.textContent = texto;
+    aviso.classList.add('visible');
+    clearTimeout(avisoPanelReloj);
+    avisoPanelReloj = setTimeout(() => aviso.classList.remove('visible'), 1800);
+}
+
+// IA: las dos consultas de la libreta, con los nombres del iPhone.
+function renderizarIAPanel() {
+    const { selectionStart, selectionEnd, value } = editorTexto;
+    const frase = selectionStart !== selectionEnd && fraseElegida(value, selectionStart, selectionEnd, opcionesIA());
+    if (frase) fraseIA = frase;
+    const boton = (titulo, texto, accion, apagado = false) => {
+        const b = elemento('button', 'boton-ia-panel');
+        b.type = 'button';
+        const fuerte = elemento('strong');
+        fuerte.append(Object.assign(elemento('i', 'estrella-ia'), { ariaHidden: 'true' }), titulo);
+        b.append(fuerte, elemento('span', '', texto));
+        b.disabled = apagado;
+        b.addEventListener('click', accion);
+        return b;
+    };
+    const caja = elemento('div', 'ayuda-ia');
+    caja.append(
+        boton('¿Cómo lo diría Métrica IA?', frase ? `Otras formas de decir «${value.slice(frase.inicio, frase.fin)}», con sus mismas rimas.` : 'Selecciona una frase de tu letra (dos palabras o más) y te propongo otras formas de decirla.', () => abrirHojaIA(), !frase),
+        boton('¿Qué cambiaría Métrica IA?', 'Lee la letra entera y te propone cambios: repeticiones, palabras flojas y finales que no riman.', () => {
+            abrirDameTema(true);
+            elegirModoTema('sugerencias');
+        }, !value.trim()));
+    $('panel-cuerpo').replaceChildren(caja);
+}
+
 // ---------- IA: mejorar una frase o cambiar una palabra (pedido de Swa) ----------
 // Seleccionar una frase muestra la estrellita arriba del teclado: cierra el teclado y abre la hoja de
 // «¿Por dónde empiezo?» con lo que propone la IA. Tocar una palabra muestra la estrellita arriba de ella, que
@@ -939,6 +1221,10 @@ let fraseIA = null;
 function revisarSeleccion() {
     if (!document.body.classList.contains('editando') || document.activeElement !== editorTexto) return;
     const { value, selectionStart, selectionEnd } = editorTexto;
+    // En la computadora: una palabra seleccionada muestra sus rimas en el panel, y la IA del panel sabe qué frase hay.
+    const sola = value.slice(selectionStart, selectionEnd);
+    if (selectionStart !== selectionEnd && /^\p{L}+$/u.test(sola) && sola !== palabraPanel) palabraEnPanel(sola, { inicio: selectionStart, fin: selectionEnd });
+    if (pestanaPanel === 'ia') renderizarPanel();
     const elegida = selectionStart !== selectionEnd && fraseElegida(value, selectionStart, selectionEnd, opcionesIA());
     if (elegida) {
         fraseIA = elegida;
@@ -992,7 +1278,7 @@ function pintarCupoIA(uso) {
     const sinCupo = !uso.quedan;
     // El plan solo se ofrece si se terminó el mes (el tope por letra es para todos).
     $('ia-plan').hidden = !sinCupo || uso.plan || uso.porLetra;
-    $('ia-plan-bajada').textContent = `Usaste las ${CUPO_GRATIS} gratis de este mes. Con ${PLAN_IA.nombre} tenés ${PLAN_IA.tope} por mes.`;
+    $('ia-plan-bajada').textContent = `Usaste las ${CUPO_GRATIS} gratis de este mes. Con ${PLAN_IA.nombre} tienes ${PLAN_IA.tope} por mes.`;
     $('ia-comprar').textContent = `Probar por ${PLAN_IA.precio}`;
     $('ia-otra').disabled = pidiendoIA || (sinCupo && posIA >= historialIA.length - 1);
 }
@@ -1038,7 +1324,7 @@ async function pedirTandaIA() {
             historialIA.push(...nuevas.map((sugerencia, n) => ({ ...sugerencia, n, de: nuevas.length, rimaCon: pedido.objetivo.rimaCon })));
             mostrarIA(historialIA.length - nuevas.length);
         } else {
-            $('ia-meta').textContent = 'No encontré otras. Probá con otra pastilla.';
+            $('ia-meta').textContent = 'No encontré otras. Prueba con otra pastilla.';
         }
         pintarCupoIA(respuesta.quedan != null && !usoNuevo.porLetra ? { ...usoNuevo, quedan: Math.min(usoNuevo.quedan, respuesta.quedan) } : usoNuevo);
     } catch (error) {
@@ -1488,7 +1774,7 @@ async function revisarLetra() {
     const revision = letraParaRevisar(editorTexto.value, { corregir: bienEscrita });
     $('revision-nota').textContent = '';
     if (!revision) {
-        lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Escribí unos versos y te digo qué cambiaría.' }));
+        lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Escribe unos versos y te digo qué cambiaría.' }));
         return estadoRevision();
     }
     if (!cupoIA(localStorage, letraActual?.id).quedan) {
@@ -1846,7 +2132,7 @@ function itemPalabra(p) {
 
 // «Escribí una palabra» con el efecto violeta apagado, tipeado rápido al entrar a Rimas y al borrar
 // la búsqueda: el objetivo de la sección es buscar una palabra.
-const PISTA_RIMA = 'Escribí una palabra';
+const PISTA_RIMA = 'Escribe una palabra';
 let pistaEscrita = 0, pistaTimer = null, pistaVacia = true;
 function tipearPista() {
     clearTimeout(pistaTimer);
@@ -1963,7 +2249,7 @@ function renderizarDiccionario() {
     // Sin palabra, la caja no se muestra (pedido de Swa).
     caja.hidden = !palabra;
     if (!palabra) caja.replaceChildren();
-    else if (errorDefiniciones && !definiciones) caja.replaceChildren(parrafo('definicion-vacia', 'No se pudo abrir el diccionario. Probá de nuevo con internet.'));
+    else if (errorDefiniciones && !definiciones) caja.replaceChildren(parrafo('definicion-vacia', 'No se pudo abrir el diccionario. Prueba de nuevo con internet.'));
     else if (!definiciones) caja.replaceChildren(parrafo('definicion-vacia', 'Abriendo el diccionario…'));
     else if (!definiciones.listo && !definiciones.entradas.has(palabra)) caja.replaceChildren(parrafo('definicion-vacia', 'Buscando…'));
     else {
@@ -2728,7 +3014,7 @@ function renderizarBeats() {
         boton.dataset.genero = genero;
         boton.dataset.beat = elegido.id;
         boton.setAttribute('aria-checked', String(elegido.id === beatId));
-        boton.setAttribute('aria-label', lista.length > 1 ? `${etiquetaBeat(elegido)}. Deslizá para cambiar.` : etiquetaBeat(elegido));
+        boton.setAttribute('aria-label', lista.length > 1 ? `${etiquetaBeat(elegido)}. Desliza para cambiar.` : etiquetaBeat(elegido));
         const nombre = document.createElement('span');
         nombre.className = 'nombre-beat';
         nombre.textContent = etiquetaBeat(elegido);
@@ -3491,7 +3777,7 @@ async function compartirArchivo(archivo, fila, g) {
             // Sin el toque (tardó en preparar): queda listo, en violeta, para tocar de nuevo.
             if (error.name === 'NotAllowedError') {
                 boton.classList.add('listo');
-                fila.querySelector('.detalle-grabacion').textContent = 'Listo: tocá de nuevo para guardarla';
+                fila.querySelector('.detalle-grabacion').textContent = 'Listo: toca de nuevo para guardarla';
                 return;
             }
         }
@@ -3708,7 +3994,7 @@ function renderizarExtras() {
     const extras = tieneExtras(localStorage);
     renderizarDuraciones();
     document.querySelectorAll('.publicidad').forEach(p => { p.hidden = !mostrarPublicidad(localStorage); });
-    $('comprar-extras').textContent = extras ? 'Ya tenés Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
+    $('comprar-extras').textContent = extras ? 'Ya tienes Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
     $('comprar-extras').disabled = extras;
     // Vinculada al iPhone, la compra es la del iPhone (StoreKit): acá no se simula ni se borra.
     const vinculada = estaVinculada();
@@ -3794,7 +4080,7 @@ $('paywall').addEventListener('click', e => { if (e.target === $('paywall')) $('
 $('comprar-extras').addEventListener('click', () => {
     comprarExtras(localStorage);
     renderizarExtras();
-    $('paywall-nota').textContent = '¡Listo! Ya tenés Métrica Extras.';
+    $('paywall-nota').textContent = '¡Listo! Ya tienes Métrica Extras.';
 });
 $('restaurar-compra').addEventListener('click', () => {
     $('paywall-nota').textContent = tieneExtras(localStorage) ? 'Tu compra ya está activa.' : 'No encontramos compras para restaurar.';
@@ -3975,12 +4261,12 @@ $('keep-archivo').addEventListener('change', async e => {
         keep.notas = marcarRepetidas(notasDeArchivos(textos), listarLetras(localStorage));
     } catch {
         keep.notas = [];
-        $('keep-estado').textContent = 'No se pudo abrir el archivo. Elegí el .zip que te mandó Google Takeout.';
+        $('keep-estado').textContent = 'No se pudo abrir el archivo. Elige el .zip que te mandó Google Takeout.';
         return;
     }
     keep.elegidas = new Set(keep.notas.filter(n => !n.repetida));
     keep.etiqueta = null;
-    $('keep-estado').textContent = keep.notas.length ? '' : 'No encontramos notas de Keep en ese archivo. Fijate que en Takeout esté marcado Keep.';
+    $('keep-estado').textContent = keep.notas.length ? '' : 'No encontramos notas de Keep en ese archivo. Fíjate que en Takeout esté marcado Keep.';
     renderizarKeep();
 });
 
@@ -4032,7 +4318,7 @@ function contarKeep() {
     const n = keep.elegidas.size;
     $('keep-cuenta').textContent = `${visibles.length} ${visibles.length === 1 ? 'nota' : 'notas'}`;
     $('keep-todas').textContent = visibles.every(x => keep.elegidas.has(x)) ? 'Ninguna' : 'Elegir todas';
-    $('keep-importar').textContent = n ? `Pasar ${n} a Letras` : 'Elegí las notas';
+    $('keep-importar').textContent = n ? `Pasar ${n} a Letras` : 'Elige las notas';
     $('keep-importar').disabled = !n;
 }
 $('keep-todas').addEventListener('click', () => {
@@ -4081,10 +4367,10 @@ const CONTENIDO_WIDGET = {
     // El baúl es para anotar rápido, no para leerlo (pedido de Swa): todo el widget es un toque que
     // abre el baúl con el teclado listo, y no muestra frases guardadas.
     baul({ tamano, diseno }) {
-        const anotar = (clase, html) => tocable('anotar', '', `widget-todo widget-baul-anotar ${clase}`, html, 'Anotá una frase');
+        const anotar = (clase, html) => tocable('anotar', '', `widget-todo widget-baul-anotar ${clase}`, html, 'Anota una frase');
         const grande = tamano !== 'chico';
         if (diseno === 'boton') {
-            return anotar('widget-centrado', `<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span><b class="widget-anotar-texto">${grande ? 'Anotá una frase' : 'Anotá'}</b>`);
+            return anotar('widget-centrado', `<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span><b class="widget-anotar-texto">${grande ? 'Anota una frase' : 'Anota'}</b>`);
         }
         if (diseno === 'libreta') {
             const renglones = { chico: 3, mediano: 3, grande: 8 }[tamano];
@@ -4094,12 +4380,12 @@ const CONTENIDO_WIDGET = {
         if (diseno === 'hoy') {
             const hoy = frasesDeHoy(listarFrases(localStorage));
             const cuenta = hoy ? `<b class="widget-numero">${hoy}</b><span class="widget-dias">${hoy === 1 ? 'frase hoy' : 'frases hoy'}</span>`
-                : `<b class="widget-hoy-vacio">${grande ? 'Anotá la primera frase de hoy' : 'La primera de hoy'}</b>`;
+                : `<b class="widget-hoy-vacio">${grande ? 'Anota la primera frase de hoy' : 'La primera de hoy'}</b>`;
             return anotar('', cabeza('cofre', 'Baúl') + `<div class="widget-dos"><div class="widget-izquierda">${cuenta}</div>${grande ? `<span class="widget-mas-gigante">${ICONOS_WIDGET.mas}</span>` : ''}</div>` +
-                (grande ? '' : `<span class="widget-anotar">${botonMas('Anotá')}</span>`));
+                (grande ? '' : `<span class="widget-anotar">${botonMas('Anota')}</span>`));
         }
         // Cofre: el cofre del baúl y un botón para anotar (sin campo de texto ni cursor; pedido de Swa).
-        const boton = `<span class="widget-anotar-grande">${ICONOS_WIDGET.mas}${grande ? 'Anotá una frase' : 'Anotá'}</span>`;
+        const boton = `<span class="widget-anotar-grande">${ICONOS_WIDGET.mas}${grande ? 'Anota una frase' : 'Anota'}</span>`;
         return anotar('', cabeza('cofre', grande ? 'Baúl de frases' : 'Baúl') + cofreGrande() + boton);
     },
     // Palabra del día: la palabra entera (sin separar ni marcar sílabas) y sus rimas consonantes.
@@ -4132,14 +4418,14 @@ const CONTENIDO_WIDGET = {
     letra({ tamano, diseno, letra: elegida, mostrarContenido }) {
         const letra = letraDelWidget(listarLetras(localStorage), { letra: elegida, tamano });
         if (!letra) {
-            return cabeza('lapiz', 'Seguí escribiendo') + '<p class="widget-frase">Todavía no hay letras</p>' + tocable('nueva-letra', '', 'widget-anotar', botonMas('Nueva letra'));
+            return cabeza('lapiz', 'Sigue escribiendo') + '<p class="widget-frase">Todavía no hay letras</p>' + tocable('nueva-letra', '', 'widget-anotar', botonMas('Nueva letra'));
         }
-        const titulo = tamano === 'chico' ? 'Seguí' : 'Seguí escribiendo';
+        const titulo = tamano === 'chico' ? 'Sigue' : 'Sigue escribiendo';
         const inicio = mostrarContenido && letra.renglones.length
             ? `<ul class="widget-renglones">${letra.renglones.map(r => `<li>${escapar(r)}</li>`).join('')}</ul>` : '';
         if (diseno === 'titulo') {
             return tocable('letra', letra.id, 'widget-todo', cabeza('lapiz', titulo) +
-                `<b class="widget-titulo-grande">${escapar(letra.titulo)}</b>${inicio}<span class="widget-seguir">Seguí</span>`);
+                `<b class="widget-titulo-grande">${escapar(letra.titulo)}</b>${inicio}<span class="widget-seguir">Sigue</span>`);
         }
         if (diseno === 'tarjeta') {
             // Como una tarjeta de Letras: el título arriba y el comienzo que se desvanece.
@@ -4151,7 +4437,7 @@ const CONTENIDO_WIDGET = {
         const fechas = fechasEscritas();
         const { dias, escribioHoy } = racha(fechas);
         const textoDias = dias === 1 ? 'día escribiendo' : 'días escribiendo';
-        const pie = `<span class="widget-pie">${escribioHoy ? 'Hoy ya escribiste' : 'Seguí hoy: anotá una frase'}</span>`;
+        const pie = `<span class="widget-pie">${escribioHoy ? 'Hoy ya escribiste' : 'Sigue hoy: anota una frase'}</span>`;
         const semana = ultimaSemana(fechas).map(d =>
             `<span class="dia-racha${d.escribio ? ' escribio' : ''}${d.hoy ? ' hoy' : ''}"><i></i>${d.inicial}</span>`).join('');
         if (diseno === 'llama') {
@@ -4182,7 +4468,7 @@ const CONTENIDO_WIDGET = {
         }
         if (diseno === 'anotar') {
             const [anotar, ...resto] = ACCESOS;
-            return `<div class="widget-accesos-anotar">${tocable(anotar[0], '', 'widget-anotar-grande', `${ICONOS_WIDGET.mas}<span>Anotá una frase</span>`)}
+            return `<div class="widget-accesos-anotar">${tocable(anotar[0], '', 'widget-anotar-grande', `${ICONOS_WIDGET.mas}<span>Anota una frase</span>`)}
                 <div class="widget-accesos-chicos">${resto.map(([accion, nombre]) => tocable(accion, '', 'widget-acceso-chico', iconoAcceso(accion), nombre)).join('')}</div></div>`;
         }
         return `<div class="widget-accesos">${ACCESOS.map(([accion, nombre]) =>
@@ -4232,9 +4518,9 @@ function accesorioRectangular(id) {
     }
     if (id === 'letra') {
         const letra = letraDelWidget(listarLetras(localStorage));
-        return tocable(letra ? 'letra' : 'nueva-letra', letra?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.lapiz}${escapar(letra?.titulo ?? 'Letras')}</b><span>${escapar(letra?.ultimo || 'Empezá una letra')}</span>`);
+        return tocable(letra ? 'letra' : 'nueva-letra', letra?.id, 'accesorio-largo', `<b>${ICONOS_WIDGET.lapiz}${escapar(letra?.titulo ?? 'Letras')}</b><span>${escapar(letra?.ultimo || 'Empieza una letra')}</span>`);
     }
-    return tocable('anotar', '', 'accesorio-largo', `<b>${ICONOS_WIDGET.cofre}Baúl</b><span>Anotá una frase…</span>`);
+    return tocable('anotar', '', 'accesorio-largo', `<b>${ICONOS_WIDGET.cofre}Baúl</b><span>Anota una frase…</span>`);
 }
 function lineaBloqueo(id) {
     if (id === 'racha') {
@@ -4269,7 +4555,7 @@ function marcoWidget(id, ajustes, conEsquina = true) {
         if (!esquinaUsada(localStorage)) {
             const pista = document.createElement('span');
             pista.className = 'pista-esquina';
-            pista.textContent = 'Probá otro tamaño!';
+            pista.textContent = 'Prueba otro tamaño!';
             marco.append(pista);
         }
     }
@@ -4458,7 +4744,7 @@ function renderizarFilaFoto(ajustes) {
     const elegida = ajustes.estilo === 'foto';
     const miniatura = foto ? `<span class="miniatura-foto" style="background-image:url(${foto.src})"></span>`
         : `<span class="miniatura-foto">${ICONO_FOTO}</span>`;
-    const subtitulo = elegida ? 'Es el fondo de tus widgets' : foto ? 'Tocá para usarla de fondo' : 'Elegí una foto de tu iPhone';
+    const subtitulo = elegida ? 'Es el fondo de tus widgets' : foto ? 'Toca para usarla de fondo' : 'Elige una foto de tu iPhone';
     $('widgets-foto').className = `foto-widgets${elegida ? ' elegida' : ''}`;
     $('widgets-foto').innerHTML = `<button type="button" class="boton-foto-widget" id="widgets-foto-elegir">${miniatura}
             <span class="texto-foto"><b>Foto</b><span>${subtitulo}</span></span>${foto ? '' : '<span class="chevron">›</span>'}</button>
@@ -4544,7 +4830,7 @@ $('foto-widget-listo').addEventListener('click', () => {
     try {
         guardarFotoWidgets(localStorage, fotoEnAjuste);
     } catch {
-        alert('No hay lugar para guardar la foto. Probá con otra.');
+        alert('No hay lugar para guardar la foto. Prueba con otra.');
         return;
     }
     cerrarAjusteFoto();
@@ -5195,7 +5481,35 @@ modoOscuroDelSistema.addEventListener('change', sincronizarTemasConModo);
 // ---------- Métrica web (vincular con el iPhone por QR, js/web.js) ----------
 // Como WhatsApp Web: en una pantalla ancha sin nada vinculado se ve sola; si no, desde Ajustes.
 let cortarVinculo = null;
+// En la barra lateral (computadora), siempre a la vista: que lo que se escribe llega al iPhone.
+// Verde si la última vuelta salió bien hace poco; gris si se cortó o todavía no conectó.
+function renderizarEstadoWeb() {
+    const boton = $('estado-web');
+    if (!estaVinculada()) {
+        boton.dataset.estado = 'sin-vincular';
+        $('estado-web-titulo').textContent = 'Sin vincular';
+        $('estado-web-detalle').textContent = 'Vincular con el iPhone';
+        return;
+    }
+    const { ultima, fallo } = estadoDeSincronizacion();
+    const hace = Math.max(0, Math.round((Date.now() - ultima) / 1000));
+    const alDia = ultima && !fallo && hace < 20;
+    boton.dataset.estado = alDia ? 'al-dia' : 'cortada';
+    const conectando = !ultima && !fallo;
+    $('estado-web-titulo').textContent = alDia ? 'Conectada con tu iPhone' : conectando ? 'Conectando con tu iPhone…' : 'Sin conexión con el iPhone';
+    const cuando = hace < 60 ? `${hace} s` : hace < 3600 ? `${Math.round(hace / 60)} min` : `${Math.round(hace / 3600)} h`;
+    $('estado-web-detalle').textContent = conectando ? 'Un momento' : alDia ? `Sincronizado hace ${cuando}` : ultima ? `Lo último llegó hace ${cuando}` : 'Reintentando…';
+}
+setInterval(renderizarEstadoWeb, 1000);
+$('estado-web').addEventListener('click', () => {
+    if (!estaVinculada()) return abrirVincular();
+    mostrarPestana('ajustes');
+    mostrarVistaAjustes('vista-ajustes');
+    $('web-vinculada').scrollIntoView({ block: 'center' });
+});
+
 function renderizarWeb() {
+    renderizarEstadoWeb();
     const vinculada = estaVinculada();
     $('web-sin-vincular').hidden = vinculada;
     $('web-vinculada').hidden = !vinculada;
@@ -5254,7 +5568,7 @@ function alCambiarDesdeIphone() {
 
 function sincronizarWeb() {
     if (!estaVinculada() || document.visibilityState !== 'visible') return;
-    sincronizar({
+    return sincronizar({
         alCambiar: alCambiarDesdeIphone,
         alCerrar: () => { letraActual = null; mostrarVista('vista-lista-letras'); alCambiarDesdeIphone(); },
     });
@@ -5281,7 +5595,39 @@ renderizarWeb();
 if (!estaVinculada() && innerWidth >= 700 && !localStorage.getItem('metrica.web-sin-vincular')) abrirVincular();
 sincronizarWeb();
 
+// ---------- Atajos de teclado (computadora, pedido de Swa) ----------
+// Ctrl/Cmd + N: letra nueva. Ctrl/Cmd + /: panel de ayudas. Ctrl/Cmd + Enter: el verso al baúl.
+// Espacio en Freestyle: arranca y para. (Ctrl/Cmd + K, para buscar en las letras, llega con el buscador.)
+// Algunos navegadores se guardan Ctrl/Cmd + N para una ventana nueva: ahí también va Alt + N.
+const hayHojaAbierta = () => Boolean(document.querySelector('.hoja-fondo:not([hidden]):not(#hoja-musica), .alerta-fondo:not([hidden]), .menu-frase-fondo:not([hidden]), .vincular:not([hidden])'));
+const escribiendoEnCampo = () => document.activeElement?.matches?.('input, textarea, select, [contenteditable]');
+document.addEventListener('keydown', e => {
+    const mod = e.metaKey || e.ctrlKey;
+    if (((mod && !e.altKey) || (e.altKey && !mod)) && e.code === 'KeyN' && !e.shiftKey && !hayHojaAbierta()) {
+        e.preventDefault();
+        if (!$('pantalla-letras').classList.contains('activa')) mostrarPestana('letras');
+        if (!$('vista-lista-letras').classList.contains('activa')) mostrarVista('vista-lista-letras');
+        $('nueva-letra').click();
+        if (enComputadora()) $('editor-titulo').focus();
+        return;
+    }
+    if (mod && (e.key === '/' || e.code === 'Slash') && document.body.classList.contains('editando')) {
+        e.preventDefault();
+        return alternarPanel();
+    }
+    if (mod && e.key === 'Enter' && document.activeElement === editorTexto) {
+        e.preventDefault();
+        return versoAlBaul();
+    }
+    if (e.code === 'Space' && !mod && !e.altKey && $('pantalla-freestyle').classList.contains('activa') && !escribiendoEnCampo() && !hayHojaAbierta()) {
+        e.preventDefault();
+        if (e.repeat) return;
+        (ronda ? $('fs-reloj') : $('fs-play')).click();
+    }
+});
+
 // ---------- Inicio ----------
+aplicarPanel();
 renderizarApariencia();
 renderizarExtras();
 sincronizarTemasConModo();
@@ -5316,7 +5662,7 @@ $('forzar-actualizacion').addEventListener('click', async () => {
         const registro = await navigator.serviceWorker.getRegistration();
         await registro.update();
         const nueva = registro.installing ?? registro.waiting;
-        if (!nueva) return avisarVersion('Ya tenés la última');
+        if (!nueva) return avisarVersion('Ya tienes la última');
         navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
         nueva.addEventListener('statechange', () => { if (nueva.state === 'redundant') avisarVersion('No se pudo bajar'); });
     } catch {

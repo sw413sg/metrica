@@ -53,7 +53,7 @@
                     <!-- Tacho: aparece al arrastrar una tarjeta; soltarla encima la borra. -->
                     <div class="tacho" id="tacho" aria-hidden="true">
                         <svg viewBox="0 0 24 24" class="icono"><path class="tapa-tacho" d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg>
-                        <span>Soltala acá para borrarla</span>
+                        <span>Suéltala aquí para borrarla</span>
                     </div>
                     <div class="grilla-letras">
                         <button class="tarjeta-nueva" id="nueva-letra" aria-label="Letra nueva">
@@ -61,7 +61,7 @@
                         </button>
                         <ul id="lista-letras"></ul>
                     </div>
-                    <p class="nota" id="letras-vacio">Tocá <strong>+</strong> para escribir tu primera letra.</p>
+                    <p class="nota" id="letras-vacio">Toca <strong>+</strong> para escribir tu primera letra.</p>
                 </div>
             </div>
 
@@ -89,6 +89,10 @@
                         <button class="boton-barra" id="alternar-renglones" aria-pressed="true" aria-label="Mostrar renglones">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
                         </button>
+                        <!-- Abre y cierra el panel de ayudas (solo en la computadora; Ctrl/Cmd + /). -->
+                        <button class="boton-barra solo-compu" id="alternar-panel" aria-pressed="true" aria-label="Panel de ayudas" title="Panel de ayudas (Ctrl + /)">
+                            <svg viewBox="0 0 24 24" class="icono"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M15 4v16M17.5 8.5h1M17.5 11.5h1"/></svg>
+                        </button>
                         <button class="boton-barra" id="abrir-ajustes-libreta" aria-label="Ajustes de la libreta">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M19.04 9.71 L21.77 9.86 L21.77 14.14 L19.04 14.29 L18.59 15.36 L20.42 17.39 L17.39 20.42 L15.36 18.59 L14.29 19.04 L14.14 21.77 L9.86 21.77 L9.71 19.04 L8.64 18.59 L6.61 20.42 L3.58 17.39 L5.41 15.36 L4.96 14.29 L2.23 14.14 L2.23 9.86 L4.96 9.71 L5.41 8.64 L3.58 6.61 L6.61 3.58 L8.64 5.41 L9.71 4.96 L9.86 2.23 L14.14 2.23 L14.29 4.96 L15.36 5.41 L17.39 3.58 L20.42 6.61 L18.59 8.64Z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
@@ -102,7 +106,7 @@
                         <!-- Debajo del texto, una copia invisible que pinta las rimas -->
                         <div class="editor-capas">
                             <div class="editor-fondo" id="editor-fondo" aria-hidden="true"></div>
-                            <textarea class="editor-texto" id="editor-texto" placeholder="Escribí tu letra acá…" spellcheck="false"></textarea>
+                            <textarea class="editor-texto" id="editor-texto" placeholder="Escribe tu letra aquí…" spellcheck="false"></textarea>
                         </div>
                     </div>
                 </div>
@@ -139,7 +143,7 @@
                         <input id="baul-buscar" type="search" placeholder="Buscar en el baúl" autocomplete="off" autocapitalize="none" enterkeyhint="search">
                     </div>
                     <div class="anotar-frase vidrio">
-                        <textarea id="baul-texto" rows="2" placeholder="Anotá una frase…" autocomplete="off"></textarea>
+                        <textarea id="baul-texto" rows="2" placeholder="Anota una frase…" autocomplete="off"></textarea>
                         <button type="button" class="guardar-frase" id="baul-guardar" disabled>Guardar</button>
                     </div>
                     <div class="filtros-baul" id="baul-filtros" role="radiogroup" aria-label="Mostrar"></div>
@@ -173,7 +177,7 @@
                     <span class="lupa-violeta" aria-hidden="true"><span></span></span>
                     <!-- La pista, con el efecto violeta apagado y tipeada rápido (en vez del placeholder). -->
                     <span class="pista-rima" id="pista-rima" aria-hidden="true"><span class="brillo-violeta"></span></span>
-                    <input id="buscar-rima" type="search" aria-label="Escribí una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
+                    <input id="buscar-rima" type="search" aria-label="Escribe una palabra" autocomplete="off" autocapitalize="none" enterkeyhint="search">
                     <button type="button" id="limpiar-rima" aria-label="Borrar" hidden>✕</button>
                 </div>
                 <!-- Cada opción lleva un «?» que abre una viñeta corta que la explica. -->
@@ -285,7 +289,7 @@
                 <div class="instrumental-fs vidrio" id="fs-instrumental">
                 <div id="fs-elegir">
                     <div class="beats-fs" id="fs-beats" role="radiogroup" aria-label="Beat"></div>
-                    <p class="separador-fs" aria-hidden="true">o usá el tuyo</p>
+                    <p class="separador-fs" aria-hidden="true">o usa el tuyo</p>
                 </div>
                 <!-- Cajón del link, abajo de todo y del alto del reproductor de YouTube: link, un
                      beat del teléfono y los recientes. En SwiftUI: TextField + .fileImporter + DisclosureGroup. -->
@@ -315,7 +319,7 @@
             <h1 class="titulo-grande">Ajustes</h1>
             <div class="contenido">
                 <!-- Primero, los widgets: la llave para anotar las frases del día sin abrir la app (pedido
-                     de Swa). Métrica Extras sale de acá por ahora; se abre desde los temas y la publicidad. -->
+                     de Swa). Métrica Extras sale de aquí por ahora; se abre desde los temas y la publicidad. -->
                 <button class="seccion-widgets" id="abrir-widgets" aria-label="Widgets">
                     <span class="seccion-widgets-titulo">Widgets<span class="chevron">›</span></span>
                     <!-- Una muestra de lo que hay adentro, que se funde con Ajustes hacia abajo. -->
@@ -359,20 +363,20 @@
                 <!-- Grabar: con qué micrófono se graba y dónde se escucha, para toda la app (pedido de Swa).
                      Salida: un selector si el navegador deja elegirla, o en el iPhone el menú del sistema.
                      En SwiftUI: AVAudioSession.setPreferredInput y AVRoutePickerView. -->
-                <h2 class="encabezado-grupo">Grabar</h2>
-                <ul class="lista-agrupada">
+                <h2 class="encabezado-grupo fuera-de-la-web">Grabar</h2>
+                <ul class="lista-agrupada fuera-de-la-web">
                     <li class="celda celda-audio"><label for="microfono">Micrófono</label><select id="microfono"></select></li>
                     <li class="celda celda-audio" id="salida-ajustes" hidden><label for="salida">Salida</label><select id="salida"></select><button type="button" class="elegir-salida" id="elegir-salida" hidden>Elegir</button></li>
                 </ul>
                 <!-- Importar: las notas de Google Keep pasan a Letras, desde el export de Google Takeout
                      (Keep no tiene API; pedido de Swa). En SwiftUI: .fileImporter y una vista igual. -->
-                <h2 class="encabezado-grupo">Importar y exportar</h2>
+                <h2 class="encabezado-grupo">Exportar</h2>
                 <ul class="lista-agrupada">
-                    <li class="celda">
+                    <li class="celda fuera-de-la-web">
                         <span class="icono-celda" style="background:#f9ab00"><svg viewBox="0 0 24 24" class="icono"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
                         <button class="celda-boton" id="abrir-keep">
                             <span>Google Keep</span>
-                            <span class="subtitulo">Pasá tus notas a Letras</span>
+                            <span class="subtitulo">Pasa tus notas a Letras</span>
                         </button>
                         <span class="chevron">›</span>
                     </li>
@@ -407,13 +411,13 @@
                         <span class="icono-celda" style="background:#34c759"><svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg></span>
                         <a href="diccionario/README.md">Licencias del diccionario</a><span class="chevron">›</span>
                     </li>
-                    <li class="celda">
+                    <li class="celda fuera-de-la-web">
                         <span class="icono-celda" style="background:#ff9500"><svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg></span>
                         <a href="generador.html">Versión anterior</a><span class="chevron">›</span>
                     </li>
                 </ul>
-                <h2 class="encabezado-grupo">Prueba</h2>
-                <ul class="lista-agrupada">
+                <h2 class="encabezado-grupo fuera-de-la-web">Prueba</h2>
+                <ul class="lista-agrupada fuera-de-la-web">
                     <li class="celda"><button class="celda-boton texto-rojo celda-centrada" id="borrar-compra">Volver a la versión gratis</button></li>
                 </ul>
                 <!-- Papelera, a lo último: las letras y frases del baúl borradas, 7 días (pedido de Swa). -->
@@ -475,9 +479,9 @@
                         </div>
                         <h3 class="encabezado-libreta">Cómo agregarlo</h3>
                         <ol class="pasos-widgets">
-                            <li>Mantené apretado un espacio vacío del inicio.</li>
-                            <li>Tocá <b>Editar</b> y después <b>Agregar widget</b>.</li>
-                            <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
+                            <li>Mantén apretado un espacio vacío del inicio.</li>
+                            <li>Toca <b>Editar</b> y después <b>Agregar widget</b>.</li>
+                            <li>Busca <b>Métrica</b> y elige el que configuraste aquí.</li>
                         </ol>
                     </div>
 
@@ -487,9 +491,9 @@
                         <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-bloqueo"></div>
                         <h3 class="encabezado-libreta">Cómo agregarlo</h3>
                         <ol class="pasos-widgets">
-                            <li>Con el iPhone bloqueado, mantené apretada la pantalla y tocá <b>Personalizar</b>.</li>
-                            <li>Elegí <b>Pantalla bloqueada</b> y tocá el espacio de widgets debajo de la hora.</li>
-                            <li>Buscá <b>Métrica</b> y elegí el que configuraste acá.</li>
+                            <li>Con el iPhone bloqueado, mantén apretada la pantalla y toca <b>Personalizar</b>.</li>
+                            <li>Elige <b>Pantalla bloqueada</b> y toca el espacio de widgets debajo de la hora.</li>
+                            <li>Busca <b>Métrica</b> y elige el que configuraste aquí.</li>
                         </ol>
                     </div>
 
@@ -499,9 +503,9 @@
                         <div class="grupo-libreta grupo-widgets grupo-debajo" id="widgets-opciones-accion"></div>
                         <h3 class="encabezado-libreta">Cómo agregarlo</h3>
                         <ol class="pasos-widgets">
-                            <li>Abrí el Centro de control deslizando desde la esquina de arriba a la derecha.</li>
-                            <li>Mantené apretado un espacio vacío y tocá <b>Agregar un control</b>.</li>
-                            <li>Buscá <b>Métrica</b>. Para el Botón de acción: <b>Configuración</b> &gt; <b>Botón de acción</b> &gt; <b>Controles</b>.</li>
+                            <li>Abre el Centro de control deslizando desde la esquina de arriba a la derecha.</li>
+                            <li>Mantén apretado un espacio vacío y toca <b>Agregar un control</b>.</li>
+                            <li>Busca <b>Métrica</b>. Para el Botón de acción: <b>Configuración</b> &gt; <b>Botón de acción</b> &gt; <b>Controles</b>.</li>
                         </ol>
                     </div>
                 </div>
@@ -524,7 +528,7 @@
                     <h2 class="encabezado-grupo" id="papelera-titulo-frases">Frases del baúl</h2>
                     <ul class="grilla-papelera" id="papelera-frases"></ul>
                     <p class="vacio" id="papelera-vacia" hidden>La papelera está vacía.</p>
-                    <p class="pie-widgets pie-papelera">La papelera se vacía automáticamente: lo que borrás queda acá 7 días.</p>
+                    <p class="pie-widgets pie-papelera">La papelera se vacía automáticamente: lo que borras queda aquí 7 días.</p>
                 </div>
             </div>
 
@@ -538,11 +542,11 @@
                 </header>
                 <h1 class="titulo-grande">Google Keep</h1>
                 <div class="contenido">
-                    <p class="bajada-widgets">Traé las letras que tenías anotadas en Keep. Elegís cuáles y quedan en Letras, con su fecha.</p>
+                    <p class="bajada-widgets">Trae las letras que tenías anotadas en Keep. Eliges cuáles y quedan en Letras, con su fecha.</p>
                     <ol class="pasos-widgets">
-                        <li>Entrá a <a href="https://takeout.google.com/settings/takeout/custom/keep" target="_blank" rel="noopener"><b>Google Takeout</b></a> con tu cuenta, dejá marcado solo <b>Keep</b> y tocá <b>Siguiente paso</b> y <b>Crear exportación</b>.</li>
-                        <li>Cuando te llegue el mail de Google, bajá el <b>.zip</b> (guardalo en Archivos).</li>
-                        <li>Tocá <b>Elegir el .zip</b> y marcá las notas que querés pasar.</li>
+                        <li>Entra a <a href="https://takeout.google.com/settings/takeout/custom/keep" target="_blank" rel="noopener"><b>Google Takeout</b></a> con tu cuenta, deja marcado solo <b>Keep</b> y toca <b>Siguiente paso</b> y <b>Crear exportación</b>.</li>
+                        <li>Cuando te llegue el mail de Google, baja el <b>.zip</b> (guárdalo en Archivos).</li>
+                        <li>Toca <b>Elegir el .zip</b> y marca las notas que quieres pasar.</li>
                     </ol>
                     <input type="file" id="keep-archivo" accept=".zip,.json,application/zip,application/json" multiple hidden>
                     <div class="botones"><button type="button" class="boton-relleno" id="keep-elegir">Elegir el .zip</button></div>
@@ -684,7 +688,7 @@
                         <button class="boton-musica" id="musica-bucle" aria-label="Volver a la marca" aria-disabled="true">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/><path class="icono-relleno" d="M12 17.5s-3.8-3.5-3.8-6.5a3.8 3.8 0 0 1 7.6 0c0 3-3.8 6.5-3.8 6.5zm0-5.2a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6z" fill-rule="evenodd"/></svg>
                         </button>
-                        <button type="button" class="rec-reproductor" data-rec aria-label="Grabar desde acá"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
+                        <button type="button" class="rec-reproductor" data-rec aria-label="Grabar desde aquí"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
                         <button class="boton-musica" id="musica-anterior" aria-label="Canción anterior">
                             <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
                         </button>
@@ -723,7 +727,7 @@
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 15l6-6 6 6"/></svg>
                 Mostrar video para reproducir
             </button>
-            <p class="reproductor-nota" id="musica-nota-youtube" hidden>Los videos no se pueden minimizar por política de YouTube. Usá SoundCloud para evitar esto.</p>
+            <p class="reproductor-nota" id="musica-nota-youtube" hidden>Los videos no se pueden minimizar por política de YouTube. Usa SoundCloud para evitar esto.</p>
         </div>
     </div>
     <div class="reproductor-oculto" id="reproductor-oculto" aria-hidden="true"></div>
@@ -738,7 +742,7 @@
                     <span class="reproductor-fuente" id="fs-sonando-fuente"></span>
                 </div>
                 <!-- REC del reproductor: graba desde donde va; grabando muestra los segundos y tocarlo para (lo que suena sigue). -->
-                <button type="button" class="rec-reproductor" data-rec aria-label="Grabar desde acá"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
+                <button type="button" class="rec-reproductor" data-rec aria-label="Grabar desde aquí"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
                 <button type="button" class="boton-musica" id="fs-beat-anterior" aria-label="Beat anterior">
                     <svg viewBox="0 0 24 24" class="icono"><path d="M6 6v12M18 6l-9 6 9 6z"/></svg>
                 </button>
@@ -761,7 +765,7 @@
     </div>
 
     <!-- En Acapella no hay reproductor: el REC (y grabando, los segundos) va solo abajo. -->
-    <button type="button" class="rec-reproductor rec-acapella vidrio" data-rec aria-label="Grabar desde acá"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
+    <button type="button" class="rec-reproductor rec-acapella vidrio" data-rec aria-label="Grabar desde aquí"><span class="punto-rec"></span><span class="tiempo-rec"></span></button>
 
     <!-- Confirmar antes de borrar una letra (en SwiftUI: .alert con un botón .destructive). -->
     <!-- Menú de una frase del baúl, al mantenerla apretada (en SwiftUI: .contextMenu). -->
@@ -804,8 +808,8 @@
             <!-- Volumen de la voz y del beat, para todas (y para descargar). -->
             <div class="volumenes-grabaciones" id="volumenes-grabaciones"></div>
             <ul class="lista-grabaciones" id="lista-grabaciones"></ul>
-            <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Prendé el botón rojo al lado del play y dale play.</p>
-            <p class="nota aviso-grabaciones" id="grabaciones-aviso" hidden>Las grabaciones usan micrófono y parlante del celular al mismo tiempo, lo cual baja la calidad. Usá esta grabación como referencia.</p>
+            <p class="vacio" id="grabaciones-vacio" hidden>Todavía no grabaste nada. Enciende el botón rojo al lado del play y dale play.</p>
+            <p class="nota aviso-grabaciones" id="grabaciones-aviso" hidden>Las grabaciones usan micrófono y parlante del celular al mismo tiempo, lo cual baja la calidad. Usa esta grabación como referencia.</p>
         </div>
     </div>
 
@@ -818,7 +822,7 @@
             </button>
             <h2 class="hoja-titulo" id="foto-widget-titulo">Ajustar foto</h2>
             <div class="escenario-widgets escenario-foto" id="foto-widget-muestra"></div>
-            <p class="nota-widgets nota-foto">Arrastrá la foto para elegir qué parte se ve</p>
+            <p class="nota-widgets nota-foto">Arrastra la foto para elegir qué parte se ve</p>
             <div class="grupo-libreta funciones-libreta">
                 <div class="fila-grupo fila-foto-deslizador">
                     <label for="foto-widget-zoom">Zoom</label>
@@ -853,7 +857,7 @@
             <ul class="lista-agrupada beneficios">
                 <li class="celda">
                     <svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
-                    <span><strong>Sin publicidad</strong><span class="subtitulo">Nada entre vos y la letra.</span></span>
+                    <span><strong>Sin publicidad</strong><span class="subtitulo">Nada entre tú y la letra.</span></span>
                 </li>
                 <li class="celda">
                     <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg>
@@ -873,9 +877,9 @@
                     <span class="widget-pie" id="widget-rimas">rima con canción</span>
                 </div>
                 <div class="widget">
-                    <span class="widget-etiqueta">Seguí escribiendo</span>
+                    <span class="widget-etiqueta">Sigue escribiendo</span>
                     <span class="widget-titulo" id="widget-letra">Tu última letra</span>
-                    <span class="widget-pie">Tocá para abrir</span>
+                    <span class="widget-pie">Toca para abrir</span>
                 </div>
             </div>
             <button class="boton-relleno boton-comprar" id="comprar-extras"></button>
@@ -1012,7 +1016,38 @@
     </div>
 
     <!-- Tab bar (TabView) -->
+    <!-- Panel de ayudas (solo en la computadora, mientras se escribe una letra): a la derecha de la libreta
+         en pantallas grandes (1000 px o más) y como hoja que entra desde el costado en las medianas. Al tocar
+         una palabra de la letra muestra sus rimas y sinónimos sin taparla; del baúl se arrastra una frase a
+         la letra. Ctrl/Cmd + / lo abre y lo cierra. En el celular no está: van las sugerencias de siempre. -->
+    <aside class="panel-ayudas" id="panel-ayudas" aria-label="Ayudas">
+        <div class="panel-cabecera">
+            <div class="pastillas-panel" role="tablist" aria-label="Ayudas">
+                <button type="button" role="tab" data-panel="rimas" aria-selected="true">Rimas</button>
+                <button type="button" role="tab" data-panel="sinonimos" aria-selected="false">Sinónimos</button>
+                <button type="button" role="tab" data-panel="baul" aria-selected="false">Baúl</button>
+                <button type="button" role="tab" data-panel="ia" aria-selected="false">IA</button>
+            </div>
+            <button type="button" class="cerrar-panel" id="cerrar-panel" aria-label="Cerrar ayudas" title="Cerrar (Ctrl + /)">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+        <div class="busqueda-rima panel-busqueda" id="panel-busqueda">
+            <span class="lupa-violeta" aria-hidden="true"><span></span></span>
+            <input id="panel-buscar" type="search" placeholder="Busca una palabra" aria-label="Busca una palabra" autocomplete="off" autocapitalize="none" spellcheck="false">
+        </div>
+        <div class="panel-cuerpo" id="panel-cuerpo" aria-live="polite"></div>
+    </aside>
+
+    <!-- En el celular, la barra de pestañas flotante de abajo (TabView). En la computadora (700 px o más)
+         es la barra lateral fija, con la marca, el estado de la vinculación y el baúl (solo ahí). -->
     <nav class="barra-pestanas" id="barra-pestanas">
+        <div class="marca-lateral solo-compu"><img src="assets/logo/icono.svg" alt="" width="28" height="28"><span>Métrica</span></div>
+        <!-- Siempre a la vista: que lo que escribes llega al iPhone (verde) o que se cortó (gris). -->
+        <button type="button" class="estado-web solo-compu" id="estado-web" data-estado="sin-vincular">
+            <span class="punto-web" aria-hidden="true"></span>
+            <span class="estado-web-texto"><span id="estado-web-titulo">Sin vincular</span><span class="estado-web-detalle" id="estado-web-detalle">Vincular con el iPhone</span></span>
+        </button>
         <button data-pestana="letras" aria-selected="true">
             <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg>Letras
         </button>
@@ -1021,6 +1056,9 @@
         </button>
         <button data-pestana="freestyle" aria-selected="false">
             <svg viewBox="0 0 24 24" class="icono"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>Freestyle
+        </button>
+        <button data-pestana="letras" data-vista="baul" class="solo-compu" aria-selected="false">
+            <svg viewBox="0 0 24 24" class="icono"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path d="M10.5 8.5h3v4.5h-3z"/></svg>Baúl de frases
         </button>
         <button data-pestana="ajustes" aria-selected="false">
             <svg viewBox="0 0 24 24" class="icono"><path d="M19.04 9.71 L21.77 9.86 L21.77 14.14 L19.04 14.29 L18.59 15.36 L20.42 17.39 L17.39 20.42 L15.36 18.59 L14.29 19.04 L14.14 21.77 L9.86 21.77 L9.71 19.04 L8.64 18.59 L6.61 20.42 L3.58 17.39 L5.41 15.36 L4.96 14.29 L2.23 14.14 L2.23 9.86 L4.96 9.71 L5.41 8.64 L3.58 6.61 L6.61 3.58 L8.64 5.41 L9.71 4.96 L9.86 2.23 L14.14 2.23 L14.29 4.96 L15.36 5.41 L17.39 3.58 L20.42 6.61 L18.59 8.64Z"/><circle cx="12" cy="12" r="3"/></svg>Ajustes

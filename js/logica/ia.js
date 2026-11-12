@@ -381,7 +381,7 @@ export function idDeUsuario(almacen, azar = Math.random) {
 export const MENSAJES_ERROR_IA = {
     red: 'Sin conexión: la IA necesita internet.',
     cupo: 'Ya usaste todas las de este mes.',
-    servidor: 'No se pudo. Probá de nuevo en un rato.',
+    servidor: 'No se pudo. Prueba de nuevo en un rato.',
 };
 const errorIA = motivo => Object.assign(new Error(MENSAJES_ERROR_IA[motivo]), { motivo });
 
