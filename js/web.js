@@ -98,6 +98,8 @@ export function vincular(avisos) {
                         await guardarClaves(claves);
                         localStorage.setItem(CLAVE_SESION, JSON.stringify({ espacio: estado.espacio, token: estado.token, rev: 0 }));
                         localStorage.setItem(CLAVE_SINC, '{}');
+                        // Lo que queda de la IA lo vuelve a decir el servidor, no lo de otra vinculación.
+                        localStorage.removeItem('metrica.web-restantes');
                         if (!cortado) avisos.listo();
                         return;
                     }
@@ -205,7 +207,7 @@ export async function sincronizar({ alCambiar, alCerrar }) {
 /** La compu se queda sin nada del iPhone (como al cerrar sesión en WhatsApp Web). */
 async function cerrarLocal() {
     olvidarDatos(localStorage);
-    for (const clave of [CLAVE_SESION, CLAVE_SINC, CLAVE_PLAN]) localStorage.removeItem(clave);
+    for (const clave of [CLAVE_SESION, CLAVE_SINC, CLAVE_PLAN, 'metrica.web-restantes']) localStorage.removeItem(clave);
     localStorage.setItem('metrica.extras', '');
     nombresPorC.clear();
     await borrarClaves();
