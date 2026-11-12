@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando uno al último número (1.0.9 -> 1.1.0): así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-2.0.11';
+const VERSION = 'metrica-2.0.12';
 const ARCHIVOS = [
     'app/',
     'app.html',
@@ -56,6 +56,28 @@ const ARCHIVOS = [
     'beats/boom-bap-jazz.mp3',
     'beats/trap-grave.mp3',
     'beats/trap-seco.mp3',
+    'fondos/anchos/acuarela.svg',
+    'fondos/anchos/apuntes.svg',
+    'fondos/anchos/arena.svg',
+    'fondos/anchos/aurora.svg',
+    'fondos/anchos/borrador.svg',
+    'fondos/anchos/bosque.svg',
+    'fondos/anchos/cielo.svg',
+    'fondos/anchos/cuadriculado.svg',
+    'fondos/anchos/escenario.svg',
+    'fondos/anchos/galaxia.svg',
+    'fondos/anchos/garabatos.svg',
+    'fondos/anchos/madrugada.svg',
+    'fondos/anchos/marea.svg',
+    'fondos/anchos/menta.svg',
+    'fondos/anchos/neon.svg',
+    'fondos/anchos/ondas.svg',
+    'fondos/anchos/partitura.svg',
+    'fondos/anchos/pizarron.svg',
+    'fondos/anchos/postal.svg',
+    'fondos/anchos/terrazo.svg',
+    'fondos/anchos/tormenta.svg',
+    'fondos/anchos/trazos.svg',
     'fondos/vinilo.svg',
     'fondos/galaxia.svg',
     'fondos/garabatos.svg',
