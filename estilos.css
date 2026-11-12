@@ -969,6 +969,29 @@ body.editando .vista#vista-editor {
     --libreta: #f5f1eb; --texto: #2b2826; --texto-2: rgba(60, 55, 50, 0.62); --texto-3: rgba(60, 55, 50, 0.32);
     --renglon: rgba(60, 55, 50, 0.09); --teclado: #e6e0d7; --ilustracion: url("fondos/terrazo.svg");
 }
+/* En la compu, los paisajes tienen versión ancha (fondos-anchos.cjs), y los garabatos también (fondos-garabatos.cjs). */
+[data-libreta="garabatos"] { --ilustracion-ancha: url("fondos/anchos/garabatos.svg"); }
+[data-libreta="trazos"] { --ilustracion-ancha: url("fondos/anchos/trazos.svg"); }
+[data-libreta="apuntes"] { --ilustracion-ancha: url("fondos/anchos/apuntes.svg"); }
+[data-libreta="borrador"] { --ilustracion-ancha: url("fondos/anchos/borrador.svg"); }
+[data-libreta="aurora"] { --ilustracion-ancha: url("fondos/anchos/aurora.svg"); }
+[data-libreta="bosque"] { --ilustracion-ancha: url("fondos/anchos/bosque.svg"); }
+[data-libreta="arena"] { --ilustracion-ancha: url("fondos/anchos/arena.svg"); }
+[data-libreta="escenario"] { --ilustracion-ancha: url("fondos/anchos/escenario.svg"); }
+[data-libreta="galaxia"] { --ilustracion-ancha: url("fondos/anchos/galaxia.svg"); }
+[data-libreta="neon"] { --ilustracion-ancha: url("fondos/anchos/neon.svg"); }
+[data-libreta="postal"] { --ilustracion-ancha: url("fondos/anchos/postal.svg"); }
+[data-libreta="pizarron"] { --ilustracion-ancha: url("fondos/anchos/pizarron.svg"); }
+[data-libreta="cielo"] { --ilustracion-ancha: url("fondos/anchos/cielo.svg"); }
+[data-libreta="marea"] { --ilustracion-ancha: url("fondos/anchos/marea.svg"); }
+[data-libreta="madrugada"] { --ilustracion-ancha: url("fondos/anchos/madrugada.svg"); }
+[data-libreta="tormenta"] { --ilustracion-ancha: url("fondos/anchos/tormenta.svg"); }
+[data-libreta="menta"] { --ilustracion-ancha: url("fondos/anchos/menta.svg"); }
+[data-libreta="ondas"] { --ilustracion-ancha: url("fondos/anchos/ondas.svg"); }
+[data-libreta="terrazo"] { --ilustracion-ancha: url("fondos/anchos/terrazo.svg"); }
+[data-libreta="cuadriculado"] { --ilustracion-ancha: url("fondos/anchos/cuadriculado.svg"); }
+[data-libreta="acuarela"] { --ilustracion-ancha: url("fondos/anchos/acuarela.svg"); }
+[data-libreta="partitura"] { --ilustracion-ancha: url("fondos/anchos/partitura.svg"); }
 .muestra-tema { background-image: var(--ilustracion, none); background-repeat: no-repeat; }
 /* La opacidad del tema (1 a 10, en la barra del cajón) tapa la ilustración con una capa del color
    de la libreta: en 10 no tapa nada y en 1 la deja al 10%. */
@@ -2444,23 +2467,30 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     body.barra-escondida:has(#pantalla-ajustes.activa #vista-ajustes.activa) .abrir-barra { display: grid; }
     body.barra-escondida #titulo-rimas, body.barra-escondida #pantalla-freestyle .titulo-grande,
     body.barra-escondida #vista-ajustes > .titulo-grande { padding-left: max(0px, calc(50px - max(0px, (100vw - 760px) / 2))); }
-    /* Las ilustraciones de los temas no crecen con el ancho de la ventana (pedido de Swa): miden como
-       mucho lo que en un iPhone, centradas abajo y desvanecidas a los costados. Las de garabatos (hechas
-       para cubrir la pantalla) se repiten a su tamaño. La opacidad del tema es la de esta capa. */
+    /* Las ilustraciones de los temas no crecen con el ancho de la ventana (pedido de Swa): van abajo a la
+       derecha, donde sobra lugar, a un alto fijo y desvanecidas hacia la izquierda; los paisajes, anchos.
+       Las de garabatos van en su versión de 2000×1200 (se repite solo en pantallas enormes). La opacidad del tema es la de esta capa. */
     body.editando .vista#vista-editor, #vista-baul[data-libreta] { background-image: none; isolation: isolate; }
     body.editando .vista#vista-editor::before, #vista-baul[data-libreta]::before {
-        content: ""; position: fixed; z-index: -1; pointer-events: none; bottom: 0;
-        left: calc(var(--izq) + (100vw - var(--izq) - var(--der)) / 2); translate: -50% 0;
-        height: min(68vh, 560px); aspect-ratio: 390 / 460;
-        background: var(--ilustracion, none) center bottom / 100% auto no-repeat;
+        --alto-tema: min(72vh, 620px);
+        content: ""; position: fixed; z-index: -1; pointer-events: none; bottom: 0; right: var(--der); left: auto;
+        height: var(--alto-tema); width: min(calc(var(--alto-tema) * 390 / 460), calc(100vw - var(--izq) - var(--der)));
+        background: var(--ilustracion, none) right bottom / auto 100% no-repeat;
         opacity: calc(var(--opacidad-tema, 10) / 10);
-        -webkit-mask: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-        mask: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+        -webkit-mask: linear-gradient(to right, transparent, #000 30%); mask: linear-gradient(to right, transparent, #000 30%);
+    }
+    /* Los paisajes van anchos (fondos/anchos/, de fondos-anchos.cjs): la escena sigue espejada hacia la
+       izquierda, sin repetir la luna o el rayo, y se desvanece antes de llegar a la barra (pedido de Swa). */
+    body.editando .vista#vista-editor:is([data-libreta="aurora"], [data-libreta="bosque"], [data-libreta="arena"], [data-libreta="escenario"], [data-libreta="galaxia"], [data-libreta="neon"], [data-libreta="postal"], [data-libreta="pizarron"], [data-libreta="cielo"], [data-libreta="marea"], [data-libreta="madrugada"], [data-libreta="tormenta"], [data-libreta="menta"], [data-libreta="ondas"], [data-libreta="terrazo"], [data-libreta="cuadriculado"], [data-libreta="acuarela"], [data-libreta="partitura"])::before,
+    #vista-baul:is([data-libreta="aurora"], [data-libreta="bosque"], [data-libreta="arena"], [data-libreta="escenario"], [data-libreta="galaxia"], [data-libreta="neon"], [data-libreta="postal"], [data-libreta="pizarron"], [data-libreta="cielo"], [data-libreta="marea"], [data-libreta="madrugada"], [data-libreta="tormenta"], [data-libreta="menta"], [data-libreta="ondas"], [data-libreta="terrazo"], [data-libreta="cuadriculado"], [data-libreta="acuarela"], [data-libreta="partitura"])::before {
+        width: min(calc(var(--alto-tema) * 1170 / 460), calc(100vw - var(--izq) - var(--der)));
+        background-image: var(--ilustracion-ancha);
+        -webkit-mask: linear-gradient(to right, transparent, #000 18%); mask: linear-gradient(to right, transparent, #000 18%);
     }
     body.editando .vista#vista-editor:is([data-libreta="garabatos"], [data-libreta="trazos"], [data-libreta="apuntes"], [data-libreta="borrador"])::before,
     #vista-baul:is([data-libreta="garabatos"], [data-libreta="trazos"], [data-libreta="apuntes"], [data-libreta="borrador"])::before {
-        top: 0; right: var(--der); left: var(--izq); translate: none; height: auto; aspect-ratio: auto;
-        background: var(--ilustracion) left top / 390px auto repeat; -webkit-mask: none; mask: none;
+        top: 0; right: var(--der); left: var(--izq); width: auto; height: auto;
+        background: var(--ilustracion-ancha) left top / 2000px auto repeat; -webkit-mask: none; mask: none;
     }
     /* Las tiras que se deslizan de costado, con el mouse se arrastran (y con la rueda). */
     .temas-libreta, .chips-tema, .duraciones-fs { cursor: grab; }
