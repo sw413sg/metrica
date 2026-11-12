@@ -1705,9 +1705,11 @@ function pintarCupoIA(uso) {
     pintarCupo('ia-cupo', uso);
     const sinCupo = !uso.quedan;
     // El plan solo se ofrece si se terminó el mes (el tope por letra es para todos).
-    $('ia-plan').hidden = !sinCupo || uso.plan;
-    $('ia-plan-bajada').textContent = `Usaste los ${CUPO_GRATIS} créditos IA gratis de este mes. Con Métrica+ IA tienes 300 por mes.`;
-    $('ia-comprar').textContent = 'Mejóralo desde tu iPhone';
+    $('ia-plan').hidden = !sinCupo || (uso.plan && !uso.sinVincular);
+    $('ia-plan-bajada').textContent = uso.sinVincular
+        ? 'En la web, Métrica IA usa los créditos de tu iPhone. Vincúlalo para usarla.'
+        : `Usaste los ${CUPO_GRATIS} créditos IA gratis de este mes. Con Métrica+ IA tienes 300 por mes.`;
+    $('ia-comprar').textContent = uso.sinVincular ? 'Vincular con el iPhone' : 'Mejóralo desde tu iPhone';
     $('ia-otra').disabled = pidiendoIA || (sinCupo && posIA >= historialIA.length - 1);
 }
 
@@ -1852,7 +1854,11 @@ $('ia-usar').addEventListener('click', () => {
     guardarActual();
 });
 // La web no vende: Métrica+ IA se compra en el iPhone.
-$('ia-comprar').addEventListener('click', abrirPaywall);
+$('ia-comprar').addEventListener('click', () => {
+    if (!cupoIA(localStorage).sinVincular) return abrirPaywall();
+    cerrarHojaIA();
+    abrirVincular();
+});
 
 // La viñeta de una palabra: la primera opción es la palabra como estaba; las flechas pasan por las de
 // la IA y la cambian en la letra. Se cierra al tocar en otro lado (queda la que se ve).
@@ -2162,6 +2168,7 @@ function botonGenerarRevision() {
 function estadoRevision() {
     const uso = cupoIA(localStorage, letraActual?.id);
     $('revision-generar').disabled = leyendoLetra || uso.quedan < gastoRevision();
+    if (uso.sinVincular) $('revision-nota').textContent = textoSinCupo(uso);
     pintarCupo('revision-cupo', uso, gastoRevision());
 }
 
@@ -4479,13 +4486,12 @@ function renderizarCreditos() {
 // Como FilaCuotaIA de Swift: a la izquierda el aro violeta que se vacía con la estrellita, y al lado
 // el porcentaje que queda (con un decimal, «99,8%») y «de 20 créditos IA gratis del mes».
 function pintarFilaCreditos(fila) {
-    const uso = usoDelMes(localStorage);
-    const queda = uso.tope ? uso.quedan / uso.tope : 0;
-    const porcentaje = `${(100 * queda).toFixed(1).replace('.', ',')}%`;
+    const uso = cupoIA(localStorage);
+    const p = pastillaCupo(uso, 0);
     fila.classList.toggle('sin-creditos', !uso.quedan);
-    fila.innerHTML = `<span class="aro-creditos" style="--queda:${queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
-        + `<span class="texto-creditos"><strong>${porcentaje}</strong><span>${uso.quedan ? `de ${etiquetaCreditos(uso)}` : 'Créditos IA insuficientes'}</span></span>`;
-    fila.setAttribute('aria-label', `Créditos IA: ${porcentaje} de ${etiquetaCreditos(uso)}`);
+    fila.innerHTML = `<span class="aro-creditos" style="--queda:${p.queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
+        + `<span class="texto-creditos"><strong>${p.porcentaje}</strong><span>${p.etiqueta}</span></span>`;
+    fila.setAttribute('aria-label', `Créditos IA: ${p.porcentaje} ${p.etiqueta}`);
 }
 
 // Temas de la libreta: cada letra tiene el suyo (arranca en Gris liso) y se guarda con ella.

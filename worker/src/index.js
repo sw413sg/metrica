@@ -8,7 +8,7 @@ import { MODELO_IA, GASTO_IA, PEDIDAS_IA, REVISIONES_SIN_CAMBIOS, pedidoValido, 
 import { clasificar, PRODUCTOS } from './cuota.js';
 import { Cuota, NOMBRE_CUOTA } from './cuota-do.js';
 import { APPLE_RAIZ, desdeBase64, verificarJws } from './verificar.js';
-import { Enlaces, Espacio, web } from './enlace.js';
+import { Enlaces, Espacio, web, sesionParaIA } from './enlace.js';
 
 export { Cuota, Enlaces, Espacio };
 
@@ -59,14 +59,22 @@ export default {
         if (ruta.startsWith('/web/')) return web(request, env, responder, ruta, ipDe(request));
         if (ruta === '/ia') {
             if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
-            return ia(request, env, responder);
+            return ia(request, env, responder, origen != null);
         }
         return responder({ error: 'ruta' }, 404);
     },
 };
 
-async function ia(request, env, responder) {
-    const id = request.headers.get('X-Metrica-Id') ?? '';
+async function ia(request, env, responder, desdeWeb) {
+    let id = request.headers.get('X-Metrica-Id') ?? '';
+    // Desde la web (un navegador manda Origin), la IA es solo con un iPhone vinculado: la sesión de
+    // Métrica web tiene que valer, y gasta los créditos del iPhone (su id, si lo dejó al vincular).
+    // Antes cualquiera que entraba a la web tenía 20 gratis (pedido de Swa).
+    if (desdeWeb) {
+        const sesion = await sesionParaIA(request, env);
+        if (sesion.error) return responder({ error: 'vincular' }, 401);
+        if (sesion.ia) id = sesion.ia;
+    }
     if (!/^[a-z0-9]{16,64}$/.test(id)) return responder({ error: 'id' }, 400);
     let cuerpo;
     try { cuerpo = await request.json(); } catch { return responder({ error: 'json' }, 400); }

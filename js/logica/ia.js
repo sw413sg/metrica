@@ -309,15 +309,22 @@ export const mesDe = ms => {
 };
 // Vinculada con el iPhone, el plan y los créditos IA son los del iPhone (`plan-iphone`, ver js/web.js).
 const CLAVE_PLAN_WEB = 'metrica.web-plan';
+const CLAVE_SESION_WEB = 'metrica.web-sesion';
 const CLAVE_RESTANTES_WEB = 'metrica.web-restantes';
 const planWeb = almacen => { try { return JSON.parse(almacen.getItem(CLAVE_PLAN_WEB)) ?? {}; } catch { return {}; } };
 export const tienePlanIA = almacen => almacen.getItem(CLAVE_PLAN) === 'comprado' || planWeb(almacen).ia === true;
 
 // Los mismos headers que manda el iPhone al Worker: así la web gasta sus créditos, no unos propios.
 export function cabecerasIA(almacen) {
+    const cabeceras = {};
+    // La sesión de Métrica web: el Worker solo atiende la IA de la web con un iPhone vinculado.
+    try {
+        const sesion = JSON.parse(almacen.getItem(CLAVE_SESION_WEB));
+        if (sesion?.token) cabeceras.Authorization = `Bearer ${sesion.espacio}.${sesion.token}`;
+    } catch { /* sin vincular */ }
     const cuenta = planWeb(almacen).cuenta;
-    if (!cuenta?.id) return {};
-    const cabeceras = { 'X-Metrica-Id': cuenta.id };
+    if (!cuenta?.id) return cabeceras;
+    cabeceras['X-Metrica-Id'] = cuenta.id;
     if (cuenta.jws?.length) cabeceras['X-Metrica-JWS'] = cuenta.jws.join(',');
     if (cuenta.simulada) cabeceras['X-Metrica-Simulada'] = cuenta.simulada;
     if (cuenta.paquetesPrueba?.length) cabeceras['X-Metrica-Paquetes-Prueba'] = cuenta.paquetesPrueba.join(',');
@@ -360,7 +367,12 @@ export function usoDelMes(almacen, ahora = Date.now()) {
 }
 
 // Como en Swift: sin tope por letra, solo los créditos (del mes y extra). `letra` queda por compatibilidad.
-export const cupoIA = (almacen, letra = null, ahora = Date.now()) => usoDelMes(almacen, ahora);
+// En la web, la IA es solo con un iPhone vinculado (pedido de Swa; el Worker también lo exige): sin
+// vincular no queda nada y se dice por qué (`sinVincular`).
+const vinculada = almacen => { try { return Boolean(JSON.parse(almacen.getItem(CLAVE_SESION_WEB))?.token); } catch { return false; } };
+export const cupoIA = (almacen, letra = null, ahora = Date.now()) => vinculada(almacen)
+    ? usoDelMes(almacen, ahora)
+    : { usadas: 0, tope: CUPO_GRATIS, quedan: 0, plan: false, sinVincular: true };
 
 // Cuánto gasta cada consulta (`GastoIA` de Swift): una frase o ideas, 1; «¿Qué cambiaría?», según los
 // versos de la letra, y «¿Qué más cambiaría?» uno menos (la letra ya está en la caché de OpenAI).
@@ -390,8 +402,9 @@ const porcentajeIA = (valor, decimales) => `${valor.toFixed(decimales).replace('
 // La pastilla de abajo de cada consulta (como en Swift): el aro, «86,3%» con «de 300 créditos IA del mes»
 // y a la derecha lo que gasta esta consulta («−0,33%»). Si no alcanza, lo dice.
 export function pastillaCupo(uso, gasto = GASTO_IA.frase) {
+    if (uso.sinVincular) return { queda: 0, porcentaje: 'Sin vincular', etiqueta: 'Vincula tu iPhone para usar Métrica IA', gasta: '', alcanza: false };
     const total = Math.max(1, uso.tope);
-    const alcanza = uso.quedan >= gasto;
+    const alcanza = gasto > 0 ? uso.quedan >= gasto : uso.quedan > 0;
     return {
         queda: Math.min(1, Math.max(0, uso.quedan / total)),
         porcentaje: porcentajeIA(100 * uso.quedan / total, 1),
@@ -402,7 +415,9 @@ export function pastillaCupo(uso, gasto = GASTO_IA.frase) {
 }
 
 // Lo que se dice cuando no queda.
-export const textoSinCupo = ({ plan }) => plan
+export const textoSinCupo = ({ plan, sinVincular }) => sinVincular
+    ? 'Para usar Métrica IA en la web, vincula tu iPhone en Ajustes › Métrica web.'
+    : plan
     ? 'Ya usaste toda tu cuota IA de este mes.'
     : 'Ya usaste tu cuota IA gratis de este mes.';
 

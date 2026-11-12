@@ -10,6 +10,8 @@ Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se puede
 ## Cómo anda
 1. La app arma el pedido con su propio motor (`fraseElegida` en `js/logica/ia.js`): el verso elegido, el anterior, la estrofa, sílabas, rima consonante y asonante de la última palabra y las rimas internas.
 2. Lo manda por POST a `/ia`, con un id anónimo del teléfono en `X-Metrica-Id` y, si hay compras, los JWS de StoreKit 2 en `X-Metrica-JWS` (uno o varios `jwsRepresentation`, separados por coma).
+
+   **Desde la web** (un navegador, que manda `Origin`), `/ia` exige además `Authorization: Bearer <espacio>.<token>` de una sesión de Métrica web que vale (el iPhone vinculado; si no, 401 `vincular`), y gasta con el id de la IA que el iPhone dejó al vincular o al sincronizar (`ia` en `/web/vincular` y `/web/guardar`), no con el que mande la web. Sin `Origin` (la app nativa) sigue como siempre: eso solo se cierra con App Attest.
 3. El Worker revisa el origen (la web manda su `Origin`, que tiene que estar en `ORIGENES`; la app nativa no manda ninguno y pasa), que el pedido tenga la forma de siempre (`pedidoValido`), que la persona tenga cuota (KV `USO`) y que no se haya pasado el techo del día. `X-Metrica-Plan` y `X-Metrica-Extra` se ignoran. Arma el mensaje con `promptDeSugerencias` (`js/logica/ia-prompt.js`, el mismo archivo que usa la app y los tests) y llama a OpenAI con la clave guardada como secret. Así no sirve para pedirle cualquier otra cosa al modelo.
 4. Devuelve `{ sugerencias: [...], quedan }` y el header `X-Metrica-Restantes` (lo que queda después de esa consulta). La app las valida y ordena con su motor (`validarSugerencias`): primero las que riman consonante, después asonante, después las de sílabas más parecidas.
 
