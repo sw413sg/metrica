@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, asignarColores, tituloBusqueda } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, asignarColores, tituloBusqueda, ordenarPorRima, simplesPrimero, rimasParaCambiar } from '../js/logica/rimas.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
@@ -231,4 +231,24 @@ test('tituloBusqueda: se arma con los filtros prendidos', () => {
     assert.equal(tituloBusqueda(1, 'casa', { tipo: 'asonante', simples: true }), '1 rima asonante simple con «casa»');
     assert.equal(tituloBusqueda(8, 'casa', { sinonimos: true, simples: true }), '8 sinónimos simples de «casa»');
     assert.equal(tituloBusqueda(1, 'casa', { sinonimos: true }), '1 sinónimo de «casa»');
+});
+
+// Como RimasTests.swift: ordenarPorRima, simplesPrimero y rimasParaCambiar.
+test('ordenarPorRima: primero consonantes, después asonantes y el resto, sin mezclar', () => {
+    assert.deepEqual(ordenarPorRima(['hogar', 'cama', 'pasa', 'techo', 'masa'], 'casa'), ['pasa', 'masa', 'cama', 'hogar', 'techo']);
+});
+
+test('simplesPrimero', () => {
+    assert.deepEqual(simplesPrimero(['roche', 'coche', 'boche', 'anoche'], new Set(['coche', 'anoche'])), ['coche', 'anoche', 'roche', 'boche']);
+});
+
+test('rimasParaCambiar: consonantes con las simples primero, y asonantes aunque no haya consonantes', () => {
+    const indice = crearIndiceRimas(['casa', 'pasa', 'masa', 'cama', 'fama', 'cuerpo', 'puerco', 'muerto'],
+        new Map(Object.entries({ masa: 5, pasa: 3, cama: 4, fama: 2, muerto: 6, puerco: 1 })));
+    const casa = rimasParaCambiar('casa', indice, new Set(['pasa']));
+    assert.deepEqual(casa.consonantes, ['pasa', 'masa']);
+    assert.deepEqual(casa.asonantes, ['cama', 'fama']);
+    const cuerpo = rimasParaCambiar('cuerpo', indice, new Set());
+    assert.deepEqual(cuerpo.consonantes, []);
+    assert.deepEqual(cuerpo.asonantes, ['muerto', 'puerco']);
 });

@@ -2,7 +2,7 @@
 // Cambiá VERSION cada vez que cambien los archivos, sumando uno al último número (1.0.9 -> 1.1.0): así el teléfono baja la versión
 // nueva la próxima vez que abra la app con internet (y la app se recarga sola).
 // El número es el que se ve en Ajustes > Versión.
-const VERSION = 'metrica-2.0.3';
+const VERSION = 'metrica-2.0.4';
 const ARCHIVOS = [
     'app/',
     'app.html',
@@ -21,6 +21,7 @@ const ARCHIVOS = [
     'js/logica/rimas.js',
     'js/logica/silabas.js',
     'js/logica/sesiones.js',
+    'js/logica/carpetas.js',
     'js/logica/freestyle.js',
     'js/logica/compra.js',
     'js/logica/secciones.js',

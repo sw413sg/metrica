@@ -32,8 +32,19 @@
                 <canvas class="efecto-fs" id="letras-efecto" aria-hidden="true"></canvas>
                 <header class="barra-nav"></header>
                 <!-- El título y, en la misma línea, el cofre del baúl de frases. -->
-                <div class="fila-titulo">
-                    <h1 class="titulo-grande">Letras</h1>
+                <h1 class="solo-lectores">Letras</h1>
+                <!-- Como en Swift (y la barra de Keep): las tres líneas abren el menú de Letras y la pastilla
+                     busca entre las letras (Ctrl/Cmd + K). Eligiendo letras, la barra dice cuántas hay. -->
+                <div class="fila-titulo fila-letras" id="fila-letras">
+                    <button class="boton-barra vidrio" id="abrir-menu-letras" aria-label="Menú de letras" title="Menú de letras">
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                    </button>
+                    <label class="buscar-letras vidrio" id="buscar-letras-caja">
+                        <input id="buscar-letras" type="search" placeholder="Buscar" aria-label="Busca en tus letras" autocomplete="off" spellcheck="false">
+                        <button type="button" class="cerrar-busqueda-letras" id="cerrar-busqueda-letras" aria-label="Cerrar la búsqueda" hidden>
+                            <svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+                        </button>
+                    </label>
                     <div class="acciones-barra">
                         <!-- La nota musical, también desde Letras: el mismo cajón que en la libreta (pedido de Swa). -->
                         <button class="boton-barra" id="abrir-musica-letras" aria-label="Escuchar música">
@@ -49,6 +60,22 @@
                         </button>
                     </div>
                 </div>
+                <div class="fila-titulo barra-seleccion" id="barra-seleccion" hidden>
+                    <div class="pastilla-seleccion vidrio">
+                        <button type="button" id="salir-seleccion" aria-label="Dejar de elegir">
+                            <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                        </button>
+                        <span id="texto-elegidas">Elige letras</span>
+                    </div>
+                    <button class="boton-barra vidrio" id="mover-elegidas" aria-label="Mover a una carpeta" title="Mover a una carpeta" disabled>
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    </button>
+                    <button class="boton-barra vidrio" id="borrar-elegidas" aria-label="Borrar las elegidas" title="Borrar las elegidas" disabled>
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg>
+                    </button>
+                </div>
+                <!-- Adentro de una carpeta, solo su nombre grande (renombrar y borrar van en el menú). -->
+                <h2 class="titulo-carpeta" id="titulo-carpeta" hidden></h2>
                 <div class="contenido">
                     <!-- Tacho: aparece al arrastrar una tarjeta; soltarla encima la borra. -->
                     <div class="tacho" id="tacho" aria-hidden="true">
@@ -62,6 +89,26 @@
                         <ul id="lista-letras"></ul>
                     </div>
                     <p class="nota" id="letras-vacio">Toca <strong>+</strong> para escribir tu primera letra.</p>
+                    <!-- Las letras bajo llave no salen del iPhone: solo se avisa cuántas son. -->
+                    <p class="nota aviso-privadas" id="letras-privadas" hidden></p>
+                </div>
+            </div>
+
+            <div class="vista" id="vista-papelera">
+                <header class="barra-nav">
+                    <button class="boton-atras" id="papelera-atras">
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Letras</span>
+                    </button>
+                    <button class="boton-atras boton-borrar-todo" id="papelera-vaciar">Borrar todo</button>
+                </header>
+                <h1 class="titulo-grande">Papelera</h1>
+                <div class="contenido">
+                    <h2 class="encabezado-grupo encabezado-primero" id="papelera-titulo-letras">Letras</h2>
+                    <ul class="grilla-papelera" id="papelera-letras"></ul>
+                    <h2 class="encabezado-grupo" id="papelera-titulo-frases">Frases del baúl</h2>
+                    <ul class="grilla-papelera" id="papelera-frases"></ul>
+                    <p class="vacio" id="papelera-vacia" hidden>La papelera está vacía.</p>
+                    <p class="pie-widgets pie-papelera">La papelera se vacía automáticamente: lo que borras queda aquí 7 días.</p>
                 </div>
             </div>
 
@@ -212,8 +259,6 @@
                         <button type="button" class="chip-simples" id="palabras-simples" aria-pressed="false">Palabras simples</button>
                     </div>
                 </div>
-                <!-- Espacio de publicidad simulado (sin redes de anuncios). Con Extras no aparece. -->
-                <button type="button" class="publicidad" data-paywall>Publicidad · <strong>Métrica Extras</strong> la quita</button>
                 <!-- Todas las rimas, en un cajón que muestra 10 y se desliza para ver el resto. -->
                 <div class="cajon-todas vidrio" id="cajon-todas" hidden>
                     <h2 class="titulo-azar" id="encabezado-resultados">Todas</h2>
@@ -370,6 +415,21 @@
                 </ul>
                 <!-- Importar: las notas de Google Keep pasan a Letras, desde el export de Google Takeout
                      (Keep no tiene API; pedido de Swa). En SwiftUI: .fileImporter y una vista igual. -->
+                <!-- Métrica+ y créditos IA, solo para ver: se compran en el iPhone (pedido de Swa). -->
+                <h2 class="encabezado-grupo">Métrica+</h2>
+                <ul class="lista-agrupada">
+                    <li class="celda">
+                        <span class="icono-celda" style="background:var(--destacado)"><svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg></span>
+                        <span class="celda-texto">Plan</span><span class="valor" id="ajustes-plan">Gratis</span>
+                    </li>
+                    <li class="celda fila-creditos-ajustes">
+                        <span class="icono-celda icono-creditos"><span class="estrella-ia" aria-hidden="true"></span></span>
+                        <span class="celda-texto">Créditos IA</span><span class="valor" id="ajustes-creditos">100%</span>
+                    </li>
+                    <li class="celda" id="ajustes-mejorar-celda">
+                        <button class="celda-boton celda-centrada" id="ajustes-mejorar"><span>Mejóralo desde tu iPhone</span></button>
+                    </li>
+                </ul>
                 <h2 class="encabezado-grupo">Exportar</h2>
                 <ul class="lista-agrupada">
                     <li class="celda fuera-de-la-web">
@@ -422,15 +482,6 @@
                 </ul>
                 <!-- Papelera, a lo último: las letras y frases del baúl borradas, 7 días (pedido de Swa). -->
                 <h2 class="encabezado-grupo">Papelera</h2>
-                <ul class="lista-agrupada">
-                    <li class="celda">
-                        <span class="icono-celda" style="background:#8e8e93"><svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg></span>
-                        <button class="celda-boton" id="abrir-papelera">
-                            <span>Papelera</span>
-                        </button>
-                        <span class="chevron">›</span>
-                    </li>
-                </ul>
             </div>
             </div>
 
@@ -514,24 +565,6 @@
             <!-- Papelera: las letras y las frases del baúl borradas, en cuadrados chicos con el formato de
                  Letras. Un toque la muestra en grande; mantenerla apretada, Restaurar y Borrar definitivamente
                  (en SwiftUI: LazyVGrid con .contextMenu). Se vacían solas a los 7 días (js/logica/papelera.js). -->
-            <div class="vista" id="vista-papelera">
-                <header class="barra-nav">
-                    <button class="boton-atras" id="papelera-atras">
-                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
-                    </button>
-                    <button class="boton-atras boton-borrar-todo" id="papelera-vaciar">Borrar todo</button>
-                </header>
-                <h1 class="titulo-grande">Papelera</h1>
-                <div class="contenido">
-                    <h2 class="encabezado-grupo encabezado-primero" id="papelera-titulo-letras">Letras</h2>
-                    <ul class="grilla-papelera" id="papelera-letras"></ul>
-                    <h2 class="encabezado-grupo" id="papelera-titulo-frases">Frases del baúl</h2>
-                    <ul class="grilla-papelera" id="papelera-frases"></ul>
-                    <p class="vacio" id="papelera-vacia" hidden>La papelera está vacía.</p>
-                    <p class="pie-widgets pie-papelera">La papelera se vacía automáticamente: lo que borras queda aquí 7 días.</p>
-                </div>
-            </div>
-
             <!-- Google Keep: se elige el .zip de Takeout (o los .json), se marcan las notas y pasan a
                  Letras con sus fechas. Todo en el teléfono, sin internet (js/logica/keep.js). -->
             <div class="vista" id="vista-keep">
@@ -787,6 +820,57 @@
         </div>
     </div>
 
+    <!-- Menú de Letras, como en Swift: sale desde la izquierda (en la computadora, abajo de las tres
+         líneas). Carpetas, tamaño de las tarjetas, orden, selección múltiple, créditos IA y la papelera. -->
+    <div class="menu-letras-fondo" id="menu-letras" hidden>
+        <aside class="menu-letras" role="dialog" aria-modal="true" aria-label="Menú de letras">
+            <div class="menu-letras-cuerpo">
+                <h2 class="nombre-metrica" id="menu-nombre">Métrica</h2>
+                <h3 class="encabezado-grupo">Carpetas</h3>
+                <ul class="lista-agrupada lista-menu" id="menu-carpetas"></ul>
+                <h3 class="encabezado-grupo">Tamaño de las tarjetas</h3>
+                <div class="pastillas-libreta pastillas-menu" id="menu-tamano" role="tablist" aria-label="Tamaño de las tarjetas">
+                    <button type="button" role="tab" data-tamano="aleatorio">Aleatorio</button>
+                    <button type="button" role="tab" data-tamano="cuadrados">Fijo</button>
+                </div>
+                <h3 class="encabezado-grupo">Ordenar por</h3>
+                <ul class="lista-agrupada lista-menu" id="menu-orden">
+                    <li><button type="button" data-orden="fecha"><svg viewBox="0 0 24 24" class="icono"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Fecha de creación</span><i class="flecha-orden"></i></button></li>
+                    <li><button type="button" data-orden="titulo"><svg viewBox="0 0 24 24" class="icono"><path d="M5 19l5-14 5 14M7 14h6M16 9h4M16 14h4M16 19h4"/></svg><span>Título</span><i class="flecha-orden"></i></button></li>
+                    <li><button type="button" data-orden="modificacion"><svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v4h4M12 8v4l3 2"/></svg><span>Modificación</span><i class="flecha-orden"></i></button></li>
+                </ul>
+                <h3 class="encabezado-grupo">Selección múltiple</h3>
+                <ul class="lista-agrupada lista-menu">
+                    <li><button type="button" id="empezar-seleccion"><svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg><span>Seleccionar letras</span></button></li>
+                </ul>
+                <h3 class="encabezado-grupo">Métrica+</h3>
+                <ul class="lista-agrupada lista-menu">
+                    <li class="fila-creditos"><span class="estrella-ia" aria-hidden="true"></span><span id="menu-creditos">Créditos IA</span></li>
+                </ul>
+            </div>
+            <ul class="lista-agrupada lista-menu menu-pie">
+                <li><button type="button" id="abrir-papelera"><svg viewBox="0 0 24 24" class="icono"><path d="M3 6h18M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6M10 10v6M14 10v6"/></svg><span>Papelera</span><span class="chevron">›</span></button></li>
+            </ul>
+        </aside>
+    </div>
+
+    <!-- Un menú chico que sale al lado de un botón (Menu de SwiftUI): las opciones de una carpeta y
+         «Mover a carpeta». -->
+    <div class="menu-flotante-fondo" id="menu-flotante" hidden><div class="menu-flotante vidrio" id="menu-flotante-opciones" role="menu"></div></div>
+
+    <!-- Pedir un nombre (.alert con TextField de SwiftUI): carpeta nueva o renombrar. -->
+    <div class="alerta-fondo" id="pedir-nombre" hidden>
+        <form class="alerta" role="alertdialog" aria-modal="true" aria-labelledby="pedir-nombre-titulo" id="pedir-nombre-form">
+            <h2 id="pedir-nombre-titulo">Nueva carpeta</h2>
+            <p id="pedir-nombre-texto">Ponle un nombre.</p>
+            <input class="campo-alerta" id="pedir-nombre-campo" type="text" maxlength="60" autocomplete="off" placeholder="Nombre">
+            <div class="alerta-botones">
+                <button type="button" id="cancelar-nombre">Cancelar</button>
+                <button type="submit" id="aceptar-nombre"><strong>Crear</strong></button>
+            </div>
+        </form>
+    </div>
+
     <div class="alerta-fondo" id="confirmar-borrado" hidden>
         <div class="alerta" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-borrado-titulo">
             <h2 id="confirmar-borrado-titulo">¿Borrar la letra?</h2>
@@ -843,48 +927,30 @@
         </div>
     </div>
 
-    <!-- Paywall (en SwiftUI: .sheet). Pago único, sin suscripción. -->
+    <!-- Métrica+ en la web: no se vende acá. Se mejora desde la app del iPhone y la web vinculada
+         toma su compra sola (plan-iphone). Se abre desde un tema con candado o pasado el límite de carpetas. -->
     <div class="hoja-fondo" id="paywall" hidden>
         <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="paywall-titulo">
             <button class="boton-barra cerrar-hoja" id="cerrar-paywall" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
             <div class="paywall-icono">
-                <svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg>
+                <svg viewBox="0 0 24 24" class="icono"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
             </div>
-            <h2 class="paywall-titulo" id="paywall-titulo">Métrica Extras</h2>
-            <p class="paywall-bajada">Un solo pago, sin suscripción. Las rimas y todo lo básico siguen gratis siempre.</p>
+            <h2 class="paywall-titulo" id="paywall-titulo">Mejóralo desde tu iPhone</h2>
+            <p class="paywall-bajada">Métrica+ se compra en la app Métrica del iPhone. Al comprarlo, esta web se desbloquea sola.</p>
             <ul class="lista-agrupada beneficios">
                 <li class="celda">
-                    <svg viewBox="0 0 24 24" class="icono"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>
-                    <span><strong>Sin publicidad</strong><span class="subtitulo">Nada entre tú y la letra.</span></span>
+                    <svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg>
+                    <span><strong>Métrica<span class="mas-violeta">+</span> · USD 9,99, de por vida</strong><span class="subtitulo subtitulo-largo">Todos los temas, carpetas sin límite, Freestyle ilimitado y 100 créditos IA de regalo.</span></span>
                 </li>
                 <li class="celda">
-                    <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg>
-                    <span><strong>Temas para la libreta</strong><span class="subtitulo">Veinte temas, oscuros y claros, con su ilustración.</span></span>
-                </li>
-                <li class="celda">
-                    <svg viewBox="0 0 24 24" class="icono"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/></svg>
-                    <span><strong>Widgets</strong><span class="subtitulo">Para la pantalla de inicio del iPhone.</span></span>
+                    <span class="estrella-ia" aria-hidden="true"></span>
+                    <span><strong>Métrica<span class="mas-violeta">+</span> IA · USD 2,99 por mes</strong><span class="subtitulo subtitulo-largo">Todo Métrica+ y 300 créditos IA por mes.</span></span>
                 </li>
             </ul>
-            <!-- Vista previa: los widgets existen recién en la app nativa (WidgetKit). -->
-            <h3 class="encabezado-grupo">Vista previa de los widgets</h3>
-            <div class="widgets">
-                <div class="widget">
-                    <span class="widget-etiqueta">Palabra del día</span>
-                    <span class="widget-palabra" id="widget-palabra">corazón</span>
-                    <span class="widget-pie" id="widget-rimas">rima con canción</span>
-                </div>
-                <div class="widget">
-                    <span class="widget-etiqueta">Sigue escribiendo</span>
-                    <span class="widget-titulo" id="widget-letra">Tu última letra</span>
-                    <span class="widget-pie">Toca para abrir</span>
-                </div>
-            </div>
-            <button class="boton-relleno boton-comprar" id="comprar-extras"></button>
-            <button class="boton-texto" id="restaurar-compra">Restaurar compra</button>
-            <p class="nota centrada" id="paywall-nota">Prueba: la compra es simulada, no se cobra nada.</p>
+            <button class="boton-relleno boton-comprar" id="paywall-vincular" hidden>Vincular con el iPhone</button>
+            <p class="nota centrada" id="paywall-nota"></p>
         </div>
     </div>
 
@@ -893,12 +959,12 @@
     <div class="hoja-fondo" id="hoja-tema" hidden>
         <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="tema-frase">
             <div class="agarre-tema"></div>
-            <!-- Desde la estrellita de arriba (con algo escrito): «Ideas» (las consignas de siempre, primero) y
-                 «Sugerencias» (la IA lee la letra y propone cambios, recién al tocar «Generar sugerencias con IA»,
-                 así no gasta solo por entrar). Desde una letra vacía o el baúl, solo Ideas (pedidos de Swa). -->
+            <!-- Desde la estrellita de arriba (con algo escrito): «Métrica+ IA» (la IA lee la letra y propone cambios,
+                 recién al tocar «¿Qué cambiaría Métrica IA?», así no gasta solo por entrar) e «Ideas» (las consignas,
+                 sin límite). Desde una letra vacía o el baúl, solo Ideas (pedidos de Swa, como en Swift). -->
             <div class="segmentado modos-tema" id="modos-tema" role="tablist" aria-label="Qué mostrar" hidden>
+                <button type="button" role="tab" id="modo-sugerencias" aria-selected="false">Métrica<span class="mas-violeta">+</span> IA</button>
                 <button type="button" role="tab" id="modo-ideas" aria-selected="true">Ideas</button>
-                <button type="button" role="tab" id="modo-sugerencias" aria-selected="false">Sugerencias</button>
             </div>
             <div id="tema-sugerencias" hidden>
                 <div class="caja-tema vidrio" id="caja-revision">
@@ -911,7 +977,7 @@
                     <div class="puntos-ia" id="revision-puntos" aria-hidden="true"></div>
                     <!-- Solo el botón, sin «N sugerencias»: genera y vuelve a generar (pedidos de Swa). -->
                     <div class="controles-azar">
-                        <button type="button" class="chip-simples generar-rev" id="revision-generar"><span class="estrella-ia" aria-hidden="true"></span>Generar sugerencias con IA</button>
+                        <button type="button" class="chip-simples generar-rev" id="revision-generar"><span class="estrella-ia" aria-hidden="true"></span>¿Qué cambiaría Métrica IA?</button>
                     </div>
                 </div>
                 <!-- Los pedidos que quedan, abajo de la caja (pedido de Swa). -->
@@ -1042,26 +1108,34 @@
     <!-- En el celular, la barra de pestañas flotante de abajo (TabView). En la computadora (700 px o más)
          es la barra lateral fija, con la marca, el estado de la vinculación y el baúl (solo ahí). -->
     <nav class="barra-pestanas" id="barra-pestanas">
-        <div class="marca-lateral solo-compu"><img src="assets/logo/icono.svg" alt="" width="28" height="28"><span>Métrica</span></div>
+        <div class="marca-lateral solo-compu">
+            <!-- Plegar la barra a la izquierda, como en Google Keep: quedan solo los íconos y la letra a lo ancho. -->
+            <button type="button" class="plegar-barra" id="plegar-barra" aria-label="Plegar la barra lateral" title="Plegar la barra lateral" aria-pressed="false">
+                <svg viewBox="0 0 24 24" class="icono"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
+            <img src="assets/logo/icono.svg" alt="" width="28" height="28"><span>Métrica</span>
+        </div>
         <!-- Siempre a la vista: que lo que escribes llega al iPhone (verde) o que se cortó (gris). -->
         <button type="button" class="estado-web solo-compu" id="estado-web" data-estado="sin-vincular">
             <span class="punto-web" aria-hidden="true"></span>
             <span class="estado-web-texto"><span id="estado-web-titulo">Sin vincular</span><span class="estado-web-detalle" id="estado-web-detalle">Vincular con el iPhone</span></span>
         </button>
         <button data-pestana="letras" aria-selected="true">
-            <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg>Letras
+            <svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg><span class="texto-pestana">Letras</span>
         </button>
+        <!-- Las carpetas abajo de Letras, como en Notas de Mac. -->
+        <div class="carpetas-lateral solo-compu" id="carpetas-lateral"></div>
         <button data-pestana="rimas" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>Rimas
+            <svg viewBox="0 0 24 24" class="icono"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg><span class="texto-pestana">Rimas</span>
         </button>
         <button data-pestana="freestyle" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg>Freestyle
+            <svg viewBox="0 0 24 24" class="icono"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></svg><span class="texto-pestana">Freestyle</span>
         </button>
         <button data-pestana="letras" data-vista="baul" class="solo-compu" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path d="M10.5 8.5h3v4.5h-3z"/></svg>Baúl de frases
+            <svg viewBox="0 0 24 24" class="icono"><path d="M3 10.5V6.5a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 6.5v4M3 10.5h18v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M6.5 13.5v3M17.5 13.5v3"/><path d="M10.5 8.5h3v4.5h-3z"/></svg><span class="texto-pestana">Baúl de frases</span>
         </button>
         <button data-pestana="ajustes" aria-selected="false">
-            <svg viewBox="0 0 24 24" class="icono"><path d="M19.04 9.71 L21.77 9.86 L21.77 14.14 L19.04 14.29 L18.59 15.36 L20.42 17.39 L17.39 20.42 L15.36 18.59 L14.29 19.04 L14.14 21.77 L9.86 21.77 L9.71 19.04 L8.64 18.59 L6.61 20.42 L3.58 17.39 L5.41 15.36 L4.96 14.29 L2.23 14.14 L2.23 9.86 L4.96 9.71 L5.41 8.64 L3.58 6.61 L6.61 3.58 L8.64 5.41 L9.71 4.96 L9.86 2.23 L14.14 2.23 L14.29 4.96 L15.36 5.41 L17.39 3.58 L20.42 6.61 L18.59 8.64Z"/><circle cx="12" cy="12" r="3"/></svg>Ajustes
+            <svg viewBox="0 0 24 24" class="icono"><path d="M19.04 9.71 L21.77 9.86 L21.77 14.14 L19.04 14.29 L18.59 15.36 L20.42 17.39 L17.39 20.42 L15.36 18.59 L14.29 19.04 L14.14 21.77 L9.86 21.77 L9.71 19.04 L8.64 18.59 L6.61 20.42 L3.58 17.39 L5.41 15.36 L4.96 14.29 L2.23 14.14 L2.23 9.86 L4.96 9.71 L5.41 8.64 L3.58 6.61 L6.61 3.58 L8.64 5.41 L9.71 4.96 L9.86 2.23 L14.14 2.23 L14.29 4.96 L15.36 5.41 L17.39 3.58 L20.42 6.61 L18.59 8.64Z"/><circle cx="12" cy="12" r="3"/></svg><span class="texto-pestana">Ajustes</span>
         </button>
     </nav>
 

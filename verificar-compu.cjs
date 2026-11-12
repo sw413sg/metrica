@@ -151,6 +151,83 @@ const sembrar = () => {
         await page.close();
     }
 
+    // Etapa 2: carpetas, menú de Letras, buscador, selección, plegar la barra y tarjetas sin deformarse.
+    {
+        const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+        const errores = [];
+        page.on('pageerror', e => errores.push(e.message));
+        await page.addInitScript(sembrar);
+        await page.goto(url);
+        await page.waitForTimeout(800);
+        const tarjetas = page.locator('#lista-letras .tarjeta-letra');
+        const total = await tarjetas.count();
+        // Las tarjetas tienen su ancho: al achicar la ventana entran menos columnas, no se deforman.
+        const ancho = (await tarjetas.first().boundingBox()).width;
+        await page.setViewportSize({width: 1000, height: 900});
+        await page.waitForTimeout(300);
+        assert.equal(Math.round((await tarjetas.first().boundingBox()).width), Math.round(ancho), 'mismo ancho al achicar');
+        await page.setViewportSize({width: 1440, height: 900});
+        // Carpeta nueva desde la barra lateral.
+        await page.click('.nueva-carpeta-lateral');
+        await page.fill('#pedir-nombre-campo', 'Disco 2026');
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(200);
+        assert.equal(await page.textContent('#titulo-carpeta'), 'Disco 2026');
+        assert.equal(await tarjetas.count(), 0, 'carpeta nueva vacía');
+        // Elegir dos letras desde «Todas» y pasarlas a la carpeta.
+        await page.click('#barra-pestanas [data-pestana="letras"]:not([data-vista])');
+        assert.equal(await page.locator('#titulo-carpeta').isVisible(), false);
+        await page.click('#abrir-menu-letras');
+        await page.click('#empezar-seleccion');
+        await tarjetas.nth(0).locator('button').click();
+        await tarjetas.nth(1).locator('button').click();
+        assert.equal(await page.textContent('#texto-elegidas'), '2 elegidas');
+        await page.click('#mover-elegidas');
+        await page.locator('#menu-flotante-opciones button', {hasText: 'Disco 2026'}).click();
+        await page.waitForTimeout(200);
+        assert.equal(await page.locator('#barra-seleccion').isVisible(), false);
+        await page.click('.carpeta-lateral >> nth=0');
+        assert.equal(await tarjetas.count(), 2, 'dos letras en la carpeta');
+        await page.click('#barra-pestanas [data-pestana="letras"]:not([data-vista])');
+        assert.equal(await tarjetas.count(), total, 'en «Todas» siguen todas');
+        // Buscar con Ctrl + K, sin tildes ni mayúsculas.
+        await page.keyboard.press('Control+k');
+        await page.keyboard.type('KILOMETROS');
+        assert.equal(await tarjetas.count(), 1);
+        await page.keyboard.press('Escape');
+        assert.equal(await tarjetas.count(), total);
+        // Ordenar por título.
+        await page.click('#abrir-menu-letras');
+        await page.click('#menu-orden [data-orden="titulo"]');
+        await page.keyboard.press('Escape');
+        const titulos = await page.locator('#lista-letras .titulo-letra').allTextContents();
+        assert.deepEqual(titulos, [...titulos].sort((a, b) => a.localeCompare(b, 'es')), 'por título');
+        // Plegar la barra lateral: queda angosta y se recuerda.
+        await page.click('#plegar-barra');
+        await page.waitForTimeout(300);
+        assert.ok((await page.locator('#barra-pestanas').boundingBox()).width < 80, 'barra plegada');
+        await page.screenshot({path: 'capturas/compu/plegada.png'});
+        await page.reload();
+        await page.waitForTimeout(800);
+        assert.ok((await page.locator('#barra-pestanas').boundingBox()).width < 80, 'sigue plegada');
+        await page.click('#plegar-barra');
+        // La papelera está en el menú de Letras.
+        await page.click('#abrir-menu-letras');
+        await page.screenshot({path: 'capturas/compu/menu-letras.png'});
+        await page.click('#abrir-papelera');
+        assert.equal(await page.locator('#vista-papelera').isVisible(), true);
+        await page.click('#papelera-atras');
+        // La web no vende: pasado el límite de carpetas, «Mejóralo desde tu iPhone».
+        await page.click('.nueva-carpeta-lateral');
+        await page.fill('#pedir-nombre-campo', 'Otra');
+        await page.keyboard.press('Enter');
+        await page.click('.nueva-carpeta-lateral');
+        assert.equal(await page.locator('#paywall').isVisible(), true);
+        assert.match(await page.textContent('#paywall-titulo'), /Mejóralo desde tu iPhone/);
+        assert.deepEqual(errores, []);
+        await page.close();
+    }
+
     // En el celular, todo como siempre: barra de pestañas abajo, sin barra lateral ni panel.
     {
         const page = await browser.newPage({viewport: {width: 390, height: 844}, hasTouch: true, isMobile: true});

@@ -1,12 +1,13 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
 import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS, tituloBusqueda } from './logica/rimas.js';
+import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS, tituloBusqueda, ordenarPorRima, rimasParaCambiar } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada, adaptarTemasDeLetras } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada, adaptarTemasDeLetras, ordenarLetras, ascendentePorDefecto, coincideBusqueda } from './logica/sesiones.js';
+import { CARPETAS_GRATIS, carpetasVisibles, puedeCrearCarpeta, crearCarpeta, renombrarCarpeta, borrarCarpeta, moverACarpeta, letrasDeCarpeta, cantidadesPorCarpeta, textoCantidadLetras, sinCarpetasProtegidas } from './logica/carpetas.js';
 import { crearCorrector } from './logica/ortografia.js';
 import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
 import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul } from './logica/baul.js';
@@ -25,8 +26,8 @@ import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/aparienc
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, guardarFotoWidgets, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, comprarPlanIA, borrarPlanIA, CUPO_GRATIS, PLAN_IA } from './logica/ia.js';
-import { PRODUCTO, TEMAS, tieneExtras, comprarExtras, borrarCompra, mostrarPublicidad, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, usoDelMes, cupoIA, anotarSugerencia, textoCupo, textoSinCupo, borrarPlanIA, CUPO_GRATIS } from './logica/ia.js';
+import { TEMAS, tieneExtras, borrarCompra, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
 import { estaVinculada, planDelIphone, vincular, sincronizar, cerrarSesion, estadoDeSincronizacion } from './web.js';
 const $ = id => document.getElementById(id);
@@ -77,6 +78,10 @@ function marcarBarra() {
     document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b =>
         b.setAttribute('aria-selected', b.dataset.pestana === pestana && (b.dataset.vista === 'baul') === enBaul));
     if (pestana === 'letras' && columnasLetras() !== columnasUbicadas) ubicarTarjetas();
+    // Con una carpeta abierta, en la barra lateral va marcada la carpeta y no «Letras».
+    const enCarpeta = pestana === 'letras' && opcionesLetras.carpeta && $('vista-lista-letras').classList.contains('activa');
+    if (enCarpeta) document.querySelector('#barra-pestanas [data-pestana="letras"]:not([data-vista])').setAttribute('aria-selected', 'false');
+    renderizarCarpetasLateral();
 }
 document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => b.addEventListener('click', () => {
     const enLetras = $('pantalla-letras').classList.contains('activa');
@@ -87,11 +92,14 @@ document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => b.addEv
         else if (!$('vista-baul').classList.contains('activa')) abrirBaul(false);
         return marcarBarra();
     }
+    // En la barra lateral, «Letras» son todas las letras (las carpetas van abajo).
+    if (b.dataset.pestana === 'letras' && !b.dataset.vista && innerWidth >= 700 && opcionesLetras.carpeta) elegirCarpeta(null);
     // En la computadora, «Letras» con una letra abierta vuelve a la lista (en el celular la barra no se ve ahí).
     if (b.dataset.pestana === 'letras' && enLetras && $('vista-editor').classList.contains('activa')) {
         $('editor-atras').click();
         return marcarBarra();
     }
+    if (b.dataset.pestana === 'letras' && enLetras && $('vista-papelera').classList.contains('activa')) mostrarVista('vista-lista-letras');
     if (b.dataset.pestana === 'letras' && enLetras && $('vista-baul').classList.contains('activa')) {
         mostrarVista('vista-lista-letras');
         renderizarLetras();
@@ -161,8 +169,42 @@ function mostrarVista(id) {
 // Las tarjetas en el orden en que se ven (cambia mientras se arrastra una).
 let tarjetasLetras = [];
 
+// Cómo se ven las letras (el menú de Letras, como en Swift): el orden, el tamaño de las tarjetas, la
+// carpeta y la búsqueda. El orden, el tamaño y la carpeta se guardan para la próxima vez.
+const opcionesLetras = (() => {
+    const leer = (clave, porDefecto) => { try { return localStorage.getItem(clave) ?? porDefecto; } catch { return porDefecto; } };
+    const orden = leer('metrica.letras-orden', 'fecha');
+    const asc = leer('metrica.letras-orden-ascendente', null);
+    return {
+        orden, ascendente: asc == null ? ascendentePorDefecto(orden) : asc === 'true',
+        tamano: leer('metrica.letras-tamano', 'cuadrados'), carpeta: leer('metrica.letras-carpeta', '') || null,
+        busqueda: '', seleccionando: false, seleccionadas: new Set(),
+    };
+})();
+const guardarOpcion = (clave, valor) => { try { localStorage.setItem(clave, valor ?? ''); } catch { /* sin almacenamiento */ } };
+const carpetaActual = () => carpetasVisibles(localStorage).find(c => c.id === opcionesLetras.carpeta) ?? null;
+// Acomodar a mano (pasar una tarjeta por arriba de otra) solo va en el orden de siempre, sin buscar ni elegir.
+const puedeReacomodar = () => opcionesLetras.orden === 'fecha' && !opcionesLetras.ascendente && !opcionesLetras.busqueda.trim() && !opcionesLetras.seleccionando;
+
+function elegirCarpeta(id) {
+    opcionesLetras.carpeta = id;
+    guardarOpcion('metrica.letras-carpeta', id);
+    renderizarLetras();
+}
+
+// Las letras que se ven: las de la carpeta (sin las de carpetas protegidas en el iPhone), en el
+// orden elegido y, si se busca, solo las que coinciden.
+function letrasVisibles() {
+    if (opcionesLetras.carpeta && !carpetaActual()) { opcionesLetras.carpeta = null; guardarOpcion('metrica.letras-carpeta', null); }
+    const todas = sinCarpetasProtegidas(listarLetras(localStorage), localStorage);
+    const deCarpeta = letrasDeCarpeta(todas, opcionesLetras.carpeta);
+    const ordenadas = ordenarLetras(deCarpeta, opcionesLetras.orden, opcionesLetras.ascendente);
+    return opcionesLetras.busqueda.trim() ? ordenadas.filter(l => coincideBusqueda(l, opcionesLetras.busqueda)) : ordenadas;
+}
+
 function renderizarLetras() {
-    const letras = listarLetras(localStorage);
+    const letras = letrasVisibles();
+    const actual = carpetaActual();
     // Cada letra es una tarjeta con el título y el principio del texto.
     const parte = (clase, texto) => {
         const span = document.createElement('span');
@@ -170,24 +212,49 @@ function renderizarLetras() {
         span.textContent = texto;
         return span;
     };
+    const elegidas = opcionesLetras.seleccionadas;
+    for (const id of [...elegidas]) if (!letras.some(l => l.id === id)) elegidas.delete(id);
     tarjetasLetras = letras.map(letra => {
         const tarjeta = document.createElement('li');
         tarjeta.className = 'tarjeta-letra';
         tarjeta.dataset.id = letra.id;
+        tarjeta.classList.toggle('elegida', elegidas.has(letra.id));
         const boton = document.createElement('button');
         boton.append(parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
+        if (opcionesLetras.seleccionando) boton.append(parte('tilde-letra', ''));
         const fueArrastrada = arrastrarTarjeta(tarjeta, boton, letra);
-        boton.addEventListener('click', () => { if (!fueArrastrada()) abrirEditor(letra); });
+        boton.addEventListener('click', () => {
+            if (fueArrastrada()) return;
+            if (!opcionesLetras.seleccionando) return abrirEditor(letra);
+            if (elegidas.has(letra.id)) elegidas.delete(letra.id); else elegidas.add(letra.id);
+            tarjeta.classList.toggle('elegida', elegidas.has(letra.id));
+            pintarSeleccion();
+        });
         tarjeta.append(boton);
         return tarjeta;
     });
+    const grilla = $('lista-letras').parentElement;
+    grilla.classList.toggle('cuadrados', opcionesLetras.tamano === 'cuadrados');
+    grilla.classList.toggle('eligiendo', opcionesLetras.seleccionando);
     ubicarTarjetas();
     $('lista-letras').replaceChildren(...tarjetasLetras);
-    $('letras-vacio').hidden = letras.length > 0;
+    const buscando = opcionesLetras.busqueda.trim();
+    $('letras-vacio').hidden = letras.length > 0 || (Boolean(actual) && !buscando);
+    if (buscando && !letras.length) $('letras-vacio').textContent = `No hay letras con «${buscando}».`;
+    else $('letras-vacio').innerHTML = 'Toca <strong>+</strong> para escribir tu primera letra.';
+    $('titulo-carpeta').hidden = !actual;
+    $('titulo-carpeta').textContent = actual?.nombre ?? '';
+    // Las privadas del iPhone no vienen: solo el aviso (el iPhone manda cuántas, si lo sabe).
+    const privadas = Number(planDelIphone().privadas) || 0;
+    $('letras-privadas').hidden = !privadas || Boolean(actual) || Boolean(buscando);
+    $('letras-privadas').textContent = privadas === 1 ? '1 letra privada, solo en tu iPhone.' : `${privadas} letras privadas, solo en tu iPhone.`;
+    pintarSeleccion();
+    renderizarCarpetasLateral();
 }
 
-// Cada tarjeta va en su lugar de la grilla, a la columna más corta, chica o larga según la letra.
-// En el iPhone son dos columnas; en la computadora, las que entren (las dice la grilla del CSS).
+// Cada tarjeta va en su lugar de la grilla. Aleatorio: a la columna más corta, chica o larga según
+// la letra. Fijo: todas iguales, de a una por lugar, con la «+» primera. En el iPhone son dos
+// columnas; en la computadora, las que entren (las dice la grilla del CSS).
 const columnasLetras = () => {
     const columnas = getComputedStyle($('lista-letras').parentElement).gridTemplateColumns.split(' ').filter(c => c.endsWith('px')).length;
     return columnas || 2;
@@ -195,7 +262,10 @@ const columnasLetras = () => {
 let columnasUbicadas = 2;
 function ubicarTarjetas() {
     columnasUbicadas = columnasLetras();
-    const lugares = lugaresEnGrilla(tarjetasLetras.map(t => t.dataset.id), columnasUbicadas);
+    const ids = tarjetasLetras.map(t => t.dataset.id);
+    const lugares = opcionesLetras.tamano === 'cuadrados'
+        ? ids.map((_, i) => ({ columna: (i + 1) % columnasUbicadas + 1, fila: Math.floor((i + 1) / columnasUbicadas) + 1, larga: false }))
+        : lugaresEnGrilla(ids, columnasUbicadas);
     tarjetasLetras.forEach((tarjeta, i) => {
         const { columna, fila, larga } = lugares[i];
         tarjeta.style.gridColumn = columna;
@@ -256,7 +326,7 @@ function arrastrarTarjeta(tarjeta, boton, letra) {
         tacho.classList.toggle('encima', enTacho);
         tarjeta.classList.toggle('sobre-tacho', enTacho);
         const otra = enTacho ? null : tarjetaBajoElDedo();
-        if (otra && otra !== sobre) reacomodar(tarjeta, tarjetasLetras.indexOf(otra));
+        if (otra && otra !== sobre && puedeReacomodar()) reacomodar(tarjeta, tarjetasLetras.indexOf(otra));
         sobre = otra;
         cuadro = requestAnimationFrame(seguir);
     };
@@ -289,7 +359,7 @@ function arrastrarTarjeta(tarjeta, boton, letra) {
             tarjeta.classList.add('volviendo');
             tarjeta.style.transform = '';
             const lugar = tarjetasLetras.indexOf(tarjeta);
-            if (lugar !== lugarInicial) moverLetra(localStorage, letra.id, lugar);
+            if (lugar !== lugarInicial && puedeReacomodar()) moverLetra(localStorage, letra.id, lugar, opcionesLetras.carpeta);
             setTimeout(() => { tarjeta.classList.remove('volviendo'); if (lugar !== lugarInicial) renderizarLetras(); }, 300);
         };
         if (!borrar) return volver();
@@ -304,7 +374,7 @@ function arrastrarTarjeta(tarjeta, boton, letra) {
         arrastrada = false;
         inicio = dedo = { x: e.clientX, y: e.clientY };
         boton.setPointerCapture?.(e.pointerId);
-        espera = setTimeout(empezar, 350);
+        if (!opcionesLetras.seleccionando) espera = setTimeout(empezar, 350);
     });
     boton.addEventListener('pointermove', e => {
         if (!inicio) return; // el mouse pasando por arriba, sin apretar
@@ -325,7 +395,7 @@ function arrastrarTarjeta(tarjeta, boton, letra) {
 // Una letra borrada va a la papelera; una grabación (o algo de la papelera) se borra para siempre.
 function confirmarBorrado(letra, responder, pregunta = '¿Borrar la letra?', aPapelera = false) {
     const titulo = letra.titulo?.trim() || 'Sin título';
-    const texto = aPapelera ? `«${titulo}» va a quedar ${DIAS_PAPELERA} días en la papelera, en Ajustes.` : `«${titulo}» se va a borrar y no se puede deshacer.`;
+    const texto = aPapelera ? `«${titulo}» va a quedar ${DIAS_PAPELERA} días en la papelera, en el menú de Letras.` : `«${titulo}» se va a borrar y no se puede deshacer.`;
     preguntar({ titulo: pregunta, texto, boton: 'Borrar', rojo: true }, responder);
 }
 
@@ -344,6 +414,268 @@ function preguntar({ titulo, texto, boton, rojo = false }, responder) {
     };
     $('aceptar-borrado').onclick = () => cerrar(true);
     $('cancelar-borrado').onclick = () => cerrar(false);
+}
+
+// ---------- Menú de Letras (como en Swift): carpetas, tamaño, orden, selección y papelera ----------
+const ICONO_CARPETA = '<svg viewBox="0 0 24 24" class="icono"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const ICONO_TODAS = '<svg viewBox="0 0 24 24" class="icono"><path d="M4 13l2.5-7h11L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 13h5l1 2h4l1-2h5"/></svg>';
+const ICONO_NUEVA_CARPETA = '<svg viewBox="0 0 24 24" class="icono"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></svg>';
+const ICONO_MAS_OPCIONES = '<svg viewBox="0 0 24 24" class="icono"><circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/></svg>';
+const escaparTexto = texto => String(texto).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+// «Métrica», o con lo que compró el iPhone «Métrica+» con el «+» violeta.
+const nombreMetrica = () => (tieneExtras(localStorage) ? 'Métrica<span class="mas-violeta">+</span>' : 'Métrica');
+
+function abrirMenuLetras() {
+    renderizarMenuLetras();
+    $('menu-letras').hidden = false;
+    requestAnimationFrame(() => $('menu-letras').classList.add('abierto'));
+}
+function cerrarMenuLetras() {
+    const menu = $('menu-letras');
+    if (menu.hidden) return;
+    menu.classList.remove('abierto');
+    setTimeout(() => { if (!menu.classList.contains('abierto')) menu.hidden = true; }, 220);
+}
+$('abrir-menu-letras').addEventListener('click', abrirMenuLetras);
+$('menu-letras').addEventListener('click', e => { if (e.target === $('menu-letras')) cerrarMenuLetras(); });
+
+function filaCarpeta(id, nombre, cantidad, icono) {
+    const li = document.createElement('li');
+    const elegida = (opcionesLetras.carpeta ?? null) === id;
+    li.innerHTML = `<button type="button" class="fila-carpeta" aria-pressed="${elegida}">${icono}<span>${escaparTexto(nombre)}</span><span class="cantidad">${cantidad}</span></button>`;
+    li.firstChild.addEventListener('click', () => { elegirCarpeta(id); cerrarMenuLetras(); irALetras(); });
+    if (id) {
+        // Renombrar y borrar: con el «…» de la derecha o con el botón derecho.
+        const mas = document.createElement('button');
+        mas.type = 'button';
+        mas.className = 'mas-carpeta';
+        mas.setAttribute('aria-label', `Opciones de «${nombre}»`);
+        mas.innerHTML = ICONO_MAS_OPCIONES;
+        const opciones = ancla => menuFlotante(ancla, [
+            ['Renombrar', () => pedirNombre({ titulo: 'Renombrar carpeta', boton: 'Guardar', valor: nombre }, nuevo => { renombrarCarpeta(localStorage, id, nuevo); renderizarLetras(); renderizarMenuLetras(); })],
+            ['Borrar carpeta', () => preguntar({ titulo: '¿Borrar la carpeta?', texto: `Sus letras no se borran: quedan en «Todas las letras».`, boton: 'Borrar', rojo: true }, ok => {
+                if (!ok) return;
+                borrarCarpeta(localStorage, id);
+                renderizarLetras();
+                renderizarMenuLetras();
+            }), true],
+        ]);
+        mas.addEventListener('click', e => { e.stopPropagation(); opciones(mas); });
+        li.firstChild.addEventListener('contextmenu', e => { e.preventDefault(); opciones(mas); });
+        li.append(mas);
+    }
+    return li;
+}
+
+// Gratis, hasta dos; pasado el límite, se avisa que se mejora desde el iPhone (la web no vende).
+function pedirCarpetaNueva(alCrear) {
+    if (!puedeCrearCarpeta(localStorage, tieneExtras(localStorage))) return abrirPaywall();
+    pedirNombre({ titulo: 'Nueva carpeta', boton: 'Crear', valor: '' }, nombre => {
+        const nueva = crearCarpeta(localStorage, nombre, tieneExtras(localStorage));
+        if (!nueva) return;
+        alCrear?.(nueva);
+        elegirCarpeta(nueva.id);
+        cerrarMenuLetras();
+        renderizarMenuLetras();
+    });
+}
+
+function renderizarMenuLetras() {
+    $('menu-nombre').innerHTML = nombreMetrica();
+    const cantidades = cantidadesPorCarpeta(localStorage);
+    const carpetas = carpetasVisibles(localStorage);
+    const total = sinCarpetasProtegidas(listarLetras(localStorage), localStorage).length;
+    const nueva = document.createElement('li');
+    const pasado = !tieneExtras(localStorage) && carpetas.length >= CARPETAS_GRATIS;
+    nueva.innerHTML = `<button type="button">${ICONO_NUEVA_CARPETA}<span>Nueva carpeta</span>${pasado ? '<span class="mas-violeta grande">+</span>' : ''}</button>`;
+    nueva.firstChild.addEventListener('click', () => pedirCarpetaNueva());
+    $('menu-carpetas').replaceChildren(
+        filaCarpeta(null, 'Todas las letras', total, ICONO_TODAS),
+        ...carpetas.map(c => filaCarpeta(c.id, c.nombre, cantidades[c.id] ?? 0, ICONO_CARPETA)),
+        nueva,
+    );
+    document.querySelectorAll('#menu-tamano button').forEach(b => b.setAttribute('aria-selected', b.dataset.tamano === opcionesLetras.tamano));
+    document.querySelectorAll('#menu-orden button').forEach(b => {
+        const esta = b.dataset.orden === opcionesLetras.orden;
+        b.setAttribute('aria-pressed', esta);
+        b.querySelector('.flecha-orden').classList.toggle('arriba', esta && opcionesLetras.ascendente);
+    });
+    const uso = usoDelMes(localStorage);
+    $('menu-creditos').innerHTML = uso.quedan
+        ? `<strong>${Math.round(100 * uso.quedan / uso.tope)}%</strong> <span>de ${uso.tope} créditos IA${uso.plan ? '' : ' gratis'} del mes</span>`
+        : '<strong>Créditos IA insuficientes</strong>';
+}
+
+document.querySelectorAll('#menu-tamano button').forEach(b => b.addEventListener('click', () => {
+    opcionesLetras.tamano = b.dataset.tamano;
+    guardarOpcion('metrica.letras-tamano', b.dataset.tamano);
+    renderizarMenuLetras();
+    renderizarLetras();
+}));
+// Tocar otro orden lo elige para su lado de siempre; tocar el que ya está lo da vuelta.
+document.querySelectorAll('#menu-orden button').forEach(b => b.addEventListener('click', () => {
+    const orden = b.dataset.orden;
+    opcionesLetras.ascendente = orden === opcionesLetras.orden ? !opcionesLetras.ascendente : ascendentePorDefecto(orden);
+    opcionesLetras.orden = orden;
+    guardarOpcion('metrica.letras-orden', orden);
+    guardarOpcion('metrica.letras-orden-ascendente', String(opcionesLetras.ascendente));
+    renderizarMenuLetras();
+    renderizarLetras();
+}));
+
+// ---------- Selección múltiple ----------
+function pintarSeleccion() {
+    const si = opcionesLetras.seleccionando, cuantas = opcionesLetras.seleccionadas.size;
+    $('fila-letras').hidden = si;
+    $('barra-seleccion').hidden = !si;
+    $('texto-elegidas').textContent = !cuantas ? 'Elige letras' : cuantas === 1 ? '1 elegida' : `${cuantas} elegidas`;
+    $('mover-elegidas').disabled = $('borrar-elegidas').disabled = !cuantas;
+}
+function salirDeSeleccion() {
+    opcionesLetras.seleccionando = false;
+    opcionesLetras.seleccionadas.clear();
+    renderizarLetras();
+}
+$('empezar-seleccion').addEventListener('click', () => {
+    opcionesLetras.seleccionando = true;
+    opcionesLetras.seleccionadas.clear();
+    cerrarMenuLetras();
+    irALetras();
+    renderizarLetras();
+});
+$('salir-seleccion').addEventListener('click', salirDeSeleccion);
+$('borrar-elegidas').addEventListener('click', () => {
+    const ids = [...opcionesLetras.seleccionadas];
+    const cuantas = ids.length === 1 ? 'La letra elegida va' : `Las ${ids.length} letras elegidas van`;
+    preguntar({ titulo: ids.length === 1 ? '¿Borrar la letra?' : `¿Borrar ${ids.length} letras?`, texto: `${cuantas} a quedar ${DIAS_PAPELERA} días en la papelera, en el menú de Letras.`, boton: 'Borrar', rojo: true }, ok => {
+        if (!ok) return;
+        for (const id of ids) borrarLetra(localStorage, id);
+        salirDeSeleccion();
+    });
+});
+// Una letra va en una sola carpeta: pasarlas a una, sacarlas de la que tengan o crear una nueva con ellas.
+$('mover-elegidas').addEventListener('click', () => {
+    const ids = [...opcionesLetras.seleccionadas];
+    const elegidas = listarLetras(localStorage).filter(l => opcionesLetras.seleccionadas.has(l.id));
+    const mover = carpeta => { moverACarpeta(localStorage, ids, carpeta); salirDeSeleccion(); };
+    const opciones = carpetasVisibles(localStorage).map(c => [
+        (elegidas.every(l => l.carpeta === c.id) ? '✓ ' : '') + c.nombre, () => mover(c.id),
+    ]);
+    if (elegidas.some(l => l.carpeta != null)) opciones.push(['Sacar de la carpeta', () => mover(null)]);
+    opciones.push(['Nueva carpeta', () => pedirCarpetaNueva(nueva => { moverACarpeta(localStorage, ids, nueva.id); opcionesLetras.seleccionando = false; opcionesLetras.seleccionadas.clear(); })]);
+    menuFlotante($('mover-elegidas'), opciones);
+});
+
+// ---------- Buscar en las letras (Ctrl/Cmd + K) ----------
+const campoBuscarLetras = $('buscar-letras');
+function pintarBusquedaLetras() {
+    const abierta = document.activeElement === campoBuscarLetras || campoBuscarLetras.value !== '';
+    $('fila-letras').classList.toggle('buscando', abierta);
+    campoBuscarLetras.placeholder = abierta ? 'Busca en tus letras' : 'Buscar';
+    $('cerrar-busqueda-letras').hidden = !abierta;
+}
+campoBuscarLetras.addEventListener('input', () => { opcionesLetras.busqueda = campoBuscarLetras.value; renderizarLetras(); pintarBusquedaLetras(); });
+campoBuscarLetras.addEventListener('focus', pintarBusquedaLetras);
+campoBuscarLetras.addEventListener('blur', () => setTimeout(pintarBusquedaLetras, 0));
+campoBuscarLetras.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarBusquedaLetras(); });
+function cerrarBusquedaLetras() {
+    campoBuscarLetras.value = opcionesLetras.busqueda = '';
+    campoBuscarLetras.blur();
+    renderizarLetras();
+    pintarBusquedaLetras();
+}
+$('cerrar-busqueda-letras').addEventListener('mousedown', e => e.preventDefault());
+$('cerrar-busqueda-letras').addEventListener('click', cerrarBusquedaLetras);
+// Lleva a la lista de Letras (desde otra sección, una letra abierta o el baúl).
+function irALetras() {
+    if (!$('pantalla-letras').classList.contains('activa')) mostrarPestana('letras');
+    if ($('vista-editor').classList.contains('activa')) $('editor-atras').click();
+    else if (!$('vista-lista-letras').classList.contains('activa')) mostrarVista('vista-lista-letras');
+    marcarBarra();
+}
+function buscarEnLetras() {
+    irALetras();
+    if (opcionesLetras.seleccionando) salirDeSeleccion();
+    campoBuscarLetras.focus();
+    campoBuscarLetras.select();
+}
+
+// ---------- Carpetas en la barra lateral (computadora), como en Notas de Mac ----------
+function renderizarCarpetasLateral() {
+    const caja = $('carpetas-lateral');
+    if (!caja) return;
+    const cantidades = cantidadesPorCarpeta(localStorage);
+    const enLista = $('pantalla-letras').classList.contains('activa') && $('vista-lista-letras').classList.contains('activa');
+    const filas = carpetasVisibles(localStorage).map(c => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'carpeta-lateral';
+        b.setAttribute('aria-selected', enLista && opcionesLetras.carpeta === c.id);
+        b.innerHTML = `${ICONO_CARPETA}<span class="texto-pestana">${escaparTexto(c.nombre)}</span><span class="cantidad">${cantidades[c.id] ?? 0}</span>`;
+        b.title = c.nombre;
+        b.addEventListener('click', () => { elegirCarpeta(c.id); irALetras(); });
+        return b;
+    });
+    const nueva = document.createElement('button');
+    nueva.type = 'button';
+    nueva.className = 'carpeta-lateral nueva-carpeta-lateral';
+    nueva.innerHTML = `${ICONO_NUEVA_CARPETA}<span class="texto-pestana">Nueva carpeta</span>`;
+    nueva.addEventListener('click', () => pedirCarpetaNueva(() => irALetras()));
+    caja.replaceChildren(...filas, nueva);
+}
+
+// ---------- Plegar la barra lateral (como en Google Keep) ----------
+function aplicarBarraPlegada(plegada) {
+    document.body.classList.toggle('barra-plegada', plegada);
+    $('plegar-barra').setAttribute('aria-pressed', plegada);
+    $('plegar-barra').setAttribute('aria-label', plegada ? 'Desplegar la barra lateral' : 'Plegar la barra lateral');
+    $('plegar-barra').title = plegada ? 'Desplegar la barra lateral' : 'Plegar la barra lateral';
+    // Los nombres van como globo al pasar el mouse, para saber qué es cada ícono.
+    document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => { b.title = plegada ? b.textContent.trim() : ''; });
+    if ($('pantalla-letras').classList.contains('activa')) requestAnimationFrame(() => { if (columnasLetras() !== columnasUbicadas) ubicarTarjetas(); });
+}
+aplicarBarraPlegada((() => { try { return localStorage.getItem('metrica.barra-plegada') === 'si'; } catch { return false; } })());
+$('plegar-barra').addEventListener('click', () => {
+    const plegada = !document.body.classList.contains('barra-plegada');
+    guardarOpcion('metrica.barra-plegada', plegada ? 'si' : '');
+    aplicarBarraPlegada(plegada);
+});
+
+// ---------- Un menú chico al lado de un botón, y pedir un nombre ----------
+function menuFlotante(ancla, opciones) {
+    const fondo = $('menu-flotante'), caja = $('menu-flotante-opciones');
+    caja.replaceChildren(...opciones.map(([texto, accion, rojo]) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('role', 'menuitem');
+        b.textContent = texto;
+        b.classList.toggle('texto-rojo', Boolean(rojo));
+        b.addEventListener('click', () => { fondo.hidden = true; accion(); });
+        return b;
+    }));
+    fondo.hidden = false;
+    const r = ancla.getBoundingClientRect(), ancho = caja.offsetWidth, alto = caja.offsetHeight;
+    caja.style.left = `${Math.max(8, Math.min(innerWidth - ancho - 8, r.right - ancho))}px`;
+    caja.style.top = `${r.bottom + 6 + alto > innerHeight ? Math.max(8, r.top - alto - 6) : r.bottom + 6}px`;
+    caja.querySelector('button')?.focus();
+}
+$('menu-flotante').addEventListener('click', e => { if (e.target === $('menu-flotante')) $('menu-flotante').hidden = true; });
+
+function pedirNombre({ titulo, boton, valor }, responder) {
+    const alerta = $('pedir-nombre'), campo = $('pedir-nombre-campo');
+    $('pedir-nombre-titulo').textContent = titulo;
+    $('aceptar-nombre').innerHTML = `<strong>${boton}</strong>`;
+    campo.value = valor;
+    const pintar = () => { $('aceptar-nombre').disabled = !campo.value.trim(); };
+    campo.oninput = pintar;
+    pintar();
+    alerta.hidden = false;
+    campo.focus();
+    campo.select();
+    const cerrar = () => { alerta.hidden = true; $('pedir-nombre-form').onsubmit = $('cancelar-nombre').onclick = campo.onkeydown = null; };
+    $('pedir-nombre-form').onsubmit = e => { e.preventDefault(); if (!campo.value.trim()) return; cerrar(); responder(campo.value.trim()); };
+    $('cancelar-nombre').onclick = cerrar;
+    campo.onkeydown = e => { if (e.key === 'Escape') cerrar(); };
 }
 
 // ---------- Baúl de frases (NavigationStack: Letras -> baúl) ----------
@@ -793,7 +1125,9 @@ function marcarTocada(rango) {
 
 // Al cambiar una palabra, la etiqueta es un botón que pasa de rimas a sinónimos y a relacionadas.
 function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(palabra, indiceRimas()).slice(0, 20) : [], alternable = false) {
+    // Un objeto { etiqueta } es un rótulo chico en el medio («Asonantes:»), no una palabra para tocar.
     const botones = rimas.map(rima => {
+        if (typeof rima === 'object') return Object.assign(document.createElement('span'), { className: 'sugerencias-etiqueta', textContent: rima.etiqueta });
         const boton = document.createElement('button');
         boton.className = 'sugerencia';
         boton.textContent = rima;
@@ -821,11 +1155,16 @@ function mostrarSugerencias(palabra, etiqueta, rimas = palabra ? buscarRimas(pal
 // La palabra que se tocó para cambiarla: primero muestra rimas y cada toque a la etiqueta
 // pasa a sinónimos, a relacionadas («noche»: luna, madrugada...) y vuelve a rimas.
 const MODOS_CAMBIO = [
-    { etiqueta: 'Cambiar', vacio: 'rimas', buscar: palabra => buscarRimas(palabra, indiceRimas()).slice(0, 20) },
-    { etiqueta: 'Sinónimos', vacio: 'sinónimos', buscar: palabra => buscarSinonimos(palabra, indiceSinonimos()).slice(0, 30) },
+    // Como en Swift: las simples primero, y después de las consonantes, las asonantes con su rótulo.
+    { etiqueta: 'Cambiar', vacio: 'rimas', buscar: palabra => {
+        const { consonantes, asonantes } = rimasParaCambiar(palabra, indiceRimas(), conjuntoSimples());
+        return asonantes.length ? [...consonantes, { etiqueta: 'Asonantes:' }, ...asonantes] : consonantes;
+    } },
+    { etiqueta: 'Sinónimos', vacio: 'sinónimos', buscar: palabra => ordenarPorRima(buscarSinonimos(palabra, indiceSinonimos()).slice(0, 30), palabra) },
     { etiqueta: 'Relacionados', vacio: 'relacionadas', buscar: palabra => buscarRelacionados(palabra, indiceRelacionados()).slice(0, 30) },
 ];
-let tocada = null, modoCambio = 0;
+let tocada = null, modoCambio = 0, simplesConjunto = null;
+const conjuntoSimples = () => simplesConjunto ??= new Set(palabrasSimples);
 function mostrarCambio() {
     const palabra = bienEscrita(tocada);
     const modo = MODOS_CAMBIO[modoCambio];
@@ -1027,7 +1366,7 @@ function renderizarPanel() {
         const rel = buscarRelacionados(palabra, indiceRelacionados()).slice(0, 40);
         // Los que riman con la palabra van primero y en violeta.
         const consonantes = new Set(buscarRimas(palabra, indiceRimas()));
-        const ordenados = [...sinon.filter(p => consonantes.has(p)), ...sinon.filter(p => !consonantes.has(p))];
+        const ordenados = ordenarPorRima(sinon, palabra);
         cuerpo.replaceChildren(
             tituloPanel('Sinónimos de', palabraPanel),
             sinon.length ? palabrasPanel(ordenados) : notaPanel(`No encontré sinónimos para «${palabraPanel}».`),
@@ -1231,7 +1570,7 @@ function revisarSeleccion() {
         reemplazo = null;
         marcarTocada(null);
         ocultarVineta();
-        $('sugerencias').replaceChildren(botonIA('Alternativas IA'));
+        $('sugerencias').replaceChildren(botonIA('¿Cómo lo diría Métrica IA?'));
         $('sugerencias').dataset.modo = 'frase';
         $('sugerencias').hidden = false;
     } else if ($('sugerencias').dataset.modo === 'frase') {
@@ -1278,8 +1617,8 @@ function pintarCupoIA(uso) {
     const sinCupo = !uso.quedan;
     // El plan solo se ofrece si se terminó el mes (el tope por letra es para todos).
     $('ia-plan').hidden = !sinCupo || uso.plan || uso.porLetra;
-    $('ia-plan-bajada').textContent = `Usaste las ${CUPO_GRATIS} gratis de este mes. Con ${PLAN_IA.nombre} tienes ${PLAN_IA.tope} por mes.`;
-    $('ia-comprar').textContent = `Probar por ${PLAN_IA.precio}`;
+    $('ia-plan-bajada').textContent = `Usaste los ${CUPO_GRATIS} créditos IA gratis de este mes. Con Métrica+ IA tienes 300 por mes.`;
+    $('ia-comprar').textContent = 'Mejóralo desde tu iPhone';
     $('ia-otra').disabled = pidiendoIA || (sinCupo && posIA >= historialIA.length - 1);
 }
 
@@ -1301,7 +1640,7 @@ async function pedirTandaIA() {
     if (!uso.quedan) {
         pintarCupoIA(uso);
         if (posIA < 0) {
-            $('ia-titulo').textContent = 'Sugerencias';
+            $('ia-titulo').textContent = '¿Cómo lo diría Métrica IA?';
             $('ia-meta').textContent = textoSinCupo(uso);
         }
         return;
@@ -1330,7 +1669,7 @@ async function pedirTandaIA() {
     } catch (error) {
         if (generacion !== generacionIA) return;
         esperandoIA(false);
-        $('ia-titulo').textContent = 'Sugerencias';
+        $('ia-titulo').textContent = '¿Cómo lo diría Métrica IA?';
         $('ia-meta').textContent = error.message;
         pintarCupoIA(error.motivo === 'cupo' ? { ...cupoIA(localStorage, letraActual?.id), quedan: 0 } : cupoIA(localStorage, letraActual?.id));
     }
@@ -1345,7 +1684,7 @@ function mostrarIA(pos) {
     $('ia-ultima').classList.toggle('sin-rima', !sugerencia.rima);
     $('ia-frase').hidden = false;
     // Título fijo y los puntitos abajo, como páginas; tocar uno va a esa (pedido de Swa).
-    $('ia-titulo').textContent = 'Sugerencias';
+    $('ia-titulo').textContent = '¿Cómo lo diría Métrica IA?';
     const primera = pos - sugerencia.n;
     $('ia-puntos').replaceChildren(...Array.from({ length: sugerencia.de }, (_, n) => {
         const punto = document.createElement('span');
@@ -1421,11 +1760,8 @@ $('ia-usar').addEventListener('click', () => {
     actualizarEditor();
     guardarActual();
 });
-$('ia-comprar').addEventListener('click', () => {
-    comprarPlanIA(localStorage);
-    pintarCupoIA(cupoIA(localStorage, letraActual?.id));
-    if (fraseHoja) pedirTandaIA();
-});
+// La web no vende: Métrica+ IA se compra en el iPhone.
+$('ia-comprar').addEventListener('click', abrirPaywall);
 
 // La viñeta de una palabra: la primera opción es la palabra como estaba; las flechas pasan por las de
 // la IA y la cambian en la letra. Se cierra al tocar en otro lado (queda la que se ve).
@@ -1547,7 +1883,12 @@ if (window.visualViewport) {
     ajustarAlTeclado();
 }
 
-$('nueva-letra').addEventListener('click', () => abrirEditor(nuevaLetra()));
+// Una letra nueva adentro de una carpeta queda en ella.
+$('nueva-letra').addEventListener('click', () => {
+    const letra = nuevaLetra();
+    if (carpetaActual()) letra.carpeta = opcionesLetras.carpeta;
+    abrirEditor(letra);
+});
 $('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
 $('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, ok => {
     if (!ok) return;
@@ -1667,7 +2008,7 @@ function mostrarFichaTema() {
     $('tema-ficha').hidden = modoTema !== 'ideas';
 }
 
-// ---------- Sugerencias (IA): lee la letra entera recién al tocar «Generar sugerencias con IA» ----------
+// ---------- «¿Qué cambiaría Métrica IA?»: lee la letra entera recién al tocar el botón ----------
 // Cada cambio muestra el verso con la palabra a corregir subrayada y la nueva al lado; «Cambiar» la
 // pone en la letra. Aparecen de a una, en vivo. Simuladas con el diccionario hasta que esté el servidor.
 let modoTema = 'ideas', generacionRevision = 0, leyendoLetra = false;
@@ -1709,8 +2050,13 @@ $('revision-lista').addEventListener('touchend', e => {
     if (Math.abs(dx) > 40) paginaRevision(Number($('revision-lista').dataset.pagina || 0) + (dx < 0 ? 1 : -1));
 });
 
+// El botón dice «¿Qué cambiaría Métrica IA?» y, después de la primera tanda, «¿Qué más cambiaría…?» (como en Swift).
+function textoBotonRevision(otraVez) {
+    $('revision-generar').innerHTML = `<span class="estrella-ia" aria-hidden="true"></span>${otraVez ? '¿Qué más cambiaría Métrica IA?' : '¿Qué cambiaría Métrica IA?'}`;
+}
 function botonGenerarRevision() {
     generacionRevision++;
+    textoBotonRevision(false);
     leyendoLetra = false;
     $('revision-lista').replaceChildren();
     $('revision-puntos').replaceChildren();
@@ -1768,6 +2114,7 @@ function filaRevision(cambio) {
 
 async function revisarLetra() {
     const generacion = ++generacionRevision;
+    textoBotonRevision(true);
     const lista = $('revision-lista');
     $('revision-puntos').replaceChildren();
     $('revision-cupo-caja').hidden = false;
@@ -1885,6 +2232,8 @@ function abrirDameTema(conSugerencias = false) {
     $('modos-tema').hidden = !conSugerencias;
     elegirModoTema('ideas');
     if (conSugerencias) botonGenerarRevision();
+    // Con algo escrito arranca en «Métrica + IA»; sin créditos, en Ideas (como en Swift).
+    const arrancaEnIA = conSugerencias && cupoIA(localStorage, letraActual?.id).quedan > 0;
     // Arranca en Amor, con Desamor apagado (pedido de Swa).
     filtroTema = 'amor';
     desamor = false;
@@ -1896,6 +2245,7 @@ function abrirDameTema(conSugerencias = false) {
     historialTema = [];
     posTema = -1;
     otraTema();
+    if (arrancaEnIA) elegirModoTema('sugerencias');
     document.activeElement?.blur();
 }
 $('dame-tema').addEventListener('click', () => abrirDameTema());
@@ -1968,7 +2318,7 @@ $('tema-baul').addEventListener('click', () => {
 // en «Funciones» de la ruedita y arranca apagado; en las grandes (Pro Max) sigue arriba y
 // arranca prendido (pedido de Swa).
 const pantallaChica = matchMedia('(max-width: 419px)');
-const renglonesPrendidos = () => (localStorage.getItem('metrica.alternar-renglones') ?? String(!pantallaChica.matches)) === 'true';
+const renglonesPrendidos = () => localStorage.getItem('metrica.alternar-renglones') === 'true'; // arrancan apagados en todas (como en Swift)
 function aplicarAlternables() {
     $('silabas').classList.toggle('oculto', !$('mostrar-silabas').checked);
     const renglones = renglonesPrendidos();
@@ -2186,7 +2536,6 @@ function actualizarPista() {
 // Busca qué significa la palabra, aunque esté mal escrita (js/logica/definiciones.js, con el
 // Wikcionario de definiciones.txt). Cada modo guarda lo suyo escrito: al volver, sigue ahí.
 let modoDiccionario = false;
-const textoDeModo = { rimas: '', diccionario: '' };
 let definiciones = null, cargaDefiniciones = null, errorDefiniciones = false;
 
 // definiciones.txt pesa (16 MB): se baja recién al abrir el libro y queda en la caché.
@@ -2319,9 +2668,8 @@ function fichaDefinicion({ buscada, palabra, corregida, entradas }) {
 }
 
 function alternarDiccionario() {
-    textoDeModo[modoDiccionario ? 'diccionario' : 'rimas'] = $('buscar-rima').value;
+    // Un solo buscador para los dos (como en Swift): lo escrito sigue al cambiar de modo.
     modoDiccionario = !modoDiccionario;
-    $('buscar-rima').value = textoDeModo[modoDiccionario ? 'diccionario' : 'rimas'];
     $('titulo-rimas').textContent = modoDiccionario ? 'Diccionario' : 'Rimas';
     $('alternar-diccionario').setAttribute('aria-pressed', modoDiccionario);
     $('alternar-diccionario').setAttribute('aria-label', modoDiccionario ? 'Volver a Rimas' : 'Diccionario');
@@ -2770,6 +3118,8 @@ function aplicarVelocidad() {
 for (const [id, paso] of [['menos-velocidad', -1], ['mas-velocidad', 1]]) $(id).addEventListener('click', () => {
     guardarVelocidad(localStorage, leerVelocidad(localStorage) + paso);
     aplicarVelocidad();
+    // Como en Swift: con una ronda en curso, la velocidad nueva va al instante y la ronda arranca de nuevo.
+    reiniciarEnCurso();
 });
 aplicarVelocidad();
 function ambienteActual() {
@@ -2912,6 +3262,25 @@ function pausarJugando() {
     pausarRonda(false);
 }
 
+// Todo al principio con lo nuevo (duración, velocidad) y sigue jugando, como en Swift. El beat de
+// la app arranca de nuevo, así las palabras quedan a compás; con `seguirSonando`, lo que suena no se
+// corta (reiniciar en pausa con el beat sonando). Un link sigue donde va.
+function reiniciarEnCurso(seguirSonando = false) {
+    if (!ronda) return;
+    const sigue = seguirSonando && ronda.sigueSonando;
+    Object.assign(ronda, { inicio: performance.now(), duracion: duracionElegida().segundos, pausa: null, sigueSonando: false });
+    indicePalabra = 0;
+    cola = [];
+    asegurarCola();
+    if (!linkFreestyle && !sigue) {
+        detenerBeat();
+        ronda.modo = arrancarSonido();
+    }
+    reiniciarBarraPalabra();
+    marcarSonando(true);
+    actualizarEfecto();
+}
+
 function terminarRonda(porTiempo = false) {
     if (!ronda) return;
     // Se termina el beat de la app: su grabación también. La de un tema sigue hasta su REC.
@@ -2970,17 +3339,22 @@ function renderizarDuraciones() {
         boton.role = 'radio';
         boton.dataset.duracion = d.id;
         boton.setAttribute('aria-checked', String(!bloqueada && d.id === duracionId));
-        boton.textContent = d.premium ? `★ ${d.etiqueta}` : d.etiqueta;
+        // Ilimitado es solo el infinito, con el efecto violeta y sin estrella (como en Swift).
+        if (d.premium) {
+            boton.innerHTML = '<span class="mas-violeta infinito">∞</span>';
+            boton.setAttribute('aria-label', d.etiqueta);
+        } else boton.textContent = d.etiqueta;
         if (bloqueada) {
             boton.setAttribute('aria-disabled', 'true');
             boton.dataset.paywall = '';
-            boton.setAttribute('aria-label', `${d.etiqueta}, con Métrica Extras`);
+            boton.setAttribute('aria-label', `${d.etiqueta}, con Métrica+`);
         }
         boton.addEventListener('click', () => {
-            if (bloqueada) return;
+            if (bloqueada || d.id === duracionId) return;
             duracionId = d.id;
             renderizarDuraciones();
-            if (ronda) ronda.duracion = d.segundos;
+            // Con una ronda en curso, la duración nueva va al instante y la ronda arranca de nuevo.
+            if (ronda) reiniciarEnCurso();
             else mostrarCuentaIdle();
         });
         return boton;
@@ -3248,6 +3622,8 @@ $('fs-reiniciar').addEventListener('click', () => {
     boton.classList.remove('girando');
     void boton.offsetWidth;
     boton.classList.add('girando');
+    // En pausa con el beat (o el link) sonando, vuelve todo al principio y la ronda sigue sola (como en Swift).
+    if (ronda?.pausa && ronda.sigueSonando) return reiniciarEnCurso(true);
     if (ronda) return terminarRonda();
     if (!cola.length) asegurarCola();
     mostrarCuentaIdle();
@@ -3993,18 +4369,18 @@ const CANDADO = '<svg viewBox="0 0 24 24" class="icono"><rect x="5" y="11" width
 function renderizarExtras() {
     const extras = tieneExtras(localStorage);
     renderizarDuraciones();
-    document.querySelectorAll('.publicidad').forEach(p => { p.hidden = !mostrarPublicidad(localStorage); });
-    $('comprar-extras').textContent = extras ? 'Ya tienes Métrica Extras' : `Desbloquear por ${PRODUCTO.precio}`;
-    $('comprar-extras').disabled = extras;
-    // Vinculada al iPhone, la compra es la del iPhone (StoreKit): acá no se simula ni se borra.
-    const vinculada = estaVinculada();
-    if (vinculada && !extras) $('comprar-extras').textContent = 'Cómprala en la app del iPhone';
-    $('comprar-extras').disabled = extras || vinculada;
-    $('restaurar-compra').hidden = vinculada;
-    $('borrar-compra').closest('.lista-agrupada').hidden = vinculada;
-    $('borrar-compra').closest('.lista-agrupada').previousElementSibling.hidden = vinculada;
+    // Métrica+ y los créditos IA, solo para ver: se compran en el iPhone.
+    $('ajustes-plan').innerHTML = extras ? nombreMetrica() : 'Gratis';
+    $('ajustes-mejorar-celda').hidden = extras;
+    renderizarCreditos();
     renderizarTemas();
     if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
+}
+
+// Lo que queda de los créditos IA de esta computadora, en porcentaje (como en Swift).
+function renderizarCreditos() {
+    const uso = usoDelMes(localStorage);
+    $('ajustes-creditos').textContent = uso.quedan ? `${Math.round(100 * uso.quedan / uso.tope)}% de ${uso.tope}` : 'Insuficientes';
 }
 
 // Temas de la libreta: cada letra tiene el suyo (arranca en Gris liso) y se guarda con ella.
@@ -4063,28 +4439,19 @@ function muestrasDeTemas(actual, alElegir) {
 }
 
 function abrirPaywall() {
-    // Los widgets de muestra usan datos reales: una palabra y la última letra.
-    const palabra = palabraAlAzar();
-    $('widget-palabra').textContent = palabra;
-    $('widget-rimas').textContent = `rima con ${buscarRimas(palabra, indiceRimas())[0] ?? '…'}`;
-    $('widget-letra').textContent = listarLetras(localStorage)[0]?.titulo || 'Tu última letra';
-    $('paywall-nota').textContent = estaVinculada()
-        ? 'Métrica+ se compra en la app Métrica del iPhone. Al comprarla, esta web se desbloquea sola.'
-        : 'Prueba: la compra es simulada, no se cobra nada.';
+    const vinculada = estaVinculada();
+    $('paywall-vincular').hidden = vinculada;
+    $('paywall-nota').textContent = vinculada
+        ? 'Cuando lo compres en el iPhone, esta web se pone al día en unos segundos.'
+        : 'Primero vincula esta computadora con tu iPhone.';
     $('paywall').hidden = false;
 }
 
 document.addEventListener('click', e => { if (e.target.closest('[data-paywall]')) abrirPaywall(); });
 $('cerrar-paywall').addEventListener('click', () => { $('paywall').hidden = true; });
 $('paywall').addEventListener('click', e => { if (e.target === $('paywall')) $('paywall').hidden = true; });
-$('comprar-extras').addEventListener('click', () => {
-    comprarExtras(localStorage);
-    renderizarExtras();
-    $('paywall-nota').textContent = '¡Listo! Ya tienes Métrica Extras.';
-});
-$('restaurar-compra').addEventListener('click', () => {
-    $('paywall-nota').textContent = tieneExtras(localStorage) ? 'Tu compra ya está activa.' : 'No encontramos compras para restaurar.';
-});
+$('paywall-vincular').addEventListener('click', () => { $('paywall').hidden = true; abrirVincular(); });
+$('ajustes-mejorar').addEventListener('click', abrirPaywall);
 $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); borrarPlanIA(localStorage); renderizarExtras(); });
 
 // ---------- Widgets (Ajustes -> Widgets) ----------
@@ -4141,12 +4508,13 @@ $('exportar-todo').addEventListener('click', async () => {
     setTimeout(() => URL.revokeObjectURL(enlace.href), 10000);
 });
 
-// ---------- Papelera (Ajustes -> Papelera) ----------
+// ---------- Papelera (menú de Letras -> Papelera) ----------
 // Las letras y las frases del baúl borradas, en cuadrados chicos con el formato de Letras. Un toque
 // muestra una en grande (como en el baúl); mantenerla apretada, Restaurar y Borrar definitivamente.
 // Lo que lleva 7 días se borra solo, al listarla (pedido de Swa).
-$('abrir-papelera').addEventListener('click', () => { mostrarVistaAjustes('vista-papelera'); renderizarPapelera(); });
-$('papelera-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
+// Se abre desde el menú de Letras (como en Swift; antes estaba en Ajustes).
+$('abrir-papelera').addEventListener('click', () => { cerrarMenuLetras(); mostrarVista('vista-papelera'); renderizarPapelera(); });
+$('papelera-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
 $('papelera-vaciar').addEventListener('click', () => preguntar({
     titulo: '¿Borrar todo?', texto: 'Se van a borrar para siempre todas las letras y frases de la papelera. No se puede deshacer.', boton: 'Borrar todo', rojo: true,
 }, ok => { if (!ok) return; vaciarPapelera(localStorage); renderizarPapelera(); }));
@@ -5597,7 +5965,7 @@ sincronizarWeb();
 
 // ---------- Atajos de teclado (computadora, pedido de Swa) ----------
 // Ctrl/Cmd + N: letra nueva. Ctrl/Cmd + /: panel de ayudas. Ctrl/Cmd + Enter: el verso al baúl.
-// Espacio en Freestyle: arranca y para. (Ctrl/Cmd + K, para buscar en las letras, llega con el buscador.)
+// Espacio en Freestyle: arranca y para. Ctrl/Cmd + K: buscar en las letras. Escape cierra el menú de Letras.
 // Algunos navegadores se guardan Ctrl/Cmd + N para una ventana nueva: ahí también va Alt + N.
 const hayHojaAbierta = () => Boolean(document.querySelector('.hoja-fondo:not([hidden]):not(#hoja-musica), .alerta-fondo:not([hidden]), .menu-frase-fondo:not([hidden]), .vincular:not([hidden])'));
 const escribiendoEnCampo = () => document.activeElement?.matches?.('input, textarea, select, [contenteditable]');
@@ -5611,6 +5979,14 @@ document.addEventListener('keydown', e => {
         if (enComputadora()) $('editor-titulo').focus();
         return;
     }
+    if (mod && !e.altKey && e.code === 'KeyK' && !hayHojaAbierta()) {
+        e.preventDefault();
+        cerrarMenuLetras();
+        return buscarEnLetras();
+    }
+    if (e.key === 'Escape' && !$('menu-flotante').hidden) return void ($('menu-flotante').hidden = true);
+    if (e.key === 'Escape' && !$('menu-letras').hidden) return cerrarMenuLetras();
+    if (e.key === 'Escape' && opcionesLetras.seleccionando && !hayHojaAbierta()) return salirDeSeleccion();
     if (mod && (e.key === '/' || e.code === 'Slash') && document.body.classList.contains('editando')) {
         e.preventDefault();
         return alternarPanel();

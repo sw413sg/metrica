@@ -94,5 +94,6 @@ test('letrasDeNotas guarda con las fechas de Keep y sin chocar ids', () => {
     const nuevas = letrasDeNotas(notasDeArchivos([JSON.stringify(NOTA)]), actuales, 100);
     assert.deepEqual(nuevas, [{ id: '101', titulo: 'Después de ese', texto: 'la calle me enseñó\na no mirar atrás', creada: 1690000000000, editada: 1700000000000 }]);
     agregarLetras(almacen, nuevas);
-    assert.deepEqual(listarLetras(almacen).map(l => l.titulo), ['Mía', 'Después de ese']);
+    // Van por cuándo se crearon: la de Keep es de 2023 y «Mía», de 1970.
+    assert.deepEqual(listarLetras(almacen).map(l => l.titulo), ['Después de ese', 'Mía']);
 });
