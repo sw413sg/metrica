@@ -26,7 +26,7 @@ import { APARIENCIAS, leerApariencia, elegirApariencia } from './logica/aparienc
 import { WIDGETS, TAMANOS, ESTILOS, ACCIONES, BLOQUEO, FOTO_CENTRADA, ajustesWidget, guardarAjusteWidget, guardarFotoWidgets, ajustesBloqueo, guardarAjusteBloqueo, tamanoAlEstirar, siguienteTamano, ajustarFoto, frasesDeHoy, mesDeRacha, esquinaUsada, marcarEsquinaUsada, letraDelWidget, palabraDelDia, racha, ultimaSemana } from './logica/widgets.js';
 import { crearZip, archivosParaExportar, nombreDelZip } from './logica/exportar.js';
 import { leerZip, esNotaDelZip, notasDeArchivos, marcarRepetidas, etiquetasDe, letrasDeNotas } from './logica/keep.js';
-import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, cabecerasIA, guardarRestantesWeb, tienePlanIA, usoDelMes, cupoIA, anotarSugerencia, textoCupo, etiquetaCreditos, textoSinCupo, borrarPlanIA, CUPO_GRATIS } from './logica/ia.js';
+import { letraParaRevisar, revisionSimulada, validarRevision, ubicarCambio, pedirRevision, fraseElegida, palabraElegida, validarSugerencias, validarPalabras, sugerenciasSimuladas, palabrasSimuladas, pedirSugerencias, endpointIA, idDeUsuario, cabecerasIA, guardarRestantesWeb, tienePlanIA, usoDelMes, cupoIA, anotarSugerencia, textoCupo, etiquetaCreditos, pastillaCupo, GASTO_IA, textoSinCupo, borrarPlanIA, CUPO_GRATIS } from './logica/ia.js';
 import { TEMAS, tieneExtras, borrarCompra, temaDisponible, temaDeLetra, opacidadDeTema, recordarTema, temaParaModo } from './logica/compra.js';
 
 import { estaVinculada, planDelIphone, vincular, sincronizar, cerrarSesion, estadoDeSincronizacion } from './web.js';
@@ -1550,7 +1550,11 @@ function renderizarIAPanel() {
             abrirDameTema(true);
             elegirModoTema('sugerencias');
         }, !value.trim()));
-    $('panel-cuerpo').replaceChildren(caja);
+    // Lo que queda de los créditos IA, como en las ventanas de la IA.
+    const cupo = elemento('div', 'pastilla-cupo vidrio');
+    cupo.id = 'panel-cupo';
+    $('panel-cuerpo').replaceChildren(caja, cupo);
+    pintarCupo('panel-cupo', cupoIA(localStorage), 0);
 }
 
 // ---------- IA: mejorar una frase o cambiar una palabra (pedido de Swa) ----------
@@ -1649,16 +1653,22 @@ function cerrarHojaIA() {
 }
 
 // Los pedidos que quedan, abajo de la caja: el texto y una barrita violeta que se vacía.
-function pintarCupo(id, uso) {
-    $(id).textContent = textoCupo(uso);
-    $(`${id}-barra`).style.width = `${Math.round(100 * uso.quedan / uso.tope)}%`;
+// La pastilla de los créditos IA, como en Swift: el aro, lo que queda y lo que gasta esta consulta.
+function pintarCupo(id, uso, gasto = GASTO_IA.frase) {
+    const p = pastillaCupo(uso, gasto);
+    const caja = $(id);
+    caja.classList.toggle('sin-creditos', !p.alcanza);
+    caja.innerHTML = `<span class="aro-creditos" style="--queda:${p.queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
+        + `<span class="texto-creditos"><strong>${p.porcentaje}</strong><span>${p.etiqueta}</span></span>`
+        + (p.gasta ? `<span class="gasto-creditos"><strong>${p.gasta}</strong><span>esta consulta</span></span>` : '');
+    caja.setAttribute('aria-label', `Créditos IA: ${p.porcentaje} ${p.etiqueta}${p.gasta ? `. Esta consulta gasta ${p.gasta.slice(1)}` : ''}`);
 }
 
 function pintarCupoIA(uso) {
     pintarCupo('ia-cupo', uso);
     const sinCupo = !uso.quedan;
     // El plan solo se ofrece si se terminó el mes (el tope por letra es para todos).
-    $('ia-plan').hidden = !sinCupo || uso.plan || uso.porLetra;
+    $('ia-plan').hidden = !sinCupo || uso.plan;
     $('ia-plan-bajada').textContent = `Usaste los ${CUPO_GRATIS} créditos IA gratis de este mes. Con Métrica+ IA tienes 300 por mes.`;
     $('ia-comprar').textContent = 'Mejóralo desde tu iPhone';
     $('ia-otra').disabled = pidiendoIA || (sinCupo && posIA >= historialIA.length - 1);
@@ -1707,7 +1717,7 @@ async function pedirTandaIA() {
         } else {
             $('ia-meta').textContent = 'No encontré otras. Prueba con otra pastilla.';
         }
-        pintarCupoIA(respuesta.quedan != null && !usoNuevo.porLetra ? { ...usoNuevo, quedan: Math.min(usoNuevo.quedan, respuesta.quedan) } : usoNuevo);
+        pintarCupoIA(respuesta.quedan != null ? { ...usoNuevo, quedan: Math.min(usoNuevo.quedan, respuesta.quedan) } : usoNuevo);
     } catch (error) {
         if (generacion !== generacionIA) return;
         esperandoIA(false);
@@ -1783,6 +1793,8 @@ $('ia-anterior').addEventListener('click', anteriorIA);
     $('caja-ia').addEventListener('pointercancel', () => { inicio = null; });
 }
 $('hoja-ia').addEventListener('click', e => { if (e.target === $('hoja-ia')) cerrarHojaIA(); });
+// En la compu, las hojas de la IA son ventanas con su cruz (y Escape las cierra).
+document.querySelectorAll('[data-cerrar-hoja]').forEach(b => b.addEventListener('click', () => $(b.dataset.cerrarHoja).click()));
 $('ia-baul').addEventListener('click', () => {
     const sugerencia = historialIA[posIA];
     if (!sugerencia) return;
@@ -1848,7 +1860,7 @@ async function abrirVineta() {
     $('vineta-ia').hidden = false;
     pintarVineta('…', true);
     ubicarVineta();
-    if (!cupoIA(localStorage, letraActual?.id).quedan) return pintarVineta(cupoIA(localStorage, letraActual?.id).porLetra ? 'Mañana hay más' : 'Sin IA este mes');
+    if (!cupoIA(localStorage, letraActual?.id).quedan) return pintarVineta('Sin créditos IA');
     const { pedido } = elegida;
     const corregida = bienEscrita(original);
     try {
@@ -2093,7 +2105,11 @@ $('revision-lista').addEventListener('touchend', e => {
 });
 
 // El botón dice «¿Qué cambiaría Métrica IA?» y, después de la primera tanda, «¿Qué más cambiaría…?» (como en Swift).
+let otraVezRevision = false;
+const versosDeLetra = () => editorTexto.value.split('\n').filter(r => r.trim() && !/^\s*\[.*\]\s*$/.test(r)).length;
+const gastoRevision = () => GASTO_IA.revision(versosDeLetra(), otraVezRevision);
 function textoBotonRevision(otraVez) {
+    otraVezRevision = otraVez;
     $('revision-generar').innerHTML = `<span class="estrella-ia" aria-hidden="true"></span>${otraVez ? '¿Qué más cambiaría Métrica IA?' : '¿Qué cambiaría Métrica IA?'}`;
 }
 function botonGenerarRevision() {
@@ -2103,14 +2119,13 @@ function botonGenerarRevision() {
     $('revision-lista').replaceChildren();
     $('revision-puntos').replaceChildren();
     $('revision-nota').textContent = '';
-    // El cupo se ve recién al generar (pedido de Swa), salvo que ya no quede: así se entiende por qué no se puede.
-    $('revision-cupo-caja').hidden = cupoIA(localStorage, letraActual?.id).quedan > 0;
     estadoRevision();
 }
 
 function estadoRevision() {
-    $('revision-generar').disabled = leyendoLetra || !cupoIA(localStorage, letraActual?.id).quedan;
-    pintarCupo('revision-cupo', cupoIA(localStorage, letraActual?.id));
+    const uso = cupoIA(localStorage, letraActual?.id);
+    $('revision-generar').disabled = leyendoLetra || uso.quedan < gastoRevision();
+    pintarCupo('revision-cupo', uso, gastoRevision());
 }
 
 function filaRevision(cambio) {
@@ -2156,17 +2171,17 @@ function filaRevision(cambio) {
 
 async function revisarLetra() {
     const generacion = ++generacionRevision;
+    const gasto = gastoRevision();
     textoBotonRevision(true);
     const lista = $('revision-lista');
     $('revision-puntos').replaceChildren();
-    $('revision-cupo-caja').hidden = false;
     const revision = letraParaRevisar(editorTexto.value, { corregir: bienEscrita });
     $('revision-nota').textContent = '';
     if (!revision) {
         lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'Escribe unos versos y te digo qué cambiaría.' }));
         return estadoRevision();
     }
-    if (!cupoIA(localStorage, letraActual?.id).quedan) {
+    if (cupoIA(localStorage, letraActual?.id).quedan < gasto) {
         lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: textoSinCupo(cupoIA(localStorage, letraActual?.id)) }));
         return estadoRevision();
     }
@@ -2187,8 +2202,9 @@ async function revisarLetra() {
         });
         if (respuesta.simulada) await new Promise(listo => setTimeout(listo, 900));
         if (generacion !== generacionRevision) return;
-        anotarSugerencia(localStorage, undefined, letraActual?.id);
         const cambios = validarRevision(respuesta.sugerencias, editorTexto.value);
+        // Si no encuentra cambios no gasta (como el Worker, hasta REVISIONES_SIN_CAMBIOS por mes).
+        if (cambios.length) anotarSugerencia(localStorage, undefined, letraActual?.id, gasto);
         $('revision-nota').textContent = respuesta.simulada ? 'Prueba: sugerencias simuladas, todavía sin servidor.' : '';
         if (!cambios.length) {
             lista.replaceChildren(Object.assign(document.createElement('p'), { className: 'vacio-rev', textContent: 'No encontré nada para cambiar. ¡Va bien!' }));

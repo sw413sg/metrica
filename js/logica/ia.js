@@ -359,50 +359,52 @@ export function usoDelMes(almacen, ahora = Date.now()) {
     return { usadas, tope, quedan: Math.max(0, tope - usadas), plan };
 }
 
-// Además del mes: como mucho 10 por día en cada letra (pedido de Swa).
-export const TOPE_POR_LETRA = 10;
-const CLAVE_LETRAS = 'metrica.ia-letras';
-const diaDe = ms => `${mesDe(ms)}-${String(new Date(ms).getDate()).padStart(2, '0')}`;
-function leerLetras(almacen, ahora) {
-    let uso = {};
-    try { uso = JSON.parse(almacen.getItem(CLAVE_LETRAS)) ?? {}; } catch { /* vacío */ }
-    return uso.dia === diaDe(ahora) ? uso.letras ?? {} : {};
-}
+// Como en Swift: sin tope por letra, solo los créditos (del mes y extra). `letra` queda por compatibilidad.
+export const cupoIA = (almacen, letra = null, ahora = Date.now()) => usoDelMes(almacen, ahora);
 
-// El cupo que manda: { usadas, tope, quedan, plan } del mes y, si hay letra, el del día en esa letra
-// (`porLetra: true` cuando es el que queda más corto).
-export function cupoIA(almacen, letra = null, ahora = Date.now()) {
-    const mes = usoDelMes(almacen, ahora);
-    if (letra == null) return mes;
-    const usadas = leerLetras(almacen, ahora)[letra] ?? 0;
-    const quedan = Math.max(0, TOPE_POR_LETRA - usadas);
-    return quedan < mes.quedan ? { ...mes, usadas, tope: TOPE_POR_LETRA, quedan, porLetra: true } : mes;
-}
+// Cuánto gasta cada consulta (`GastoIA` de Swift): una frase o ideas, 1; «¿Qué cambiaría?», según los
+// versos de la letra, y «¿Qué más cambiaría?» uno menos (la letra ya está en la caché de OpenAI).
+export const GASTO_IA = {
+    frase: 1,
+    revision: (versos, otraVez = false) => {
+        const gasto = versos <= 20 ? 2 : versos <= 40 ? 3 : 4;
+        return otraVez ? Math.max(1, gasto - 1) : gasto;
+    },
+};
 
-export function anotarSugerencia(almacen, ahora = Date.now(), letra = null) {
+export function anotarSugerencia(almacen, ahora = Date.now(), letra = null, gasto = 1) {
     const mes = usoDelMes(almacen, ahora);
     // Con el iPhone, lo que queda lo dice el Worker (`guardarRestantesWeb`).
-    if (!mes.delIphone) almacen.setItem(CLAVE_USO, JSON.stringify({ mes: mesDe(ahora), usadas: mes.usadas + 1 }));
-    if (letra != null) {
-        const letras = leerLetras(almacen, ahora);
-        letras[letra] = (letras[letra] ?? 0) + 1;
-        almacen.setItem(CLAVE_LETRAS, JSON.stringify({ dia: diaDe(ahora), letras }));
-    }
-    return cupoIA(almacen, letra, ahora);
+    if (!mes.delIphone) almacen.setItem(CLAVE_USO, JSON.stringify({ mes: mesDe(ahora), usadas: mes.usadas + gasto }));
+    return usoDelMes(almacen, ahora);
 }
 
 // Como en Swift: el porcentaje que queda, en créditos IA (pedido de Swa: ni usos ni consultas).
-export const textoCupo = ({ quedan, tope, plan, porLetra, delMes = true }) => porLetra
-    ? `${quedan === 1 ? 'Queda' : 'Quedan'} ${quedan} de ${tope} hoy en esta letra`
-    : `${Math.round(100 * quedan / tope)}% de ${etiquetaCreditos({ tope, plan, delMes })}`;
-// «20 créditos IA gratis del mes», o con extra (que no vencen) «1.683 créditos IA», sin «mes».
+export const textoCupo = ({ quedan, tope, plan, delMes = true }) =>
+    `${Math.round(100 * quedan / tope)}% de ${etiquetaCreditos({ tope, plan, delMes })}`;
+// «20 créditos IA gratis del mes», o con extra (que no vencen) «1.950 créditos IA», sin «mes».
 export const etiquetaCreditos = ({ tope, plan, delMes = true }) =>
     `${String(tope).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} créditos IA${delMes ? `${plan ? '' : ' gratis'} del mes` : ''}`;
 
+const porcentajeIA = (valor, decimales) => `${valor.toFixed(decimales).replace('.', ',')}%`;
+// La pastilla de abajo de cada consulta (como en Swift): el aro, «86,3%» con «de 300 créditos IA del mes»
+// y a la derecha lo que gasta esta consulta («−0,33%»). Si no alcanza, lo dice.
+export function pastillaCupo(uso, gasto = GASTO_IA.frase) {
+    const total = Math.max(1, uso.tope);
+    const alcanza = uso.quedan >= gasto;
+    return {
+        queda: Math.min(1, Math.max(0, uso.quedan / total)),
+        porcentaje: porcentajeIA(100 * uso.quedan / total, 1),
+        etiqueta: alcanza ? `de ${etiquetaCreditos(uso)}` : uso.quedan > 0 ? 'No alcanza para esta consulta' : 'Créditos IA insuficientes',
+        gasta: alcanza && gasto > 0 ? `−${porcentajeIA(100 * gasto / total, 2)}` : '',
+        alcanza,
+    };
+}
+
 // Lo que se dice cuando no queda.
-export const textoSinCupo = ({ porLetra }) => porLetra
-    ? `Ya usaste las ${TOPE_POR_LETRA} de hoy en esta letra. Mañana hay más.`
-    : 'Créditos IA insuficientes. Se renuevan el mes que viene.';
+export const textoSinCupo = ({ plan }) => plan
+    ? 'Ya usaste toda tu cuota IA de este mes.'
+    : 'Ya usaste tu cuota IA gratis de este mes.';
 
 // ---------- Cliente del Worker ----------
 export const endpointIA = almacen => almacen.getItem(CLAVE_ENDPOINT) || ENDPOINT_IA;
