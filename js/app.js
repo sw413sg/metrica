@@ -678,6 +678,43 @@ $('fondo-barra').addEventListener('click', cerrarBarraLateral);
 $('barra-pestanas').addEventListener('click', e => { if (e.target.closest('button') && !e.target.closest('#plegar-barra')) cerrarBarraLateral(); });
 addEventListener('keydown', e => { if (e.key === 'Escape') cerrarBarraLateral(); });
 
+// ---------- Deslizar de costado con el mouse (pedido de Swa) ----------
+// En la compu no hay dedo: las tiras que se deslizan de costado (temas, categorías, sugerencias,
+// duraciones) se arrastran con el mouse o se mueven con la rueda. Si se arrastró, no cuenta como clic.
+function deslizableConMouse(caja) {
+    caja.addEventListener('wheel', e => {
+        if (Math.abs(e.deltaX) >= Math.abs(e.deltaY) || caja.scrollWidth <= caja.clientWidth) return;
+        const antes = caja.scrollLeft;
+        caja.scrollLeft += e.deltaY;
+        if (caja.scrollLeft !== antes) e.preventDefault();
+    }, { passive: false });
+    let inicio = null, movido = false;
+    caja.addEventListener('pointerdown', e => {
+        if (e.pointerType !== 'mouse' || e.button !== 0) return;
+        inicio = { x: e.clientX, scroll: caja.scrollLeft };
+        movido = false;
+    });
+    addEventListener('pointermove', e => {
+        if (!inicio) return;
+        const dx = e.clientX - inicio.x;
+        if (!movido && Math.abs(dx) < 6) return;
+        movido = true;
+        caja.classList.add('arrastrando-mouse');
+        caja.scrollLeft = inicio.scroll - dx;
+    });
+    addEventListener('pointerup', () => {
+        inicio = null;
+        caja.classList.remove('arrastrando-mouse');
+    });
+    caja.addEventListener('click', e => {
+        if (!movido) return;
+        movido = false;
+        e.stopPropagation();
+        e.preventDefault();
+    }, true);
+}
+document.querySelectorAll('.temas-libreta, .chips-tema, .sugerencias, .duraciones-fs').forEach(deslizableConMouse);
+
 // ---------- Un menú chico al lado de un botón, y pedir un nombre ----------
 function menuFlotante(ancla, opciones) {
     const fondo = $('menu-flotante'), caja = $('menu-flotante-opciones');
