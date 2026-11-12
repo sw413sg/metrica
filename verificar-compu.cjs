@@ -166,6 +166,12 @@ const sembrar = () => {
         await page.setViewportSize({width: 1000, height: 900});
         await page.waitForTimeout(300);
         assert.equal(Math.round((await tarjetas.first().boundingBox()).width), Math.round(ancho), 'mismo ancho al achicar');
+        // Ninguna queda finita en una columna que ya no entra (también en una ventana angosta).
+        for (const w of [1000, 820, 760]) {
+            await page.setViewportSize({width: w, height: 900});
+            await page.waitForTimeout(250);
+            for (const caja of await tarjetas.evaluateAll(ts => ts.map(t => t.getBoundingClientRect().width))) assert.ok(caja > 200, `tarjeta de ${caja} px a ${w}`);
+        }
         await page.setViewportSize({width: 1440, height: 900});
         // Carpeta nueva desde la barra lateral.
         await page.click('.nueva-carpeta-lateral');

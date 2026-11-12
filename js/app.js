@@ -255,9 +255,13 @@ function renderizarLetras() {
 // Cada tarjeta va en su lugar de la grilla. Aleatorio: a la columna más corta, chica o larga según
 // la letra. Fijo: todas iguales, de a una por lugar, con la «+» primera. En el iPhone son dos
 // columnas; en la computadora, las que entren (las dice la grilla del CSS).
+// Se cuentan por el ancho y no por la grilla calculada: esa suma las columnas de más que dejan las
+// tarjetas ubicadas antes de achicar la ventana (quedaban finitas, pedido de Swa).
+const ANCHO_TARJETA = 220, ESPACIO_TARJETAS = 12;
 const columnasLetras = () => {
-    const columnas = getComputedStyle($('lista-letras').parentElement).gridTemplateColumns.split(' ').filter(c => c.endsWith('px')).length;
-    return columnas || 2;
+    if (innerWidth < 700) return 2;
+    const ancho = $('lista-letras').parentElement.clientWidth;
+    return Math.max(1, Math.floor((ancho + ESPACIO_TARJETAS) / (ANCHO_TARJETA + ESPACIO_TARJETAS)));
 };
 let columnasUbicadas = 2;
 function ubicarTarjetas() {
