@@ -2523,6 +2523,12 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
        abajo en el celular, y acá esa caja no está pegada, así que quedaba un óvalo suelto en el medio. */
     .pausar-fs, #pantalla-freestyle.jugando .pausar-fs { display: none; }
     #pantalla-rimas, #pantalla-freestyle, .vista { padding-inline: max(0px, calc((100% - 760px) / 2)); }
+    /* A 1080 se leía chico (pedido de Swa): Rimas más ancha, con «Todas» en tres columnas, y los textos
+       chicos a 13 px. La letra de la libreta crece un paso en JS (`escalaLibreta`). */
+    #pantalla-rimas { padding-inline: max(0px, calc((100% - 960px) / 2)); }
+    #pantalla-rimas .lista-todas { grid-template-columns: 1fr 1fr 1fr; max-height: 200px; }
+    .silabas, .silabas-tarjeta, .etiqueta-proxima, .nombre-tema, .reproductor-fuente, .quedan-papelera,
+    .gasto-creditos span, .texto-creditos span, .estado-web-detalle, .creditos-abajo { font-size: 13px; }
     /* Letras usa todo el ancho: entran más columnas de 220, sin agrandar las tarjetas (pedido de Swa).
        El buscador mide lo mismo que la grilla (`--ancho-grilla`, de ubicarTarjetas) y arranca con ella. */
     #vista-lista-letras { padding-inline: 0; }
