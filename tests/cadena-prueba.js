@@ -7,7 +7,7 @@ const HASH = { 'P-256': 'SHA-256', 'P-384': 'SHA-384' };
 const OID_HASH = { 'SHA-256': '1.2.840.10045.4.3.2', 'SHA-384': '1.2.840.10045.4.3.3' };
 const TAM = { 'P-256': 32, 'P-384': 48 };
 
-function tlv(tag, contenido) {
+export function tlv(tag, contenido) {
     const c = Buffer.isBuffer(contenido) ? contenido : Buffer.from(contenido);
     let largo;
     if (c.length < 0x80) largo = Buffer.from([c.length]);
@@ -19,7 +19,7 @@ function tlv(tag, contenido) {
     }
     return Buffer.concat([Buffer.from([tag]), largo, c]);
 }
-const seq = (...partes) => tlv(0x30, Buffer.concat(partes));
+export const seq = (...partes) => tlv(0x30, Buffer.concat(partes));
 
 function oid(puntos) {
     const nums = puntos.split('.').map(Number);
@@ -49,18 +49,18 @@ function utc(ms) {
     return tlv(0x17, Buffer.from(texto));
 }
 
-function nombre(cn) {
+export function nombre(cn) {
     return seq(tlv(0x31, seq(oid('2.5.4.3'), tlv(0x0c, Buffer.from(cn)))));
 }
 
-function extension(oidPuntos, valor, critico = false) {
+export function extension(oidPuntos, valor, critico = false) {
     const partes = [oid(oidPuntos)];
     if (critico) partes.push(tlv(0x01, Buffer.from([0xff])));
     partes.push(tlv(0x04, valor));
     return seq(...partes);
 }
 
-const EXT_CA = extension('2.5.29.19', seq(tlv(0x01, Buffer.from([0xff]))), true);
+export const EXT_CA = extension('2.5.29.19', seq(tlv(0x01, Buffer.from([0xff]))), true);
 const EXT_APPLE = extension('1.2.840.113635.100.6.11.1', Buffer.from([0x05, 0x00]));
 const EXT_WWDR = extension('1.2.840.113635.100.6.2.1', Buffer.from([0x05, 0x00]));
 
@@ -87,7 +87,7 @@ function derARaw(der, tam) {
     return Buffer.concat([ajustar(r), ajustar(s)]);
 }
 
-function emitir({ serial, emisor, sujeto, publica, firmante, curvaFirmante, notBefore, notAfter, extensiones }) {
+export function emitir({ serial, emisor, sujeto, publica, firmante, curvaFirmante, notBefore, notAfter, extensiones }) {
     const hash = HASH[curvaFirmante];
     const alg = seq(oid(OID_HASH[hash]));
     const tbs = seq(
@@ -104,7 +104,7 @@ function emitir({ serial, emisor, sujeto, publica, firmante, curvaFirmante, notB
     return seq(tbs, alg, tlv(0x03, Buffer.concat([Buffer.from([0]), firma])));
 }
 
-function par(curva) {
+export function par(curva) {
     return generateKeyPairSync('ec', { namedCurve: CURVA[curva] });
 }
 

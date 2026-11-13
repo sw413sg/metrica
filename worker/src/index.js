@@ -9,8 +9,9 @@ import { clasificar, PRODUCTOS } from './cuota.js';
 import { Cuota, NOMBRE_CUOTA } from './cuota-do.js';
 import { APPLE_RAIZ, desdeBase64, verificarJws } from './verificar.js';
 import { Enlaces, Espacio, web, sesionParaIA } from './enlace.js';
+import { Atestados, rutaAtestado, afirmacionValida, idAtestado, APPLE_ATESTADO_RAIZ } from './atestado.js';
 
-export { Cuota, Enlaces, Espacio };
+export { Cuota, Enlaces, Espacio, Atestados };
 
 const DIAS_KV = 40; // el contador de un mes se borra solo después
 const TTL = DIAS_KV * 24 * 60 * 60;
@@ -38,7 +39,7 @@ export default {
         const cors = {
             'Access-Control-Allow-Origin': permitido && origen ? origen : 'null',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Prueba, X-Metrica-Simulada, X-Metrica-Paquetes-Prueba, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Metrica-Id, X-Metrica-JWS, X-Metrica-Prueba, X-Metrica-Simulada, X-Metrica-Paquetes-Prueba, X-Metrica-Pais, X-Metrica-Plan, X-Metrica-Extra, X-Metrica-Clave, X-Metrica-Atestado',
             'Access-Control-Expose-Headers': 'X-Metrica-Restantes',
             Vary: 'Origin',
         };
@@ -50,13 +51,20 @@ export default {
         if (!permitido) return responder({ error: 'origen' }, 403);
         const ruta = new URL(request.url).pathname.replace(/\/+$/, '');
         if (ruta === '/salud' && request.method === 'GET') {
-            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO), cuota: Boolean(env.CUOTA), enlace: Boolean(env.ENLACES && env.ESPACIO),
+            return responder({ ok: true, modelo: env.MODELO || MODELO_IA, clave: Boolean(env.OPENAI_API_KEY), kv: Boolean(env.USO), cuota: Boolean(env.CUOTA), atestados: Boolean(env.ATESTADOS), appAttest: modoAtestado(env), enlace: Boolean(env.ENLACES && env.ESPACIO),
                 // Solo los nombres de lo cargado (nunca los valores), para ver si falta o se llama distinto.
                 nombres: Object.keys(env).sort() });
         }
         if (ruta === '/probar' && request.method === 'GET') return probar(env, responder);
         // Métrica web: vincular la web con el iPhone por QR (worker/src/enlace.js).
         if (ruta.startsWith('/web/')) return web(request, env, responder, ruta, ipDe(request));
+        // App Attest: el reto y la clave nueva de la app (worker/src/atestado.js). Desde un navegador, no.
+        if (ruta === '/ia/reto' || ruta === '/ia/atestiguar') {
+            if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
+            if (origen != null) return responder({ error: 'origen' }, 403);
+            const raiz = env.PRUEBA === 'si' && env.RAIZ_ATESTADO_DE_PRUEBA ? desdeBase64(env.RAIZ_ATESTADO_DE_PRUEBA) : APPLE_ATESTADO_RAIZ;
+            return rutaAtestado(request, env, responder, ruta, raiz);
+        }
         if (ruta === '/ia') {
             if (request.method !== 'POST') return responder({ error: 'metodo' }, 405);
             return ia(request, env, responder, origen != null);
@@ -82,9 +90,25 @@ async function ia(request, env, responder, desdeWeb, soloMirar = false) {
         if (sesion.ia) id = sesion.ia;
     }
     if (!/^[a-z0-9]{16,64}$/.test(id)) return responder({ error: 'id' }, 400);
+    const crudo = new Uint8Array(await request.arrayBuffer());
     let cuerpo = null;
     if (!soloMirar) {
-        try { cuerpo = await request.json(); } catch { return responder({ error: 'json' }, 400); }
+        try { cuerpo = JSON.parse(new TextDecoder().decode(crudo)); } catch { return responder({ error: 'json' }, 400); }
+    }
+    // App Attest (worker/src/atestado.js). Con «exigir», la app nativa tiene que firmar cada pedido con su
+    // clave atestiguada, y la web solo gasta un id que un iPhone atestiguó. Con «pedir», se verifica si viene
+    // (una firma mala es 401) y se deja pasar lo viejo. Un id atestiguado no cuenta en el tope de la IP: en
+    // datos móviles muchos comparten la IP (CGNAT) y 100 por mes se terminaban entre 5 personas.
+    const modo = modoAtestado(env);
+    let atestado = false;
+    if (modo !== 'no') {
+        if (desdeWeb) {
+            atestado = await idAtestado(env, id);
+            if (!atestado && modo === 'exigir') return responder({ error: 'vincular' }, 401);
+        } else if (request.headers.has('X-Metrica-Atestado')) {
+            if (!(await afirmacionValida(request, env, id, crudo)).ok) return responder({ error: 'atestado' }, 401);
+            atestado = true;
+        } else if (modo === 'exigir') return responder({ error: 'atestado' }, 401);
     }
     // Tres clases de pedido: mejorar una frase o palabra (`pedido`), revisar la letra entera (`revision`)
     // o ideas de qué hablar en una canción (`temas`).
@@ -106,7 +130,7 @@ async function ia(request, env, responder, desdeWeb, soloMirar = false) {
     const prueba = await leerPrueba(request, env, ahora);
     const base = {
         mes, id, ip: ipDe(request), compras: compras.lista, claveDia, prueba: prueba.plan, paquetesPrueba: prueba.paquetes,
-        cupoGratis: entero(env.CUPO_GRATIS, 20), topeIp: entero(env.TOPE_IP, 100),
+        cupoGratis: entero(env.CUPO_GRATIS, 20), topeIp: atestado ? SIN_TOPE_IP : entero(env.TOPE_IP, 100),
         sandboxTope: entero(env.SANDBOX_CONSULTAS_MES, 30),
         sandboxDiaTope: entero(env.SANDBOX_TOPE_GLOBAL_DIA, 300),
         topeDia: entero(env.TOPE_DIA, 5000),
@@ -149,6 +173,9 @@ async function ia(request, env, responder, desdeWeb, soloMirar = false) {
     if (cobro.error === 'cupo') return conRestantes(responder, { error: 'cupo', quedan: mostrado(cobro) }, 402, mostrado(cobro));
     return conRestantes(responder, { sugerencias, quedan: mostrado(cobro) }, 200, mostrado(cobro));
 }
+
+const SIN_TOPE_IP = 1_000_000_000;
+const modoAtestado = env => (['pedir', 'exigir'].includes(env.APP_ATTEST) ? env.APP_ATTEST : 'no');
 
 // Lo que se le dice a la persona que le queda (sin el tope global de Sandbox del día).
 const mostrado = respuesta => respuesta.mostrar ?? respuesta.quedan;
