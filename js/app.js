@@ -2478,10 +2478,14 @@ pantallaChica.addEventListener('change', aplicarAlternables);
 aplicarAlternables();
 
 // Ajustes de la libreta (la ruedita): sílabas, tamaño de letra, separaciones, rimas internas y fuente.
+const escalaLibreta = matchMedia('(min-width: 1000px)');
+escalaLibreta.addEventListener('change', () => { aplicarEstiloLibreta(); actualizarEditor(); });
 function aplicarEstiloLibreta() {
     const { tamano, alto, letras, fuente } = estiloLibreta(leerAjustesLibreta(localStorage));
-    document.documentElement.style.setProperty('--libreta-letra', `${tamano}px`);
-    document.documentElement.style.setProperty('--libreta-alto', `${alto}px`);
+    // En la compu todo se ve de más lejos: la letra va un poco más grande (16 → 18 con el tamaño 4; pedido de Swa).
+    const escala = escalaLibreta.matches ? 1.125 : 1;
+    document.documentElement.style.setProperty('--libreta-letra', `${tamano * escala}px`);
+    document.documentElement.style.setProperty('--libreta-alto', `${alto * escala}px`);
     document.documentElement.style.setProperty('--libreta-fuente', fuente);
     document.documentElement.style.setProperty('--libreta-letras', `${letras}em`);
 }
