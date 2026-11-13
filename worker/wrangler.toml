@@ -24,13 +24,19 @@ BUNDLE_ID = "com.sw413sg.metrica"
 # y los paquetes están en el código (worker/src/cuota.js), no acá: un cambio de variable no los infla.
 CUPO_GRATIS = "20"
 # Tope por IP y por mes del cupo gratis y de Sandbox. Una compra de Production no entra.
-# En una NAT de operador puede hacer falta subirlo.
+# En una NAT de operador (datos móviles) muchos comparten la IP: con App Attest, un id atestiguado no cuenta acá.
 TOPE_IP = "100"
 # App Review y TestFlight compran en Sandbox contra este servidor. La suscripción de Sandbox da 300 y los
 # paquetes suman (con el tope global del día de abajo); sin suscripción, el recibo comparte este tope por mes.
 SANDBOX_CONSULTAS_MES = "30"
 # Tope de todas las consultas Sandbox juntas, por día, en todo el servidor.
 SANDBOX_TOPE_GLOBAL_DIA = "300"
+# App Attest (worker/src/atestado.js): «no», «pedir» (verifica la firma si viene y deja pasar a las versiones
+# viejas) o «exigir» (la app nativa tiene que venir atestiguada y la web solo gasta ids atestiguados).
+# Pasar a «exigir» cuando la versión de TestFlight con App Attest ande.
+APP_ATTEST = "pedir"
+# Team ID de Apple Developer: el App ID de App Attest es TEAM_ID.BUNDLE_ID.
+TEAM_ID = "6VAZAKJKS7"
 # Techo de pedidos de todos juntos en un día: 1000 son unos USD 3,50. Subirlo cuando salga al público.
 TOPE_DIA = "1000"
 
@@ -56,6 +62,15 @@ class_name = "Espacio"
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Enlaces", "Espacio"]
+
+# App Attest: las claves atestiguadas de cada iPhone (atadas a su X-Metrica-Id) y los retos.
+[[durable_objects.bindings]]
+name = "ATESTADOS"
+class_name = "Atestados"
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Atestados"]
 
 # El contador de /probar (KV «metrica-uso», creado en el primer despliegue).
 [[kv_namespaces]]

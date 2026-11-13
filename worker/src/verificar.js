@@ -34,7 +34,7 @@ function copia(bytes) {
     return out;
 }
 
-function leerDer(buf, i = 0) {
+export function leerDer(buf, i = 0) {
     if (i + 2 > buf.length) throw new Error('der');
     const tag = buf[i];
     let largo = buf[i + 1];
@@ -61,7 +61,7 @@ function leerDer(buf, i = 0) {
     return { tag, inicio: i, valor: buf.subarray(p, fin), fin, hijos };
 }
 
-function oidATexto(bytes) {
+export function oidATexto(bytes) {
     if (!bytes.length) throw new Error('oid');
     const nums = [Math.floor(bytes[0] / 40), bytes[0] % 40];
     let valor = 0;
@@ -88,7 +88,7 @@ function leerFecha(nodo) {
     return Date.UTC(anio, n(o, 2) - 1, n(o + 2, 2), n(o + 4, 2), n(o + 6, 2), n(o + 8, 2));
 }
 
-function extension(cert, oid) {
+export function extension(cert, oid) {
     if (!cert.extensiones) return null;
     const lista = cert.extensiones.hijos[0];
     for (const ext of lista?.hijos ?? []) {
@@ -141,7 +141,7 @@ export function parsearCert(der) {
     return parseado;
 }
 
-function vigente(cert, ahora) {
+export function vigente(cert, ahora) {
     return ahora >= cert.notBefore && ahora <= cert.notAfter;
 }
 
@@ -172,7 +172,7 @@ function ecdsaDerARaw(der, tam) {
     return raw;
 }
 
-async function verificarFirma(spki, curva, tam, hash, firmaDer, datos) {
+export async function verificarFirma(spki, curva, tam, hash, firmaDer, datos) {
     const clave = await crypto.subtle.importKey(
         'spki', copia(spki), { name: 'ECDSA', namedCurve: curva }, false, ['verify'],
     );
@@ -180,7 +180,7 @@ async function verificarFirma(spki, curva, tam, hash, firmaDer, datos) {
     return crypto.subtle.verify({ name: 'ECDSA', hash }, clave, raw, datos);
 }
 
-function iguales(a, b) {
+export function iguales(a, b) {
     if (a.length !== b.length) return false;
     let dif = 0;
     for (let i = 0; i < a.length; i++) dif |= a[i] ^ b[i];

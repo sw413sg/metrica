@@ -6,13 +6,14 @@ Servidor chico en Cloudflare Workers. Cada función va en su ruta, así se puede
 - `GET /probar`: un pedido mínimo a OpenAI; dice `{ ok: true }` o el error de OpenAI tal cual (sin la clave). Tope de 30 por día. Los errores también quedan en Observability.
 - `POST /web/...`: **Métrica web**, la web vinculada con el iPhone por un QR, como WhatsApp Web (`worker/src/enlace.js`, ver abajo).
 - `POST /ia`: la IA de la libreta: elegís una frase y propone 3 o 4 alternativas relacionadas, con sus mismas rimas internas y finales (además, cambia palabras sueltas y revisa la letra entera). Desplegado en `https://metrica.emas1397.workers.dev` (la web usa `/ia` desde la 1.6.6).
+- `POST /ia/reto` y `POST /ia/atestiguar`: **App Attest** de la app nativa (ver «App Attest» abajo).
 - `POST /ia/cupo`: lo que queda de la cuota, sin gastar ni llamar al modelo (`{ quedan }` y `X-Metrica-Restantes`), con los mismos headers y la misma sesión que `/ia`. La web lo pide cada 8 s vinculada y el iPhone en cada vuelta de Métrica web, así los dos muestran lo mismo aunque se usen a la vez. Anota los paquetes nuevos (acción `cupo` de la cuota), porque la app cierra la transacción al ver los restantes.
 
 ## Cómo anda
 1. La app arma el pedido con su propio motor (`fraseElegida` en `js/logica/ia.js`): el verso elegido, el anterior, la estrofa, sílabas, rima consonante y asonante de la última palabra y las rimas internas.
 2. Lo manda por POST a `/ia`, con un id anónimo del teléfono en `X-Metrica-Id` y, si hay compras, los JWS de StoreKit 2 en `X-Metrica-JWS` (uno o varios `jwsRepresentation`, separados por coma).
 
-   **Desde la web** (un navegador, que manda `Origin`), `/ia` exige además `Authorization: Bearer <espacio>.<token>` de una sesión de Métrica web que vale (el iPhone vinculado; si no, 401 `vincular`), y gasta con el id de la IA que el iPhone dejó al vincular o al sincronizar (`ia` en `/web/vincular` y `/web/guardar`), no con el que mande la web. Sin `Origin` (la app nativa) sigue como siempre: eso solo se cierra con App Attest.
+   **Desde la web** (un navegador, que manda `Origin`), `/ia` exige además `Authorization: Bearer <espacio>.<token>` de una sesión de Métrica web que vale (el iPhone vinculado; si no, 401 `vincular`), y gasta con el id de la IA que el iPhone dejó al vincular o al sincronizar (`ia` en `/web/vincular` y `/web/guardar`), no con el que mande la web. Sin `Origin` (la app nativa), con `APP_ATTEST = "exigir"` cada pedido tiene que venir firmado con la clave de App Attest del iPhone (ver abajo).
 3. El Worker revisa el origen (la web manda su `Origin`, que tiene que estar en `ORIGENES`; la app nativa no manda ninguno y pasa), que el pedido tenga la forma de siempre (`pedidoValido`), que la persona tenga cuota (KV `USO`) y que no se haya pasado el techo del día. `X-Metrica-Plan` y `X-Metrica-Extra` se ignoran. Arma el mensaje con `promptDeSugerencias` (`js/logica/ia-prompt.js`, el mismo archivo que usa la app y los tests) y llama a OpenAI con la clave guardada como secret. Así no sirve para pedirle cualquier otra cosa al modelo.
 4. Devuelve `{ sugerencias: [...], quedan }` y el header `X-Metrica-Restantes` (lo que queda después de esa consulta). La app las valida y ordena con su motor (`validarSugerencias`): primero las que riman consonante, después asonante, después las de sílabas más parecidas.
 
@@ -71,8 +72,20 @@ Después, poner `https://metrica.<cuenta>.workers.dev/ia` en `ENDPOINT_IA` de `j
 
 Publicar es el merge a `main`. `cd worker && npx wrangler deploy` solo hace falta si se quiere subir sin ese merge. Para probarlo en la compu: `npx wrangler dev` y poner `http://localhost:8787/ia` en `metrica.ia-endpoint` (sumando `http://localhost:8080` a `ORIGENES`).
 
+## App Attest
+Que el cupo gratis (y la compra de prueba de TestFlight, que va por id) no se pueda renovar inventando ids (`worker/src/atestado.js`, pedido de Swa para la 1.0 con IA):
+
+1. La app guarda su `X-Metrica-Id` en el llavero (Keychain), que sobrevive a desinstalar y reinstalar.
+2. La primera vez pide un reto (`POST /ia/reto`, vale 5 minutos y una vez), crea una clave en el Secure Enclave con `DCAppAttestService` y Apple la certifica con `clientDataHash = SHA-256("<reto>\n<id>")`. La manda a `POST /ia/atestiguar` (`{ keyId, atestado, reto, id }`).
+3. El Worker verifica la cadena hasta **Apple App Attestation Root CA** (embebida en `raiz-apple.js`, vence en 2045), el nonce del certificado (OID `1.2.840.113635.100.8.2`), el App ID (`TEAM_ID.BUNDLE_ID`), que el keyId sea el hash de la clave, el contador en 0 y el entorno (`appattest` o `appattestdevelop`), y guarda la clave pública atada a ese id (Durable Object `ATESTADOS`, clase `Atestados`, migration `v3`).
+4. Cada pedido a `/ia` y `/ia/cupo` lleva `X-Metrica-Clave` (keyId) y `X-Metrica-Atestado` (afirmación sobre `SHA-256("<id>\n" + cuerpo)`). El contador no se puede repetir (vale uno nuevo dentro de una ventana de 20, porque la web vinculada pide el cupo a la vez). Una firma mala es 401 `atestado`: la app vuelve a atestiguar una vez y reintenta.
+
+Reinstalar crea otra clave, pero el id es el mismo (llavero), así que la cuota y el regalo siguen donde estaban. Los paquetes, el regalo y la suscripción reales ya iban por `transactionId`, no por el id.
+
+`APP_ATTEST` en `wrangler.toml`: `no`, `pedir` (verifica la firma si viene y deja pasar las versiones viejas sin firma) o `exigir` (sin firma, 401; la web solo gasta un id que un iPhone atestiguó). Un id atestiguado **no cuenta en `TOPE_IP`**: en datos móviles (CGNAT) mucha gente sale por la misma IP y 100 por mes se terminaban entre 5 personas. El simulador no tiene App Attest: con `exigir`, la IA ahí no anda.
+
 ## Lo que falta antes de cobrar
-- **El id anónimo** del cupo gratis se puede borrar para tener 20 más, hasta el tope de la IP. Para la app nativa, sumar App Attest (`DCAppAttestService`) o atar el cupo a la cuenta de iCloud; mientras tanto, el tope de la IP y el techo del día limitan el gasto. La cuota paga va por `transactionId` / `originalTransactionId`, no por el id del teléfono.
+- Pasar `APP_ATTEST` a `exigir` cuando una versión de TestFlight con App Attest ande. Borrar el iPhone de fábrica borra el llavero: eso sí da un id nuevo (solo con DeviceCheck se taparía, y no vale la pena por 20 créditos). La cuota paga va por `transactionId` / `originalTransactionId`, no por el id del teléfono.
 - La primera vez que un `transactionId` llega al servidor se acredita el paquete entero. Si en el teléfono ya se había gastado una parte (la cuota vieja era local), esa parte vuelve a estar disponible.
 - Confirmar el nombre exacto del modelo (`MODELO` en `wrangler.toml`) y si conviene la Responses API en vez de Chat Completions.
 - La app manda el país del iPhone en `X-Metrica-Pais` (código ISO): Métrica IA habla rioplatense solo con `AR`.
