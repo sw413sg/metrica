@@ -45,7 +45,7 @@ const sembrar = () => {
 
         // La barra lateral: fija a la izquierda, con la marca, el estado y el baúl; sin pestañas abajo.
         const barra = await page.locator('#barra-pestanas').boundingBox();
-        assert.ok(barra.x === 12 && barra.height === 876 && barra.width < 300, 'barra lateral flotante a la izquierda: ' + JSON.stringify(barra));
+        assert.ok(barra.x === 0 && barra.height === 900 && barra.width < 300, 'barra lateral a la izquierda: ' + JSON.stringify(barra));
         assert.equal(await page.locator('#estado-web').isVisible(), true);
         assert.equal(await page.textContent('#estado-web-titulo'), 'Sin vincular');
         // Las tarjetas de Letras usan más de dos columnas.

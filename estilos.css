@@ -5,6 +5,7 @@
     /* Colores de Google Keep: grises neutros. El violeta (--destacado) queda solo
        para lo especial: la pestaña elegida, la letra nueva, la sílaba fuerte y Métrica Extras. */
     --fondo: #eceff1;
+    --fondo-barra: #e1e5e8;
     --tarjeta: #ffffff;
     /* Vidrio de iOS 26 (Liquid Glass): translúcido, con un borde que brilla arriba. */
     --vidrio: rgba(255, 255, 255, 0.55);
@@ -38,6 +39,7 @@
 @media (prefers-color-scheme: dark) {
     :root:not([data-apariencia="claro"]) {
         --fondo: #18191b;
+        --fondo-barra: #111214;
         --tarjeta: #2d2e30;
         --vidrio: rgba(255, 255, 255, 0.09);
         --vidrio-borde: rgba(255, 255, 255, 0.14);
@@ -66,6 +68,7 @@
 }
 :root[data-apariencia="oscuro"] {
         --fondo: #18191b;
+    --fondo-barra: #111214;
     --tarjeta: #2d2e30;
     --vidrio: rgba(255, 255, 255, 0.09);
     --vidrio-borde: rgba(255, 255, 255, 0.14);
@@ -627,6 +630,8 @@ body:not(.editando) .reproductor { box-shadow: inset 0 1px 0 var(--vidrio-brillo
 /* Las duraciones se reparten toda la bandeja, con el texto al medio de cada una. */
 .duraciones-fs { gap: 4px; }
 .duraciones-fs .chip-fs { flex: 1 0 auto; justify-content: center; padding: 0 6px; }
+/* El infinito de Ilimitado, del alto de los números de al lado (el signo viene chico; pedido de Swa). */
+.chip-fs .infinito { display: inline-block; font-size: 1.7em; line-height: 1; margin-block: -0.3em; font-weight: 500; }
 .chip-fs {
     flex-shrink: 0; height: 36px; padding: 0 8px; border-radius: 16px;
     font-size: 15px; font-weight: 600; background: var(--celda); color: var(--texto);
@@ -2232,7 +2237,7 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 /* ===================== Letras como en Swift: menú, buscador, carpetas y selección ===================== */
 .solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 /* La barra de Keep: las tres líneas, la pastilla para buscar y, a la derecha, música y cofre. Mientras
-   se busca, los botones de la derecha se van y la pastilla se estira. */
+   se busca, la pastilla se estira solo si hace falta (abajo). */
 .fila-letras { gap: 8px; padding: 14px 16px 10px; justify-content: flex-start; }
 .fila-letras[hidden], .barra-seleccion[hidden] { display: none; }
 .buscar-letras { flex: 1; min-width: 0; height: 42px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 16px; border-radius: 21px; cursor: text; }
@@ -2243,7 +2248,12 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .cerrar-busqueda-letras[hidden] { display: none; }
 .cerrar-busqueda-letras .icono { width: 20px; height: 20px; }
 .fila-letras .acciones-barra { transition: opacity .2s, filter .2s, scale .2s; }
+/* Mientras se busca, los botones de la derecha se quedan; solo se van si al buscador le queda poco
+   lugar para escribir (ventana o celular angostos; pedido de Swa). */
+.fila-letras { container: fila-letras / inline-size; }
+@container fila-letras (max-width: 380px) {
 .fila-letras.buscando .acciones-barra { opacity: 0; filter: blur(6px); scale: .6; width: 0; overflow: hidden; pointer-events: none; }
+}
 /* Eligiendo letras: la cruz, cuántas hay, mover a carpeta y borrar. */
 .barra-seleccion { gap: 8px; padding: 14px 16px 10px; justify-content: flex-start; }
 .pastilla-seleccion { flex: 1; min-width: 0; height: 46px; display: flex; align-items: center; gap: 4px; padding: 0 12px 0 4px; border-radius: 23px; font-size: 20px; font-weight: 700; }
@@ -2361,12 +2371,14 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     :root { --izq: 248px; }
     .app { max-width: none; margin: 0 var(--der) 0 var(--izq); }
 
-    /* Barra lateral: flota con el vidrio de la barra de pestañas del iPhone, separada del borde y con
-       bordes redondeados (pedido de Swa). --izq es lo que ocupa con su aire. */
+    /* Barra lateral: sólida y más oscura que el fondo (`--fondo-barra`), pegada al borde y sin líneas ni
+       bordes redondeados (pedido de Swa: con el vidrio flotante quedaba todo muy bordeado). */
     .barra-pestanas, body.editando .barra-pestanas {
         display: flex; flex-direction: column; justify-content: flex-start; gap: 2px;
-        top: 12px; bottom: 12px; left: 12px; right: auto; width: calc(var(--izq) - 24px); max-width: none; margin: 0;
-        padding: calc(env(safe-area-inset-top) + 14px) 10px 12px; border-radius: 24px; overflow-y: auto; scrollbar-width: none;
+        top: 0; bottom: 0; left: 0; right: auto; width: var(--izq); max-width: none; margin: 0;
+        padding: calc(env(safe-area-inset-top) + 18px) 12px 14px; border-radius: 0; overflow-y: auto; scrollbar-width: none;
+        border: 0; box-shadow: none; background: var(--fondo-barra);
+        -webkit-backdrop-filter: none; backdrop-filter: none;
     }
     .barra-pestanas .solo-compu { display: flex; }
     /* Todas las filas del mismo alto, letra e íconos; las de Letras (carpetas y Papelera), corridas. */
@@ -2452,8 +2464,8 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .marca-lateral { padding-left: 2px; }
     .barra-pestanas .plegar-barra { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 50%; }
     .barra-pestanas .plegar-barra .icono { width: 20px; height: 20px; color: var(--texto-2); }
-    body.barra-plegada { --izq: 82px; }
-    body.barra-plegada .barra-pestanas { padding-inline: 6px; align-items: center; }
+    body.barra-plegada { --izq: 68px; }
+    body.barra-plegada .barra-pestanas { padding-inline: 10px; align-items: center; }
     body.barra-plegada .marca-lateral img, body.barra-plegada .marca-lateral span,
     body.barra-plegada .texto-pestana, body.barra-plegada .estado-web-texto, body.barra-plegada .carpetas-lateral { display: none; }
     body.barra-plegada .barra-pestanas .creditos-lateral { width: 46px; padding: 0; justify-content: center; }
@@ -2466,7 +2478,7 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
        la abren encima, entera. */
     body.barra-escondida { --izq: 0px; }
     body.barra-escondida .barra-pestanas {
-        width: 268px; z-index: 40; translate: calc(-100% - 24px) 0; visibility: hidden;
+        width: 280px; z-index: 40; translate: -100% 0; visibility: hidden;
         transition: translate .22s cubic-bezier(.2, .9, .3, 1), visibility .22s;
     }
     body.barra-escondida.barra-abierta .barra-pestanas { translate: 0 0; visibility: visible; box-shadow: 6px 0 24px rgba(0, 0, 0, 0.25); }
