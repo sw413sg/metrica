@@ -2497,9 +2497,9 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .arrastrando-mouse { cursor: grabbing; user-select: none; }
 
     /* Lo de cada sección, centrado en lo que queda (más ancho en la grilla de Letras). */
-    /* En la compu el reproductor no queda pegado abajo del resplandor de Freestyle (es más angosto y va
-       fijo abajo): el resplandor se desvanece para los dos lados, sin el borde recto (pedido de Swa). */
-    .pausar-fs { height: 60px; margin-top: -48px; background: radial-gradient(ellipse 50% 50% at 50% 50%, color-mix(in srgb, var(--destacado) 22%, transparent), transparent 100%); }
+    /* En la compu el resplandor de abajo de Freestyle no va (pedido de Swa): es el borde de la caja de
+       abajo en el celular, y acá esa caja no está pegada, así que quedaba un óvalo suelto en el medio. */
+    .pausar-fs, #pantalla-freestyle.jugando .pausar-fs { display: none; }
     #pantalla-rimas, #pantalla-freestyle, .vista { padding-inline: max(0px, calc((100% - 760px) / 2)); }
     /* Letras usa todo el ancho: entran más columnas de 220, sin agrandar las tarjetas (pedido de Swa).
        El buscador mide lo mismo que la grilla (`--ancho-grilla`, de ubicarTarjetas) y arranca con ella. */
