@@ -1700,9 +1700,9 @@ function cerrarHojaIA() {
 
 // Los pedidos que quedan, abajo de la caja: el texto y una barrita violeta que se vacía.
 // La pastilla de los créditos IA, como en Swift: el aro, lo que queda y lo que gasta esta consulta.
-// «Comprar más IA», a la derecha del porcentaje: la web no vende, avisa que se compra en el iPhone
+// «Comprar más créditos», a la derecha del porcentaje: la web no vende, avisa que se compra en el iPhone
 // (pedido de Swa). Sin vincular no va: ahí lo que hace falta es vincular.
-const BOTON_COMPRAR_IA = '<button type="button" class="comprar-ia">Comprar más IA</button>';
+const BOTON_COMPRAR_IA = '<button type="button" class="comprar-ia">Comprar más créditos</button>';
 document.addEventListener('click', evento => {
     if (!evento.target.closest('.comprar-ia')) return;
     evento.stopPropagation();
