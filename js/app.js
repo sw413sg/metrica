@@ -4505,6 +4505,7 @@ function renderizarExtras() {
 
 // Lo que queda de los créditos IA de esta computadora, en porcentaje (como en Swift).
 function renderizarCreditos() {
+    pintarCreditosLateral();
     pintarFilaCreditos($('ajustes-creditos'));
     pintarFilaCreditos($('menu-creditos'));
     // Las pastillas ya pintadas, con lo que gasta cada una.
@@ -4512,6 +4513,21 @@ function renderizarCreditos() {
         if (caja.dataset.gasto != null) pintarCupo(caja.id, cupoIA(localStorage), Number(caja.dataset.gasto));
     }
 }
+// En la barra lateral: el aro, el porcentaje y el plan del iPhone; sin vincular, que la IA es con el iPhone.
+function pintarCreditosLateral() {
+    const boton = $('creditos-lateral');
+    const uso = cupoIA(localStorage);
+    const p = pastillaCupo(uso, 0);
+    const plan = tienePlanIA(localStorage) ? 'Métrica<span class="mas-violeta">+ IA</span>'
+        : tieneExtras(localStorage) ? 'Métrica<span class="mas-violeta">+</span>' : 'Plan gratis';
+    boton.classList.toggle('sin-creditos', !uso.quedan);
+    boton.innerHTML = `<span class="aro-creditos" style="--queda:${p.queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
+        + `<span class="texto-pestana"><span class="creditos-arriba">${uso.sinVincular ? 'Métrica IA' : `${p.porcentaje} <span>créditos IA</span>`}</span>`
+        + `<span class="creditos-abajo">${uso.sinVincular ? 'Con tu iPhone vinculado' : plan}</span></span>`;
+    boton.title = uso.sinVincular ? 'Vincula tu iPhone para usar Métrica IA' : `Créditos IA: ${p.porcentaje} ${p.etiqueta}`;
+}
+$('creditos-lateral').addEventListener('click', () => document.querySelector('.barra-pestanas [data-pestana="ajustes"]').click());
+
 // Lo que queda según el servidor, cada 8 segundos con la web vinculada y a la vista, así la web y el
 // iPhone dicen lo mismo aunque se usen a la vez (pedido de Swa).
 let ultimoCupo = 0, vueltaCupo = 0;
