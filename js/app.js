@@ -4545,7 +4545,7 @@ async function refrescarCupoIA(ya = false) {
     renderizarCreditos();
 }
 // Como FilaCuotaIA de Swift: a la izquierda el aro violeta que se vacía con la estrellita, y al lado
-// el porcentaje que queda (con un decimal, «99,8%») y «de 20 créditos IA gratis del mes».
+// el porcentaje que queda (con un decimal, «99,8%») y abajo «19 créditos IA disponibles».
 function pintarFilaCreditos(fila) {
     const uso = cupoIA(localStorage);
     const p = pastillaCupo(uso, 0);
