@@ -2325,7 +2325,7 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .fila-creditos > .aro-creditos + .texto-creditos { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 .texto-creditos strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); }
 .texto-creditos span { font-size: 13px; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* «Comprar más IA» (la web avisa que se compra en el iPhone; pedido de Swa). */
+/* «Comprar más créditos» (la web avisa que se compra en el iPhone; pedido de Swa). */
 .comprar-ia {
     margin-left: auto; flex: none; padding: 7px 14px; border-radius: 999px; border: 0; cursor: pointer;
     font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap;
