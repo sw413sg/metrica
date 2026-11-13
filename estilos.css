@@ -2361,37 +2361,45 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     :root { --izq: 248px; }
     .app { max-width: none; margin: 0 var(--der) 0 var(--izq); }
 
-    /* Barra lateral */
+    /* Barra lateral: flota con el vidrio de la barra de pestañas del iPhone, separada del borde y con
+       bordes redondeados (pedido de Swa). --izq es lo que ocupa con su aire. */
     .barra-pestanas, body.editando .barra-pestanas {
         display: flex; flex-direction: column; justify-content: flex-start; gap: 2px;
-        top: 0; bottom: 0; left: 0; right: auto; width: var(--izq); max-width: none; margin: 0;
-        padding: calc(env(safe-area-inset-top) + 18px) 12px 16px; border-radius: 0;
-        border: 0; border-right: 1px solid var(--separador); box-shadow: none;
-        background: color-mix(in srgb, var(--texto) 3%, var(--fondo));
-        -webkit-backdrop-filter: none; backdrop-filter: none;
+        top: 12px; bottom: 12px; left: 12px; right: auto; width: calc(var(--izq) - 24px); max-width: none; margin: 0;
+        padding: calc(env(safe-area-inset-top) + 14px) 10px 12px; border-radius: 24px; overflow-y: auto; scrollbar-width: none;
     }
     .barra-pestanas .solo-compu { display: flex; }
+    /* Todas las filas del mismo alto, letra e íconos; las de Letras (carpetas y Papelera), corridas. */
     .barra-pestanas button, .barra-pestanas .solo-compu {
-        flex: none; height: 38px; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 12px;
-        border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--texto);
+        flex: none; height: 36px; flex-direction: row; justify-content: flex-start; gap: 12px; padding: 0 12px;
+        border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--texto);
     }
-    .barra-pestanas button .icono { width: 20px; height: 20px; color: var(--texto-2); }
+    .barra-pestanas button .icono { width: 18px; height: 18px; color: var(--texto-2); }
     .barra-pestanas button:hover { background: var(--acento-suave); }
     .barra-pestanas button[aria-selected="true"] .icono { color: var(--destacado); }
-    .barra-pestanas [data-pestana="ajustes"] { margin-top: auto; }
-    .marca-lateral { display: flex; align-items: center; gap: 10px; padding: 0 10px 14px; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+    .barra-pestanas .creditos-lateral { margin-top: auto; }
+    .marca-lateral { display: flex; align-items: center; gap: 10px; padding: 0 6px 10px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
     .marca-lateral img { border-radius: 7px; }
-    /* El estado de la vinculación, siempre a la vista: verde si está al día, gris si se cortó. */
+    /* El estado de la vinculación, siempre a la vista pero liviano: sin tarjeta, el punto y dos renglones
+       chicos (verde si está al día, gris si se cortó). */
     .barra-pestanas .estado-web {
-        height: auto; min-height: 50px; align-items: center; gap: 10px; margin: 0 0 12px; padding: 8px 12px;
-        border-radius: 14px; background: var(--tarjeta); text-align: left;
+        height: auto; min-height: 40px; align-items: center; gap: 10px; margin: 0 0 8px; padding: 4px 12px 4px 16px;
+        text-align: left;
     }
-    .punto-web { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--texto-3); }
+    .punto-web { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--texto-3); }
     .estado-web[data-estado="al-dia"] .punto-web { background: var(--verde); box-shadow: 0 0 0 3px color-mix(in srgb, var(--verde) 22%, transparent); }
     .estado-web-texto { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
-    #estado-web-titulo { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .estado-web-detalle { font-size: 12px; font-weight: 400; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #estado-web-titulo { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .estado-web-detalle { font-size: 11.5px; font-weight: 400; color: var(--texto-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .estado-web[data-estado="sin-vincular"] .estado-web-detalle { color: var(--destacado); }
+    /* Créditos IA y el plan, arriba de Ajustes (como la barra de Letras de Swift). */
+    .barra-pestanas .creditos-lateral { height: auto; min-height: 48px; padding: 6px 12px; gap: 10px; text-align: left; }
+    .creditos-lateral .aro-creditos { width: 24px; height: 24px; -webkit-mask: radial-gradient(circle, transparent 8.5px, #000 9px); mask: radial-gradient(circle, transparent 8.5px, #000 9px); }
+    .creditos-lateral .aro-creditos .estrella-ia { width: 10px; height: 10px; }
+    .creditos-lateral .texto-pestana { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+    .creditos-arriba { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .creditos-arriba span { font-weight: 400; color: var(--texto-2); }
+    .creditos-abajo { font-size: 11.5px; font-weight: 500; color: var(--texto-2); white-space: nowrap; }
 
     /* Las tarjetas no se estiran al achicar la ventana: tienen su ancho y entran más o menos
        columnas, como en Keep (pedido de Swa). */
@@ -2433,8 +2441,9 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 
     /* Carpetas abajo de «Letras», como en Notas de Mac. */
     .barra-pestanas .carpetas-lateral { display: flex; flex-direction: column; align-items: stretch; gap: 2px; height: auto; margin: 0 0 4px 0; padding: 0; }
-    .barra-pestanas .carpeta-lateral { height: 34px; padding-left: 26px; font-size: 14px; font-weight: 400; color: var(--texto); }
-    .barra-pestanas .carpeta-lateral .icono { width: 18px; height: 18px; }
+    .barra-pestanas .carpeta-lateral, .barra-pestanas .papelera-lateral { height: 34px; padding-left: 28px; font-size: 14px; font-weight: 400; color: var(--texto); }
+    .barra-pestanas .carpeta-lateral .icono, .barra-pestanas .papelera-lateral .icono { width: 16px; height: 16px; }
+    .barra-pestanas .papelera-lateral { margin-bottom: 6px; }
     .carpeta-lateral .texto-pestana { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
     .carpeta-lateral .cantidad { color: var(--texto-2); font-size: 13px; font-variant-numeric: tabular-nums; }
     .barra-pestanas .nueva-carpeta-lateral { color: var(--texto-2); }
@@ -2443,10 +2452,11 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .marca-lateral { padding-left: 2px; }
     .barra-pestanas .plegar-barra { flex: none; width: 36px; height: 36px; padding: 0; justify-content: center; border-radius: 50%; }
     .barra-pestanas .plegar-barra .icono { width: 20px; height: 20px; color: var(--texto-2); }
-    body.barra-plegada { --izq: 68px; }
-    body.barra-plegada .barra-pestanas { padding-inline: 10px; align-items: center; }
+    body.barra-plegada { --izq: 82px; }
+    body.barra-plegada .barra-pestanas { padding-inline: 6px; align-items: center; }
     body.barra-plegada .marca-lateral img, body.barra-plegada .marca-lateral span,
     body.barra-plegada .texto-pestana, body.barra-plegada .estado-web-texto, body.barra-plegada .carpetas-lateral { display: none; }
+    body.barra-plegada .barra-pestanas .creditos-lateral { width: 46px; padding: 0; justify-content: center; }
     body.barra-plegada .marca-lateral { padding: 0 0 14px; }
     body.barra-plegada .barra-pestanas button { width: 46px; padding: 0; justify-content: center; }
     body.barra-plegada .barra-pestanas .estado-web { width: 46px; min-height: 36px; padding: 0; justify-content: center; background: none; }
@@ -2456,7 +2466,7 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
        la abren encima, entera. */
     body.barra-escondida { --izq: 0px; }
     body.barra-escondida .barra-pestanas {
-        width: 280px; z-index: 40; translate: -100% 0; visibility: hidden;
+        width: 268px; z-index: 40; translate: calc(-100% - 24px) 0; visibility: hidden;
         transition: translate .22s cubic-bezier(.2, .9, .3, 1), visibility .22s;
     }
     body.barra-escondida.barra-abierta .barra-pestanas { translate: 0 0; visibility: visible; box-shadow: 6px 0 24px rgba(0, 0, 0, 0.25); }
