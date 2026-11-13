@@ -354,3 +354,11 @@ test('«¿Qué más cambiaría?» gasta uno menos', async () => {
     assert.deepEqual([10, 30, 80].map(v => GASTO_IA.revision(v, true)), [1, 2, 3]);
     assert.deepEqual([10, 30, 80].map(v => GASTO_IA.revision(v)), [2, 3, 4]);
 });
+
+test('abajo del porcentaje van los créditos que quedan, no el total', () => {
+    const p = pastillaCupo({ quedan: 1259, tope: 1650, plan: true }, 2);
+    assert.equal(p.porcentaje, '76,3%');
+    assert.equal(p.etiqueta, '1.259 créditos IA disponibles');
+    assert.equal(pastillaCupo({ quedan: 1, tope: 20, plan: false }, 1).etiqueta, '1 crédito IA disponible');
+    assert.equal(pastillaCupo({ quedan: 1, tope: 20, plan: false }, 2).etiqueta, 'No alcanza para esta consulta');
+});

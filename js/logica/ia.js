@@ -400,8 +400,13 @@ export const textoCupo = ({ quedan, tope, plan, delMes = true }) =>
 export const etiquetaCreditos = ({ tope, plan, delMes = true }) =>
     `${String(tope).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} créditos IA${delMes ? `${plan ? '' : ' gratis'} del mes` : ''}`;
 
+// Abajo del porcentaje, los créditos que quedan, no el total (un monto fijo confundía; pedido de Swa).
+export const creditosDisponibles = quedan => {
+    const n = Math.max(0, Math.floor(quedan));
+    return `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} ${n === 1 ? 'crédito IA disponible' : 'créditos IA disponibles'}`;
+};
 const porcentajeIA = (valor, decimales) => `${valor.toFixed(decimales).replace('.', ',')}%`;
-// La pastilla de abajo de cada consulta (como en Swift): el aro, «86,3%» con «de 300 créditos IA del mes»
+// La pastilla de abajo de cada consulta (como en Swift): el aro, «86,3%» con «259 créditos IA disponibles»
 // y a la derecha lo que gasta esta consulta («−0,33%»). Si no alcanza, lo dice.
 export function pastillaCupo(uso, gasto = GASTO_IA.frase) {
     if (uso.sinVincular) return { queda: 0, porcentaje: 'Sin vincular', etiqueta: 'Vincula tu iPhone para usar Métrica IA', gasta: '', alcanza: false };
@@ -410,7 +415,7 @@ export function pastillaCupo(uso, gasto = GASTO_IA.frase) {
     return {
         queda: Math.min(1, Math.max(0, uso.quedan / total)),
         porcentaje: porcentajeIA(100 * uso.quedan / total, 1),
-        etiqueta: alcanza ? `de ${etiquetaCreditos(uso)}` : uso.quedan > 0 ? 'No alcanza para esta consulta' : 'Créditos IA insuficientes',
+        etiqueta: alcanza ? creditosDisponibles(uso.quedan) : uso.quedan > 0 ? 'No alcanza para esta consulta' : 'Créditos IA insuficientes',
         gasta: alcanza && gasto > 0 ? `−${porcentajeIA(100 * gasto / total, 2)}` : '',
         alcanza,
     };
