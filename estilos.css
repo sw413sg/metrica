@@ -1525,6 +1525,9 @@ body.tema-de-grabacion .reproductor [data-rec] { display: none; }
 }
 #dame-tema[hidden] { display: none; }
 body.teclado-abierto #dame-tema { bottom: 12px; }
+/* Con la barra de «Marcar:» (o de rimas) abajo, el botón sube arriba de ella; sin teclado en la compu
+   quedaba encima tapando las partes (pedido de Swa). */
+.sugerencias:not([hidden]) + #dame-tema { bottom: calc(var(--alto-sugerencias, 46px) + 10px); }
 body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px + env(safe-area-inset-bottom)); }
 #hoja-tema { padding: 0 8px 8px; background: rgba(0, 0, 0, 0.3); }
 /* La hoja, como la pantalla de Rimas: el fondo de la app y adentro las cajas de vidrio. */
