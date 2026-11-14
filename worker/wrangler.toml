@@ -34,7 +34,7 @@ SANDBOX_TOPE_GLOBAL_DIA = "300"
 # App Attest (worker/src/atestado.js): «no», «pedir» (verifica la firma si viene y deja pasar a las versiones
 # viejas) o «exigir» (la app nativa tiene que venir atestiguada y la web solo gasta ids atestiguados).
 # Pasar a «exigir» cuando la versión de TestFlight con App Attest ande.
-APP_ATTEST = "pedir"
+APP_ATTEST = "exigir"
 # Team ID de Apple Developer: el App ID de App Attest es TEAM_ID.BUNDLE_ID.
 TEAM_ID = "6VAZAKJKS7"
 # Techo de pedidos de todos juntos en un día: 1000 son unos USD 3,50. Subirlo cuando salga al público.
