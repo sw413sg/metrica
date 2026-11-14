@@ -85,7 +85,7 @@ Reinstalar crea otra clave, pero el id es el mismo (llavero), así que la cuota 
 `APP_ATTEST` en `wrangler.toml`: `no`, `pedir` (verifica la firma si viene y deja pasar las versiones viejas sin firma) o `exigir` (sin firma, 401; la web solo gasta un id que un iPhone atestiguó). Un id atestiguado **no cuenta en `TOPE_IP`**: en datos móviles (CGNAT) mucha gente sale por la misma IP y 100 por mes se terminaban entre 5 personas. El simulador no tiene App Attest: con `exigir`, la IA ahí no anda.
 
 ## Lo que falta antes de cobrar
-- Pasar `APP_ATTEST` a `exigir` cuando una versión de TestFlight con App Attest ande. Borrar el iPhone de fábrica borra el llavero: eso sí da un id nuevo (solo con DeviceCheck se taparía, y no vale la pena por 20 créditos). La cuota paga va por `transactionId` / `originalTransactionId`, no por el id del teléfono.
+- `APP_ATTEST` está en `exigir` desde el 2026-11-14 (la IA anduvo en TestFlight 2.0.45). Borrar el iPhone de fábrica borra el llavero: eso sí da un id nuevo (solo con DeviceCheck se taparía, y no vale la pena por 20 créditos). La cuota paga va por `transactionId` / `originalTransactionId`, no por el id del teléfono.
 - La primera vez que un `transactionId` llega al servidor se acredita el paquete entero. Si en el teléfono ya se había gastado una parte (la cuota vieja era local), esa parte vuelve a estar disponible.
 - Confirmar el nombre exacto del modelo (`MODELO` en `wrangler.toml`) y si conviene la Responses API en vez de Chat Completions.
 - La app manda el país del iPhone en `X-Metrica-Pais` (código ISO): Métrica IA habla rioplatense solo con `AR`.
