@@ -431,9 +431,9 @@ function preguntar({ titulo, texto, boton, rojo = false }, responder) {
     $('confirmar-borrado-texto').textContent = texto;
     $('aceptar-borrado').textContent = boton;
     $('aceptar-borrado').classList.toggle('texto-rojo', rojo);
-    alerta.hidden = false;
+    verDialogo(alerta, true);
     const cerrar = ok => {
-        alerta.hidden = true;
+        verDialogo(alerta, false);
         $('aceptar-borrado').onclick = $('cancelar-borrado').onclick = null;
         responder(ok);
     };
@@ -727,6 +727,29 @@ function deslizableConMouse(caja) {
 }
 document.querySelectorAll('.temas-libreta, .chips-tema, .sugerencias, .duraciones-fs').forEach(deslizableConMouse);
 
+// ---------- Hojas y alertas: <dialog> nativo ----------
+// Se abren con showModal(): quedan arriba de todo, el foco del teclado queda adentro y lo de
+// atrás no se puede tocar ni lo leen los lectores de pantalla. `hidden` sigue al día para
+// saber si están abiertas. Escape (o el gesto de volver del sistema) hace lo mismo que tocar
+// afuera, o «Cancelar» en las alertas.
+function verDialogo(dialogo, ver) {
+    dialogo.hidden = !ver;
+    // Al cerrarse, el <dialog> devuelve el foco a donde estaba: en el celular, si era la letra
+    // o un campo, eso volvería a abrir el teclado. Ahí se suelta antes.
+    const campo = document.activeElement;
+    if (ver && !dialogo.open && campo?.matches('input, textarea, [contenteditable]') && matchMedia('(pointer: coarse)').matches) campo.blur();
+    if (ver && !dialogo.open) dialogo.showModal();
+    else if (!ver && dialogo.open) dialogo.close();
+}
+const CANCELAR_DIALOGO = {
+    'pedir-nombre': () => $('cancelar-nombre').click(),
+    'confirmar-borrado': () => ($('cancelar-borrado').hidden ? $('aceptar-borrado') : $('cancelar-borrado')).click(),
+};
+document.querySelectorAll('dialog').forEach(dialogo => dialogo.addEventListener('cancel', e => {
+    e.preventDefault();
+    (CANCELAR_DIALOGO[dialogo.id] ?? (() => dialogo.click()))();
+}));
+
 // ---------- Un menú chico al lado de un botón, y pedir un nombre ----------
 function menuFlotante(ancla, opciones) {
     const fondo = $('menu-flotante'), caja = $('menu-flotante-opciones');
@@ -755,10 +778,10 @@ function pedirNombre({ titulo, boton, valor }, responder) {
     const pintar = () => { $('aceptar-nombre').disabled = !campo.value.trim(); };
     campo.oninput = pintar;
     pintar();
-    alerta.hidden = false;
+    verDialogo(alerta, true);
     campo.focus();
     campo.select();
-    const cerrar = () => { alerta.hidden = true; $('pedir-nombre-form').onsubmit = $('cancelar-nombre').onclick = campo.onkeydown = null; };
+    const cerrar = () => { verDialogo(alerta, false); $('pedir-nombre-form').onsubmit = $('cancelar-nombre').onclick = campo.onkeydown = null; };
     $('pedir-nombre-form').onsubmit = e => { e.preventDefault(); if (!campo.value.trim()) return; cerrar(); responder(campo.value.trim()); };
     $('cancelar-nombre').onclick = cerrar;
     campo.onkeydown = e => { if (e.key === 'Escape') cerrar(); };
@@ -990,10 +1013,10 @@ $('separar-baul').addEventListener('change', () => {
 });
 $('baul-abrir-ajustes').addEventListener('click', () => {
     renderizarAjustesBaul();
-    $('ajustes-baul').hidden = false;
+    verDialogo($('ajustes-baul'), true);
 });
-$('cerrar-ajustes-baul').addEventListener('click', () => { $('ajustes-baul').hidden = true; });
-$('ajustes-baul').addEventListener('click', e => { if (e.target === $('ajustes-baul')) $('ajustes-baul').hidden = true; });
+$('cerrar-ajustes-baul').addEventListener('click', () => { verDialogo($('ajustes-baul'), false); });
+$('ajustes-baul').addEventListener('click', e => { if (e.target === $('ajustes-baul')) verDialogo($('ajustes-baul'), false); });
 // La estrella de «¿Por dónde empiezo?», también en el baúl.
 $('baul-abrir-tema').addEventListener('click', () => abrirDameTema());
 
@@ -1690,12 +1713,12 @@ function abrirHojaIA() {
     posIA = -1;
     // La frase elegida, citada en itálica y entre comillas, sin «En vez de» (pedido de Swa).
     $('ia-original').textContent = `«${fraseHoja.pedido.verso.texto}»`;
-    $('hoja-ia').hidden = false;
+    verDialogo($('hoja-ia'), true);
     pedirTandaIA();
 }
 
 function cerrarHojaIA() {
-    $('hoja-ia').hidden = true;
+    verDialogo($('hoja-ia'), false);
     generacionIA++;
     pidiendoIA = false;
     fraseHoja = null;
@@ -2017,7 +2040,7 @@ $('nueva-letra').addEventListener('click', () => {
 $('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
 $('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, ok => {
     if (!ok) return;
-    $('ajustes-libreta').hidden = true;
+    verDialogo($('ajustes-libreta'), false);
     borrarLetra(localStorage, letraActual.id);
     mostrarVista('vista-lista-letras');
     renderizarLetras();
@@ -2297,7 +2320,7 @@ async function revisarLetra() {
 $('revision-generar').addEventListener('click', revisarLetra);
 
 function cerrarHojaTema() {
-    $('hoja-tema').hidden = true;
+    verDialogo($('hoja-tema'), false);
     generacionRevision++;
     leyendoLetra = false;
     mostrarFichaTema();
@@ -2368,7 +2391,7 @@ function abrirDameTema(conSugerencias = false) {
     filtroTema = 'amor';
     desamor = false;
     mostrarFichaTema();
-    $('hoja-tema').hidden = false;
+    verDialogo($('hoja-tema'), true);
     sincronizarChips();
     $('chips-tema').scrollLeft = 0;
     temaActual = null;
@@ -2555,9 +2578,9 @@ function aplicarAjustesLibreta() {
         pastillasLibreta('fuente', AJUSTES_LIBRETA.fuente, ajustes.fuente));
 }
 aplicarAjustesLibreta();
-$('abrir-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = false; });
-$('cerrar-ajustes-libreta').addEventListener('click', () => { $('ajustes-libreta').hidden = true; });
-$('ajustes-libreta').addEventListener('click', e => { if (e.target === $('ajustes-libreta')) $('ajustes-libreta').hidden = true; });
+$('abrir-ajustes-libreta').addEventListener('click', () => { verDialogo($('ajustes-libreta'), true); });
+$('cerrar-ajustes-libreta').addEventListener('click', () => { verDialogo($('ajustes-libreta'), false); });
+$('ajustes-libreta').addEventListener('click', e => { if (e.target === $('ajustes-libreta')) verDialogo($('ajustes-libreta'), false); });
 
 // ---------- Rimas (terminaciones al azar o las que riman con la que se escribe) ----------
 let tipoRima = 'consonante';
@@ -4629,13 +4652,13 @@ function abrirPaywall() {
     $('paywall-nota').textContent = vinculada
         ? 'Cuando lo compres en el iPhone, esta web se pone al día en unos segundos.'
         : 'Primero vincula esta computadora con tu iPhone.';
-    $('paywall').hidden = false;
+    verDialogo($('paywall'), true);
 }
 
 document.addEventListener('click', e => { if (e.target.closest('[data-paywall]')) abrirPaywall(); });
-$('cerrar-paywall').addEventListener('click', () => { $('paywall').hidden = true; });
-$('paywall').addEventListener('click', e => { if (e.target === $('paywall')) $('paywall').hidden = true; });
-$('paywall-vincular').addEventListener('click', () => { $('paywall').hidden = true; abrirVincular(); });
+$('cerrar-paywall').addEventListener('click', () => { verDialogo($('paywall'), false); });
+$('paywall').addEventListener('click', e => { if (e.target === $('paywall')) verDialogo($('paywall'), false); });
+$('paywall-vincular').addEventListener('click', () => { verDialogo($('paywall'), false); abrirVincular(); });
 $('ajustes-mejorar').addEventListener('click', abrirPaywall);
 $('borrar-compra').addEventListener('click', () => { borrarCompra(localStorage); borrarPlanIA(localStorage); renderizarExtras(); });
 
@@ -5338,7 +5361,7 @@ function abrirAjusteFoto(foto) {
     $('foto-widget-muestra').replaceChildren(marcoWidget(widgetElegido, ajustes, false));
     $('foto-widget-zoom').value = fotoEnAjuste.z;
     $('foto-widget-oscuro').value = fotoEnAjuste.oscuro;
-    $('hoja-foto-widget').hidden = false;
+    verDialogo($('hoja-foto-widget'), true);
 }
 // Mueve la foto en la muestra sin volver a dibujar el widget (así el arrastre va fluido).
 function moverFoto(cambios) {
@@ -5376,7 +5399,7 @@ $('foto-widget-centrar').addEventListener('click', () => {
     $('foto-widget-zoom').value = FOTO_CENTRADA.z;
 });
 $('foto-widget-otra').addEventListener('click', () => $('foto-widget-archivo').click());
-const cerrarAjusteFoto = () => { $('hoja-foto-widget').hidden = true; fotoEnAjuste = null; };
+const cerrarAjusteFoto = () => { verDialogo($('hoja-foto-widget'), false); fotoEnAjuste = null; };
 $('cerrar-foto-widget').addEventListener('click', cerrarAjusteFoto);
 $('hoja-foto-widget').addEventListener('click', e => { if (e.target === $('hoja-foto-widget')) cerrarAjusteFoto(); });
 $('foto-widget-listo').addEventListener('click', () => {

@@ -1025,6 +1025,13 @@ body.editando .vista#vista-editor, #vista-baul[data-libreta] {
 /* Paywall: hoja de vidrio que sube desde abajo (.sheet en SwiftUI). */
 .hoja-fondo { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; background: rgba(10, 8, 20, 0.35); }
 .hoja-fondo[hidden] { display: none; }
+/* Las hojas y las alertas son <dialog> (se abren con showModal): sin los bordes, márgenes ni
+   tamaños de un <dialog> común; el fondo oscuro es el de .hoja-fondo y .alerta-fondo. */
+dialog.hoja-fondo, dialog.alerta-fondo {
+    width: auto; height: auto; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+    color: inherit; overflow: visible; outline: none;
+}
+dialog.hoja-fondo::backdrop, dialog.alerta-fondo::backdrop { background: transparent; }
 .hoja {
     position: relative; width: 100%; max-width: 430px; max-height: 94%; overflow-y: auto;
     padding: 28px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: 34px 34px 0 0; text-align: center;
