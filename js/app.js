@@ -1582,7 +1582,7 @@ function renderizarBaulPanel() {
     const guardar = elemento('button', '', 'Guardar');
     guardar.disabled = true;
     campo.addEventListener('input', () => { guardar.disabled = !campo.value.trim(); });
-    campo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); anotar.requestSubmit(); } });
+    campo.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); anotar.requestSubmit(); } });
     anotar.addEventListener('submit', e => {
         e.preventDefault();
         if (!campo.value.trim()) return;
@@ -1653,7 +1653,6 @@ function avisoPanel(texto) {
     // Se vuelve a abrir para quedar arriba de lo último que se abrió.
     if (aviso.matches(':popover-open')) aviso.hidePopover();
     aviso.showPopover();
-    aviso.getBoundingClientRect();
     aviso.classList.add('visible');
     clearTimeout(avisoPanelReloj);
     avisoPanelReloj = setTimeout(() => aviso.classList.remove('visible'), 1800);
@@ -6268,7 +6267,8 @@ document.addEventListener('keydown', e => {
         e.preventDefault();
         return alternarPanel();
     }
-    if (mod && e.key === 'Enter' && document.activeElement === editorTexto) {
+    // isComposing: con teclados que arman la palabra (japonés, chino...), Enter confirma, no manda.
+    if (mod && e.key === 'Enter' && !e.isComposing && document.activeElement === editorTexto) {
         e.preventDefault();
         return versoAlBaul();
     }
