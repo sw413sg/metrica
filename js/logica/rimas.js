@@ -121,17 +121,38 @@ export function claveAsonante(palabra) {
 // (las que no tienen frecuencia van al final, en orden alfabético).
 // frecuencias: Map palabra -> cantidad.
 export function crearIndiceRimas(palabras, frecuencias = new Map()) {
-    // consonantePorPalabra evita volver a analizar al filtrar las asonantes.
-    const indice = { consonante: new Map(), asonante: new Map(), consonantePorPalabra: new Map() };
+    const indice = indiceVacio();
+    for (const _ of armarIndice(indice, palabras, frecuencias));
+    return indice;
+}
+
+// Lo mismo, en partes: entre parte y parte espera a `ceder()`, así la app no se traba
+// mientras se arma (son unas 90 mil palabras).
+export async function crearIndiceRimasPorPartes(palabras, frecuencias = new Map(), ceder = () => new Promise(r => setTimeout(r))) {
+    const indice = indiceVacio();
+    for (const _ of armarIndice(indice, palabras, frecuencias)) await ceder();
+    return indice;
+}
+
+// consonantePorPalabra evita volver a analizar al filtrar las asonantes.
+const indiceVacio = () => ({ consonante: new Map(), asonante: new Map(), consonantePorPalabra: new Map() });
+
+function* armarIndice(indice, palabras, frecuencias, porParte = 2000) {
     const agregar = (mapa, clave, palabra) => {
         if (!mapa.has(clave)) mapa.set(clave, []);
         mapa.get(clave).push(palabra);
     };
     // Ordenar una sola vez todo el diccionario (y no cada lista) es mucho más rápido.
     const unicas = [...new Set(palabras)];
-    const conFrecuencia = unicas.filter(p => frecuencias.has(p)).sort((a, b) => frecuencias.get(b) - frecuencias.get(a));
+    const sinOrden = unicas.filter(p => frecuencias.has(p));
+    yield;
+    const conFrecuencia = sinOrden.sort((a, b) => frecuencias.get(b) - frecuencias.get(a));
+    yield;
     const sinFrecuencia = unicas.filter(p => !frecuencias.has(p)).sort(new Intl.Collator('es').compare);
+    yield;
+    let n = 0;
     for (const palabra of [...conFrecuencia, ...sinFrecuencia]) {
+        if (++n % porParte === 0) yield;
         const a = ATONAS.has(palabra) ? null : analizarPalabra(palabra);
         if (!a) continue;
         const consonante = consonanteDe(a);
@@ -139,7 +160,6 @@ export function crearIndiceRimas(palabras, frecuencias = new Map()) {
         agregar(indice.consonante, consonante, palabra);
         agregar(indice.asonante, asonanteDe(a), palabra);
     }
-    return indice;
 }
 
 // Palabras que riman con `palabra`, de más usadas a menos usadas, sin ella misma.

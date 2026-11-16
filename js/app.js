@@ -1,14 +1,14 @@
 // Interfaz: solo DOM y navegación. La lógica vive en js/logica/ (módulos puros).
-import { parsearPalabras, parsearFrecuencias } from './logica/diccionario.js';
+import { parsearPalabras, parsearFrecuencias, parsearFrecuenciasPorPartes } from './logica/diccionario.js';
 import { palabrasAlAzar } from './logica/generador.js';
-import { crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS, tituloBusqueda, ordenarPorRima, rimasParaCambiar } from './logica/rimas.js';
+import { crearIndiceRimas, crearIndiceRimasPorPartes, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, numerarEstrofas, asignarColores, claveAsonante, claveConsonante, ANGLICISMOS, tituloBusqueda, ordenarPorRima, rimasParaCambiar } from './logica/rimas.js';
 import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas } from './logica/silabas.js';
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada, adaptarTemasDeLetras, ordenarLetras, ascendentePorDefecto, coincideBusqueda } from './logica/sesiones.js';
 import { CARPETAS_GRATIS, carpetasVisibles, puedeCrearCarpeta, crearCarpeta, renombrarCarpeta, borrarCarpeta, moverACarpeta, letrasDeCarpeta, cantidadesPorCarpeta, textoCantidadLetras, sinCarpetasProtegidas } from './logica/carpetas.js';
-import { crearCorrector } from './logica/ortografia.js';
+import { crearCorrector, crearCorrectorPorPartes } from './logica/ortografia.js';
 import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
 import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
@@ -40,8 +40,12 @@ const palabrasSimples = parsearPalabras(textoPalabrasSimples);
 let indice = null, frecuencias = null, corrector = null, sinonimos = null, relacionados = null;
 const frecuenciasDePalabras = () => frecuencias ??= parsearFrecuencias(textoFrecuencias);
 const indiceRimas = () => indice ??= crearIndiceRimas(todasLasPalabras, frecuenciasDePalabras());
-const indiceSinonimos = () => sinonimos ??= crearIndiceSinonimos(textoSinonimos, textoFormasSinonimos);
-const indiceRelacionados = () => relacionados ??= crearIndiceRelacionados(textoRelacionados);
+// Sinónimos y relacionados (casi 7 MB) se cargan después de que aparece la app (ver «Inicio»):
+// hasta que llegan, no hay ninguno.
+const indiceSinonimos = () => typeof textoSinonimos === 'undefined' ? { grupos: new Map(), bases: new Map() }
+    : sinonimos ??= crearIndiceSinonimos(textoSinonimos, textoFormasSinonimos);
+const indiceRelacionados = () => typeof textoRelacionados === 'undefined' ? new Map()
+    : relacionados ??= crearIndiceRelacionados(textoRelacionados);
 // Errores de tipeo: corregir('balcon') -> 'balcón' (null si está bien escrita).
 const corregir = palabra => (corrector ??= crearCorrector(todasLasPalabras, frecuenciasDePalabras()))(palabra);
 // La palabra como se quiso escribir, para que rime bien aunque falte la tilde.
@@ -2818,6 +2822,13 @@ function alternarDiccionario() {
 }
 $('alternar-diccionario').addEventListener('click', alternarDiccionario);
 
+// Si la palabra no tiene sinónimos (o se borró), «Sinónimos» se apaga y no se puede tocar.
+function apagarSinonimosSiNoHay() {
+    const haySinonimos = Boolean(palabraBuscada()) && buscarSinonimos(palabraBuscada(), indiceSinonimos()).length > 0;
+    $('ver-sinonimos').disabled = !haySinonimos;
+    if (!haySinonimos) $('ver-sinonimos').setAttribute('aria-pressed', 'false');
+}
+
 // Al escribir, el azar se frena y la caja muestra las rimas más usadas de la palabra.
 function buscarRima() {
     if (modoDiccionario) {
@@ -2825,10 +2836,7 @@ function buscarRima() {
         return renderizarDiccionario();
     }
     desde = 0;
-    // Si la palabra no tiene sinónimos (o se borró), «Sinónimos» se apaga y no se puede tocar.
-    const haySinonimos = Boolean(palabraBuscada()) && buscarSinonimos(palabraBuscada(), indiceSinonimos()).length > 0;
-    $('ver-sinonimos').disabled = !haySinonimos;
-    if (!haySinonimos) $('ver-sinonimos').setAttribute('aria-pressed', 'false');
+    apagarSinonimosSiNoHay();
     renderizarRimas();
     refrescarPalabras(false);
     frenarReloj();
@@ -6190,8 +6198,29 @@ renderizarLetras();
 renderizarRimas();
 renderizarGuardadas();
 refrescarPalabras(false);
-// Armamos el índice de rimas apenas la app termina de aparecer, para que esté listo al buscar.
-setTimeout(() => { indiceRimas(); corregir(''); }, 300);
+// Apenas la app termina de aparecer, armamos el índice de rimas y el corrector, para que estén
+// listos al buscar. Va en partes, cediendo el turno entre una y otra, así tocar o escribir
+// no espera a que termine (antes era una sola tarea de casi un segundo).
+const ceder = () => globalThis.scheduler?.yield ? scheduler.yield() : new Promise(r => setTimeout(r));
+async function prepararDiccionario() {
+    const leidas = await parsearFrecuenciasPorPartes(textoFrecuencias, ceder);
+    frecuencias ??= leidas;
+    await ceder();
+    const armado = await crearIndiceRimasPorPartes(todasLasPalabras, frecuenciasDePalabras(), ceder);
+    indice ??= armado;
+    const armadoCorrector = await crearCorrectorPorPartes(todasLasPalabras, frecuenciasDePalabras(), ceder);
+    corrector ??= armadoCorrector;
+    // Después, de a uno, sinónimos y relacionados.
+    for (const archivo of ['sinonimos.js', 'relacionados.js']) {
+        await new Promise(listo => (globalThis.requestIdleCallback ?? setTimeout)(listo));
+        await cargarScript(archivo).catch(() => {});
+    }
+    if (palabraBuscada() && !modoDiccionario) {
+        apagarSinonimosSiNoHay();
+        renderizarRimas();
+    }
+}
+setTimeout(prepararDiccionario, 300);
 
 // La versión es el nombre de la caché del service worker ("metrica-1.0.9" -> "1.0.9").
 async function mostrarVersion() {

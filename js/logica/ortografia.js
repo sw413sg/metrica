@@ -4,6 +4,8 @@
 
 // Saca tildes y diéresis pero deja la ñ.
 export function sinTildes(palabra) {
+    // La mayoría no tiene nada que sacar: así no se normaliza de más (son 90 mil palabras).
+    if (/^[a-zñ]*$/.test(palabra)) return palabra;
     return palabra.normalize('NFD').replace(/[́̈]/g, '').normalize('NFC');
 }
 
@@ -27,14 +29,33 @@ function variantes(p) {
 // Devuelve corregir(palabra): la palabra bien escrita (en minúscula), o null si
 // ya está bien o no se encontró nada parecido.
 export function crearCorrector(palabras, frecuencias) {
-    const conocidas = new Set(palabras);
+    const porForma = new Map();
+    for (const _ of agruparPorForma(palabras, frecuencias, porForma));
+    return corrector(palabras, frecuencias, porForma);
+}
+
+// Lo mismo, en partes: entre parte y parte espera a `ceder()`, así la app no se traba.
+export async function crearCorrectorPorPartes(palabras, frecuencias, ceder = () => new Promise(r => setTimeout(r))) {
+    const porForma = new Map();
+    for (const _ of agruparPorForma(palabras, frecuencias, porForma)) await ceder();
+    return corrector(palabras, frecuencias, porForma);
+}
+
+// porForma: forma sin tildes -> la palabra más usada que se escribe así.
+function* agruparPorForma(palabras, frecuencias, porForma, porParte = 10000) {
     const frecuencia = p => frecuencias.get(p) ?? 0;
-    const porForma = new Map(); // forma sin tildes -> la palabra más usada que se escribe así
-    for (const p of palabras) {
+    for (let i = 0; i < palabras.length; i++) {
+        if (i && i % porParte === 0) yield;
+        const p = palabras[i];
         const forma = sinTildes(p);
         const actual = porForma.get(forma);
         if (!actual || frecuencia(p) > frecuencia(actual)) porForma.set(forma, p);
     }
+}
+
+function corrector(palabras, frecuencias, porForma) {
+    const conocidas = new Set(palabras);
+    const frecuencia = p => frecuencias.get(p) ?? 0;
     const hechas = new Map();
     const buscar = minuscula => {
         const forma = sinTildes(minuscula);
