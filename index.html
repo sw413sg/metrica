@@ -74,7 +74,7 @@ img { display: block; max-width: 100%; }
 .barra nav a { text-decoration: none; color: var(--texto-2); }
 .barra nav a:hover { color: var(--texto); }
 .barra nav { align-items: center; }
-/* «Métrica Web»: abre la web en la pantalla del QR para vincularla con el iPhone (solo en pantallas anchas: es para la computadora). */
+/* «Métrica Web»: abre la web en la pantalla del QR para vincularla con el iPhone . */
 .barra nav a.boton-web {
     height: 36px; padding: 0 16px; border-radius: 18px; display: inline-flex; align-items: center; font-weight: 600;
     color: var(--texto); background: var(--destacado-suave); border: 1px solid rgba(157, 139, 255, 0.4);
@@ -228,6 +228,9 @@ footer a:hover { color: var(--texto); }
 
 @media (max-width: 860px) {
     .barra nav a:not(.siempre) { display: none; }
+    .barra .envoltura { gap: 12px; }
+    .barra nav { gap: 14px; }
+    .barra nav a.boton-web { height: 32px; padding: 0 12px; white-space: nowrap; }
     .portada { padding-top: 44px; }
     .portada .envoltura, .funcion .envoltura { grid-template-columns: minmax(0, 1fr); gap: 40px; }
     .funcion:nth-of-type(even) .texto { order: 0; }
@@ -241,6 +244,9 @@ footer a:hover { color: var(--texto); }
     .abanico .telefono:nth-child(1) { transform: rotate(-7deg) translateY(8px); margin-right: -24px; }
     .abanico .telefono:nth-child(3) { transform: rotate(7deg) translateY(8px); margin-left: -24px; }
     footer nav { margin-left: 0; }
+}
+@media (max-width: 520px) {
+    .barra nav a:not(.boton-web) { display: none; }
 }
 @media (min-width: 600px) and (max-width: 860px) {
     .grilla { grid-template-columns: repeat(2, 1fr); }
@@ -264,7 +270,7 @@ footer a:hover { color: var(--texto); }
             <a href="#ia">Métrica IA</a>
             <a href="#precios" class="siempre">Precios</a>
             <a href="soporte.html" class="siempre">Soporte</a>
-            <a href="app/#vincular" class="boton-web">Métrica Web</a>
+            <a href="app/#vincular" class="boton-web siempre">Métrica Web</a>
         </nav>
     </div>
 </header>
