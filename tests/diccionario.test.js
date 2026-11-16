@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parsearPalabras, parsearFrecuencias } from '../js/logica/diccionario.js';
+import { parsearPalabras, parsearFrecuencias, parsearFrecuenciasPorPartes } from '../js/logica/diccionario.js';
 import { palabrasAlAzar, filtrarPorTerminacion } from '../js/logica/generador.js';
 
 test('parsearPalabras saca líneas vacías y repetidas', () => {
@@ -26,4 +26,11 @@ test('parsearFrecuencias lee "palabra cantidad" y se queda con la primera', () =
     assert.equal(frecuencias.get('de'), 100);
     assert.equal(frecuencias.get('canción'), 7);
     assert.equal(frecuencias.has('mal'), false);
+});
+
+test('parsearFrecuenciasPorPartes: lee lo mismo, cediendo el turno', async () => {
+    const texto = 'de 100\r\ncanción 7\n\nmal\ncanción 3\n';
+    let veces = 0;
+    assert.deepEqual(await parsearFrecuenciasPorPartes(texto, async () => { veces++; }), parsearFrecuencias(texto));
+    assert.ok(veces >= 1);
 });

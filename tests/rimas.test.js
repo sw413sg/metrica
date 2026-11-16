@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, asignarColores, tituloBusqueda, ordenarPorRima, simplesPrimero, rimasParaCambiar } from '../js/logica/rimas.js';
+import { analizarPalabra, claveConsonante, claveAsonante, crearIndiceRimas, crearIndiceRimasPorPartes, buscarRimas, agruparRimas, rimanConsonante, rimasInternas, asignarColores, tituloBusqueda, ordenarPorRima, simplesPrimero, rimasParaCambiar } from '../js/logica/rimas.js';
 import { parsearFrecuencias } from '../js/logica/diccionario.js';
 
 const riman = (a, b) => assert.equal(claveConsonante(a), claveConsonante(b), `${a} / ${b}`);
@@ -127,6 +127,15 @@ test('buscarRimas: de más usadas a menos usadas, sin la palabra buscada', () =>
     assert.deepEqual(buscarRimas('dolor', indice, { tipo: 'asonante' }),
         ['corazón', 'razón', 'canción', 'avión', 'camión', 'pasión', 'sol']);
     assert.deepEqual(buscarRimas('123', indice), []);
+});
+
+test('crearIndiceRimasPorPartes: arma el mismo índice, cediendo el turno entre partes', async () => {
+    const palabras = ['canción', 'avión', 'corazón', 'camión', 'amor', 'razón', 'sol', 'flor', 'pasión', 'con'];
+    const frecuencias = parsearFrecuencias('corazón 900\nrazón 500\ncanción 300\navión 10\n');
+    let veces = 0;
+    const indice = await crearIndiceRimasPorPartes(palabras, frecuencias, async () => { veces++; });
+    assert.deepEqual(indice, crearIndiceRimas(palabras, frecuencias));
+    assert.ok(veces >= 2);
 });
 
 test('buscarRimas: no sugiere palabras átonas ("con", "lo", "por")', () => {

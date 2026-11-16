@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sinTildes, crearCorrector } from '../js/logica/ortografia.js';
+import { sinTildes, crearCorrector, crearCorrectorPorPartes } from '../js/logica/ortografia.js';
 
 const palabras = ['balcón', 'acción', 'accion', 'querer', 'temor', 'mas', 'más', 'esta', 'está', 'bay', 'casa', 'teléfono'];
 const frecuencias = new Map([['balcón', 3191], ['acción', 28381], ['accion', 863], ['querer', 50000], ['temor', 5329],
@@ -32,4 +32,9 @@ test('una letra mal en palabras de 5 o más', () => {
     assert.equal(corregir('telefno'), 'teléfono');
     assert.equal(corregir('baby'), null); // corta: puede ser inglés
     assert.equal(corregir('qwertyu'), null);
+});
+
+test('crearCorrectorPorPartes: corrige igual, cediendo el turno entre partes', async () => {
+    const enPartes = await crearCorrectorPorPartes(palabras, frecuencias, async () => {});
+    for (const p of ['balcon', 'accion', 'queres', 'casa', 'Corazon', 'xyz']) assert.equal(enPartes(p), corregir(p));
 });
