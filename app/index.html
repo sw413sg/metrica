@@ -625,8 +625,8 @@
 
     <!-- Ajustes de la libreta (en SwiftUI: .sheet con un Form de secciones agrupadas). Sin título,
          con el diseño de la referencia de Swa: listas agrupadas, pasos de − y + y menú. -->
-    <div class="hoja-fondo" id="ajustes-libreta" hidden>
-        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-label="Ajustes de la libreta">
+    <dialog class="hoja-fondo" id="ajustes-libreta" aria-label="Ajustes de la libreta" hidden>
+        <div class="hoja hoja-ajustes hoja-libreta">
             <button class="boton-barra cerrar-hoja" id="cerrar-ajustes-libreta" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
@@ -665,11 +665,11 @@
             <!-- Abajo de todo, borrar la letra (pide confirmación). -->
             <button type="button" class="boton-borrar-letra" id="borrar-letra">Borrar letra</button>
         </div>
-    </div>
+    </dialog>
 
     <!-- El pincel del baúl, con el mismo diseño que la ruedita de la libreta. -->
-    <div class="hoja-fondo" id="ajustes-baul" hidden>
-        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-label="Apariencia del baúl">
+    <dialog class="hoja-fondo" id="ajustes-baul" aria-label="Apariencia del baúl" hidden>
+        <div class="hoja hoja-ajustes hoja-libreta">
             <button class="boton-barra cerrar-hoja" id="cerrar-ajustes-baul" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
@@ -689,7 +689,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- Música: pegar el link. Solo el cajón de vidrio, sin fondo, título ni cruz: se cierra
          tocando afuera (pedido de Swa; en SwiftUI, .sheet con fondo transparente). -->
@@ -864,8 +864,8 @@
     <div class="menu-flotante-fondo" id="menu-flotante" hidden><div class="menu-flotante vidrio" id="menu-flotante-opciones" role="menu"></div></div>
 
     <!-- Pedir un nombre (.alert con TextField de SwiftUI): carpeta nueva o renombrar. -->
-    <div class="alerta-fondo" id="pedir-nombre" hidden>
-        <form class="alerta" role="alertdialog" aria-modal="true" aria-labelledby="pedir-nombre-titulo" id="pedir-nombre-form">
+    <dialog class="alerta-fondo" id="pedir-nombre" role="alertdialog" aria-labelledby="pedir-nombre-titulo" hidden>
+        <form class="alerta" id="pedir-nombre-form">
             <h2 id="pedir-nombre-titulo">Nueva carpeta</h2>
             <p id="pedir-nombre-texto">Ponle un nombre.</p>
             <input class="campo-alerta" id="pedir-nombre-campo" type="text" maxlength="60" autocomplete="off" placeholder="Nombre">
@@ -874,10 +874,10 @@
                 <button type="submit" id="aceptar-nombre"><strong>Crear</strong></button>
             </div>
         </form>
-    </div>
+    </dialog>
 
-    <div class="alerta-fondo" id="confirmar-borrado" hidden>
-        <div class="alerta" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-borrado-titulo">
+    <dialog class="alerta-fondo" id="confirmar-borrado" role="alertdialog" aria-labelledby="confirmar-borrado-titulo" hidden>
+        <div class="alerta">
             <h2 id="confirmar-borrado-titulo">¿Borrar la letra?</h2>
             <p id="confirmar-borrado-texto"></p>
             <div class="alerta-botones">
@@ -885,7 +885,7 @@
                 <button class="texto-rojo" id="aceptar-borrado">Borrar</button>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- Grabaciones de Freestyle (en SwiftUI: .sheet con una List). -->
     <div class="hoja-fondo" id="grabaciones" hidden>
@@ -904,8 +904,8 @@
 
     <!-- Ajustar la foto de un widget: se arrastra para elegir qué parte se ve, con zoom y oscurecer
          (en SwiftUI: .sheet con PhotosPicker, DragGesture y dos Slider). -->
-    <div class="hoja-fondo" id="hoja-foto-widget" hidden>
-        <div class="hoja hoja-ajustes hoja-libreta" role="dialog" aria-modal="true" aria-labelledby="foto-widget-titulo">
+    <dialog class="hoja-fondo" id="hoja-foto-widget" aria-labelledby="foto-widget-titulo" hidden>
+        <div class="hoja hoja-ajustes hoja-libreta">
             <button class="boton-barra cerrar-hoja" id="cerrar-foto-widget" aria-label="Cancelar">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
@@ -930,12 +930,12 @@
             <p class="nota-widgets">La foto queda guardada solo en tu iPhone.</p>
             <input type="file" id="foto-widget-archivo" accept="image/*" hidden>
         </div>
-    </div>
+    </dialog>
 
     <!-- Métrica+ en la web: no se vende acá. Se mejora desde la app del iPhone y la web vinculada
          toma su compra sola (plan-iphone). Se abre desde un tema con candado o pasado el límite de carpetas. -->
-    <div class="hoja-fondo" id="paywall" hidden>
-        <div class="hoja" role="dialog" aria-modal="true" aria-labelledby="paywall-titulo">
+    <dialog class="hoja-fondo" id="paywall" aria-labelledby="paywall-titulo" hidden>
+        <div class="hoja">
             <button class="boton-barra cerrar-hoja" id="cerrar-paywall" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
@@ -957,12 +957,12 @@
             <button class="boton-relleno boton-comprar" id="paywall-vincular" hidden>Vincular con el iPhone</button>
             <p class="nota centrada" id="paywall-nota"></p>
         </div>
-    </div>
+    </dialog>
 
     <!-- ¿Por dónde empiezo? (antes «Dame un tema»): hoja que sube desde abajo, con el lenguaje de Rimas (caja de vidrio con
          bordes de 30, título chico en mayúsculas, pastillas y el refrescar redondo). -->
-    <div class="hoja-fondo" id="hoja-tema" hidden>
-        <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="tema-frase">
+    <dialog class="hoja-fondo" id="hoja-tema" aria-labelledby="tema-frase" hidden>
+        <div class="hoja-tema">
             <div class="agarre-tema"></div>
             <button type="button" class="cerrar-ventana-ia" data-cerrar-hoja="hoja-tema" aria-label="Cerrar"><svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             <!-- Desde la estrellita de arriba (con algo escrito): «Métrica+ IA» (la IA lee la letra y propone cambios,
@@ -1025,13 +1025,13 @@
                 <p class="nota-tema">Las que ya usaste salen al final. Todo funciona sin internet.</p>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- IA (pedido de Swa): al seleccionar una frase de la letra, la estrellita de la barra de arriba del teclado
          cierra el teclado y abre esta hoja, la misma de «¿Por dónde empiezo?» con todos sus botones, pero con
          lo que propone la IA: 3 o 4 alternativas de la frase, con sus mismas rimas (sin pastillas, pedido de Swa). Simulada hasta que esté el servidor (worker/README.md). En SwiftUI, .sheet. -->
-    <div class="hoja-fondo" id="hoja-ia" hidden>
-        <div class="hoja-tema" role="dialog" aria-modal="true" aria-labelledby="ia-frase">
+    <dialog class="hoja-fondo" id="hoja-ia" aria-labelledby="ia-frase" hidden>
+        <div class="hoja-tema">
             <div class="agarre-tema"></div>
             <button type="button" class="cerrar-ventana-ia" data-cerrar-hoja="hoja-ia" aria-label="Cerrar"><svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
             <div class="caja-tema vidrio" id="caja-ia">
@@ -1070,7 +1070,7 @@
                 <p class="nota centrada">Prueba: el plan es simulado, no se cobra nada.</p>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- IA para una palabra sola: la estrellita abre esta viñeta arriba de la palabra tocada, con
          flechas para pasar por lo que propone la IA; tocar la palabra la cambia en la letra. -->
