@@ -759,16 +759,17 @@ function menuFlotante(ancla, opciones) {
         b.setAttribute('role', 'menuitem');
         b.textContent = texto;
         b.classList.toggle('texto-rojo', Boolean(rojo));
-        b.addEventListener('click', () => { fondo.hidden = true; accion(); });
+        b.addEventListener('click', () => { fondo.hidePopover(); accion(); });
         return b;
     }));
-    fondo.hidden = false;
+    // Es un popover: queda arriba de todo (también de una hoja abierta) y Escape lo cierra solo.
+    fondo.showPopover();
     const r = ancla.getBoundingClientRect(), ancho = caja.offsetWidth, alto = caja.offsetHeight;
     caja.style.left = `${Math.max(8, Math.min(innerWidth - ancho - 8, r.right - ancho))}px`;
     caja.style.top = `${r.bottom + 6 + alto > innerHeight ? Math.max(8, r.top - alto - 6) : r.bottom + 6}px`;
     caja.querySelector('button')?.focus();
 }
-$('menu-flotante').addEventListener('click', e => { if (e.target === $('menu-flotante')) $('menu-flotante').hidden = true; });
+$('menu-flotante').addEventListener('click', e => { if (e.target === $('menu-flotante')) $('menu-flotante').hidePopover(); });
 
 function pedirNombre({ titulo, boton, valor }, responder) {
     const alerta = $('pedir-nombre'), campo = $('pedir-nombre-campo');
@@ -1592,9 +1593,15 @@ function avisoPanel(texto) {
         aviso = elemento('div', 'aviso-panel vidrio');
         aviso.id = 'aviso-panel';
         aviso.setAttribute('role', 'status');
+        // Popover manual: así se ve también arriba de una hoja abierta.
+        aviso.popover = 'manual';
         document.body.append(aviso);
     }
     aviso.textContent = texto;
+    // Se vuelve a abrir para quedar arriba de lo último que se abrió.
+    if (aviso.matches(':popover-open')) aviso.hidePopover();
+    aviso.showPopover();
+    aviso.getBoundingClientRect();
     aviso.classList.add('visible');
     clearTimeout(avisoPanelReloj);
     avisoPanelReloj = setTimeout(() => aviso.classList.remove('visible'), 1800);
@@ -6197,7 +6204,7 @@ document.addEventListener('keydown', e => {
         cerrarMenuLetras();
         return buscarEnLetras();
     }
-    if (e.key === 'Escape' && !$('menu-flotante').hidden) return void ($('menu-flotante').hidden = true);
+    if (e.key === 'Escape' && $('menu-flotante').matches(':popover-open')) return;
     if (e.key === 'Escape' && !$('menu-letras').hidden) return cerrarMenuLetras();
     if (e.key === 'Escape' && opcionesLetras.seleccionando && !hayHojaAbierta()) return salirDeSeleccion();
     if (mod && (e.key === '/' || e.code === 'Slash') && document.body.classList.contains('editando')) {

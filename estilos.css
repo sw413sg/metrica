@@ -2350,8 +2350,11 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 .menu-pie { flex: none; margin-top: 8px; }
 
 /* Un menú chico al lado de un botón (opciones de una carpeta, mover a carpeta). */
-.menu-flotante-fondo { position: fixed; inset: 0; z-index: 45; }
-.menu-flotante-fondo[hidden] { display: none; }
+/* Es un popover (arriba de todo): sin el borde, el fondo ni el tamaño de un popover común. */
+.menu-flotante-fondo {
+    position: fixed; inset: 0; z-index: 45; width: auto; height: auto; max-width: none; max-height: none;
+    margin: 0; padding: 0; border: 0; background: transparent; overflow: visible;
+}
 .menu-flotante {
     position: absolute; min-width: 200px; max-width: 280px; max-height: 60vh; overflow-y: auto; padding: 6px; border-radius: 16px;
     display: flex; flex-direction: column; animation: aparecer-alerta .15s ease-out;
@@ -2642,7 +2645,7 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
 body.con-panel #sugerencias[data-modo="cambio"] { display: none; }
 /* Aviso corto («Verso guardado en el baúl»), arriba al medio de la libreta. */
 .aviso-panel {
-    position: fixed; z-index: 50; top: 18px; left: calc(var(--izq) + (100vw - var(--izq) - var(--der)) / 2); translate: -50% -12px;
+    position: fixed; z-index: 50; inset: auto; margin: 0; overflow: visible; top: 18px; left: calc(var(--izq) + (100vw - var(--izq) - var(--der)) / 2); translate: -50% -12px;
     padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--texto);
     opacity: 0; pointer-events: none; transition: opacity .2s, translate .2s;
 }
