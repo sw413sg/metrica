@@ -2679,3 +2679,5 @@ html[data-direccion="atras"]::view-transition-new(seccion) { animation-name: sec
 .texto-legal p { margin: 0 0 10px; }
 .texto-legal h2 { margin: 20px 0 6px; font-size: 17px; font-weight: 600; }
 .texto-legal a { color: var(--destacado); }
+/* Links con el efecto de la palabra tocada (el de Google Takeout en Keep), para que se vea que se tocan. */
+.link-violeta { text-decoration: none; }
