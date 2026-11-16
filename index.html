@@ -115,6 +115,7 @@ h1 { font-size: clamp(42px, 6.4vw, 68px); line-height: 1.04; letter-spacing: -0.
 .duo { position: relative; width: 300px; margin: 0 auto; }
 .duo .atras { position: absolute; inset: 0; transform: translate(-46%, 5%) rotate(-8deg) scale(0.86); opacity: 0.55; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 30px 60px -20px rgba(0, 0, 0, 0.7); }
 .duo .telefono:not(.atras) { position: relative; }
+.telefono::after { content: ""; position: absolute; top: 3.1%; left: 50%; width: 27%; height: 3.4%; transform: translateX(-50%); background: #000; border-radius: 999px; }
 .telefono.chico { width: 240px; border-radius: 40px; padding: 8px; }
 .telefono.chico img { border-radius: 32px; }
 
@@ -283,7 +284,7 @@ footer a:hover { color: var(--texto); }
                 </div>
             </div>
             <div class="duo">
-                <div class="telefono atras"><img src="sitio/letras.webp" alt="" width="390" height="844"></div>
+                <div class="telefono atras"><img src="sitio/baul.webp" alt="" width="390" height="844"></div>
                 <div class="telefono"><img src="sitio/libreta.webp" alt="Una letra en Métrica, con las sílabas de cada verso y las rimas pintadas de colores" width="390" height="844" fetchpriority="high"></div>
             </div>
         </div>
@@ -316,7 +317,7 @@ footer a:hover { color: var(--texto); }
                     <li>Guarda las que te gusten para tenerlas a mano.</li>
                 </ul>
             </div>
-            <div class="telefono chico"><img src="sitio/rimas.webp" alt="La pantalla de Rimas con las rimas de «canción»" width="390" height="844" loading="lazy"></div>
+            <div class="telefono chico"><img src="sitio/rimas.webp" alt="La pantalla de Rimas con las rimas de «corazón»" width="390" height="844" loading="lazy"></div>
         </div>
     </section>
 
@@ -371,9 +372,9 @@ footer a:hover { color: var(--texto); }
                 <p>Cada letra tiene su propio tema: oscuros, claros y del espacio, con una ilustración sutil que queda quieta mientras escribes. Elige también la fuente, el tamaño y la separación de los renglones.</p>
             </div>
             <div class="abanico">
-                <div class="telefono"><img src="sitio/tema-papel.webp" alt="Una letra con el tema Papel" width="390" height="844" loading="lazy"></div>
-                <div class="telefono"><img src="sitio/tema-galaxia.webp" alt="Una letra con el tema Galaxia" width="390" height="844" loading="lazy"></div>
-                <div class="telefono"><img src="sitio/tema-sierra.webp" alt="Una letra con el tema Sierra" width="390" height="844" loading="lazy"></div>
+                <div class="telefono"><img src="sitio/tema-1.webp" alt="Una letra con un tema oscuro" width="390" height="844" loading="lazy"></div>
+                <div class="telefono"><img src="sitio/tema-2.webp" alt="Una letra con un tema del espacio" width="390" height="844" loading="lazy"></div>
+                <div class="telefono"><img src="sitio/tema-3.webp" alt="Una letra con un tema claro" width="390" height="844" loading="lazy"></div>
             </div>
         </div>
     </section>
