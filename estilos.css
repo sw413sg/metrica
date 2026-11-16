@@ -2650,3 +2650,22 @@ body.con-panel #sugerencias[data-modo="cambio"] { display: none; }
     opacity: 0; pointer-events: none; transition: opacity .2s, translate .2s;
 }
 .aviso-panel.visible { opacity: 1; translate: -50% 0; }
+
+/* Transiciones de vista (conTransicion en js/app.js). Cambiar de sección desliza la pantalla
+   hacia el lado de la barra; abrir una letra hace crecer su tarjeta hasta la libreta. */
+html.transicion-seccion .pantalla.activa { view-transition-name: seccion; }
+::view-transition-group(*) { animation-duration: .24s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+::view-transition-old(seccion), ::view-transition-new(seccion) { animation-duration: .22s; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+html[data-direccion="adelante"]::view-transition-old(seccion) { animation-name: seccion-sale-izquierda; }
+html[data-direccion="adelante"]::view-transition-new(seccion) { animation-name: seccion-entra-derecha; }
+html[data-direccion="atras"]::view-transition-old(seccion) { animation-name: seccion-sale-derecha; }
+html[data-direccion="atras"]::view-transition-new(seccion) { animation-name: seccion-entra-izquierda; }
+@keyframes seccion-sale-izquierda { to { translate: -24px 0; opacity: 0; } }
+@keyframes seccion-entra-derecha { from { translate: 24px 0; opacity: 0; } }
+@keyframes seccion-sale-derecha { to { translate: 24px 0; opacity: 0; } }
+@keyframes seccion-entra-izquierda { from { translate: -24px 0; opacity: 0; } }
+/* La tarjeta y la libreta se funden mientras cambia el tamaño, cada una a su tamaño real
+   (sin estirar el texto) y recortadas a la caja que crece, con los bordes de las tarjetas. */
+::view-transition-group(letra-abierta) { border-radius: 22px; overflow: clip; }
+::view-transition-old(letra-abierta), ::view-transition-new(letra-abierta) { width: auto; height: auto; object-fit: none; object-position: 0 0; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }

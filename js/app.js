@@ -89,7 +89,53 @@ function marcarBarra() {
     if (enCarpeta) document.querySelector('#barra-pestanas [data-pestana="letras"]:not([data-vista])').setAttribute('aria-selected', 'false');
     renderizarCarpetasLateral();
 }
-document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => b.addEventListener('click', () => {
+// ---------- Transiciones de vista (como en iOS) ----------
+// Cambiar de sección desliza la pantalla hacia el lado de la barra, y abrir una letra hace
+// crecer su tarjeta hasta la libreta (y al volver, al revés). Sin soporte o con «reducir
+// movimiento», cambia directo. `cambiar` corre recién cuando el navegador sacó la foto de lo
+// de antes: lo que dependa del cambio va adentro.
+function conTransicion(cambiar, { clase = '', nombrar = null } = {}) {
+    if (!document.startViewTransition || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return void cambiar();
+    const raiz = document.documentElement;
+    if (clase) raiz.classList.add(clase);
+    nombrar?.(false);
+    const transicion = document.startViewTransition(() => { cambiar(); nombrar?.(true); });
+    transicion.finished.finally(() => {
+        if (clase) raiz.classList.remove(clase);
+        document.querySelectorAll('[data-transicion]').forEach(el => { el.style.viewTransitionName = ''; delete el.dataset.transicion; });
+    });
+}
+// Le pone (o le saca) el nombre de la transición a un elemento.
+function nombrarParaTransicion(el, nombre) {
+    if (!el) return;
+    el.style.viewTransitionName = nombre;
+    el.dataset.transicion = '';
+}
+// La tarjeta de una letra y la libreta son «la misma cosa» en la transición.
+function transicionDeLetra(id, haciaLibreta) {
+    const tarjeta = () => document.querySelector(`.tarjeta-letra[data-id="${CSS.escape(String(id))}"]`);
+    const libreta = () => $('vista-editor');
+    const [desde, hasta] = haciaLibreta ? [tarjeta, libreta] : [libreta, tarjeta];
+    return despues => {
+        if (despues && desde()) desde().style.viewTransitionName = '';
+        nombrarParaTransicion((despues ? hasta : desde)(), 'letra-abierta');
+    };
+}
+const ordenDeSeccion = nombre => [...document.querySelectorAll('#barra-pestanas [data-pestana]:not([data-vista])')].findIndex(b => b.dataset.pestana === nombre);
+
+// Pasar a otra sección con la transición, deslizando hacia el lado que queda en la barra.
+function irASeccion(cambiar, nombre) {
+    const actual = document.querySelector('.pantalla.activa')?.dataset.pestana;
+    if (actual === nombre) return cambiar();
+    document.documentElement.dataset.direccion = ordenDeSeccion(nombre) > ordenDeSeccion(actual) ? 'adelante' : 'atras';
+    conTransicion(cambiar, { clase: 'transicion-seccion' });
+}
+// Cuando la toca el código, el cambio es al instante (lo que sigue cuenta con la sección nueva).
+document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => b.addEventListener('click', e => {
+    if (!e.isTrusted) return tocarPestana(b);
+    irASeccion(() => tocarPestana(b), b.dataset.pestana);
+}));
+function tocarPestana(b) {
     const enLetras = $('pantalla-letras').classList.contains('activa');
     // El baúl, desde la barra lateral: si hay una letra abierta, volver lleva a ella.
     if (b.dataset.vista === 'baul') {
@@ -119,7 +165,7 @@ document.querySelectorAll('#barra-pestanas [data-pestana]').forEach(b => b.addEv
     }
     if (b.dataset.pestana === 'ajustes' && $('pantalla-ajustes').classList.contains('activa')) mostrarVistaAjustes('vista-ajustes');
     mostrarPestana(b.dataset.pestana);
-}));
+}
 
 // ---------- Gestos de deslizar ----------
 // Como en iOS: deslizar desde el borde izquierdo hacia la derecha vuelve atrás (de una letra,
@@ -156,14 +202,20 @@ const seDesplazaDeCostado = nodo => {
         const pantalla = document.querySelector('.pantalla.activa');
         const vista = pantalla.querySelector('.vista.activa')?.id;
         if (VOLVER_DESDE[vista]) {
-            if (x <= BORDE && dx > 0) { document.activeElement?.blur(); $(VOLVER_DESDE[vista]).click(); }
+            if (x <= BORDE && dx > 0) {
+                document.activeElement?.blur();
+                const volver = () => $(VOLVER_DESDE[vista]).click();
+                if (vista === 'vista-editor' && letraActual) conTransicion(volver, { nombrar: transicionDeLetra(letraActual.id, false) });
+                else volver();
+            }
             return;
         }
         const desdeBorde = dx > 0 ? x <= BORDE : x >= innerWidth - BORDE;
         if (!desdeBorde || document.body.classList.contains('teclado-abierto') || objetivo.closest?.(CON_GESTO_PROPIO) || seDesplazaDeCostado(objetivo)) return;
         const botones = [...document.querySelectorAll('#barra-pestanas [data-pestana]:not([data-vista])')];
         const actual = botones.findIndex(b => b.dataset.pestana === pantalla.dataset.pestana);
-        botones[actual + (dx < 0 ? 1 : -1)]?.click();
+        const otra = botones[actual + (dx < 0 ? 1 : -1)];
+        if (otra) irASeccion(() => otra.click(), otra.dataset.pestana);
     }, { passive: true });
     document.addEventListener('touchcancel', () => { inicio = null; }, { passive: true });
 }
@@ -238,7 +290,7 @@ function renderizarLetras() {
         const fueArrastrada = arrastrarTarjeta(tarjeta, boton, letra);
         boton.addEventListener('click', () => {
             if (fueArrastrada()) return;
-            if (!opcionesLetras.seleccionando) return abrirEditor(letra);
+            if (!opcionesLetras.seleccionando) return conTransicion(() => abrirEditor(letra), { nombrar: transicionDeLetra(letra.id, true) });
             if (elegidas.has(letra.id)) elegidas.delete(letra.id); else elegidas.add(letra.id);
             tarjeta.classList.toggle('elegida', elegidas.has(letra.id));
             pintarSeleccion();
@@ -2044,7 +2096,12 @@ $('nueva-letra').addEventListener('click', () => {
     if (carpetaActual()) letra.carpeta = opcionesLetras.carpeta;
     abrirEditor(letra);
 });
-$('editor-atras').addEventListener('click', () => { mostrarVista('vista-lista-letras'); renderizarLetras(); });
+$('editor-atras').addEventListener('click', e => {
+    const volver = () => { mostrarVista('vista-lista-letras'); renderizarLetras(); };
+    // Cuando lo toca el código (otra sección, el gesto de volver) tiene que ser al instante.
+    if (!e.isTrusted || !$('vista-editor').classList.contains('activa') || !letraActual) return volver();
+    conTransicion(volver, { nombrar: transicionDeLetra(letraActual.id, false) });
+});
 $('borrar-letra').addEventListener('click', () => confirmarBorrado(letraActual, ok => {
     if (!ok) return;
     verDialogo($('ajustes-libreta'), false);

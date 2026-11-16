@@ -29,13 +29,16 @@ const sembrar = () => {
     localStorage.setItem('metrica.frases', JSON.stringify([{id: '1', texto: 'la noche se viste de ayer', creada: 1, usada: false}]));
 };
 
+// Las páginas van con «reducir movimiento»: sin las transiciones de vista, cada toque cambia la
+// pantalla al instante y las pruebas no dependen de cuánto dura una animación (las transiciones
+// se prueban aparte, al final).
 (async () => {
     await new Promise(r => servidor.listen(0, r));
     const url = `http://localhost:${servidor.address().port}/app/`;
     const browser = await chromium.launch();
     fs.mkdirSync('capturas/compu', {recursive: true});
     for (const tema of ['light', 'dark']) {
-        const page = await browser.newPage({viewport: {width: 1440, height: 900}, colorScheme: tema});
+        const page = await browser.newPage({reducedMotion: 'reduce', viewport: {width: 1440, height: 900}, colorScheme: tema});
         const errores = [];
         page.on('pageerror', e => errores.push(e.message));
         await page.addInitScript(sembrar);
@@ -137,7 +140,7 @@ const sembrar = () => {
 
     // Pantalla mediana: el panel es una hoja que se abre con su botón y tapa parte de la libreta.
     {
-        const page = await browser.newPage({viewport: {width: 860, height: 800}});
+        const page = await browser.newPage({reducedMotion: 'reduce', viewport: {width: 860, height: 800}});
         await page.addInitScript(sembrar);
         await page.goto(url);
         await page.waitForTimeout(800);
@@ -153,7 +156,7 @@ const sembrar = () => {
 
     // Etapa 2: carpetas, menú de Letras, buscador, selección, plegar la barra y tarjetas sin deformarse.
     {
-        const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+        const page = await browser.newPage({reducedMotion: 'reduce', viewport: {width: 1440, height: 900}});
         const errores = [];
         page.on('pageerror', e => errores.push(e.message));
         await page.addInitScript(sembrar);
@@ -241,7 +244,7 @@ const sembrar = () => {
 
     // Una ventana bien ancha: más columnas de 220 y el buscador arranca con la grilla (pedido de Swa).
     {
-        const page = await browser.newPage({viewport: {width: 1900, height: 900}, screen: {width: 1920, height: 1080}});
+        const page = await browser.newPage({reducedMotion: 'reduce', viewport: {width: 1900, height: 900}, screen: {width: 1920, height: 1080}});
         await page.addInitScript(sembrar);
         await page.goto(url);
         await page.waitForTimeout(800);
@@ -255,7 +258,7 @@ const sembrar = () => {
 
     // La ventana a la mitad de la pantalla: sin barra lateral; las tres líneas la abren entera.
     {
-        const page = await browser.newPage({viewport: {width: 900, height: 800}, screen: {width: 1920, height: 1080}});
+        const page = await browser.newPage({reducedMotion: 'reduce', viewport: {width: 900, height: 800}, screen: {width: 1920, height: 1080}});
         await page.addInitScript(sembrar);
         const errores = [];
         page.on('pageerror', e => errores.push(e.message));
@@ -288,7 +291,7 @@ const sembrar = () => {
 
     // En el celular, todo como siempre: barra de pestañas abajo, sin barra lateral ni panel.
     {
-        const page = await browser.newPage({viewport: {width: 390, height: 844}, hasTouch: true, isMobile: true});
+        const page = await browser.newPage({reducedMotion: 'reduce', viewport: {width: 390, height: 844}, hasTouch: true, isMobile: true});
         await page.addInitScript(sembrar);
         await page.goto(url);
         await page.waitForTimeout(800);
@@ -299,6 +302,37 @@ const sembrar = () => {
         assert.equal(await page.locator('#panel-ayudas').isVisible(), false);
         assert.equal(await page.locator('#alternar-panel').isVisible(), false);
         await page.screenshot({path: 'capturas/compu/celular.png'});
+        await page.close();
+    }
+    // Transiciones de vista (sin «reducir movimiento»): abrir una letra hace crecer su tarjeta
+    // hasta la libreta, cambiar de sección desliza, y al terminar no quedan nombres puestos.
+    {
+        const page = await browser.newPage({viewport: {width: 1440, height: 900}});
+        const errores = [];
+        page.on('pageerror', e => errores.push(e.message));
+        await page.addInitScript(sembrar);
+        await page.addInitScript(() => {
+            window.transiciones = [];
+            const original = document.startViewTransition?.bind(document);
+            if (original) document.startViewTransition = cambiar => {
+                window.transiciones.push([...document.querySelectorAll('[data-transicion]')].map(el => el.id || el.className));
+                return original(cambiar);
+            };
+        });
+        await page.goto(url);
+        await page.waitForTimeout(800);
+        await page.click('.tarjeta-letra[data-id="1761000000000"] button');
+        await page.waitForTimeout(600);
+        assert.equal(await page.locator('#vista-editor').isVisible(), true);
+        await page.click('#editor-atras');
+        await page.waitForTimeout(600);
+        assert.equal(await page.locator('#vista-lista-letras').isVisible(), true);
+        await page.click('#barra-pestanas [data-pestana="rimas"]');
+        await page.waitForTimeout(600);
+        assert.equal(await page.locator('#pantalla-rimas').isVisible(), true);
+        assert.deepEqual(await page.evaluate(() => window.transiciones), [['tarjeta-letra'], ['vista-editor'], []]);
+        assert.equal(await page.evaluate(() => document.querySelectorAll('[data-transicion]').length + document.documentElement.classList.length), 0);
+        assert.deepEqual(errores, []);
         await page.close();
     }
     await browser.close();
