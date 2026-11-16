@@ -18,7 +18,7 @@
 <link rel="canonical" href="https://metricarimas.com/">
 <link rel="icon" href="assets/logo/icono.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/logo/icono-180.png">
-<!-- La landing de metricarimas.com: presenta la app de iPhone. La web app de prueba está en app.html, sin link desde acá: tiene la compra simulada y precios viejos. -->
+<!-- La landing de metricarimas.com: presenta la app de iPhone. «Métrica Web», arriba, abre la web app (app/) en la pantalla del QR. -->
 <style>
 :root {
     color-scheme: dark;
@@ -73,6 +73,13 @@ img { display: block; max-width: 100%; }
 .barra nav { display: flex; gap: 22px; margin-left: auto; font-size: 15px; }
 .barra nav a { text-decoration: none; color: var(--texto-2); }
 .barra nav a:hover { color: var(--texto); }
+.barra nav { align-items: center; }
+/* «Métrica Web»: abre la web en la pantalla del QR para vincularla con el iPhone (solo en pantallas anchas: es para la computadora). */
+.barra nav a.boton-web {
+    height: 36px; padding: 0 16px; border-radius: 18px; display: inline-flex; align-items: center; font-weight: 600;
+    color: var(--texto); background: var(--destacado-suave); border: 1px solid rgba(157, 139, 255, 0.4);
+}
+.barra nav a.boton-web:hover { background: rgba(157, 139, 255, 0.26); }
 
 .boton {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -93,14 +100,9 @@ img { display: block; max-width: 100%; }
     background: radial-gradient(closest-side, rgba(123, 97, 255, 0.28), transparent 70%); pointer-events: none;
 }
 .portada .envoltura { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
-.etiqueta {
-    display: inline-block; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--destacado); background: var(--destacado-suave); padding: 5px 12px; border-radius: 14px; margin-bottom: 18px;
-}
 h1 { font-size: clamp(42px, 6.4vw, 68px); line-height: 1.04; letter-spacing: -0.035em; margin: 0 0 20px; font-weight: 750; }
 .bajada { font-size: 20px; color: var(--texto-2); max-width: 30em; margin: 0 0 30px; }
 .acciones { display: flex; flex-wrap: wrap; gap: 12px; }
-.nota-chica { font-size: 14px; color: var(--texto-3); margin-top: 16px; }
 
 /* Un iPhone dibujado con CSS, con la captura adentro. */
 .telefono {
@@ -176,6 +178,7 @@ section { scroll-margin-top: 70px; }
 .tarjeta .icono svg { width: 22px; height: 22px; }
 .tarjeta h3 { margin: 0 0 6px; font-size: 18px; letter-spacing: -0.01em; }
 .tarjeta p { margin: 0; color: var(--texto-2); font-size: 15px; }
+.tarjeta a { color: var(--destacado); text-decoration: none; font-weight: 600; }
 .centrado { text-align: center; }
 .centrado .bajada { margin-left: auto; margin-right: auto; }
 
@@ -260,6 +263,7 @@ footer a:hover { color: var(--texto); }
             <a href="#ia">Métrica IA</a>
             <a href="#precios" class="siempre">Precios</a>
             <a href="soporte.html" class="siempre">Soporte</a>
+            <a href="app/#vincular" class="boton-web">Métrica Web</a>
         </nav>
     </div>
 </header>
@@ -268,7 +272,6 @@ footer a:hover { color: var(--texto); }
     <section class="portada">
         <div class="envoltura">
             <div>
-                <span class="etiqueta">Para iPhone</span>
                 <h1>Escribe canciones que <span class="brillo">riman</span>.</h1>
                 <p class="bajada">Métrica es la libreta para escribir letras en español: cuenta las sílabas de cada verso, pinta lo que rima mientras escribes y te da ideas cuando te trabas.</p>
                 <div class="acciones">
@@ -278,7 +281,6 @@ footer a:hover { color: var(--texto); }
                     </span>
                     <a class="boton" href="#funciones">Ver qué hace</a>
                 </div>
-                <p class="nota-chica">Gratis, en español y sin cuentas. Tus letras quedan en tu iPhone y en tu iCloud.</p>
             </div>
             <div class="duo">
                 <div class="telefono atras"><img src="sitio/letras.webp" alt="" width="390" height="844"></div>
@@ -297,7 +299,6 @@ footer a:hover { color: var(--texto); }
                     <li>Rimas internas y multisilábicas, no solo la última palabra.</li>
                     <li>Toca una palabra y aparecen rimas, sinónimos y palabras relacionadas para cambiarla.</li>
                     <li>Marca las partes con un toque: [Intro], [Estribillo], [Verso].</li>
-                    <li>Entiende cómo suenan las palabras en inglés que se usan en las letras.</li>
                 </ul>
             </div>
             <div class="telefono chico"><img src="sitio/palabra.webp" alt="Una palabra tocada en la libreta, con rimas para cambiarla abajo" width="390" height="844" loading="lazy"></div>
@@ -313,7 +314,6 @@ footer a:hover { color: var(--texto); }
                 <ul class="lista">
                     <li>Filtra por palabras simples, sinónimos que riman y palabras relacionadas.</li>
                     <li>Guarda las que te gusten para tenerlas a mano.</li>
-                    <li>Funciona sin internet.</li>
                 </ul>
             </div>
             <div class="telefono chico"><img src="sitio/rimas.webp" alt="La pantalla de Rimas con las rimas de «canción»" width="390" height="844" loading="lazy"></div>
@@ -329,7 +329,6 @@ footer a:hover { color: var(--texto); }
                 <ul class="lista">
                     <li>Boombap, Trap o a capela, con rondas de 1, 1:30 o 2 minutos.</li>
                     <li>Toca REC y grábate sobre el beat; la voz queda sincronizada sola.</li>
-                    <li>Tu música te acompaña también mientras escribes en la libreta.</li>
                 </ul>
             </div>
             <div class="telefono chico"><img src="sitio/freestyle.webp" alt="Freestyle en marcha, con la palabra en el centro del aro" width="390" height="844" loading="lazy"></div>
@@ -345,7 +344,7 @@ footer a:hover { color: var(--texto); }
                 <ul class="lista">
                     <li>«¿Cómo lo diría Métrica IA?»: hasta 10 alternativas para una frase.</li>
                     <li>«¿Qué cambiaría Métrica IA?»: repeticiones y palabras flojas, sin tocar tu estilo.</li>
-                    <li>«¿Por dónde empiezo?»: miles de ideas para arrancar, que no gastan tu cuota.</li>
+                    <li>«¿Por dónde empiezo?»: miles de ideas para arrancar, que no gastan créditos.</li>
                 </ul>
             </div>
             <div class="hoja-ia" aria-label="Ejemplo de una alternativa de Métrica IA">
@@ -358,8 +357,7 @@ footer a:hover { color: var(--texto); }
                 <div class="puntitos" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
                 <div class="cupo">
                     <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#9d8bff" stroke-width="4" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="9" transform="rotate(-90 18 18)"/></svg>
-                    <span><b>90%</b> de tu cuota IA del mes</span>
-                    <span class="gasto">−0,33%</span>
+                    <span><b>90%</b> · 270 créditos IA disponibles</span>
                 </div>
             </div>
         </div>
@@ -384,6 +382,21 @@ footer a:hover { color: var(--texto); }
         <div class="envoltura centrado">
             <h2 class="titulo-seccion">Y todo lo que necesitas para no perder una idea.</h2>
             <div class="grilla" style="text-align:left">
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+                    <h3>Métrica Web</h3>
+                    <p>Escanea un código QR con tu iPhone y sigue escribiendo en la computadora. <a href="app/#vincular">Abrir</a></p>
+                </div>
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+                    <h3>Carpetas</h3>
+                    <p>Agrupa tus letras por proyecto y ordénalas a mano, como el tracklist de un disco.</p>
+                </div>
+                <div class="tarjeta">
+                    <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+                    <h3>Bajo llave</h3>
+                    <p>Protege una letra, el baúl o toda la app con Face ID.</p>
+                </div>
                 <div class="tarjeta">
                     <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 12h18M10 12v3h4v-3M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></svg></div>
                     <h3>Baúl de frases</h3>
@@ -421,7 +434,7 @@ footer a:hover { color: var(--texto); }
     <section class="precios" id="precios">
         <div class="envoltura centrado">
             <h2 class="titulo-seccion">Gratis para escribir. Siempre.</h2>
-            <p class="bajada">Las rimas, las sílabas y la libreta nunca se bloquean. Si quieres más, elige lo que te sirva.</p>
+            <p class="bajada">Las rimas, las sílabas y la libreta nunca se bloquean.</p>
             <div class="planes" style="text-align:left">
                 <div class="plan">
                     <h3>Métrica</h3>
@@ -432,8 +445,8 @@ footer a:hover { color: var(--texto); }
                         <li>Rimas, sinónimos y diccionario</li>
                         <li>Freestyle de hasta 2 minutos por ronda</li>
                         <li>Grabar tu voz sobre el beat</li>
-                        <li>Baúl de frases e iCloud</li>
-                        <li>20 consultas de Métrica IA por mes</li>
+                        <li>Baúl de frases, iCloud y Métrica Web</li>
+                        <li>20 créditos IA por mes</li>
                     </ul>
                 </div>
                 <div class="plan">
@@ -442,11 +455,13 @@ footer a:hover { color: var(--texto); }
                     <div class="que">Pago único, sin suscripción</div>
                     <ul>
                         <li>Todo lo de la versión gratis</li>
-                        <li>Todos los temas de la libreta y el baúl</li>
+                        <li>Más de treinta temas y tu foto de fondo</li>
                         <li>Freestyle ilimitado</li>
                         <li>Descargar tus grabaciones en MP3</li>
-                        <li>Todos los widgets, con tu foto de fondo</li>
-                        <li class="mas-ia">100 consultas de IA de regalo</li>
+                        <li>Todos los widgets</li>
+                        <li>Carpetas ilimitadas</li>
+                        <li>Compartir tus letras como imagen o PDF con tu tema</li>
+                        <li class="mas-ia">100 créditos IA de regalo</li>
                     </ul>
                 </div>
                 <div class="plan destacado">
@@ -455,8 +470,8 @@ footer a:hover { color: var(--texto); }
                     <div class="que">Suscripción mensual, cancelas cuando quieras</div>
                     <ul>
                         <li>Todo lo de Métrica+</li>
-                        <li class="mas-ia">300 consultas de Métrica IA por mes</li>
-                        <li>Paquetes de consultas extra que no vencen</li>
+                        <li class="mas-ia">300 créditos IA por mes</li>
+                        <li>Puedes sumar paquetes de créditos que no vencen</li>
                     </ul>
                 </div>
             </div>
@@ -477,11 +492,11 @@ footer a:hover { color: var(--texto); }
             </details>
             <details>
                 <summary>¿Qué pasa con lo que escribo cuando uso la IA?</summary>
-                <p>Solo se envía el texto necesario para responder tu consulta, sin tu nombre ni tu cuenta, y no lo guardamos. Los detalles están en la <a href="privacidad.html">política de privacidad</a>.</p>
+                <p>Solo se envía el texto necesario para responderte, sin tu nombre ni tu cuenta, y no lo guardamos. Los detalles están en la <a href="privacidad.html">política de privacidad</a>.</p>
             </details>
             <details>
                 <summary>¿Funciona en Android?</summary>
-                <p>Por ahora solo en iPhone, con iOS 17 o más nuevo.</p>
+                <p>Por ahora solo en iPhone, con iOS 17 o más nuevo. En la computadora puedes usar <a href="app/#vincular">Métrica Web</a>, vinculada con tu iPhone.</p>
             </details>
             <details>
                 <summary>¿Cómo cancelo Métrica+ IA?</summary>
@@ -494,7 +509,6 @@ footer a:hover { color: var(--texto); }
         <div class="envoltura">
             <img class="logo" src="assets/logo/icono-180.png" alt="Ícono de Métrica" width="88" height="88" loading="lazy">
             <h2 class="titulo-seccion">Tu próxima canción empieza aquí.</h2>
-            <p class="bajada">Métrica llega muy pronto a la App Store, para iPhone.</p>
             <div class="acciones">
                 <span class="boton principal" aria-disabled="true">App Store <span class="pronto">· muy pronto</span></span>
                 <a class="boton" href="mailto:soporte@metricarimas.com">Escríbenos</a>

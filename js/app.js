@@ -6170,7 +6170,10 @@ $('web-cerrar').addEventListener('click', () => preguntar({
 setInterval(sincronizarWeb, 4000);
 document.addEventListener('visibilitychange', sincronizarWeb);
 renderizarWeb();
-if (!estaVinculada() && innerWidth >= 700 && !localStorage.getItem('metrica.web-sin-vincular')) abrirVincular();
+// «Métrica Web» de la landing llega con #vincular: abre el QR aunque antes se haya elegido «Usar sin vincular».
+const pideVincular = location.hash === '#vincular';
+if (pideVincular) history.replaceState(null, '', location.pathname + location.search);
+if (!estaVinculada() && (pideVincular || (innerWidth >= 700 && !localStorage.getItem('metrica.web-sin-vincular')))) abrirVincular();
 sincronizarWeb();
 
 // ---------- Atajos de teclado (computadora, pedido de Swa) ----------
