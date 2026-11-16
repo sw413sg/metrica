@@ -433,9 +433,9 @@
                         <button class="celda-boton celda-centrada" id="ajustes-mejorar"><span>Mejóralo desde tu iPhone</span></button>
                     </li>
                 </ul>
-                <h2 class="encabezado-grupo">Exportar</h2>
+                <h2 class="encabezado-grupo">Importar y exportar</h2>
                 <ul class="lista-agrupada">
-                    <li class="celda fuera-de-la-web">
+                    <li class="celda">
                         <span class="icono-celda" style="background:#f9ab00"><svg viewBox="0 0 24 24" class="icono"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
                         <button class="celda-boton" id="abrir-keep">
                             <span>Google Keep</span>
@@ -472,7 +472,7 @@
                     </li>
                     <li class="celda">
                         <span class="icono-celda" style="background:#34c759"><svg viewBox="0 0 24 24" class="icono"><path d="M5 4h10l4 4v12H5z"/><path d="M8 12h8M8 16h5"/></svg></span>
-                        <a href="diccionario/README.md">Licencias del diccionario</a><span class="chevron">›</span>
+                        <button class="celda-boton" id="abrir-licencias"><span>Licencias</span></button><span class="chevron">›</span>
                     </li>
                     <li class="celda fuera-de-la-web">
                         <span class="icono-celda" style="background:#ff9500"><svg viewBox="0 0 24 24" class="icono"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/></svg></span>
@@ -568,6 +568,31 @@
                  (en SwiftUI: LazyVGrid con .contextMenu). Se vacían solas a los 7 días (js/logica/papelera.js). -->
             <!-- Google Keep: se elige el .zip de Takeout (o los .json), se marcan las notas y pasan a
                  Letras con sus fechas. Todo en el teléfono, sin internet (js/logica/keep.js). -->
+            <!-- Licencias: el mismo texto que Ajustes › Acerca de › Licencias en Swift
+                 (Datos/licencias/README.md de metrica-swift). -->
+            <div class="vista" id="vista-licencias">
+                <header class="barra-nav">
+                    <button class="boton-atras" id="licencias-atras">
+                        <svg viewBox="0 0 24 24" class="icono"><path d="M15 5l-7 7 7 7"/></svg><span>Ajustes</span>
+                    </button>
+                </header>
+                <h1 class="titulo-grande">Licencias</h1>
+                <div class="contenido texto-legal">
+                    <p>Métrica se usa bajo el <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener">acuerdo de licencia estándar de Apple</a>.</p>
+                    <p>Los diccionarios de la app incluyen datos de terceros, adaptados por Métrica. Esas licencias cubren solo esos datos, y sus textos completos van incluidos en la app.</p>
+                    <h2>Palabras</h2>
+                    <p>RLA-ES, de Santiago Bosio y colaboradores, vía <a href="https://github.com/wooorm/dictionaries/tree/main/dictionaries/es" target="_blank" rel="noopener">wooorm/dictionaries</a>. <a href="https://www.mozilla.org/MPL/2.0/" target="_blank" rel="noopener">MPL 2.0</a>.</p>
+                    <h2>Frecuencias y palabras simples</h2>
+                    <p><a href="https://github.com/hermitdave/FrequencyWords" target="_blank" rel="noopener">FrequencyWords</a>, de Hermit Dave, a partir de OpenSubtitles 2018. <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.es" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</p>
+                    <h2>Sinónimos</h2>
+                    <p>OpenThesaurus-es, de Marcelo Garrone, del <a href="https://github.com/LibreOffice/dictionaries/tree/master/es" target="_blank" rel="noopener">tesauro de LibreOffice</a>. <a href="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html" target="_blank" rel="noopener">LGPL 2.1</a>.</p>
+                    <h2>Palabras relacionadas</h2>
+                    <p><a href="https://github.com/commonsense/conceptnet-numberbatch" target="_blank" rel="noopener">ConceptNet Numberbatch</a> 19.08, de Luminoso Technologies y el proyecto ConceptNet. <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.es" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</p>
+                    <h2>Definiciones</h2>
+                    <p>Autores del <a href="https://es.wiktionary.org" target="_blank" rel="noopener">Wikcionario</a>, con la limpieza de <a href="https://www.reader-dict.com" target="_blank" rel="noopener">reader.dict</a>, vía <a href="https://github.com/jcordon5/diccionario-es-pocketbook" target="_blank" rel="noopener">diccionario-es-pocketbook</a>. <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.es" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</p>
+                    <p>Las listas derivadas de obras CC BY-SA 4.0 se distribuyen con esa misma licencia.</p>
+                </div>
+            </div>
             <div class="vista" id="vista-keep">
                 <header class="barra-nav">
                     <button class="boton-atras" id="keep-atras">
@@ -578,9 +603,9 @@
                 <div class="contenido">
                     <p class="bajada-widgets">Trae las letras que tenías anotadas en Keep. Eliges cuáles y quedan en Letras, con su fecha.</p>
                     <ol class="pasos-widgets">
-                        <li>Entra a <a href="https://takeout.google.com/settings/takeout/custom/keep" target="_blank" rel="noopener"><b>Google Takeout</b></a> con tu cuenta, deja marcado solo <b>Keep</b> y toca <b>Siguiente paso</b> y <b>Crear exportación</b>.</li>
-                        <li>Cuando te llegue el mail de Google, baja el <b>.zip</b> (guárdalo en Archivos).</li>
-                        <li>Toca <b>Elegir el .zip</b> y marca las notas que quieres pasar.</li>
+                        <li>Entra a <a href="https://takeout.google.com/settings/takeout/custom/keep" target="_blank" rel="noopener"><b>Google Takeout</b></a> con tu cuenta, deja marcado solo <b>Keep</b> y elige <b>Siguiente paso</b> y <b>Crear exportación</b>.</li>
+                        <li>Cuando te llegue el mail de Google, baja el <b>.zip</b>.</li>
+                        <li>Haz clic en <b>Elegir el .zip</b> y marca las notas que quieres pasar.</li>
                     </ol>
                     <input type="file" id="keep-archivo" accept=".zip,.json,application/zip,application/json" multiple hidden>
                     <div class="botones"><button type="button" class="boton-relleno" id="keep-elegir">Elegir el .zip</button></div>
@@ -659,7 +684,7 @@
                 </button>
                 <button type="button" class="fila-grupo fila-accion" id="copiar-letra">
                     <span>Copiar</span>
-                    <span class="valor-accion" id="copiar-letra-valor">Sin el título</span>
+                    <span class="valor-accion" id="copiar-letra-valor"></span>
                 </button>
             </div>
             <!-- Abajo de todo, borrar la letra (pide confirmación). -->
@@ -939,11 +964,9 @@
             <button class="boton-barra cerrar-hoja" id="cerrar-paywall" aria-label="Cerrar">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M6 6l12 12M18 6L6 18"/></svg>
             </button>
-            <div class="paywall-icono">
-                <svg viewBox="0 0 24 24" class="icono"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
-            </div>
-            <h2 class="paywall-titulo" id="paywall-titulo">Mejóralo desde tu iPhone</h2>
-            <p class="paywall-bajada">Métrica+ se compra en la app Métrica del iPhone. Al comprarlo, esta web se desbloquea sola.</p>
+            <p class="paywall-marca" aria-hidden="true">Métrica<span class="mas-violeta">+</span></p>
+            <h2 class="paywall-titulo" id="paywall-titulo">Mejora la app para siempre</h2>
+            <p class="paywall-bajada">Puedes comprar Métrica+ sólo desde tu iPhone.</p>
             <ul class="lista-agrupada beneficios">
                 <li class="celda">
                     <svg viewBox="0 0 24 24" class="icono"><path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.3 5.6L12 15.3 7.1 18.2l1.3-5.6L4 8.8l5.8-.5z"/></svg>
@@ -1126,7 +1149,9 @@
             <button type="button" class="plegar-barra" id="plegar-barra" aria-label="Plegar la barra lateral" title="Plegar la barra lateral" aria-pressed="false">
                 <svg viewBox="0 0 24 24" class="icono"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
             </button>
-            <img src="assets/logo/icono.svg" alt="" width="28" height="28"><span>Métrica</span>
+            <button type="button" class="ir-a-letras" id="marca-inicio" aria-label="Métrica: ir al inicio de Letras">
+                <img src="assets/logo/icono.svg" alt="" width="28" height="28"><span>Métrica</span>
+            </button>
         </div>
         <!-- Siempre a la vista: que lo que escribes llega al iPhone (verde) o que se cortó (gris). -->
         <button type="button" class="estado-web solo-compu" id="estado-web" data-estado="sin-vincular">

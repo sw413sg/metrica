@@ -132,7 +132,12 @@ const sembrar = () => {
 
         // Ajustes, sin lo que es solo del iPhone.
         await page.click('#barra-pestanas [data-pestana="ajustes"]');
-        for (const id of ['abrir-widgets', 'abrir-keep', 'microfono', 'borrar-compra']) assert.equal(await page.locator(`#${id}`).isVisible(), false, id);
+        for (const id of ['abrir-widgets', 'microfono', 'borrar-compra']) assert.equal(await page.locator(`#${id}`).isVisible(), false, id);
+        // Google Keep sí se importa desde la web (pedido de Swa), y «Licencias» es la de Swift.
+        assert.equal(await page.locator('#abrir-keep').isVisible(), true);
+        await page.click('#abrir-licencias');
+        assert.equal(await page.locator('#vista-licencias h1').textContent(), 'Licencias');
+        await page.click('#licencias-atras');
         await page.screenshot({path: `capturas/compu/ajustes-${tema}.png`});
         assert.deepEqual(errores, []);
         await page.close();
@@ -231,13 +236,13 @@ const sembrar = () => {
         assert.equal(await page.locator('#vista-papelera').isVisible(), true);
         assert.equal(await page.getAttribute('#barra-pestanas [data-vista="papelera"]', 'aria-selected'), 'true');
         await page.click('#papelera-atras');
-        // La web no vende: pasado el límite de carpetas, «Mejóralo desde tu iPhone».
+        // La web no vende: pasado el límite de carpetas, el paywall («Mejora la app para siempre»).
         await page.click('.nueva-carpeta-lateral');
         await page.fill('#pedir-nombre-campo', 'Otra');
         await page.keyboard.press('Enter');
         await page.click('.nueva-carpeta-lateral');
         assert.equal(await page.locator('#paywall').isVisible(), true);
-        assert.match(await page.textContent('#paywall-titulo'), /Mejóralo desde tu iPhone/);
+        assert.match(await page.textContent('#paywall-titulo'), /Mejora la app para siempre/);
         assert.deepEqual(errores, []);
         await page.close();
     }

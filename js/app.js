@@ -173,7 +173,7 @@ function tocarPestana(b) {
 // a la sección de al lado de la barra (pedido de Swa). Solo desde los bordes, así no se mezcla
 // con deslizar la caja de Rimas o la de «¿Por dónde empiezo?». En SwiftUI: el gesto de NavigationStack y
 // un DragGesture en el TabView.
-const VOLVER_DESDE = { 'vista-editor': 'editor-atras', 'vista-baul': 'baul-atras', 'vista-widgets': 'widgets-atras', 'vista-keep': 'keep-atras', 'vista-papelera': 'papelera-atras' };
+const VOLVER_DESDE = { 'vista-editor': 'editor-atras', 'vista-baul': 'baul-atras', 'vista-widgets': 'widgets-atras', 'vista-keep': 'keep-atras', 'vista-licencias': 'licencias-atras', 'vista-papelera': 'papelera-atras' };
 // Lo que tiene su propio gesto de costado o se arrastra: ahí el dedo no cambia de sección.
 const CON_GESTO_PROPIO = 'input, textarea, select, [contenteditable], #reproductor, #caja-azar, #caja-tema, .beat-fs, .reproductor-pista, #barra-pestanas';
 const BORDE = 30;
@@ -2116,7 +2116,7 @@ async function copiarCuerpo() {
     try { await navigator.clipboard.writeText(datosParaCompartir(letraEnPantalla()).text); } catch { return; }
     $('copiar-letra-valor').textContent = 'Copiado';
     clearTimeout(avisoCopiado);
-    avisoCopiado = setTimeout(() => { $('copiar-letra-valor').textContent = 'Sin el título'; }, 1500);
+    avisoCopiado = setTimeout(() => { $('copiar-letra-valor').textContent = ''; }, 1500);
 }
 $('compartir-letra').addEventListener('click', async () => {
     if (!navigator.share) return copiarCuerpo();
@@ -4712,9 +4712,7 @@ function muestrasDeTemas(actual, alElegir) {
 function abrirPaywall() {
     const vinculada = estaVinculada();
     $('paywall-vincular').hidden = vinculada;
-    $('paywall-nota').textContent = vinculada
-        ? 'Cuando lo compres en el iPhone, esta web se pone al día en unos segundos.'
-        : 'Primero vincula esta computadora con tu iPhone.';
+    $('paywall-nota').textContent = vinculada ? '' : 'Primero vincula esta computadora con tu iPhone.';
     verDialogo($('paywall'), true);
 }
 
@@ -4743,6 +4741,21 @@ const ICONOS_WIDGET = {
     chispa: '<svg viewBox="0 0 24 24" class="icono icono-relleno"><path d="M12 3l1.9 6.1L20 12l-6.1 1.9L12 21l-1.9-7.1L4 12l6.1-2.9z"/></svg>',
 };
 const ICONO_ACCION = { anotar: 'cofre', 'nueva-letra': 'lapiz', rimas: 'lupa', freestyle: 'mic', grabar: 'rec' };
+// El logo y el nombre de la barra lateral llevan al inicio de Letras: todas las letras, sin
+// carpeta, búsqueda ni selección (pedido de Swa).
+$('marca-inicio').addEventListener('click', () => {
+    irASeccion(() => {
+        if (opcionesLetras.seleccionando) salirDeSeleccion();
+        if (opcionesLetras.busqueda) cerrarBusquedaLetras();
+        if (opcionesLetras.carpeta) elegirCarpeta(null);
+        mostrarPestana('letras');
+        if ($('vista-editor').classList.contains('activa')) $('editor-atras').click();
+        if (!$('vista-lista-letras').classList.contains('activa')) mostrarVista('vista-lista-letras');
+        renderizarLetras();
+        marcarBarra();
+    }, 'letras');
+});
+
 function mostrarVistaAjustes(id) {
     document.querySelectorAll('#pantalla-ajustes .vista').forEach(v => v.classList.toggle('activa', v.id === id));
 }
@@ -4752,6 +4765,8 @@ $('widgets-atras').addEventListener('click', () => mostrarVistaAjustes('vista-aj
 // Google Keep: el .zip de Takeout (o los .json sueltos) se lee en el teléfono; se marcan las
 // notas y pasan a Letras. Las que ya están (mismo título y texto) arrancan sin marcar.
 const keep = { notas: [], elegidas: new Set(), etiqueta: null };
+$('abrir-licencias').addEventListener('click', () => mostrarVistaAjustes('vista-licencias'));
+$('licencias-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
 $('abrir-keep').addEventListener('click', () => mostrarVistaAjustes('vista-keep'));
 $('keep-atras').addEventListener('click', () => mostrarVistaAjustes('vista-ajustes'));
 
@@ -6222,7 +6237,7 @@ $('vincular-sin').addEventListener('click', () => {
     cerrarVincular();
 });
 $('web-cerrar').addEventListener('click', () => preguntar({
-    titulo: '¿Cerrar la sesión?', texto: 'Las letras del iPhone se borran de esta computadora. En el iPhone siguen todas.', boton: 'Cerrar sesión', rojo: true,
+    titulo: '¿Cerrar la sesión?', texto: '', boton: 'Cerrar sesión', rojo: true,
 }, async ok => {
     if (!ok) return;
     await cerrarSesion();
