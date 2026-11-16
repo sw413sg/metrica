@@ -1046,11 +1046,9 @@ dialog.hoja-fondo::backdrop, dialog.alerta-fondo::backdrop { background: transpa
 }
 @keyframes subir { from { transform: translateY(40px); opacity: 0; } }
 .cerrar-hoja { position: absolute; top: 14px; right: 14px; color: var(--texto-2); }
-.paywall-icono {
-    width: 76px; height: 76px; margin: 8px auto 12px; border-radius: 22px; display: grid; place-items: center; color: #fff;
-    background: linear-gradient(135deg, #f3d38a, var(--destacado), var(--destacado-2)); box-shadow: 0 12px 30px var(--destacado-suave);
-}
-.paywall-icono .icono { width: 40px; height: 40px; fill: currentColor; stroke-width: 1.5; }
+/* Arriba del paywall, el nombre: «Métrica+» con el «+» violeta (pedido de Swa). */
+.paywall-marca { margin: 10px 0 10px; font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 1.1; color: var(--texto); }
+#paywall-nota:empty, #confirmar-borrado-texto:empty { display: none; }
 .paywall-titulo { font-size: 28px; font-weight: 700; margin: 0; }
 .paywall-bajada { color: var(--texto-2); margin: 6px 8px 0; font-size: 15px; }
 .beneficios { text-align: left; }
@@ -2407,6 +2405,8 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .barra-pestanas .creditos-lateral { margin-top: auto; }
     .marca-lateral { display: flex; align-items: center; gap: 10px; padding: 0 6px 10px; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
     .marca-lateral img { border-radius: 7px; }
+    /* El logo y el nombre llevan al inicio de Letras (pedido de Swa). */
+    .ir-a-letras { display: flex; align-items: center; gap: 10px; padding: 0; font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
     /* El estado de la vinculación, siempre a la vista pero liviano: sin tarjeta, el punto y dos renglones
        chicos (verde si está al día, gris si se cortó). */
     .barra-pestanas .estado-web {
@@ -2673,3 +2673,9 @@ html[data-direccion="atras"]::view-transition-new(seccion) { animation-name: sec
 ::view-transition-group(letra-abierta) { border-radius: 22px; overflow: clip; }
 ::view-transition-old(letra-abierta), ::view-transition-new(letra-abierta) { width: auto; height: auto; object-fit: none; object-position: 0 0; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; } }
+
+/* Ajustes › Licencias: el mismo texto que en Swift. */
+.texto-legal { color: var(--texto); font-size: 15px; line-height: 1.45; }
+.texto-legal p { margin: 0 0 10px; }
+.texto-legal h2 { margin: 20px 0 6px; font-size: 17px; font-weight: 600; }
+.texto-legal a { color: var(--destacado); }
