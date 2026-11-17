@@ -4647,12 +4647,13 @@ function pintarCreditosLateral() {
     const boton = $('creditos-lateral');
     const uso = cupoIA(localStorage);
     const p = pastillaCupo(uso, 0);
-    const plan = tienePlanIA(localStorage) ? 'Métrica<span class="mas-violeta">+ IA</span>'
-        : tieneExtras(localStorage) ? 'Métrica<span class="mas-violeta">+</span>' : 'Plan gratis';
     boton.classList.toggle('sin-creditos', !uso.quedan);
+    // Arriba el porcentaje que queda y abajo los créditos IA disponibles, que bajan en vivo (pedido de Swa).
     boton.innerHTML = `<span class="aro-creditos" style="--queda:${p.queda}" aria-hidden="true"><span class="estrella-ia"></span></span>`
-        + `<span class="texto-pestana"><span class="creditos-arriba">${uso.sinVincular ? 'Métrica IA' : `${p.porcentaje} <span>créditos IA</span>`}</span>`
-        + `<span class="creditos-abajo">${uso.sinVincular ? 'Con tu iPhone vinculado' : plan}</span></span>`;
+        + `<span class="texto-pestana"><span class="creditos-arriba">${uso.sinVincular ? 'Métrica IA' : p.porcentaje}</span>`
+        + `<span class="creditos-abajo">${uso.sinVincular ? 'Con tu iPhone vinculado' : escaparTexto(p.etiqueta)}</span></span>`
+        // Con la barra plegada, abajo del aro: el porcentaje y los créditos disponibles (pedido de Swa).
+        + (uso.sinVincular ? '' : `<span class="creditos-plegada"><b>${p.porcentaje}</b><span>${Math.max(0, uso.quedan).toLocaleString('es-AR')}</span><span>créditos</span></span>`);
     boton.title = uso.sinVincular ? 'Vincula tu iPhone para usar Métrica IA' : `Créditos IA: ${p.porcentaje} ${p.etiqueta}`;
 }
 $('creditos-lateral').addEventListener('click', () => document.querySelector('.barra-pestanas [data-pestana="ajustes"]').click());

@@ -2441,7 +2441,7 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     .creditos-lateral .texto-pestana { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
     .creditos-arriba { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
     .creditos-arriba span { font-weight: 400; color: var(--texto-2); }
-    .creditos-abajo { font-size: 11.5px; font-weight: 500; color: var(--texto-2); white-space: nowrap; }
+    .creditos-abajo { font-size: 11.5px; font-weight: 500; color: var(--texto-2); }
 
     /* Las tarjetas no se estiran al achicar la ventana: tienen su ancho y entran más o menos
        columnas, como en Keep (pedido de Swa). */
@@ -2498,8 +2498,13 @@ body.beat-sonando .bandeja-fs .rec-fs, body.con-musica .bandeja-fs .rec-fs { dis
     body.barra-plegada .barra-pestanas { padding-inline: 10px; align-items: center; }
     body.barra-plegada .marca-lateral img, body.barra-plegada .marca-lateral span,
     body.barra-plegada .texto-pestana, body.barra-plegada .estado-web-texto, body.barra-plegada .carpetas-lateral { display: none; }
-    body.barra-plegada .barra-pestanas .creditos-lateral { width: 46px; padding: 0; justify-content: center; }
-    body.barra-plegada .marca-lateral { padding: 0 0 14px; }
+    body.barra-plegada .barra-pestanas .creditos-lateral { width: 56px; padding: 6px 0; justify-content: center; flex-direction: column; gap: 4px; }
+    .creditos-plegada { display: none; }
+    body.barra-plegada .creditos-plegada { display: flex; flex-direction: column; align-items: center; line-height: 1.2; font-size: 10px; color: var(--texto-2); font-variant-numeric: tabular-nums; }
+    body.barra-plegada .creditos-plegada b { font-size: 11.5px; font-weight: 600; color: var(--texto); }
+    /* Plegada solo queda el botón de las tres líneas, centrado (el del logo, vacío, lo corría afuera). */
+    body.barra-plegada .marca-lateral { padding: 0 0 14px; justify-content: center; }
+    body.barra-plegada #marca-inicio { display: none; }
     body.barra-plegada .barra-pestanas button { width: 46px; padding: 0; justify-content: center; }
     body.barra-plegada .barra-pestanas .estado-web { width: 46px; min-height: 36px; padding: 0; justify-content: center; background: none; }
     .barra-pestanas, .app, .vista#vista-editor, .reproductor, .sonando-fs, #hoja-musica { transition: width .2s, margin .2s, left .2s; }
