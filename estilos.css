@@ -1192,10 +1192,10 @@ dialog.hoja-fondo::backdrop, dialog.alerta-fondo::backdrop { background: transpa
     background: linear-gradient(var(--velo), var(--velo)), var(--ilustracion, none) center bottom / 100% auto no-repeat, var(--libreta);
 }
 .fondo-tema-tarjeta + button { position: relative; }
-/* Con un tema oscuro y la app en claro, el tema al 40% queda en un gris claro: el texto va en negro,
-   así se lee (pedido de Swa; el blanco se apagaba). */
-.tarjeta-letra.texto-negro .titulo-letra { color: #000; }
-.tarjeta-letra.texto-negro .texto-letra { color: rgba(0, 0, 0, 0.8); }
+/* Con un tema oscuro y la app en claro, el tema al 40% queda en un gris claro: el texto va en gris
+   oscuro, el término medio entre el blanco (no se leía) y el negro (pedido de Swa). */
+.tarjeta-letra.texto-gris .titulo-letra { color: #3c4043; }
+.tarjeta-letra.texto-gris .texto-letra { color: #4a4d51; }
 .menu-tema-tarjetas { margin-top: 10px; }
 .check-tema-tarjetas { margin-left: auto; flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--texto-3); }
 #tema-en-tarjetas[aria-pressed="true"] span { font-weight: 600; }
