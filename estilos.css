@@ -1192,8 +1192,9 @@ dialog.hoja-fondo::backdrop, dialog.alerta-fondo::backdrop { background: transpa
     background: linear-gradient(var(--velo), var(--velo)), var(--ilustracion, none) center bottom / 100% auto no-repeat, var(--libreta);
 }
 .fondo-tema-tarjeta + button { position: relative; }
-.tarjeta-letra.texto-blanco .titulo-letra { color: #fff; }
-.tarjeta-letra.texto-blanco .texto-letra { color: rgba(255, 255, 255, 0.85); }
+/* El tema va al 40%, pero el texto no: blanco entero y con una sombra suave, así no se apaga sobre
+   el gris claro que queda con un tema oscuro en modo claro (pedido de Swa). */
+.tarjeta-letra.texto-blanco .titulo-letra, .tarjeta-letra.texto-blanco .texto-letra { color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45); }
 .menu-tema-tarjetas { margin-top: 10px; }
 .check-tema-tarjetas { margin-left: auto; flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--texto-3); }
 #tema-en-tarjetas[aria-pressed="true"] span { font-weight: 600; }
