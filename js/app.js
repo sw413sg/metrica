@@ -2340,7 +2340,7 @@ function filaRevision(cambio) {
     const boton = document.createElement('button');
     boton.type = 'button';
     boton.className = 'chip-simples';
-    boton.textContent = 'Cambiar';
+    boton.textContent = 'Hacer el cambio';
     boton.addEventListener('click', () => {
         // Se busca de nuevo: otro cambio de antes pudo correr las posiciones.
         const lugar = ubicarCambio(editorTexto.value, cambio.n, cambio.viejo);
