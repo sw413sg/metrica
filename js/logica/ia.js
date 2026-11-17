@@ -74,6 +74,9 @@ export function fraseElegida(texto, inicio, fin, { corregir = p => p, distancia 
     const desdeLinea = texto.lastIndexOf('\n', inicio - 1) + 1;
     const verso = describir(elegido, i, inicio - desdeLinea);
     const enVerso = versos[i].trim();
+    // Si la frase termina el verso: solo entonces tiene que rimar al final (pedido de Swa).
+    const finDeLinea = texto.indexOf('\n', fin);
+    const alFinal = !/\p{L}/u.test(texto.slice(fin, finDeLinea < 0 ? texto.length : finDeLinea));
     return {
         inicio,
         fin,
@@ -85,8 +88,8 @@ export function fraseElegida(texto, inicio, fin, { corregir = p => p, distancia 
             // La letra entera, solo de contexto: de qué trata y qué imágenes ya se usaron (pedido de Swa).
             // Hasta 80 renglones alrededor del verso, cada uno cortado a 140 letras.
             ...letraDeContexto(versos, i),
-            // Que suene como la frase: sus sílabas y que termine rimando con su última palabra.
-            objetivo: { silabas: verso.silabas, rimaCon: verso.final.palabra },
+            // Que suene como la frase: sus sílabas y, si termina el verso, que rime con su última palabra.
+            objetivo: { silabas: verso.silabas, rimaCon: verso.final.palabra, alFinal },
         },
     };
 }
@@ -147,8 +150,8 @@ export function palabrasSimuladas(pedido, { rimas = [], sinonimos = [], relacion
 const normal = s => s.toLowerCase().normalize('NFC').replace(/[^\p{L}\s]/gu, '').replace(/\s+/g, ' ').trim();
 
 // Lo que vuelve del modelo, pasado por el motor propio: se descartan las vacías, largas, repetidas
-// o iguales a la frase, y se ordenan por rima con la última palabra de la frase (consonante o la misma,
-// asonante, ninguna), sílabas más cerca de las de la frase y cuántas de sus rimas internas mantiene. Quedan hasta 4, cada una con sus datos.
+// o iguales a la frase, y quedan en el orden del modelo (las que no riman, atrás). Quedan hasta
+// SUGERENCIAS_IA, cada una con sus datos.
 export function validarSugerencias(textos, pedido, { corregir = p => p } = {}) {
     const vistas = new Set([normal(pedido.verso.texto)]);
     const { rimaCon, silabas: buscadas } = pedido.objetivo;
@@ -171,10 +174,14 @@ export function validarSugerencias(textos, pedido, { corregir = p => p } = {}) {
         const internas = palabras.slice(0, -1).filter(p => p.length > 3 && ecos.has(claveAsonante(p))).length;
         resultado.push({ texto, silabas, rima, final, internas, diferencia: Math.abs(silabas - buscadas) });
     }
-    // Terminar con la misma palabra mantiene la rima con el resto de la letra: cuenta como consonante.
-    const orden = { consonante: 0, misma: 0, asonante: 1 };
+    // El modelo las manda de la mejor a la peor, y ese orden se respeta (pedido de Swa): si la frase termina
+    // el verso, solo pasan atrás las que no riman. Antes se ordenaban por rima y sílabas, y una frase
+    // floja que rimaba consonante quedaba adelante de una buena que rimaba asonante.
+    const alFinal = pedido.objetivo.alFinal !== false;
     return resultado
-        .sort((a, b) => (orden[a.rima] ?? 2) - (orden[b.rima] ?? 2) || a.diferencia - b.diferencia || b.internas - a.internas)
+        .map((s, n) => ({ s, n, atras: alFinal && !s.rima ? 1 : 0 }))
+        .sort((a, b) => a.atras - b.atras || a.n - b.n)
+        .map(({ s }) => s)
         .slice(0, SUGERENCIAS_IA);
 }
 

@@ -11,10 +11,10 @@ export const GASTO_IA = { frase: 1, temas: 1, revision: (versos, otraVez = false
 // «¿Qué cambiaría Métrica IA?» que no encuentra nada no gasta cuota (pedido de Swa), pero igual cuesta
 // tokens: hasta estas por mes y por persona; después gasta como cualquier otra.
 export const REVISIONES_SIN_CAMBIOS = 10;
-// Cuántas muestra la app por frase: hasta 10 por pedido, porque pedir más casi no cambia el costo
-// (pedido de Swa). Se piden algunas de más porque el motor descarta las que no cumplen.
-export const SUGERENCIAS_IA = 10;
-export const PEDIDAS_IA = 14;
+// Cuántas muestra la app por frase. Se piden algunas de más porque el motor descarta las que no cumplen.
+// Bajó de 10 (con 14 pedidas) a 8: las últimas eran relleno (pedido de Swa, 2026-11-17).
+export const SUGERENCIAS_IA = 8;
+export const PEDIDAS_IA = 9;
 
 // Una palabra sola (la tocada): cuántas alternativas se piden para pasar con las flechas de la viñeta.
 export const PALABRAS_IA = 8;
@@ -89,14 +89,16 @@ const TAREAS = [
     'Si después de la letra vienen «Cambios desde que leíste la letra», esos renglones ahora dicen eso: usá siempre la versión nueva (también para copiar "viejo").',
     '',
     'TAREA «frase»: reescribir una frase de su letra.',
-    '- Escribí frases nuevas que puedan reemplazar a la elegida en la letra: que digan lo mismo o lo lleven más lejos, con imágenes concretas y sin clichés.',
-    '- Reescribila de verdad: otras palabras, otra construcción y otra imagen. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
-    '- Cada una tiene que tener sentido completo por sí sola y encajar gramaticalmente en el verso donde va: nada de frases cortadas, palabras sueltas al final ni ideas que no se entienden.',
-    '- Leé la letra entera: que sigan su tema, su historia y su tono, sin repetir imágenes ni palabras fuertes que ya usa.',
-    '- Que sean distintas entre sí, por los caminos que se piden.',
-    '- La última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
+    '- Primero leé la letra entera y entendé de qué habla, quién habla, a quién y con qué tono. Escribilo en "lectura", en una línea.',
+    '- Escribí frases que quien escribió esta letra podría haber escrito: su registro, su vocabulario, su forma de decir las cosas y el género de la letra. Nada de poesía rebuscada, metáforas forzadas ni palabras que esa persona no usaría. Mejor algo simple y que pegue que algo raro.',
+    '- Que sigan lo que la letra está contando en ese momento (lo de antes y lo de después) y no metan temas, personajes ni imágenes que no tienen nada que ver.',
+    '- Las primeras: la misma idea, mejor dicha (que suene mejor cantada, con más fuerza o más clara). Después: otras formas de decirlo, con otra imagen, siempre dentro de lo que cuenta la letra. Prohibido devolver la misma frase cambiando una o dos palabras por sinónimos (de «tiene la jaula que merece, la cerré» a «tiene la celda que merece, la sellé» NO sirve).',
+    '- La frase elegida va marcada con [[ ]] dentro de su verso: lo que escribas reemplaza solo eso, así que tiene que encajar con lo que queda antes y después en el verso, y el verso entero tiene que tener sentido.',
+    '- Sin repetir imágenes ni palabras fuertes que la letra ya usa.',
+    '- Si se pide rima, la última palabra tiene que rimar con la de la frase elegida (mejor consonante; puede ser otra palabra distinta, y como mucho una puede repetirla). Si tiene rimas internas, que suenen parecido en el medio, aunque sean otras palabras.',
     '- Cada una es una sola frase, sin comillas, sin numerar y sin explicar nada, con la cantidad de sílabas pedida (dos de diferencia como mucho).',
-    '- Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
+    '- Ordenalas de la mejor a la peor. Si no te salen tantas buenas, devolvé menos: nunca rellenes.',
+    '- Respondé solo con JSON: {"lectura": "...", "sugerencias": ["...", "..."]}.',
     '',
     'TAREA «palabra»: elegir una palabra.',
     '- Devolvé palabras sueltas que puedan reemplazar a la elegida en su verso, que encajen con el sentido y suenen bien.',
@@ -105,7 +107,8 @@ const TAREAS = [
     '- Respondé solo con JSON: {"sugerencias": ["...", "..."]}.',
     '',
     'TAREA «revision»: revisar su letra entera, como una amiga que sabe, con respeto por su estilo.',
-    '- Leé la letra y devolvé sugerencias concretas, de la más importante a la menos. Buscá, en este orden:',
+    '- Primero leé la letra entera y entendé de qué habla, quién habla, a quién y con qué tono. Escribilo en "lectura", en una línea.',
+    '- Devolvé sugerencias concretas, de la más importante a la menos. Buscá, en este orden:',
     '  1. Repeticiones: palabras o imágenes que se repiten sin querer en la letra (no las que se repiten a propósito, como en un estribillo).',
     '  2. Palabras que cambiarías: flojas, gastadas, clichés o que no suenan bien ahí, por otras con más fuerza o más precisas, que sigan el tema.',
     '  3. Frases enteras que cambiarías: un verso que no se entiende, que no sigue la idea de la estrofa, con relleno o sin fuerza, reescrito entero con otra imagen.',
@@ -114,9 +117,10 @@ const TAREAS = [
     '- NO propongas cambios de gramática, de puntuación, de mayúsculas, de tildes ni conectores o palabras que «faltan» (un «y», un «que», un artículo): en una letra se escribe así a propósito, y eso no la mejora.',
     '- Muchas veces una frase está escrita de una forma rara porque así entra en la métrica y el ritmo de la estrofa: respetalo. Lo nuevo tiene que tener casi las mismas sílabas que lo que reemplaza (una de diferencia como mucho), salvo cuando el problema es justamente la métrica despareja, y tiene que sonar bien cantado en ese lugar.',
     '- Cada sugerencia cambia, de un solo verso, una palabra, unas pocas seguidas o el verso entero, copiadas tal cual en "viejo", por otras que tengan sentido en esa frase. La última palabra de lo nuevo tiene que rimar (al menos asonante) con la última de lo que reemplaza o, si es el final del verso, con los finales de su estrofa.',
-    '- Antes de elegir, leé la letra entera y entendé de qué habla. Proponé solo lo que de verdad la mejora: nada de cambios por cambiar. Si está bien, devolvé menos (o ninguna).',
+    '- Lo nuevo tiene que sonar a quien escribió esta letra: su registro, su vocabulario y el género de la letra. Nada de poesía rebuscada, metáforas forzadas ni palabras que esa persona no usaría, y nada que se salga de lo que cuenta la letra.',
+    '- Proponé solo lo que de verdad la mejora: nada de cambios por cambiar. Si está bien, devolvé menos (o ninguna).',
     '- El título dice el motivo en pocas palabras y con tu voz (cercana, nunca de manual), por ejemplo: «No se entiende la frase», «Este verso es más largo que los otros», «Esta frase puede pegar más fuerte», «Cambiar la repetición de la palabra «x»» o «Cambiar la palabra «x» por «y»».',
-    '- Respondé solo con JSON: {"sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
+    '- Respondé solo con JSON: {"lectura": "...", "sugerencias": [{"titulo": "...", "verso": 3, "viejo": "...", "nuevo": "..."}]}, donde verso es el número de renglón.',
     '',
     'TAREA «ideas»: ayudar a alguien a arrancar una letra nueva.',
     '- Proponé ideas de qué hablar en una canción. Cada una es un tema concreto con su ángulo: una situación, un momento, una persona o un lugar, no una palabra suelta ni algo genérico como «el amor» o «la vida».',
@@ -192,8 +196,27 @@ function renglonesDeLetra(letra) {
     return renglones;
 }
 
+const sinPuntas = t => t.replace(/[\s.,;:!?¡¿…"»”)-]+$/u, '');
+
+// Si la frase elegida termina el verso. La app nueva lo manda (`objetivo.alFinal`); con las versiones de
+// antes se saca del verso: la frase es el verso entero o su final.
+export function fraseAlFinal(pedido) {
+    if (typeof pedido.objetivo?.alFinal === 'boolean') return pedido.objetivo.alFinal;
+    if (!pedido.enVerso) return true;
+    return sinPuntas(pedido.enVerso).endsWith(sinPuntas(pedido.verso.texto));
+}
+
+// El verso con la frase elegida entre [[ ]], para que el modelo vea qué queda antes y después.
+export function versoMarcado(pedido) {
+    const verso = pedido.enVerso ?? pedido.verso.texto;
+    const frase = pedido.verso.texto;
+    // Si termina el verso, la última vez que aparece; si no, la primera.
+    const donde = fraseAlFinal(pedido) ? verso.lastIndexOf(frase) : verso.indexOf(frase);
+    return donde < 0 ? `[[${frase}]]` : `${verso.slice(0, donde)}[[${frase}]]${verso.slice(donde + frase.length)}`;
+}
+
 // { instrucciones, entrada }: el mensaje de sistema y el del usuario, en texto.
-export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA, { pais, azar = Math.random } = {}) {
+export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS_IA : PEDIDAS_IA, { pais } = {}) {
     const lineas = [];
     const renglones = pedido.letra ? renglonesDeLetra(pedido.letra) : [];
     const base = pedido.letra && pedido.base?.length ? pedido.base : null;
@@ -214,21 +237,22 @@ export function promptDeSugerencias(pedido, cantidad = pedido.palabra ? PALABRAS
         lineas.push(`Devolvé ${cantidad} palabras.`);
         return { instrucciones: instruccionesIA(pais), entrada: lineas.filter(Boolean).join('\n\n') };
     }
-    // La frase seleccionada: frases relacionadas con ella y con sus propias rimas (pedido de Swa).
+    // La frase seleccionada: frases relacionadas con ella y con sus propias rimas (pedido de Swa). Va
+    // marcada con [[ ]] en su verso, y la rima final se pide solo si la frase termina el verso: un pedazo
+    // del medio no tiene por qué rimar con nada.
     const { final, internas } = pedido.verso;
-    // Los caminos para reescribirla, en otro orden cada vez, así no salen siempre iguales.
-    const caminos = mezclar(['más directa', 'con una metáfora', 'con una imagen concreta de la vida diaria', 'que cambie el punto de vista',
-        'más íntima', 'con más actitud', 'con un giro inesperado al final', 'con un detalle sensorial (un olor, un sonido, una textura)'], azar).slice(0, 4);
+    const alFinal = fraseAlFinal(pedido);
     lineas.push('TAREA «frase».');
     if (pedido.anterior) lineas.push(`Verso anterior: ${describir(pedido.anterior)}.`);
-    if (pedido.enVerso) lineas.push(`La frase está en el verso${enLetra != null ? ` del renglón ${enLetra}` : ''}: «${pedido.enVerso}».`);
-    else if (enLetra != null) lineas.push(`La frase es el renglón ${enLetra}.`);
+    const marcado = versoMarcado(pedido);
+    lineas.push(`La frase elegida, marcada en su verso${enLetra != null ? ` (renglón ${enLetra})` : ''}: «${marcado}».`);
     lineas.push(`Frase elegida: ${describir(pedido.verso)}.`);
     lineas.push(`Sílabas buscadas: ${pedido.objetivo.silabas}.`);
-    lineas.push(`La última palabra tiene que rimar con «${final.palabra}» (consonante «-${final.consonante}»).`);
+    lineas.push(alFinal
+        ? `Termina el verso: la última palabra tiene que rimar con «${final.palabra}» (consonante «-${final.consonante}»).`
+        : 'Va en el medio del verso: no hace falta que rime al final, pero tiene que seguir con lo que viene después en el verso.');
     if (internas.length) lineas.push(`Rimas internas para mantener: ${internas.map(i => `«${i.palabra}»`).join(', ')}.`);
-    lineas.push(`Caminos para esta vez: ${caminos.join(', ')}.`);
-    lineas.push(`Escribí ${cantidad} frases.`);
+    lineas.push(`Escribí hasta ${cantidad} frases.`);
     return { instrucciones: instruccionesIA(pais), entrada: lineas.filter(Boolean).join('\n\n') };
 }
 

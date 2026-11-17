@@ -18,7 +18,7 @@ test('fraseElegida toma lo seleccionado hasta palabras enteras y busca sus propi
     assert.equal(r.pedido.enVerso, 'y me quedo solo con mi canción');
     assert.deepEqual(r.pedido.verso.final, { palabra: 'canción', consonante: 'on', asonante: 'o' });
     // Lo que rima es la frase, no el verso anterior (que va solo de contexto).
-    assert.deepEqual(r.pedido.objetivo, { silabas: 9, rimaCon: 'canción' });
+    assert.deepEqual(r.pedido.objetivo, { silabas: 9, rimaCon: 'canción', alFinal: true });
     assert.equal(r.pedido.anterior.texto, 'Te busco en el balcón sin razón');
     assert.ok(pedidoValido(r.pedido));
 });
@@ -50,7 +50,7 @@ test('fraseElegida no corta en los agregados entre paréntesis', () => {
     assert.equal(r.pedido.verso.final.palabra, 'corazón');
 });
 
-test('validarSugerencias ordena por rima, sílabas e internas y saca repetidas', () => {
+test('validarSugerencias respeta el orden del modelo, deja atrás las que no riman y saca repetidas', () => {
     const { pedido } = elegir('y me quedo solo con mi canción');
     const lista = validarSugerencias([
         '1. y me quedo solo con mi canción', // igual a la frase
@@ -63,13 +63,29 @@ test('validarSugerencias ordena por rima, sílabas e internas y saca repetidas',
     ], pedido);
     assert.deepEqual(lista.map(s => s.texto), ['me sigo esperando a Ramón', 'sigo solo con mi perdón', 'me quedé solo y con el sol', 'me voy sola a la luna']);
     assert.deepEqual(lista.map(s => s.rima), ['consonante', 'consonante', 'asonante', null]);
-    assert.equal(lista[0].silabas, 9); // la más cerca de las 11 de la frase
+    // Una asonante que el modelo puso primera queda primera.
+    assert.deepEqual(validarSugerencias(['me quedé solo y con el sol', 'me sigo esperando a Ramón'], pedido).map(s => s.rima), ['asonante', 'consonante']);
 });
 
-test('validarSugerencias deja 10 como mucho', () => {
+test('una frase del medio del verso no tiene que rimar al final', () => {
+    const r = elegir('quedo solo');
+    assert.equal(r.pedido.objetivo.alFinal, false);
+    assert.deepEqual(validarSugerencias(['sigo de pie', 'me voy con razón'], r.pedido).map(s => s.texto), ['sigo de pie', 'me voy con razón']);
+    const { entrada } = promptDeSugerencias(r.pedido);
+    assert.match(entrada, /«y me \[\[quedo solo\]\] con mi canción»/);
+    assert.match(entrada, /Va en el medio del verso/);
+    assert.doesNotMatch(entrada, /rimar con «solo»/);
+    // Las versiones de la app de antes no mandan alFinal: el Worker lo saca del verso.
+    const vieja = { ...r.pedido, objetivo: { silabas: 4, rimaCon: 'solo' } };
+    assert.match(promptDeSugerencias(vieja).entrada, /Va en el medio del verso/);
+    const final = elegir('con mi canción');
+    assert.match(promptDeSugerencias({ ...final.pedido, objetivo: { silabas: 4, rimaCon: 'canción' } }).entrada, /Termina el verso/);
+});
+
+test('validarSugerencias deja 8 como mucho', () => {
     const { pedido } = elegir('y me quedo solo con mi canción');
     const muchas = ['pasión', 'perdón', 'ilusión', 'corazón', 'balcón', 'razón', 'emoción', 'traición', 'estación', 'renglón', 'rincón', 'opción', 'misión', 'pulmón'].map(p => `vuelvo solo por ${p}`);
-    assert.equal(validarSugerencias(muchas, pedido).length, 10);
+    assert.equal(validarSugerencias(muchas, pedido).length, 8);
 });
 
 test('sugerenciasSimuladas: la misma idea con sinónimos y la última rimando con la de la frase', () => {
@@ -197,7 +213,9 @@ test('el prompt lleva las rimas y sílabas del motor, y la respuesta se lee aunq
     assert.equal(pedido.enLetra, 1);
     assert.match(entrada, /^Letra[^\n]*\n0 Te busco en el balcón sin razón\n1 y me quedo solo con mi canción\n\n4 Otra estrofa acá/);
     assert.match(entrada, /renglón 1/);
-    assert.match(instrucciones, /Leé la letra entera/);
+    assert.match(instrucciones, /leé la letra entera/);
+    assert.match(instrucciones, /"lectura"/);
+    assert.match(entrada, /«y me \[\[quedo solo con mi canción\]\]»|«\[\[y me quedo solo con mi canción\]\]»/);
     assert.deepEqual(leerRespuesta('Acá van:\n{"sugerencias": ["uno", 2, "dos"]}'), ['uno', 'dos']);
     assert.deepEqual(leerRespuesta('nada'), []);
 });
