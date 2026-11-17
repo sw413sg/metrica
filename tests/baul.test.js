@@ -84,3 +84,18 @@ test('ajustes del baúl: arrancan en Gris liso, medianas y separadas, y se guard
     guardarAjusteBaul(almacen, { tamano: 'gigantes' });
     assert.equal(ajustesBaul(almacen).tamano, 'medianas');
 });
+
+test('al vencer Métrica+, el tema de pago del baúl no se ve pero queda guardado y vuelve', async () => {
+    const { ajustesBaul, guardarAjusteBaul, temaBaulBloqueado } = await import('../js/logica/baul.js');
+    const { comprarExtras, borrarCompra } = await import('../js/logica/compra.js');
+    const almacen = almacenDePrueba();
+    assert.equal(temaBaulBloqueado(almacen), false);
+    comprarExtras(almacen);
+    guardarAjusteBaul(almacen, { tema: 'galaxia' });
+    assert.equal(temaBaulBloqueado(almacen), false);
+    borrarCompra(almacen);
+    assert.equal(ajustesBaul(almacen).tema, 'gris');
+    assert.equal(temaBaulBloqueado(almacen), true);
+    comprarExtras(almacen);
+    assert.equal(ajustesBaul(almacen).tema, 'galaxia');
+});

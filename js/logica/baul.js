@@ -115,6 +115,14 @@ export function ajustesBaul(almacen) {
     return ajustes;
 }
 
+// Si el baúl tiene guardado un tema de Métrica+ que ahora no se puede usar (venció la suscripción):
+// se ve Gris liso, pero lo guardado no se toca, así vuelve al volver a tener Métrica+.
+export function temaBaulBloqueado(almacen) {
+    let guardados = {};
+    try { guardados = JSON.parse(almacen.getItem(CLAVE_AJUSTES)) ?? {}; } catch {}
+    return Boolean(guardados.tema) && !temaDisponible(guardados.tema, almacen);
+}
+
 export function guardarAjusteBaul(almacen, cambios) {
     const guardados = (() => { try { return JSON.parse(almacen.getItem(CLAVE_AJUSTES)) ?? {}; } catch { return {}; } })();
     almacen.setItem(CLAVE_AJUSTES, JSON.stringify({ ...guardados, ...cambios }));

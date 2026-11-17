@@ -6,11 +6,11 @@ import { contarSilabasVerso, inicioTonica, rimasMultisilabicas, separarSilabas }
 import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVecino, DURACIONES, DURACION_INICIAL, cambiaLaPalabra, silabaFuerte, estadoRonda, elegirDuracion, fuenteFreestyle, patronDeBeat, archivoDeBeat, etiquetaBeat, proximasPalabras, avanzarPalabras, msPorPalabra, leerVelocidad, guardarVelocidad, compasesDeVelocidad, VELOCIDAD_MAXIMA } from './logica/freestyle.js';
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
-import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada, adaptarTemasDeLetras, ordenarLetras, ascendentePorDefecto, coincideBusqueda } from './logica/sesiones.js';
+import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada, ordenarLetras, ascendentePorDefecto, coincideBusqueda } from './logica/sesiones.js';
 import { CARPETAS_GRATIS, carpetasVisibles, puedeCrearCarpeta, crearCarpeta, renombrarCarpeta, borrarCarpeta, moverACarpeta, letrasDeCarpeta, cantidadesPorCarpeta, textoCantidadLetras, sinCarpetasProtegidas } from './logica/carpetas.js';
 import { crearCorrector, crearCorrectorPorPartes } from './logica/ortografia.js';
 import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
-import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul } from './logica/baul.js';
+import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul, temaBaulBloqueado } from './logica/baul.js';
 import { CATEGORIAS as CATEGORIAS_TEMA, TEMAS as CONSIGNAS } from '../temas/temas.js';
 import { marcarUsado, siguienteTema, numeroEnCategoria } from './logica/temas.js';
 import { AJUSTES_LIBRETA, leerAjustesLibreta, guardarAjusteLibreta, estiloLibreta, datosParaCompartir } from './logica/libreta.js';
@@ -244,6 +244,8 @@ const opcionesLetras = (() => {
         orden, ascendente: asc == null ? ascendentePorDefecto(orden) : asc === 'true',
         tamano: leer('metrica.letras-tamano', 'cuadrados'), carpeta: leer('metrica.letras-carpeta', '') || null,
         busqueda: '', seleccionando: false, seleccionadas: new Set(),
+        // «Tema en tarjetas» (en «Ver y ordenar»): cada tarjeta lleva el tema de su letra al 40%, como en Swift.
+        temaEnTarjetas: leer('metrica.letras-tema-tarjetas', 'false') === 'true',
     };
 })();
 const guardarOpcion = (clave, valor) => { try { localStorage.setItem(clave, valor ?? ''); } catch { /* sin almacenamiento */ } };
@@ -286,6 +288,7 @@ function renderizarLetras() {
         tarjeta.classList.toggle('elegida', elegidas.has(letra.id));
         const boton = document.createElement('button');
         boton.append(parte('titulo-letra', letra.titulo || 'Sin título'), parte('texto-letra', letra.texto.trim()));
+        ponerTemaEnTarjeta(tarjeta, letra);
         if (opcionesLetras.seleccionando) boton.append(parte('tilde-letra', ''));
         const fueArrastrada = arrastrarTarjeta(tarjeta, boton, letra);
         boton.addEventListener('click', () => {
@@ -315,6 +318,25 @@ function renderizarLetras() {
     $('letras-privadas').textContent = privadas === 1 ? '1 letra privada, solo en tu iPhone.' : `${privadas} letras privadas, solo en tu iPhone.`;
     pintarSeleccion();
     renderizarCarpetasLateral();
+}
+
+// «Tema en tarjetas»: el tema de la letra (color e ilustración, con su opacidad) al 40% sobre el
+// gris de la tarjeta, el mismo en modo claro y oscuro. Un tema oscuro con la app en modo claro
+// lleva el texto en blanco, así se lee; si no, los colores de siempre (como Swift 2.0.72). Un tema
+// de Métrica+ sin Métrica+ no se ve (temaDeLetra da Gris liso) pero queda guardado en la letra.
+function appEnModoClaro() {
+    const apariencia = leerApariencia(localStorage);
+    return apariencia === 'claro' || (apariencia === 'sistema' && !matchMedia('(prefers-color-scheme: dark)').matches);
+}
+function ponerTemaEnTarjeta(tarjeta, letra) {
+    const tema = temaDeLetra(letra, localStorage);
+    if (!opcionesLetras.temaEnTarjetas || tema === 'gris') return;
+    const fondo = document.createElement('span');
+    fondo.className = 'fondo-tema-tarjeta';
+    fondo.dataset.libreta = tema;
+    fondo.style.setProperty('--opacidad-tema', opacidadDeTema(letra.opacidadTema));
+    tarjeta.prepend(fondo);
+    tarjeta.classList.toggle('texto-blanco', Boolean(TEMAS.find(t => t.clave === tema)?.oscuro) && appEnModoClaro());
 }
 
 // Cada tarjeta va en su lugar de la grilla. Aleatorio: a la columna más corta, chica o larga según
@@ -575,6 +597,7 @@ function renderizarMenuLetras() {
         nueva,
     );
     document.querySelectorAll('#menu-tamano button').forEach(b => b.setAttribute('aria-selected', b.dataset.tamano === opcionesLetras.tamano));
+    $('tema-en-tarjetas').setAttribute('aria-pressed', opcionesLetras.temaEnTarjetas);
     document.querySelectorAll('#menu-orden button').forEach(b => {
         const esta = b.dataset.orden === opcionesLetras.orden;
         b.setAttribute('aria-pressed', esta);
@@ -589,6 +612,12 @@ document.querySelectorAll('#menu-tamano button').forEach(b => b.addEventListener
     renderizarMenuLetras();
     renderizarLetras();
 }));
+$('tema-en-tarjetas').addEventListener('click', () => {
+    opcionesLetras.temaEnTarjetas = !opcionesLetras.temaEnTarjetas;
+    guardarOpcion('metrica.letras-tema-tarjetas', String(opcionesLetras.temaEnTarjetas));
+    renderizarMenuLetras();
+    renderizarLetras();
+});
 // Tocar otro orden lo elige para su lado de siempre; tocar el que ya está lo da vuelta.
 document.querySelectorAll('#menu-orden button').forEach(b => b.addEventListener('click', () => {
     const orden = b.dataset.orden;
@@ -4599,6 +4628,8 @@ function renderizarExtras() {
     renderizarCreditos();
     renderizarTemas();
     if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
+    // Sin Métrica+ los temas de pago no se ven en las tarjetas; al volver a tenerlo, vuelven.
+    renderizarLetras();
 }
 
 // Lo que queda de los créditos IA de esta computadora, en porcentaje (como en Swift).
@@ -6110,9 +6141,10 @@ function renderizarApariencia() {
     }));
 }
 
-// Al pasar de claro a oscuro (o al revés), las letras y el baúl con un tema del otro modo vuelven
-// al último que usaron en este (pedido de Swa; temaParaModo en js/logica/compra.js). También si
-// cambia el sistema, con «Sistema» elegido.
+// Al pasar de claro a oscuro (o al revés), el baúl con un tema del otro modo vuelve al último que
+// usó en este (pedido de Swa; temaParaModo en js/logica/compra.js). También si cambia el sistema,
+// con «Sistema» elegido. Las letras no: cada una sigue con su tema en los dos modos, también en su
+// tarjeta (pedido de Swa, 2026-11-17, como Swift 2.0.72).
 const modoOscuroDelSistema = matchMedia('(prefers-color-scheme: dark)');
 const modoActual = () => {
     const apariencia = leerApariencia(localStorage);
@@ -6122,11 +6154,14 @@ function sincronizarTemasConModo() {
     const modo = modoActual();
     const antes = localStorage.getItem('metrica.modo-temas');
     localStorage.setItem('metrica.modo-temas', modo);
+    // El texto de las tarjetas con tema oscuro cambia con el modo de la app.
+    if (opcionesLetras.temaEnTarjetas) renderizarLetras();
     if (!antes || antes === modo) return;
-    adaptarTemasDeLetras(localStorage, modo);
-    const baul = ajustesBaul(localStorage);
-    guardarAjusteBaul(localStorage, temaParaModo(localStorage, baul.tema, baul.temas, modo));
-    if (letraActual) letraActual = listarLetras(localStorage).find(l => l.id === letraActual.id) ?? letraActual;
+    // Un tema de Métrica+ guardado sin Métrica+ no se toca: vuelve tal cual al volver a tenerlo.
+    if (!temaBaulBloqueado(localStorage)) {
+        const baul = ajustesBaul(localStorage);
+        guardarAjusteBaul(localStorage, temaParaModo(localStorage, baul.tema, baul.temas, modo));
+    }
     renderizarTemas();
     if (!$('ajustes-baul').hidden) renderizarAjustesBaul();
 }

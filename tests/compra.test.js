@@ -42,6 +42,9 @@ test('un tema de pago en una letra solo vale con Extras', () => {
     borrarCompra(almacen);
     assert.equal(tieneExtras(almacen), false);
     assert.equal(temaDeLetra(letra, almacen), 'gris');
+    // Al volver a tener Métrica+, la letra vuelve a su tema: no se borró.
+    comprarExtras(almacen);
+    assert.equal(temaDeLetra(letra, almacen), 'madrugada');
 });
 
 test('datos raros no desbloquean nada', () => {
