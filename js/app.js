@@ -322,7 +322,7 @@ function renderizarLetras() {
 
 // «Tema en tarjetas»: el tema de la letra (color e ilustración, con su opacidad) al 40% sobre el
 // gris de la tarjeta, el mismo en modo claro y oscuro. Un tema oscuro con la app en modo claro
-// lleva el texto en blanco, así se lee; si no, los colores de siempre (como Swift 2.0.72). Un tema
+// lleva el texto en negro, así se lee sobre el gris claro (pedido de Swa); si no, los de siempre. Un tema
 // de Métrica+ sin Métrica+ no se ve (temaDeLetra da Gris liso) pero queda guardado en la letra.
 function appEnModoClaro() {
     const apariencia = leerApariencia(localStorage);
@@ -336,7 +336,7 @@ function ponerTemaEnTarjeta(tarjeta, letra) {
     fondo.dataset.libreta = tema;
     fondo.style.setProperty('--opacidad-tema', opacidadDeTema(letra.opacidadTema));
     tarjeta.prepend(fondo);
-    tarjeta.classList.toggle('texto-blanco', Boolean(TEMAS.find(t => t.clave === tema)?.oscuro) && appEnModoClaro());
+    tarjeta.classList.toggle('texto-negro', Boolean(TEMAS.find(t => t.clave === tema)?.oscuro) && appEnModoClaro());
 }
 
 // Cada tarjeta va en su lugar de la grilla. Aleatorio: a la columna más corta, chica o larga según
