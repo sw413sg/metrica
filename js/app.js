@@ -6168,7 +6168,8 @@ function renderizarWeb() {
     $('web-sin-vincular').hidden = vinculada;
     $('web-vinculada').hidden = !vinculada;
     $('web-cerrar-celda').hidden = !vinculada;
-    $('web-plan').textContent = planDelIphone().ia ? 'Métrica+ IA' : planDelIphone().extras ? 'Métrica+' : 'Gratis';
+    // Gratis no dice nada; solo se nombra el plan si es Métrica+ (pedido de Swa).
+    $('web-plan').textContent = planDelIphone().ia ? 'Métrica+ IA' : planDelIphone().extras ? 'Métrica+' : '';
 }
 
 function avisoVincular(estado, texto = '') {
