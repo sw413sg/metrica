@@ -185,7 +185,7 @@ section { scroll-margin-top: 70px; }
 
 /* Precios. */
 .precios { padding: 72px 0; }
-.planes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 36px; align-items: stretch; }
+.planes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 760px; margin: 36px auto 0; align-items: stretch; }
 .plan { display: flex; flex-direction: column; padding: 26px 24px; border-radius: 30px; background: var(--vidrio); border: 1px solid var(--borde); }
 .plan.destacado {
     background: linear-gradient(180deg, rgba(157, 139, 255, 0.16), rgba(157, 139, 255, 0.04));
@@ -416,7 +416,7 @@ footer a:hover { color: var(--texto); }
                 </div>
                 <div class="tarjeta">
                     <div class="icono"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4 4 0 0 1-1 9.5z"/></svg></div>
-                    <h3>iCloud, gratis</h3>
+                    <h3>iCloud</h3>
                     <p>Tus letras, el baúl y las palabras guardadas, al día en todos tus dispositivos.</p>
                 </div>
                 <div class="tarjeta">
@@ -440,35 +440,21 @@ footer a:hover { color: var(--texto); }
 
     <section class="precios" id="precios">
         <div class="envoltura centrado">
-            <h2 class="titulo-seccion">Gratis para escribir. Siempre.</h2>
+            <h2 class="titulo-seccion">Elige tu plan</h2>
             <p class="bajada">Las rimas, las sílabas y la libreta nunca se bloquean.</p>
             <div class="planes" style="text-align:left">
-                <div class="plan">
-                    <h3>Métrica</h3>
-                    <div class="precio">Gratis</div>
-                    <div class="que">Para siempre</div>
-                    <ul>
-                        <li>Libreta con sílabas y rimas pintadas</li>
-                        <li>Rimas, sinónimos y diccionario</li>
-                        <li>Freestyle de hasta 2 minutos por ronda</li>
-                        <li>Grabar tu voz sobre el beat</li>
-                        <li>Baúl de frases, iCloud y Métrica Web</li>
-                        <li>20 créditos IA por mes</li>
-                    </ul>
-                </div>
                 <div class="plan">
                     <h3>Métrica<span class="brillo">+</span></h3>
                     <div class="precio">USD 9,99</div>
                     <div class="que">Pago único, sin suscripción</div>
                     <ul>
-                        <li>Todo lo de la versión gratis</li>
                         <li>Más de treinta temas y tu foto de fondo</li>
-                        <li>Freestyle ilimitado</li>
-                        <li>Descargar tus grabaciones en MP3</li>
+                        <li class="mas-ia">100 créditos IA de regalo que no vencen</li>
                         <li>Todos los widgets</li>
                         <li>Carpetas ilimitadas</li>
                         <li>Compartir tus letras como imagen o PDF con tu tema</li>
-                        <li class="mas-ia">100 créditos IA de regalo</li>
+                        <li>Freestyle ilimitado</li>
+                        <li>Descargar tus grabaciones en MP3</li>
                     </ul>
                 </div>
                 <div class="plan destacado">
@@ -476,8 +462,8 @@ footer a:hover { color: var(--texto); }
                     <div class="precio">USD 2,99 <small>/ mes</small></div>
                     <div class="que">Suscripción mensual, cancelas cuando quieras</div>
                     <ul>
-                        <li>Todo lo de Métrica+</li>
                         <li class="mas-ia">300 créditos IA por mes</li>
+                        <li>Todo lo de Métrica+</li>
                         <li>Puedes sumar paquetes de créditos que no vencen</li>
                     </ul>
                 </div>
