@@ -263,7 +263,9 @@ function elegirCarpeta(id) {
 // orden elegido y, si se busca, solo las que coinciden.
 function letrasVisibles() {
     if (opcionesLetras.carpeta && !carpetaActual()) { opcionesLetras.carpeta = null; guardarOpcion('metrica.letras-carpeta', null); }
-    const todas = sinCarpetasProtegidas(listarLetras(localStorage), localStorage);
+    // Las archivadas no salen en «Todas las letras», salvo al buscar (como en Keep).
+    const conArchivadas = Boolean(opcionesLetras.carpeta || opcionesLetras.busqueda.trim());
+    const todas = sinCarpetasProtegidas(listarLetras(localStorage), localStorage, conArchivadas);
     const deCarpeta = letrasDeCarpeta(todas, opcionesLetras.carpeta);
     const ordenadas = ordenarLetras(deCarpeta, opcionesLetras.orden, opcionesLetras.ascendente);
     return opcionesLetras.busqueda.trim() ? ordenadas.filter(l => coincideBusqueda(l, opcionesLetras.busqueda)) : ordenadas;

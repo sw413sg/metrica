@@ -100,8 +100,10 @@ export function cantidadesPorCarpeta(almacen) {
 export const textoCantidadLetras = cantidad => (cantidad === 1 ? '1 letra' : `${cantidad} letras`);
 
 /** Sin las letras de las carpetas protegidas (con Face ID en el iPhone): esas no se ven en la web. */
-export function sinCarpetasProtegidas(letras, almacen) {
+export function sinCarpetasProtegidas(letras, almacen, conArchivadas = false) {
     const protegidas = new Set(leer(almacen, CLAVE_CARPETAS).filter(c => c.protegida === true).map(c => c.id));
+    // Las de «Archivadas» tampoco, como en Keep (pedido de Swa, 2026-11-19), salvo `conArchivadas`.
+    if (!conArchivadas) protegidas.add(ID_ARCHIVADAS);
     return protegidas.size ? letras.filter(l => l.carpeta == null || !protegidas.has(l.carpeta)) : letras;
 }
 

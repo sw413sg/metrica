@@ -105,3 +105,10 @@ test('«Archivadas» (la crea el iPhone) va al final y no cuenta para el límite
     assert.equal(puedeCrearCarpeta(almacen, false), false);
     assert.deepEqual(listarCarpetas(almacen).map(c => c.nombre), ['Disco', 'Para Juan', 'Archivadas']);
 });
+
+test('las archivadas no salen en «Todas las letras», salvo al buscar', () => {
+    const almacen = almacenDePrueba({ 'metrica.carpetas': JSON.stringify([{ id: 'archivadas', nombre: 'Archivadas', creada: 0 }]) });
+    const letras = [letra('1'), letra('2', { carpeta: 'archivadas' })];
+    assert.deepEqual(sinCarpetasProtegidas(letras, almacen).map(l => l.id), ['1']);
+    assert.deepEqual(sinCarpetasProtegidas(letras, almacen, true).map(l => l.id), ['1', '2']);
+});
