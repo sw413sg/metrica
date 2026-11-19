@@ -1582,7 +1582,6 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 }
 #caja-tema.cambio::before { animation: resplandor-azar .9s ease-out; }
 .cat-tema { display: flex; align-items: center; gap: 4px; padding: 0 6px; text-align: left; }
-.cat-tema::after { content: "›"; font-size: 17px; line-height: 1; translate: 0 -1px; }
 .texto-tema {
     margin: 10px 6px 0; font-size: 28px; font-weight: 700; line-height: 1.18; letter-spacing: -0.4px; overflow-wrap: anywhere;
 }
@@ -1627,21 +1626,6 @@ body.con-musica.editando:not(.teclado-abierto) #dame-tema { bottom: calc(104px +
 .baul-tema { display: inline-flex; align-items: center; gap: 6px; }
 .baul-tema .icono { width: 18px; height: 18px; }
 #tema-otra.gira .icono { animation: girar .5s ease; }
-.cabeza-tema { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; margin-bottom: 2px; }
-.cabeza-tema b { text-align: center; font-size: 17px; }
-.volver-tema {
-    width: 44px; height: 44px; border-radius: 50%; background: var(--tarjeta);
-    font-size: 24px; line-height: 1; display: grid; place-items: center;
-}
-.lista-tema { padding: 6px 0; }
-.fila-cat { width: 100%; min-height: 46px; padding: 0 18px; justify-content: flex-start; font-size: 17px; text-align: left; }
-.fila-cat.todas { font-weight: 600; }
-.fila-cat[aria-selected="true"] { color: var(--destacado); font-weight: 600; }
-.marca-cat { width: 28px; flex: none; color: var(--texto-2); text-align: center; }
-.fila-cat[aria-selected="true"] .marca-cat { color: var(--destacado); }
-.cuenta-cat { margin-left: auto; color: var(--texto-3); font-size: 15px; }
-.tilde-cat { margin-left: 4px; color: var(--destacado); font-weight: 700; }
-.cuenta-cat:empty + .tilde-cat { margin-left: auto; }
 .nota-tema { margin: 10px 12px 0; font-size: 13px; color: var(--texto-2); }
 @media (prefers-reduced-motion: reduce) {
     .enviar-tema span, #caja-tema.cambio .texto-tema, #caja-tema.cambio .empujon-tema { animation: none; }
