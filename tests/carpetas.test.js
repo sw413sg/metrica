@@ -97,3 +97,11 @@ test('una carpeta protegida en el iPhone no se ve en la web, ni sus letras', () 
     assert.deepEqual(sinCarpetasProtegidas(listarLetras(almacen), almacen).map(l => l.id), ['3', '1']);
     assert.deepEqual(carpetasVisibles(almacen).map(c => c.nombre), ['Disco']);
 });
+
+test('«Archivadas» (la crea el iPhone) va al final y no cuenta para el límite', () => {
+    const almacen = almacenDePrueba({ 'metrica.carpetas': JSON.stringify([{ id: 'archivadas', nombre: 'Archivadas', creada: 0 }]) });
+    assert.ok(crearCarpeta(almacen, 'Disco', false, 1));
+    assert.ok(crearCarpeta(almacen, 'Para Juan', false, 2));
+    assert.equal(puedeCrearCarpeta(almacen, false), false);
+    assert.deepEqual(listarCarpetas(almacen).map(c => c.nombre), ['Disco', 'Para Juan', 'Archivadas']);
+});

@@ -7,7 +7,7 @@ import { CATALOGO_BEATS, BEATS_CON_SONIDO, GENEROS_BEAT, beatsDeGenero, beatVeci
 import { iniciarBeat, iniciarArchivo, detenerBeat, precargarArchivo, grabarBeat, usarSalida } from './beats.js';
 import { codificarMp3, nombreDeGrabacion, CLAVE_MICROFONO, pedidoMicrofono, inicioDeMuestras, leerVolumenes, guardarVolumen, inicioDeVoz, tipoDeGrabacion, desfaseDeVoz, describirGrabacion, extensionDeAudio, nombreDeArchivo, codificarWav } from './logica/grabaciones.js';
 import { nuevaLetra, listarLetras, guardarLetra, borrarLetra, restaurarLetra, moverLetra, agregarLetras, lugaresEnGrilla, listarGuardadas, alternarGuardada, ordenarLetras, ascendentePorDefecto, coincideBusqueda } from './logica/sesiones.js';
-import { CARPETAS_GRATIS, carpetasVisibles, puedeCrearCarpeta, crearCarpeta, renombrarCarpeta, borrarCarpeta, moverACarpeta, letrasDeCarpeta, cantidadesPorCarpeta, textoCantidadLetras, sinCarpetasProtegidas } from './logica/carpetas.js';
+import { CARPETAS_GRATIS, carpetasQueCuentan, carpetasVisibles, puedeCrearCarpeta, crearCarpeta, renombrarCarpeta, borrarCarpeta, moverACarpeta, letrasDeCarpeta, cantidadesPorCarpeta, textoCantidadLetras, sinCarpetasProtegidas } from './logica/carpetas.js';
 import { crearCorrector, crearCorrectorPorPartes } from './logica/ortografia.js';
 import { listarPapelera, sacarDePapelera, vaciarPapelera, diasQuedan, claveDe, DIAS_PAPELERA } from './logica/papelera.js';
 import { FILTROS, TAMANOS_BAUL, listarFrases, anotarFrase, editarFrase, borrarFrase, sacarFrase, restaurarFrase, alternarUsada, filtrarFrases, etiquetaVolver, ajustesBaul, guardarAjusteBaul, temaBaulBloqueado } from './logica/baul.js';
@@ -588,7 +588,7 @@ function renderizarMenuLetras() {
     const carpetas = carpetasVisibles(localStorage);
     const total = sinCarpetasProtegidas(listarLetras(localStorage), localStorage).length;
     const nueva = document.createElement('li');
-    const pasado = !tieneExtras(localStorage) && carpetas.length >= CARPETAS_GRATIS;
+    const pasado = !tieneExtras(localStorage) && carpetasQueCuentan(carpetas) >= CARPETAS_GRATIS;
     nueva.innerHTML = `<button type="button">${ICONO_NUEVA_CARPETA}<span>Nueva carpeta</span>${pasado ? '<span class="mas-violeta grande">+</span>' : ''}</button>`;
     nueva.firstChild.addEventListener('click', () => pedirCarpetaNueva());
     $('menu-carpetas').replaceChildren(

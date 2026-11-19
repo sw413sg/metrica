@@ -6,8 +6,14 @@
 const CLAVE_CARPETAS = 'metrica.carpetas';
 const CLAVE_LETRAS = 'metrica.letras';
 
-/** Cuántas carpetas se pueden crear sin Métrica+. */
+/** Cuántas carpetas se pueden crear sin Métrica+ («Archivadas» no cuenta). */
 export const CARPETAS_GRATIS = 2;
+
+/** «Archivadas», que el iPhone crea para todos (Carpetas.swift; pedido de Swa, 2026-11-19). */
+export const ID_ARCHIVADAS = 'archivadas';
+
+/** Cuántas cuentan para el límite gratis (todas menos «Archivadas»). */
+export const carpetasQueCuentan = carpetas => carpetas.filter(c => c.id !== ID_ARCHIVADAS).length;
 
 function leer(almacen, clave) {
     try {
@@ -21,14 +27,16 @@ function leer(almacen, clave) {
 const escribir = (almacen, clave, valor) => almacen.setItem(clave, JSON.stringify(valor));
 const limpiar = nombre => String(nombre ?? '').trim();
 
-/** Las carpetas, de la primera creada a la última (así no cambian de lugar al crear otra). */
+/** Las carpetas, de la primera creada a la última (así no cambian de lugar al crear otra), y
+ * «Archivadas» al final. */
 export function listarCarpetas(almacen) {
-    return leer(almacen, CLAVE_CARPETAS).sort((a, b) => (a.creada ?? 0) - (b.creada ?? 0));
+    return leer(almacen, CLAVE_CARPETAS).sort((a, b) =>
+        (a.id === ID_ARCHIVADAS) - (b.id === ID_ARCHIVADAS) || (a.creada ?? 0) - (b.creada ?? 0));
 }
 
 /** Si se puede crear otra: gratis, hasta CARPETAS_GRATIS; con Métrica+, siempre. */
 export function puedeCrearCarpeta(almacen, extras) {
-    return Boolean(extras) || leer(almacen, CLAVE_CARPETAS).length < CARPETAS_GRATIS;
+    return Boolean(extras) || carpetasQueCuentan(leer(almacen, CLAVE_CARPETAS)) < CARPETAS_GRATIS;
 }
 
 /** Crea una carpeta. Sin nombre, o pasado el límite, no crea nada (null). */
