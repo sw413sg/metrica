@@ -2246,7 +2246,6 @@ function anteriorDelHistorial() {
 }
 
 function mostrarFichaTema() {
-    $('tema-lista').hidden = true;
     $('tema-ficha').hidden = modoTema !== 'ideas';
 }
 
@@ -2260,7 +2259,6 @@ function elegirModoTema(modo) {
     $('modo-ideas').setAttribute('aria-selected', modo === 'ideas');
     $('tema-sugerencias').hidden = modo !== 'sugerencias';
     $('chips-tema').closest('#tema-ficha').hidden = modo !== 'ideas';
-    $('tema-lista').hidden = true;
 }
 $('modo-sugerencias').addEventListener('click', () => elegirModoTema('sugerencias'));
 $('modo-ideas').addEventListener('click', () => {
@@ -2438,41 +2436,6 @@ $('chips-tema').append(...FILTROS_TEMA.map(categoria => {
     return boton;
 }));
 
-function renderListaTema() {
-    $('tema-filas').replaceChildren(...FILTROS_TEMA.map(categoria => {
-        const boton = document.createElement('button');
-        boton.type = 'button';
-        boton.className = 'celda fila-cat' + (categoria.id === 'todas' ? ' todas' : '');
-        boton.setAttribute('aria-selected', categoria.id === filtroTema);
-        if (categoria.icono) {
-            const icono = document.createElement('span');
-            icono.className = 'marca-cat';
-            icono.textContent = categoria.icono;
-            boton.append(icono);
-        }
-        const nombre = document.createElement('span');
-        nombre.textContent = categoria.nombre;
-        boton.append(nombre);
-        const cuenta = document.createElement('span');
-        cuenta.className = 'cuenta-cat';
-        cuenta.textContent = String(categoria.id === 'todas' ? CONSIGNAS.length : CONSIGNAS.filter(t => t.categoria === categoria.id && !t.sub).length);
-        boton.append(cuenta);
-        if (categoria.id === filtroTema) {
-            const tilde = document.createElement('span');
-            tilde.className = 'tilde-cat';
-            tilde.textContent = '✓';
-            boton.append(tilde);
-        }
-        boton.addEventListener('click', () => {
-            filtroTema = categoria.id;
-            sincronizarChips();
-            otraTema();
-            mostrarFichaTema();
-        });
-        return boton;
-    }));
-}
-
 // Desde la estrellita de arriba de una letra con algo escrito, el selector Ideas / Sugerencias, arrancando
 // en Ideas; desde la letra vacía o el baúl, solo «Ideas», como siempre (pedidos de Swa).
 function abrirDameTema(conSugerencias = false) {
@@ -2523,12 +2486,6 @@ $('tema-anterior').addEventListener('click', anteriorDelHistorial);
     });
     $('caja-tema').addEventListener('pointercancel', () => { inicio = null; });
 }
-$('tema-categoria').addEventListener('click', () => {
-    renderListaTema();
-    $('tema-ficha').hidden = true;
-    $('tema-lista').hidden = false;
-});
-$('tema-volver').addEventListener('click', mostrarFichaTema);
 $('hoja-tema').addEventListener('click', e => { if (e.target === $('hoja-tema')) cerrarHojaTema(); });
 // El ícono del final de la frase la manda a la nota (y el empujón, si tiene, entre paréntesis).
 $('tema-nota').addEventListener('click', () => {

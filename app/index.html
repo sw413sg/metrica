@@ -1019,8 +1019,8 @@
             <div id="tema-ficha">
                 <div class="chips-tema" id="chips-tema" role="radiogroup" aria-label="Categoría"></div>
                 <div class="caja-tema vidrio" id="caja-tema">
-                    <!-- El nombre de la categoría abre la lista. -->
-                    <button type="button" class="titulo-azar cat-tema" id="tema-categoria" aria-haspopup="listbox"></button>
+                    <!-- El nombre de la categoría solo la dice: ya no abre la lista (se elige con las pastillas; pedido de Swa). -->
+                    <p class="titulo-azar cat-tema" id="tema-categoria"></p>
                     <!-- Al final de la frase, el ícono que la manda a la nota (con el efecto de la palabra tocada). -->
                     <h2 class="texto-tema" id="tema-frase"><span id="tema-texto"></span><span class="final-tema"><span id="tema-ultima"></span><button type="button" class="enviar-tema" id="tema-nota" aria-label="Mandar a la nota"><span></span></button></span></h2>
                     <p class="empujon-tema" id="tema-empujon" hidden></p>
@@ -1040,15 +1040,6 @@
                         </button>
                     </div>
                 </div>
-            </div>
-            <div id="tema-lista" hidden>
-                <div class="cabeza-tema">
-                    <button type="button" class="volver-tema" id="tema-volver" aria-label="Volver">‹</button>
-                    <b>Categoría</b>
-                    <span></span>
-                </div>
-                <div class="caja-tema vidrio lista-tema" id="tema-filas" role="listbox" aria-label="Categoría"></div>
-                <p class="nota-tema">Las que ya usaste salen al final. Todo funciona sin internet.</p>
             </div>
         </div>
     </dialog>
